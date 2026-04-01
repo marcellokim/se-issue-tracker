@@ -1,0 +1,50 @@
+name: Test
+description: 테스트 코드 또는 검증 작업을 정의합니다.
+title: "[Test] "
+labels: ["test", "priority:medium"]
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 목적
+      description: 어떤 테스트가 왜 필요한지 적어주세요.
+      placeholder: 회귀 방지, 경계값 검증, 서비스 검증 등
+    validations:
+      required: true
+  - type: textarea
+    id: work_items
+    attributes:
+      label: 작업 내용
+      description: 추가/수정할 테스트 범위를 적어주세요.
+      placeholder: "- [ ] 단위 테스트 추가\n- [ ] 예외 케이스 검증\n- [ ] CI 확인"
+    validations:
+      required: true
+  - type: textarea
+    id: done_criteria
+    attributes:
+      label: 완료 조건
+      description: 테스트 작업이 끝났다고 판단할 기준을 적어주세요.
+      placeholder: 테스트 추가 완료, CI 통과, 실패 케이스 확인 등
+    validations:
+      required: true
+  - type: input
+    id: related_scope
+    attributes:
+      label: 관련 화면/클래스
+      placeholder: 예) IssueServiceTest, RecommendationEngineTest
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: 담당자
+      placeholder: 예) marcellokim
+    validations:
+      required: true
+  - type: input
+    id: target_date
+    attributes:
+      label: 마감 목표
+      placeholder: 예) 2026-04-10
+    validations:
+      required: true
