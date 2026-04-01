@@ -1,3 +1,18 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# IDE / Editor
+.idea/
+.vscode/
+
+# Local orchestration artifacts
+.omx/
+
+# OS files
+.DS_Store
+
 # Compiled class file
 *.class
 
@@ -12,6 +27,7 @@
 
 # Package Files #
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.nar
 *.ear
@@ -19,6 +35,6 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Virtual machine crash logs
 hs_err_pid*
 replay_pid*

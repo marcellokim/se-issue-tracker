@@ -1,0 +1,50 @@
+name: Docs
+description: 문서화 작업을 정의합니다.
+title: "[Docs] "
+labels: ["docs", "priority:low"]
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 목적
+      description: 왜 문서가 필요한지 적어주세요.
+      placeholder: 발표 준비, 사용법 정리, 설계 근거 정리 등
+    validations:
+      required: true
+  - type: textarea
+    id: work_items
+    attributes:
+      label: 작업 내용
+      description: 작성/수정할 문서 범위를 적어주세요.
+      placeholder: "- [ ] README 보완\n- [ ] UML 추가\n- [ ] 스크린샷 정리"
+    validations:
+      required: true
+  - type: textarea
+    id: done_criteria
+    attributes:
+      label: 완료 조건
+      description: 문서 작업이 끝났다고 판단할 기준을 적어주세요.
+      placeholder: 문서 반영, 리뷰 완료, 발표 자료 반영 여부 등
+    validations:
+      required: true
+  - type: input
+    id: related_scope
+    attributes:
+      label: 관련 화면/클래스
+      placeholder: 예) README, docs/uml, IssueListView
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: 담당자
+      placeholder: 예) marcellokim
+    validations:
+      required: true
+  - type: input
+    id: target_date
+    attributes:
+      label: 마감 목표
+      placeholder: 예) 2026-04-10
+    validations:
+      required: true
