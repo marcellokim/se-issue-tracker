@@ -15,6 +15,19 @@ java_runtime_ready() {
     command -v java >/dev/null 2>&1 && java -version >/dev/null 2>&1
 }
 
+sanitize_member_name() {
+    python3 - "$1" <<'PY'
+import sys
+
+name = sys.argv[1].replace(" ", "_")
+safe = []
+for ch in name:
+    if ch.isalnum() or ch in {"_", "-"}:
+        safe.append(ch)
+print("".join(safe))
+PY
+}
+
 require_tool() {
     if ! command -v "$1" >/dev/null 2>&1; then
         echo "Required tool not found: $1" >&2
@@ -91,7 +104,7 @@ fi
 
 safe_members=()
 for member in "${members[@]}"; do
-    safe_members+=("$(echo "$member" | tr ' ' '_' | sed -E 's/[^A-Za-z0-9_가-힣-]+//g')")
+    safe_members+=("$(sanitize_member_name "$member")")
 done
 
 archive_name="${team_number}_$(IFS=_; echo "${safe_members[*]}")"
