@@ -1,111 +1,234 @@
-# 프로젝트 자동화/생산성 플레이북
+# 프로젝트 자동화 / 생산성 플레이북
 
-이 문서는 **SE_Term_Project_2026-1.pdf** 과제를 수행하기 위해, 구현 이전 단계에서 적용 가능한 자동화와 운영 옵션을 정리한 문서입니다.
+이 문서는 **실 구현 전에 무엇을 자동화해 두었고, 무엇은 일부러 자동화하지 않았는지**를 정리한 운영 기준 문서입니다.  
+목표는 “자동화를 많이 넣는 것”이 아니라, **과제 특성에 맞게 생산성은 높이고 리스크는 줄이는 것**입니다.
 
-## 1. 자동화 목표
-- 3인 팀이 같은 규칙으로 브랜치/이슈/PR을 운영한다.
-- 팀원이 저장소를 clone 한 뒤 **한 번의 bootstrap** 으로 작업 가능한 상태가 된다.
-- GitHub 기록이 평가 자료로 쓰일 수 있도록 이슈-PR-커밋 흐름을 명확히 남긴다.
-- 최종 문서/발표/테스트 준비까지 이어질 수 있는 기본 구조를 미리 만든다.
+---
 
-## 2. 지금 저장소에 구현된 자동화
+## 0. 이 문서의 사용 목적
+이 문서는 아래 상황에서 참고합니다.
+
+- 새 팀원이 “무엇이 자동으로 되고, 무엇은 사람이 해야 하는지” 알고 싶을 때
+- GitHub 설정을 다시 점검해야 할 때
+- 과제 특성상 자동화를 어디까지 허용할지 팀 기준을 맞추고 싶을 때
+- 제출 직전 누락된 자동화/증빙이 없는지 확인하고 싶을 때
+
+---
+
+## 1. 자동화 설계 원칙
+
+### 우리가 자동화한 것
+- 반복 작업
+- 누락되기 쉬운 체크리스트
+- GitHub 협업 이력 정리
+- 제출 패키징
+- 보안/설정 baseline
+
+### 일부러 자동화하지 않은 것
+- UML 설계 근거 생성
+- 유스케이스 서술 자동 생성
+- 발표/Q&A 답변 자동 생성
+- 테스트 목적/의도 설명 자동 생성
+
+이유:
+- 이 과제는 **설계 이해도, 문서 충실도, 발표/Q&A**도 평가 대상이기 때문
+- 과도한 자동화는 오히려 과제 리스크가 될 수 있기 때문
+
+---
+
+## 2. 현재 구현된 자동화 전체 목록
+
+### 2-1. 로컬 개발 자동화
 | 항목 | 상태 | 목적 | 사용 방법 |
 | --- | --- | --- | --- |
+| `scripts/bootstrap.sh` | 구현 | 빠른 초기 세팅 진입점 | `./scripts/bootstrap.sh` |
 | `scripts/bootstrap-dev.sh` | 구현 | 새 팀원 로컬 초기 세팅 | `./scripts/bootstrap-dev.sh` |
-| `.githooks/pre-commit` | 구현 | `main` 직접 커밋 방지, 브랜치 규칙 유도 | bootstrap 시 자동 설치 |
-| `.githooks/pre-push` | 구현 | push 전 `./gradlew test verifyRepositorySetup` 실행 | bootstrap 시 자동 설치 |
-| `scripts/bootstrap-github.sh` | 구현 | label / milestone / project / repo setting / project URL variable 자동화 | `./scripts/bootstrap-github.sh --create-project` |
-| `scripts/start-task.sh` | 구현 | 이슈 번호 기반 브랜치 생성 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
-| `scripts/package-submission.sh` | 구현 | 제출용 zip + README.txt 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
-| `.github/workflows/gradle.yml` | 구현 | PR / push 시 CI 자동 실행 | GitHub Actions |
-| `.github/workflows/pr-labeler.yml` | 구현 | 변경 파일 기준 PR 자동 라벨링 | GitHub Actions |
-| `.github/workflows/add-to-project.yml` | 옵션 구현 | 이슈/PR를 GitHub Project에 자동 추가 | secret + variable 필요 |
-| `.github/dependabot.yml` | 구현 | Gradle / Actions 의존성 자동 PR | GitHub Dependabot |
-| GitHub Security & Analysis 설정 | 구현 | 보안 이벤트 자동 탐지 및 신고 경로 마련 | GitHub 저장소 설정 |
-| `.editorconfig`, `.gitattributes`, `.java-version` | 구현 | 개발 환경 일관성 유지 | clone 후 자동 적용 |
-| `CODEOWNERS` | 기본값 구현 | 리뷰 책임자 자동 요청 기반 | 팀 GitHub handle로 교체 |
-| `build.gradle` custom tasks | 구현 | repo setup / submission metadata 검증 | `./gradlew check`, `verifySubmissionMetadata` |
+| `.githooks/pre-commit` | 구현 | 위험한 브랜치 작업/설정 누락 방지 | bootstrap 시 자동 설치 |
+| `.githooks/pre-push` | 구현 | push 전 테스트/기본 검증 | bootstrap 시 자동 설치 |
+| `.gitmessage.txt` | 구현 | Lore commit protocol 강제 유도 | bootstrap 시 자동 적용 |
+| `scripts/start-task.sh` | 구현 | 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
+| `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
 
-## 2-1. 현재 활성화된 GitHub 보안 자동화
-- Dependabot security updates: **활성화**
-- Secret scanning: **활성화**
-- Secret scanning push protection: **활성화**
-- Private vulnerability reporting: **활성화**
-- GitHub code scanning default setup: **활성화**
+### 2-2. 저장소/구성 자동화
+| 항목 | 상태 | 목적 |
+| --- | --- | --- |
+| `.editorconfig` | 구현 | 줄바꿈/기본 포맷 통일 |
+| `.gitattributes` | 구현 | 텍스트/바이너리 처리 일관성 |
+| `.java-version` | 구현 | Java 버전 기준 명시 |
+| `gradle.properties` | 구현 | Gradle 실행 baseline 설정 |
+| `build.gradle` custom tasks | 구현 | 저장소 준비 상태/제출 metadata 검증 |
 
-아래 항목은 현재 GitHub 측 제약/지원 상태 때문에 활성화되지 않았습니다.
+### 2-3. GitHub 협업 자동화
+| 항목 | 상태 | 목적 |
+| --- | --- | --- |
+| Issue Form | 구현 | 이슈 입력 형식 통일 |
+| Chore 템플릿 | 구현 | 자동화/환경설정 작업 분리 |
+| PR Template | 구현 | 검증/문서/과제 영향 체크 |
+| PR Labeler | 구현 | 변경 영역 자동 분류 |
+| Project auto-add workflow | 부분 구현 | Issue/PR를 Project에 자동 추가 |
+| CODEOWNERS | 기본 구현 | 리뷰 책임자 구조 준비 |
+| bootstrap GitHub 스크립트 | 구현 | label/milestone/project/variable/repo setting 정렬 |
+
+### 2-4. 보안 자동화
+| 항목 | 상태 | 비고 |
+| --- | --- | --- |
+| Dependabot security updates | 활성화 | 의존성 취약점 알림/PR |
+| Secret scanning | 활성화 | 민감정보 탐지 |
+| Secret scanning push protection | 활성화 | push 시점 차단 |
+| Private vulnerability reporting | 활성화 | 비공개 보안 신고 |
+| Code scanning default setup | 활성화 | 현재는 GitHub가 감지한 언어 기준으로 동작 |
+
+---
+
+## 3. 현재 활성화된 GitHub 보안 자동화 상세
+
+### 이미 켜진 것
+- Dependabot security updates
+- Secret scanning
+- Secret scanning push protection
+- Private vulnerability reporting
+- Code scanning default setup
+
+### 현재 비활성 상태인 것
 - Secret scanning non-provider patterns
 - Secret scanning validity checks
 
-## 3. 자동화 옵션 검토 결과
-### 적극 적용한 항목
-1. **CI 자동화**: 테스트 실패를 PR 단계에서 빠르게 발견하기 위해 유지
-2. **PR 라벨 자동화**: 문서/테스트/워크플로우 변경을 즉시 구분
-3. **GitHub bootstrap 스크립트**: 반복적인 label/milestone/project/repo setting 세팅 제거
-4. **로컬 git hooks + commit template**: 실수(main 직접 커밋, 미검증 push) 감소
-5. **Dependabot**: 초기 프로젝트에서도 Gradle/Actions 버전 관리 부담 축소
-6. **Submission packaging**: 제출 직전 수작업 감소
-7. **GitHub 보안 옵션 활성화**: 저장소 수준에서 취약점 탐지/차단 기능 즉시 사용
+이 둘은 GitHub의 지원/플랜/저장소 상태에 따라 바로 활성화되지 않을 수 있습니다.
 
-### 문서화만 한 항목 (수동 또는 토큰 필요)
-1. **Branch protection**
-   - `main`: direct push 금지, PR merge only
-   - `dev`: PR merge only 권장
-   - Required status checks: `build` (Gradle CI workflow의 job 이름)
-2. **GitHub Project 자동화 심화**
-   - Project custom field(Status, Sprint, Owner) 생성
-   - `Backlog -> Ready -> In Progress -> In Review -> Done` 뷰 구성
-   - issue/PR 자동 추가 workflow는 준비되어 있으며 `ADD_TO_PROJECT_PAT` secret 설정 후 활성화됨 (`PROJECT_URL` variable은 bootstrap 스크립트가 자동 동기화)
-3. **CODEOWNERS 실제 팀 반영**
-   - 현재는 `@marcellokim` fallback
-   - 팀원 GitHub ID 확정 시 즉시 교체
-4. **Repository Settings**
-   - Squash merge 사용 여부
-   - PR review 최소 인원
-   - 자동 delete branch 여부
+---
 
-## 4. 왜 일부 자동화는 보류했는가
-| 보류 항목 | 이유 |
+## 4. GitHub bootstrap 스크립트가 실제로 해주는 일
+`./scripts/bootstrap-github.sh --create-project`
+
+### 자동으로 맞추는 항목
+- label 동기화
+- milestone 동기화
+- GitHub Project 확인/생성
+- `PROJECT_URL` variable 동기화
+- `allow_auto_merge=true`
+- `delete_branch_on_merge=true`
+
+### 자동으로 맞추지 않는 항목
+- branch protection 세부 규칙 전체
+- CODEOWNERS 실제 사용자 ID 반영
+- `ADD_TO_PROJECT_PAT` secret
+- Project board view 세부 구성
+
+즉, bootstrap은 **반복 세팅을 줄이는 역할**이고, 최종 운영 정책까지 완전히 대신하진 않습니다.
+
+---
+
+## 5. 왜 이 조합이 과제에 맞는가
+
+### 과제 요구사항과 연결되는 이점
+1. **GitHub history 확보**
+   - Issue / PR / review / merge 이력이 남음
+2. **문서와 코드 동시 추적**
+   - README, docs, tests를 함께 운영 가능
+3. **제출 준비 자동화**
+   - zip / README.txt 생성 실수 감소
+4. **설정 누락 방지**
+   - hooks / bootstrap / verification tasks로 사전 차단
+5. **보안 사고 예방**
+   - secret scanning, push protection, vulnerability reporting 적용
+
+---
+
+## 6. 일부러 보류한 자동화와 이유
+| 항목 | 보류 이유 |
 | --- | --- |
-| 자동 Project 카드 이동 고급 워크플로우 | 기본 auto-add 수준은 구현했지만, 상태 전이까지 완전 자동화하면 과도하게 복잡해짐 |
-| PR 생성 자동화 스크립트 | `gh pr create`는 유용하지만 팀 선호와 리뷰 문화에 따라 차이 큼 |
-| CI 다중 OS 매트릭스 | 현재는 Java skeleton 단계라 과함 |
-| 자동 릴리즈 노트 생성 | 최종 제출 과제에서는 우선순위 낮음 |
-| Docker / devcontainer | 아직 앱 구조와 UI toolkit 조합이 확정되지 않아 비용 대비 이득이 작음 |
-| DB 컨테이너 자동 기동 | 과제는 파일 기반 persistence도 허용하므로 성급한 DB 도입이 오버엔지니어링일 수 있음 |
-| CodeQL / 대형 정적분석 파이프라인 | 구현 전 단계에서는 노이즈가 크고 유지 비용이 높음 |
-| 강제 커밋 메시지 규칙 훅 | 초반 생산성을 해칠 수 있어, 템플릿 중심으로 유도 |
+| 자동 Project 상태 전이 고급 워크플로 | 초기 팀 운영에는 과도하게 복잡함 |
+| PR 생성 스크립트 | 팀의 리뷰 문화/작성 습관에 따라 유연성이 더 중요함 |
+| CI 다중 OS 매트릭스 | Java skeleton 단계에서는 과함 |
+| Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
+| DB 컨테이너 자동 기동 | 과제는 file persistence도 허용 |
+| custom CodeQL workflow | default setup으로 먼저 시작하는 편이 부담이 적음 |
+| 강제 commit rule 훅 강화 | 초반 생산성을 과하게 떨어뜨릴 수 있음 |
 
-## 5. GitHub에서 수동으로 꼭 확인할 설정
-1. **Repository > Settings > Branches**
-   - `main`, `dev` 보호 규칙 생성
-2. **Repository > Settings > General**
-   - Auto-delete head branches 활성화 권장
-   - Squash merge 기본 사용 권장
-3. **Repository > Settings > Actions**
-   - Actions 사용 가능 여부 확인
-   - Repository secret `ADD_TO_PROJECT_PAT` 추가
-   - Repository variable `PROJECT_URL`은 bootstrap 스크립트가 자동 동기화
-4. **GitHub Project**
-   - 뷰: Board / Table / By Assignee
-   - 필드: Status, Priority, Milestone, Assignee, Linked PR
+---
 
-## 6. 추천 운영 흐름
-1. 이슈 생성 (template 사용)
-2. GitHub Project에 상태 반영
-3. `dev` 최신화 후 `feature/...` 브랜치 생성
-4. 구현/문서 작업
-5. PR 생성 → 자동 라벨 + CI 확인
-6. 리뷰 후 `dev` 병합
-7. 데모 가능한 시점마다 `main` 안정화
+## 7. 사람이 직접 해야 하는 항목
+자동화가 있어도 아래는 사람이 책임져야 합니다.
 
-## 7. 추천 운영 결론
-현재 저장소 단계에서는 다음 조합이 가장 현실적입니다.
-- 저장소 내부 자동화: **CI + hooks + commit template + bootstrap + label/milestone/project bootstrap + submission packaging**
-- GitHub 수동 설정: **ruleset + required checks + project field/view 정리 + reviewer policy**
-- 사람이 직접 책임질 부분: **설계 설명, UML, 발표자료, 테스트 목적 서술**
+### 문서/설계
+- 유스케이스 명세
+- UML 설명
+- SSD / Operation Contract 설명
+- 설계 패턴 적용 이유
+- 발표/Q&A 준비
 
-## 8. 최종 제출과 연결되는 이유
-- GitHub issue / PR / project history 자체가 **평가 자료**가 됨
-- CI와 테스트 기록은 **테스트 수행 내역** 정리에 직접 활용 가능
-- README / docs 구조는 **프로젝트 문서, 발표자료, README.txt** 준비의 베이스가 됨
+### GitHub 운영
+- Project 뷰 다듬기
+- 팀원 권한 조정
+- CODEOWNERS 실제 ID 반영
+- 최종 milestone 정리
+
+### 제출 품질 관리
+- 데모 시나리오 검토
+- 발표 자료 완성도
+- README.txt 최종 점검
+
+---
+
+## 8. 현재 기준에서 “남은 수동 체크”
+아래는 자동화가 전부 대체하지 않는 항목입니다.
+
+1. **`ADD_TO_PROJECT_PAT` secret 추가 여부 결정**
+2. **CODEOWNERS 실제 팀원 ID 반영**
+3. **GitHub Project Board/Table 최종 뷰 정리**
+4. **최종 제출 직전 `./gradlew check` + 패키징 재실행**
+5. **문서/발표/Q&A 산출물의 사람 검토**
+
+---
+
+## 9. 추천 운영 흐름
+1. bootstrap 실행
+2. GitHub bootstrap 실행
+3. 이슈 생성
+4. 브랜치 생성
+5. 구현/문서/테스트
+6. PR 생성
+7. CI 확인
+8. 리뷰/승인
+9. `dev` 병합
+10. 제출 직전 `main` 안정화 및 패키징
+
+---
+
+## 10. 구현 시작 전에 꼭 확인할 것
+- [ ] 팀원 모두 Java 21 / Git / gh 준비
+- [ ] GitHub Project 접근 가능
+- [ ] `dev`에서 브랜치 생성 흐름 정상 작동
+- [ ] PR 시 `build` 체크가 실제로 보임
+- [ ] issue template / PR template이 default branch 기준으로 최신 상태
+- [ ] 보안 옵션(특히 secret scanning / push protection) 활성 상태 유지
+
+---
+
+## 11. 유지보수 팁
+
+### 문서를 갱신해야 하는 순간
+- 스크립트 사용법이 바뀔 때
+- 브랜치 전략이 바뀔 때
+- 리뷰 정책이 바뀔 때
+- 제출 형식이 바뀔 때
+- GitHub Project 운영 방식이 바뀔 때
+
+### 자동화를 점검해야 하는 순간
+- CI가 자주 깨질 때
+- 팀원이 새로 합류할 때
+- GitHub Actions 경고(예: deprecated runtime)가 뜰 때
+- 보안 기능 상태가 바뀔 때
+
+---
+
+## 12. 핵심 결론
+이 저장소의 자동화는 **“실 구현 전에 필요한 생산성/품질/보안 baseline”** 을 만드는 데 초점을 맞췄습니다.
+
+즉,
+- 반복 작업은 자동화하고
+- 제출 실수는 줄이고
+- GitHub 협업 이력은 잘 남기고
+- 설계/문서/발표의 핵심 판단은 사람이 맡도록 설계했습니다.
+
+이것이 현재 과제 단계에서 가장 현실적인 자동화 전략입니다.
