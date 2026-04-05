@@ -13,10 +13,23 @@ permissions:
 
 jobs:
   add-to-project:
-    if: ${{ vars.PROJECT_URL != '' && secrets.ADD_TO_PROJECT_PAT != '' }}
     runs-on: ubuntu-latest
     steps:
+      - name: 설정 확인
+        id: preflight
+        env:
+          PROJECT_URL: ${{ vars.PROJECT_URL }}
+          ADD_TO_PROJECT_PAT: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        run: |
+          if [ -z "${PROJECT_URL}" ] || [ -z "${ADD_TO_PROJECT_PAT}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "PROJECT_URL 또는 ADD_TO_PROJECT_PAT가 없어 Project 자동 추가를 건너뜁니다."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Add item to GitHub Project
+        if: steps.preflight.outputs.enabled == 'true'
         uses: actions/add-to-project@v1.0.2
         with:
           project-url: ${{ vars.PROJECT_URL }}
