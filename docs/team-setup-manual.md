@@ -181,6 +181,16 @@ Project 이름 예시:
 - `ADD_TO_PROJECT_PAT` secret 추가 시 Project auto-add 활성화
 - `PROJECT_URL` variable은 bootstrap 스크립트가 자동 동기화
 
+## 10-4. 보안 기능
+현재 저장소에는 아래 GitHub 보안 옵션이 활성화되어 있습니다.
+- Dependabot security updates
+- Secret scanning
+- Secret scanning push protection
+- Private vulnerability reporting
+- GitHub code scanning 기본 설정
+
+민감한 보안 이슈는 공개 Issue 대신 `SECURITY.md`에 적힌 방식으로 보고하세요.
+
 ## 11. 과제 요구사항과 연결해서 주의할 점
 - Java로 구현해야 함
 - MVC 구조를 문서와 코드에서 모두 드러내야 함

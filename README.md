@@ -71,6 +71,7 @@ cd se-2026-1-term-project-issue-tracker
 - **Issue Form → GitHub Project 자동 등록**
 - **PR 자동 라벨링**: 변경 파일 경로 기준 라벨 부여
 - **Gradle CI**: `./gradlew clean check`
+- **보안 자동화**: Dependabot 보안 업데이트, secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
 - **Dependabot**: Gradle / GitHub Actions 주간 업데이트 제안
 - **Git hooks**: pre-commit / pre-push 검증
 - **Commit template**: Lore commit protocol 템플릿 자동 적용
@@ -80,6 +81,7 @@ cd se-2026-1-term-project-issue-tracker
 ## 7. 주요 문서
 - [사용 설명서 / 팀 운영 가이드](docs/team-setup-manual.md)
 - [자동화 옵션 조사 및 적용 현황](docs/automation-playbook.md)
+- [보안 정책](SECURITY.md)
 - [기본 가정 문서](docs/assumptions.md)
 - [Q&A / 의사결정 기록](docs/qna.md)
 

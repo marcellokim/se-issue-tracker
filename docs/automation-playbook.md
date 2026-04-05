@@ -21,9 +21,21 @@
 | `.github/workflows/pr-labeler.yml` | 구현 | 변경 파일 기준 PR 자동 라벨링 | GitHub Actions |
 | `.github/workflows/add-to-project.yml` | 옵션 구현 | 이슈/PR를 GitHub Project에 자동 추가 | secret + variable 필요 |
 | `.github/dependabot.yml` | 구현 | Gradle / Actions 의존성 자동 PR | GitHub Dependabot |
+| GitHub Security & Analysis 설정 | 구현 | 보안 이벤트 자동 탐지 및 신고 경로 마련 | GitHub 저장소 설정 |
 | `.editorconfig`, `.gitattributes`, `.java-version` | 구현 | 개발 환경 일관성 유지 | clone 후 자동 적용 |
 | `CODEOWNERS` | 기본값 구현 | 리뷰 책임자 자동 요청 기반 | 팀 GitHub handle로 교체 |
 | `build.gradle` custom tasks | 구현 | repo setup / submission metadata 검증 | `./gradlew check`, `verifySubmissionMetadata` |
+
+## 2-1. 현재 활성화된 GitHub 보안 자동화
+- Dependabot security updates: **활성화**
+- Secret scanning: **활성화**
+- Secret scanning push protection: **활성화**
+- Private vulnerability reporting: **활성화**
+- GitHub code scanning default setup: **활성화**
+
+아래 항목은 현재 GitHub 측 제약/지원 상태 때문에 활성화되지 않았습니다.
+- Secret scanning non-provider patterns
+- Secret scanning validity checks
 
 ## 3. 자동화 옵션 검토 결과
 ### 적극 적용한 항목
@@ -33,6 +45,7 @@
 4. **로컬 git hooks + commit template**: 실수(main 직접 커밋, 미검증 push) 감소
 5. **Dependabot**: 초기 프로젝트에서도 Gradle/Actions 버전 관리 부담 축소
 6. **Submission packaging**: 제출 직전 수작업 감소
+7. **GitHub 보안 옵션 활성화**: 저장소 수준에서 취약점 탐지/차단 기능 즉시 사용
 
 ### 문서화만 한 항목 (수동 또는 토큰 필요)
 1. **Branch protection**

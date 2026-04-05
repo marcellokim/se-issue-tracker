@@ -1,4 +1,4 @@
-name: Add Issues and PRs to Project
+name: Project 자동 추가
 
 on:
   issues:
