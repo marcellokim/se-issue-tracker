@@ -1,10 +1,15 @@
-name: Java CI with Gradle
+name: Gradle CI
 
 on:
   push:
-    branches: [ "dev", "main", "feature/**" ]
+    branches: ["main", "dev", "feature/**", "docs/**", "chore/**"]
   pull_request:
-    branches: [ "dev", "main" ]
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+concurrency:
+  group: gradle-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -14,7 +19,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -22,8 +31,17 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Setup Gradle
+      - name: Set up Gradle caching
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and test
-        run: ./gradlew test
+      - name: Run test pipeline
+        run: ./gradlew --stacktrace clean ci
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-test-reports
+          path: |
+            build/reports/tests/test
+            build/test-results/test

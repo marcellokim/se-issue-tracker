@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+java_runtime_ready() {
+    command -v java >/dev/null 2>&1 && java -version >/dev/null 2>&1
+}
+
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$current_branch" == "main" ]]; then
+    echo "[pre-commit] main 브랜치 직접 커밋은 금지입니다. feature/* 또는 docs/* 브랜치에서 작업하세요."
+    exit 1
+fi
+
+staged_files="$(git diff --cached --name-only)"
+if [[ -z "$staged_files" ]]; then
+    exit 0
+fi
+
+if [[ "$current_branch" != "dev" && ! "$current_branch" =~ ^(feature|docs|test|chore)/[a-z0-9._-]+$ ]]; then
+    echo "[pre-commit] 브랜치 이름 권장 형식: feature/<issue>-<slug>, docs/<slug>, test/<slug>, chore/<slug>"
+fi
+
+if ! java_runtime_ready; then
+    echo "[pre-commit] Java가 없어 Gradle 검증을 건너뜁니다. CI에서 다시 검증됩니다."
+    exit 0
+fi
+
+echo "[pre-commit] 저장소 자동화 구성을 점검합니다..."
+./gradlew -q verifyRepositorySetup

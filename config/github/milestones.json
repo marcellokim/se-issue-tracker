@@ -1,0 +1,18 @@
+[
+  {
+    "title": "M1 - Mid Setup & Requirements",
+    "description": "GitHub 프로젝트 운영 안정화, 요구사항 분석, 초기 UML/유스케이스 정리"
+  },
+  {
+    "title": "M2 - Core Model & Persistence",
+    "description": "도메인 모델, persistence, 서비스 로직, 테스트 기반 구축"
+  },
+  {
+    "title": "M3 - Dual UI Integration",
+    "description": "2개 이상의 UI toolkit 연결, 시나리오 데모 가능 상태 확보"
+  },
+  {
+    "title": "M4 - Final Submission Pack",
+    "description": "최종 문서, 테스트, 발표자료, 영상, 제출 패키지 정리"
+  }
+]

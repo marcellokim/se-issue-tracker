@@ -1,7 +1,8 @@
 name: Docs
 description: 문서화 작업을 정의합니다.
 title: "[Docs] "
-labels: ["docs", "priority:low"]
+labels: ["type:docs", "priority:low", "area:documentation"]
+projects: ["marcellokim/1"]
 body:
   - type: textarea
     id: purpose
@@ -30,8 +31,8 @@ body:
   - type: input
     id: related_scope
     attributes:
-      label: 관련 화면/클래스
-      placeholder: 예) README, docs/uml, IssueListView
+      label: 관련 문서/화면
+      placeholder: 예) README, docs/uml, 발표 슬라이드
     validations:
       required: true
   - type: input
