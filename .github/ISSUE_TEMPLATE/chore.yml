@@ -1,0 +1,44 @@
+name: Chore
+description: 환경설정, 자동화, 리팩터링 작업을 정의합니다.
+title: "[Chore] "
+labels: ["type:chore", "priority:medium", "area:automation"]
+projects: ["marcellokim/1"]
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 목적
+      description: 왜 이 환경설정/자동화 작업이 필요한지 적어주세요.
+      placeholder: 협업 속도 향상, 제출 품질 확보, 반복 작업 제거 등
+    validations:
+      required: true
+  - type: textarea
+    id: work_items
+    attributes:
+      label: 작업 내용
+      description: 수행할 세부 작업을 적어주세요.
+      placeholder: "- [ ] CI 보강\n- [ ] 라벨 동기화\n- [ ] 훅 스크립트 추가"
+    validations:
+      required: true
+  - type: textarea
+    id: done_criteria
+    attributes:
+      label: 완료 조건
+      description: 작업 완료 기준을 적어주세요.
+      placeholder: 스크립트 실행 성공, 문서 반영, 팀 적용 완료 등
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: 담당자
+      placeholder: 예) marcellokim
+    validations:
+      required: true
+  - type: input
+    id: target_date
+    attributes:
+      label: 마감 목표
+      placeholder: 예) 2026-04-10
+    validations:
+      required: true

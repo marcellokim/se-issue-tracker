@@ -1,0 +1,162 @@
+[
+  {
+    "name": "type:feature",
+    "color": "1D76DB",
+    "description": "New feature or enhancement"
+  },
+  {
+    "name": "type:bug",
+    "color": "D73A4A",
+    "description": "Bug fix"
+  },
+  {
+    "name": "type:test",
+    "color": "5319E7",
+    "description": "Testing or validation work"
+  },
+  {
+    "name": "type:docs",
+    "color": "0E8A16",
+    "description": "Documentation work"
+  },
+  {
+    "name": "type:chore",
+    "color": "6F42C1",
+    "description": "Setup, refactor, or maintenance work"
+  },
+  {
+    "name": "priority:high",
+    "color": "B60205",
+    "description": "High priority"
+  },
+  {
+    "name": "priority:medium",
+    "color": "FBCA04",
+    "description": "Medium priority"
+  },
+  {
+    "name": "priority:low",
+    "color": "0E8A16",
+    "description": "Low priority"
+  },
+  {
+    "name": "status:backlog",
+    "color": "D4C5F9",
+    "description": "Waiting in backlog"
+  },
+  {
+    "name": "status:ready",
+    "color": "BFDADC",
+    "description": "Ready to start"
+  },
+  {
+    "name": "status:in-progress",
+    "color": "0052CC",
+    "description": "Currently in progress"
+  },
+  {
+    "name": "status:review",
+    "color": "5319E7",
+    "description": "In review or QA"
+  },
+  {
+    "name": "status:done",
+    "color": "0E8A16",
+    "description": "Completed"
+  },
+  {
+    "name": "role:admin",
+    "color": "C2E0C6",
+    "description": "Admin-facing work"
+  },
+  {
+    "name": "role:pl",
+    "color": "F9D0C4",
+    "description": "PL-facing work"
+  },
+  {
+    "name": "role:dev",
+    "color": "FEF2C0",
+    "description": "Developer-facing work"
+  },
+  {
+    "name": "role:tester",
+    "color": "C5DEF5",
+    "description": "Tester-facing work"
+  },
+  {
+    "name": "area:automation",
+    "color": "BFD4F2",
+    "description": "GitHub or tooling automation"
+  },
+  {
+    "name": "area:documentation",
+    "color": "C2E0C6",
+    "description": "Documentation or deliverable artifact"
+  },
+  {
+    "name": "area:ui",
+    "color": "F9D0C4",
+    "description": "UI or presentation layer"
+  },
+  {
+    "name": "area:domain",
+    "color": "FBCA04",
+    "description": "Domain/model/service logic"
+  },
+  {
+    "name": "area:persistence",
+    "color": "0052CC",
+    "description": "Persistence or repository layer"
+  },
+  {
+    "name": "area:analytics",
+    "color": "5319E7",
+    "description": "Statistics or trend analysis"
+  },
+  {
+    "name": "area:recommendation",
+    "color": "D876E3",
+    "description": "Assignee recommendation logic"
+  },
+  {
+    "name": "docs",
+    "color": "0E8A16",
+    "description": "Documentation PR label"
+  },
+  {
+    "name": "workflow",
+    "color": "BFDADC",
+    "description": "Workflow or GitHub process changes"
+  },
+  {
+    "name": "backend",
+    "color": "0052CC",
+    "description": "Backend or domain logic work"
+  },
+  {
+    "name": "ui",
+    "color": "C5DEF5",
+    "description": "User interface work"
+  },
+  {
+    "name": "test",
+    "color": "5319E7",
+    "description": "Testing work"
+  },
+  {
+    "name": "architecture",
+    "color": "6F42C1",
+    "description": "Architecture and design decisions"
+  },
+  {
+    "name": "dependencies",
+    "color": "0366D6",
+    "description": "Dependency or toolchain updates"
+  },
+  {
+    "name": "infra",
+    "color": "5319E7",
+    "description": "Build, CI, automation, or repository infrastructure"
+  }
+]

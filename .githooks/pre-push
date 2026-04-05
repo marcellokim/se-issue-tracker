@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+java_runtime_ready() {
+    command -v java >/dev/null 2>&1 && java -version >/dev/null 2>&1
+}
+
+if [[ "${SKIP_GRADLE_PREPUSH:-0}" == "1" ]]; then
+    echo "[pre-push] SKIP_GRADLE_PREPUSH=1 이 설정되어 로컬 검증을 건너뜁니다."
+    exit 0
+fi
+
+if ! java_runtime_ready; then
+    echo "[pre-push] Java가 없어 로컬 테스트를 건너뜁니다. push 후 GitHub Actions 결과를 반드시 확인하세요."
+    exit 0
+fi
+
+echo "[pre-push] test + repository setup 검증을 수행합니다..."
+./gradlew test verifyRepositorySetup

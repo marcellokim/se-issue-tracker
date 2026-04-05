@@ -1,0 +1,7 @@
+# 팀원이 확정되면 GitHub 핸들을 실제 값으로 교체하세요.
+* @marcellokim
+/.github/ @marcellokim
+/config/ @marcellokim
+/docs/ @marcellokim
+/scripts/ @marcellokim
+/src/test/ @marcellokim

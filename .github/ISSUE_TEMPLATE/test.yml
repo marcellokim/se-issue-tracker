@@ -1,7 +1,8 @@
 name: Test
 description: 테스트 코드 또는 검증 작업을 정의합니다.
 title: "[Test] "
-labels: ["test", "priority:medium"]
+labels: ["type:test", "priority:medium"]
+projects: ["marcellokim/1"]
 body:
   - type: textarea
     id: purpose
