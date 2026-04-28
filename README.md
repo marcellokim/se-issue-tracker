@@ -1,4 +1,4 @@
-# SE 2026-1 Term Project - Issue Tracker
+# SE 2026-1 텀프로젝트 - 이슈 관리 시스템
 
 소프트웨어공학 2026-1 텀 프로젝트 **이슈 관리 시스템(ITS)** 저장소입니다.  
 이 저장소는 과제 구현뿐 아니라 **GitHub 협업 흐름, 제출 준비, 문서화, 자동화 운영**까지 한 곳에서 관리하도록 구성되어 있습니다.
@@ -8,7 +8,7 @@
 - **구현 언어**: Java
 - **최종 제출 마감**: 2026-06-02 21:00
 - **발표 일정**: 2026-06-03 / 2026-06-08 수업 시간
-- **GitHub 저장소**: <https://github.com/marcellokim/se-2026-1-term-project-issue-tracker>
+- **GitHub 저장소**: <https://github.com/marcellokim/se-issue-tracker>
 - **GitHub Project**: <https://github.com/users/marcellokim/projects/1>
 
 ## 2. 팀 정보
@@ -17,7 +17,7 @@
 | 저장소 관리자 | marcellokim |
 | 팀 구성 | 3인 팀 |
 | 추가 팀원 정보 | 최종 제출용 README.txt, 보고서 표지, 발표 자료에 맞춰 반영 |
-| 작업 방식 | Issue → Branch → PR → Review → Merge |
+| 작업 방식 | 이슈 생성 → 브랜치 생성 → PR 작성 → 리뷰 → 병합 |
 
 ## 3. 과제 핵심 요구사항 요약
 `SE_Term_Project_2026-1.pdf` 기준 핵심 요구사항:
@@ -32,9 +32,9 @@
 
 ## 4. 현재 저장소 상태
 - [x] Gradle + Java 21 기본 골격
-- [x] GitHub Issue / PR 템플릿
+- [x] GitHub 이슈 / PR 템플릿
 - [x] GitHub Actions CI / PR 자동 라벨링 / Dependabot
-- [x] bootstrap / git hook / label sync / submission packaging 스크립트
+- [x] 초기 세팅 / git hook / 라벨 동기화 / 제출 패키징 스크립트
 - [x] 사용자용 운영 가이드 및 자동화 옵션 문서
 - [ ] 도메인 모델 구현
 - [ ] UI(JavaFX + Swing) 구현
@@ -50,8 +50,8 @@
 
 ### 빠른 시작
 ```bash
-git clone https://github.com/marcellokim/se-2026-1-term-project-issue-tracker.git
-cd se-2026-1-term-project-issue-tracker
+git clone https://github.com/marcellokim/se-issue-tracker.git
+cd se-issue-tracker
 ./scripts/bootstrap.sh
 ```
 
@@ -68,18 +68,20 @@ cd se-2026-1-term-project-issue-tracker
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.
 
-- **Issue Form → GitHub Project 자동 등록**
+- **이슈 양식 → GitHub Project 자동 등록**
 - **PR 자동 라벨링**: 변경 파일 경로 기준 라벨 부여
 - **Gradle CI**: `./gradlew clean check`
-- **보안 자동화**: Dependabot 보안 업데이트, secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
+- **보안 자동화**: Dependabot 보안 업데이트, Secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
 - **Dependabot**: Gradle / GitHub Actions 주간 업데이트 제안
-- **Git hooks**: pre-commit / pre-push 검증
-- **Commit template**: Lore commit protocol 템플릿 자동 적용
-- **Label sync / GitHub bootstrap 스크립트**
-- **Submission zip 스크립트**: 제출 형식 zip + `README.txt` 자동 생성
+- **Git hook**: pre-commit / pre-push 검증
+- **커밋 메시지 템플릿**: Lore commit protocol 형식 자동 적용
+- **라벨 동기화 / GitHub 초기 설정 스크립트**
+- **제출 zip 스크립트**: 제출 형식 zip + `README.txt` 자동 생성
 
 ## 7. 주요 문서
 - [사용 설명서 / 팀 운영 가이드](docs/team-setup-manual.md)
+- [요구사항 추적표](docs/requirements-traceability.md)
+- [프로젝트 관리 계획](docs/project-management-plan.md)
 - [자동화 옵션 조사 및 적용 현황](docs/automation-playbook.md)
 - [보안 정책](SECURITY.md)
 - [기본 가정 문서](docs/assumptions.md)
@@ -88,12 +90,12 @@ cd se-2026-1-term-project-issue-tracker
 ## 8. 저장소 구조
 ```text
 .
-├─ .github/                 # Issue/PR template, Actions, CODEOWNERS
-├─ .githooks/               # pre-commit / pre-push hooks
-├─ config/github/           # label / milestone 정의
+├─ .github/                 # 이슈/PR 템플릿, Actions, CODEOWNERS
+├─ .githooks/               # pre-commit / pre-push hook
+├─ config/github/           # 라벨 / 마일스톤 정의
 ├─ docs/                    # 과제 문서, 사용 가이드, UML, 스크린샷
 ├─ gradle/                  # Gradle wrapper
-├─ scripts/                 # bootstrap, branch, label, submission automation
+├─ scripts/                 # 초기 세팅, 브랜치, 라벨, 제출 자동화
 ├─ src/main/java/           # 애플리케이션 소스
 ├─ src/test/java/           # JUnit 테스트
 ├─ build.gradle
@@ -123,7 +125,7 @@ cd se-2026-1-term-project-issue-tracker
 - `main`: 제출 가능한 안정 버전
 - `dev`: 통합 브랜치
 - `feature/<issue>-<slug>`: 개인 작업 브랜치
-- 모든 작업은 **Issue 생성 → Branch 생성 → PR 리뷰 → Merge** 순서로 진행
+- 모든 작업은 **이슈 생성 → 브랜치 생성 → PR 작성 → 리뷰 → 병합** 순서로 진행
 - 구현 내용은 문서, 스크린샷, 테스트와 함께 남깁니다.
 
 ## 11. 제출 직전 반드시 확인할 것
