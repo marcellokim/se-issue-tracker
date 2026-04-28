@@ -1,0 +1,52 @@
+area:documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'README.md'
+          - 'docs/**'
+
+type:test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/test/**'
+
+area:automation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - '.githooks/**'
+          - 'scripts/**'
+          - 'build.gradle'
+          - 'settings.gradle'
+          - 'gradle.properties'
+          - 'gradle/**'
+          - '.editorconfig'
+          - '.gitattributes'
+          - '.java-version'
+
+area:ui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/**/ui/**'
+          - 'src/main/resources/**'
+
+area:domain:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/**/domain/**'
+          - 'src/main/java/**/service/**'
+
+area:persistence:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/**/repository/**'
+          - 'src/main/java/**/persistence/**'
+
+area:analytics:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/**/analytics/**'
+
+area:recommendation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/**/recommendation/**'

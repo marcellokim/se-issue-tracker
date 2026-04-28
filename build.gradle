@@ -15,6 +15,106 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
+def requiredAutomationPaths = [
+    '.editorconfig',
+    '.gitattributes',
+    '.java-version',
+    '.gitmessage.txt',
+    'gradle.properties',
+    '.githooks/pre-commit',
+    '.githooks/pre-push',
+    '.github/CODEOWNERS',
+    '.github/dependabot.yml',
+    '.github/labeler.yml',
+    '.github/workflows/add-to-project.yml',
+    '.github/workflows/gradle.yml',
+    '.github/workflows/pr-labeler.yml',
+    'config/github/labels.json',
+    'config/github/milestones.json',
+    'scripts/bootstrap.sh',
+    'scripts/bootstrap-github.sh',
+    'scripts/install-git-hooks.sh',
+    'scripts/start-task.sh',
+    'scripts/sync-labels.sh',
+    'scripts/package-submission.sh',
+    'docs/team-setup-manual.md',
+    'docs/automation-playbook.md',
+    'docs/templates/submission-readme.txt.template'
+]
+
+def submissionMarkers = ['생성 후 링크 업데이트 예정', '제출 직전에 입력', '확정 후 업데이트']
+
+tasks.register('verifyRepositorySetup') {
+    group = 'verification'
+    description = 'Checks that repository automation files and guides required for this project exist.'
+
+    doLast {
+        def missingPaths = requiredAutomationPaths.findAll { !file(it).exists() }
+        if (!missingPaths.isEmpty()) {
+            throw new GradleException("Missing required automation paths:\n - ${missingPaths.join('\n - ')}")
+        }
+
+        println "Repository setup verified (${requiredAutomationPaths.size()} required paths found)."
+    }
+}
+
+tasks.register('verifySubmissionMetadata') {
+    group = 'verification'
+    description = 'Fails if the root README still contains placeholder text that should be replaced before final submission.'
+
+    doLast {
+        def readme = file('README.md').getText('UTF-8')
+        def hits = submissionMarkers.findAll { readme.contains(it) }
+        if (!hits.isEmpty()) {
+            throw new GradleException("README.md still has submission placeholders: ${hits.join(', ')}")
+        }
+
+        println 'README submission metadata looks complete.'
+    }
+}
+
+tasks.register('submissionChecklist') {
+    group = 'help'
+    description = 'Prints the recommended commands for pre-submission validation.'
+
+    doLast {
+        println 'Recommended pre-submission flow:'
+        println '  1) ./gradlew clean check'
+        println '  2) ./gradlew verifySubmissionMetadata'
+        println '  3) ./scripts/package-submission.sh --team-number <n> --member <name1> --member <name2> [...] --project-url https://github.com/users/marcellokim/projects/1'
+    }
+}
+
+tasks.register('preflight') {
+    group = 'verification'
+    description = 'Runs the most important local checks before opening a pull request.'
+    dependsOn 'check'
+}
+
+tasks.named('check') {
+    dependsOn 'verifyRepositorySetup'
+}
+
+tasks.register('ci') {
+    group = 'verification'
+    description = 'Runs the CI-equivalent verification tasks.'
+    dependsOn 'clean', 'check'
 }
