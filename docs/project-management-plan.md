@@ -41,25 +41,27 @@
 
 이슈 본문은 길어도 괜찮지만, 최종 보고서처럼 완성된 문장일 필요는 없습니다. 팀원이 작업을 시작할 때 헷갈리지 않는 정도가 가장 중요합니다.
 
+이슈 제목과 Project의 Type 값은 GitHub에서 흔히 쓰는 `feature`, `bug`, `docs`, `test`, `chore`를 사용합니다. 설명과 완료 기준은 한국어로 적어 팀원이 바로 이해할 수 있게 유지합니다.
+
 ## 현재 초기 작업 목록
 
 | 이슈 | 마일스톤 | 성격 |
 | --- | --- | --- |
-| [#13](https://github.com/marcellokim/se-issue-tracker/issues/13) 과제 PDF 요구사항 추적표와 팀 가정 정리 | M1 | 문서/관리 |
-| [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) 유스케이스 다이어그램과 핵심 유스케이스 6개 명세 작성 | M1 | 분석 |
-| [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) 도메인 모델, SSD, Operation Contract 초안 작성 | M1 | 분석/설계 |
-| [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) 계정, 역할, 프로젝트 기본 모델 구현 | M2 | 구현 |
-| [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | M2 | 구현 |
-| [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) 파일 기반 영속 저장소와 데모 초기 데이터 준비 | M2 | 구현 |
-| [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | M2 | 구현 |
-| [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) 이슈 배정과 상태 변경 흐름 구현 | M2 | 구현 |
-| [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) 일/월별 이슈 통계와 trend 조회 구현 | M2 | 구현 |
-| [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | M2 | 구현 |
-| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) JavaFX 메인 UI로 기본 사용자 흐름 구현 | M3 | UI |
-| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 보조 UI로 모델 재사용 구조 입증 | M3 | UI |
-| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | M4 | 테스트 |
-| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | M4 | 제출 |
-| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 자동 등록과 진행 이력 캡처 준비 | M1 | 운영 |
+| [#13](https://github.com/marcellokim/se-issue-tracker/issues/13) [docs] 과제 PDF 요구사항 추적표와 팀 가정 정리 | M1 | docs/management |
+| [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) [docs] 유스케이스 다이어그램과 핵심 유스케이스 6개 명세 작성 | M1 | docs/analysis |
+| [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) [docs] 도메인 모델, SSD, Operation Contract 초안 작성 | M1 | docs/design |
+| [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) [feature] 계정, 역할, 프로젝트 기본 모델 구현 | M2 | feature |
+| [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) [feature] 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | M2 | feature |
+| [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) [feature] 파일 기반 영속 저장소와 데모 초기 데이터 준비 | M2 | feature |
+| [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) [feature] 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | M2 | feature |
+| [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) [feature] 이슈 배정과 상태 변경 흐름 구현 | M2 | feature |
+| [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) [feature] 일/월별 이슈 통계와 trend 조회 구현 | M2 | feature |
+| [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) [feature] 해결 이력 기반 assignee 추천 기능 구현 | M2 | feature |
+| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) [feature] JavaFX 메인 UI로 기본 사용자 흐름 구현 | M3 | feature/UI |
+| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) [feature] Swing 보조 UI로 모델 재사용 구조 입증 | M3 | feature/UI |
+| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) [test] 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | M4 | test |
+| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) [docs] 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | M4 | docs/submission |
+| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) [chore] GitHub Project 자동 등록과 진행 이력 캡처 준비 | M1 | chore |
 
 ## 진행 순서 제안
 

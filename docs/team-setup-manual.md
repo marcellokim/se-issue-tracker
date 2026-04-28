@@ -172,11 +172,11 @@ feature/18-recommendation-engine
 ## 5. 이슈 작성 가이드
 
 ### 현재 제공되는 이슈 유형
-- 기능
-- 버그
-- 테스트
-- 문서
-- 정비
+- `feature`
+- `bug`
+- `test`
+- `docs`
+- `chore`
 
 ### 모든 이슈에 공통으로 적어야 하는 것
 - 목적
@@ -187,10 +187,10 @@ feature/18-recommendation-engine
 - 관련 화면/클래스/문서 범위
 
 ### 좋은 이슈 예시
-- `기능`: “PL이 new 상태 이슈를 조회하고 assignee를 지정할 수 있도록 한다”
-- `버그`: “fixed -> resolved 상태 전환 후 reporter 검색이 누락되는 문제 수정”
-- `문서`: “SSD 2개와 Operation Contract 2개를 문서에 추가”
-- `정비`: “GitHub project 워크플로우 및 label 정리”
+- `feature`: “PL이 new 상태 이슈를 조회하고 assignee를 지정할 수 있도록 한다”
+- `bug`: “fixed -> resolved 상태 전환 후 reporter 검색이 누락되는 문제 수정”
+- `docs`: “SSD 2개와 Operation Contract 2개를 문서에 추가”
+- `chore`: “GitHub project 워크플로우 및 label 정리”
 
 ---
 
@@ -252,9 +252,9 @@ SKIP_GRADLE_PREPUSH=1 git push
 - **완료**: 병합 완료, 문서 반영 완료
 
 ### 권장 필드
-- 유형
-- 우선순위
-- 담당
+- Type
+- Priority
+- Owner
 - 마일스톤
 
 ### 권장 운영 방식
