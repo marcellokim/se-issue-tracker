@@ -80,6 +80,8 @@ cd se-2026-1-term-project-issue-tracker
 
 ## 7. 주요 문서
 - [사용 설명서 / 팀 운영 가이드](docs/team-setup-manual.md)
+- [요구사항 추적표](docs/requirements-traceability.md)
+- [프로젝트 관리 계획](docs/project-management-plan.md)
 - [자동화 옵션 조사 및 적용 현황](docs/automation-playbook.md)
 - [보안 정책](SECURITY.md)
 - [기본 가정 문서](docs/assumptions.md)

@@ -3,13 +3,26 @@
 이 문서는 텀 프로젝트 초기에 합의한 기본 가정을 정리합니다. 구현이 진행되면서 바뀌면 PR과 함께 갱신합니다.
 
 ## 상태 전이 정의
-기본 이슈 상태 흐름은 다음과 같이 가정합니다.
+상태 이름은 두 층에서 분리해서 사용합니다.
+
+### 애플리케이션 이슈 상태
+과제 PDF의 최소 상태 목록은 다음과 같습니다.
+
+`new -> assigned -> resolved -> closed`
+
+보조 상태/흐름:
+- `reopened`는 닫혔거나 해결된 이슈가 다시 열릴 때 사용합니다.
+- PDF 예제 시나리오에는 dev가 작업 후 이슈를 `fixed`로 바꾼다는 표현이 있으나, 최소 상태 목록에는 `fixed`가 없습니다.
+- 초기 구현에서는 `fixed`를 별도 영속 상태로 둘지, dev가 fixer로 기록되고 tester가 `resolved`로 넘기기 전의 중간 이벤트로 볼지 팀 설계에서 확정합니다.
+
+### GitHub Project 작업 상태
+GitHub Project에서 팀 작업을 관리할 때는 다음 흐름을 사용합니다.
 
 `Backlog -> Ready -> In Progress -> In Review -> Done`
 
 보조 규칙:
-- 구현 전에는 반드시 Issue를 생성합니다.
-- PR이 열리면 기본 상태는 `In Review`로 이동합니다.
+- 구현 전에는 가능한 한 GitHub Issue를 생성합니다.
+- PR이 열리면 Project 상태는 `In Review`로 이동합니다.
 - PR이 머지되고 관련 이슈가 닫히면 `Done`으로 이동합니다.
 
 ## 저장소 방식 (File Persistence)
