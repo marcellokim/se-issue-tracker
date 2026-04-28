@@ -43,3 +43,7 @@ SE_Term_Project_2026-1.pdf
 
 # Windows/WSL downloaded-file metadata
 *:Zone.Identifier
+
+# Python cache
+__pycache__/
+*.py[cod]

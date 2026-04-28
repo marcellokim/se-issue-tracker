@@ -1,24 +1,24 @@
 # 요구사항 추적표
 
-이 문서는 `docs/SE_Term_Project_2026-1.pdf`를 기준으로, 과제 요구사항을 GitHub Issue와 산출물로 연결하기 위한 작업용 추적표입니다.
+이 문서는 `docs/SE_Term_Project_2026-1.pdf`를 기준으로, 과제 요구사항을 GitHub 이슈와 산출물로 연결하기 위한 작업용 추적표입니다.
 
 최종 보고서 문장을 대신하는 문서가 아니라, 팀이 구현 중 누락을 확인하고 PR/테스트/문서 위치를 이어 붙이기 위한 관리 문서입니다. 구현이 진행되면 관련 PR, 테스트 클래스, 스크린샷 위치를 계속 갱신합니다.
 
 ## 기준 일정
 
-| 단계 | Milestone | 목표 | GitHub milestone |
+| 단계 | 마일스톤 | 목표 | GitHub 마일스톤 |
 | --- | --- | --- | --- |
-| M1 | Requirements & Design Baseline | 요구사항, 유스케이스, 도메인 모델, SSD, Operation Contract 기준선 | [M1](https://github.com/marcellokim/se-issue-tracker/milestone/7) |
-| M2 | Core Domain & Persistence | 핵심 모델, 서비스, 파일 저장소, 검색/상태/통계/추천 | [M2](https://github.com/marcellokim/se-issue-tracker/milestone/8) |
-| M3 | Dual UI & Demo Flow | JavaFX + Swing UI, PDF 데모 시나리오 실행 | [M3](https://github.com/marcellokim/se-issue-tracker/milestone/9) |
-| M4 | Verification & Submission Pack | JUnit, 최종 문서, 발표/영상, 제출 패키지 | [M4](https://github.com/marcellokim/se-issue-tracker/milestone/10) |
+| M1 | 요구사항 및 설계 기준선 | 요구사항, 유스케이스, 도메인 모델, SSD, Operation Contract 기준선 | [M1](https://github.com/marcellokim/se-issue-tracker/milestone/7) |
+| M2 | 핵심 도메인 및 영속 저장소 | 핵심 모델, 서비스, 파일 저장소, 검색/상태/통계/추천 | [M2](https://github.com/marcellokim/se-issue-tracker/milestone/8) |
+| M3 | 다중 UI 및 데모 흐름 | JavaFX + Swing UI, PDF 데모 시나리오 실행 | [M3](https://github.com/marcellokim/se-issue-tracker/milestone/9) |
+| M4 | 검증 및 제출 패키지 | JUnit, 최종 문서, 발표/영상, 제출 패키지 | [M4](https://github.com/marcellokim/se-issue-tracker/milestone/10) |
 
 ## 기능 요구사항 추적
 
 | PDF 요구사항 | 현재 작업 단위 | 확인할 산출물 |
 | --- | --- | --- |
-| 계정 추가: admin, PL, dev, tester | [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) 계정, 역할, 프로젝트 기본 모델 구현 | Account/Role/Project 모델, seed 데이터, 단위 테스트 |
-| demo용 계정: admin, PL1, PL2, dev1~10, tester1~5 | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) 파일 기반 영속 저장소와 데모 seed 데이터 준비 | seed 생성 코드, 저장 파일, 데모 실행 절차 |
+| 계정 추가: admin, PL, dev, tester | [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) 계정, 역할, 프로젝트 기본 모델 구현 | Account/Role/Project 모델, 초기 데이터, 단위 테스트 |
+| demo용 계정: admin, PL1, PL2, dev1~10, tester1~5 | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) 파일 기반 영속 저장소와 데모 초기 데이터 준비 | seed 생성 코드, 저장 파일, 데모 실행 절차 |
 | Admin이 project1 추가 | [#16](https://github.com/marcellokim/se-issue-tracker/issues/16), [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | Project 모델/저장소, 초기 project1 데이터 |
 | 이슈 등록 | [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | IssueService 등록 테스트, UI 등록 화면 |
 | reporter 자동 저장 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | 등록 서비스 테스트, Issue 필드 검증 |
@@ -42,12 +42,12 @@
 
 | PDF 요구사항 | 현재 작업 단위 | 확인할 산출물 |
 | --- | --- | --- |
-| GitHub 프로젝트 페이지 생성 및 수행 기록 | [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 자동 등록과 progress 캡처 준비 | Project URL, progress history 스크린샷, PR/Issue 기록 |
+| GitHub 프로젝트 페이지 생성 및 수행 기록 | [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 자동 등록과 진행 이력 캡처 준비 | Project URL, 진행 이력 스크린샷, PR/이슈 기록 |
 | 요구 정의 및 분석 | [#13](https://github.com/marcellokim/se-issue-tracker/issues/13), [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | 요구사항 추적표, 유스케이스 문서 |
-| 전체 유스케이스 다이어그램 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | Use Case Diagram 이미지/원본 |
+| 전체 유스케이스 다이어그램 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | 유스케이스 다이어그램 이미지/원본 |
 | include 2개 이상, extend 2개 이상 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | 다이어그램 및 명세 내 관계 설명 |
 | 유스케이스 명세 6개 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | `docs/use-cases/` 명세 6개 |
-| Domain Model | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | Domain Model 다이어그램/설명 |
+| 도메인 모델 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | 도메인 모델 다이어그램/설명 |
 | SSD 2개 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | SSD 2개 |
 | Operation Contract 2개 이상 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | Operation Contract 2개 이상 |
 | 클래스/시퀀스 다이어그램 및 설계 설명 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | 설계 UML, MVC 설명, UI 분리 근거 |

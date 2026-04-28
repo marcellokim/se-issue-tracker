@@ -33,7 +33,7 @@ class RepositoryConventionsSmokeTest {
     void requiredAutomationFilesExist(String relativePath) {
         assertTrue(
                 Files.exists(Path.of(relativePath)),
-                () -> "Missing expected repository automation file: " + relativePath
+                () -> "필수 저장소 자동화 파일이 없습니다: " + relativePath
         );
     }
 }

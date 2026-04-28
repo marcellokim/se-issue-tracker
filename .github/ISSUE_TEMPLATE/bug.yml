@@ -1,6 +1,6 @@
-name: Bug
+name: 버그
 description: 버그 수정 작업을 정의합니다.
-title: "[Bug] "
+title: "[버그] "
 labels: ["type:bug", "priority:high"]
 projects: ["marcellokim/1"]
 body:
@@ -18,11 +18,11 @@ body:
       label: 영향 영역
       options:
         - UI
-        - Domain / Service
-        - Persistence
-        - Analytics
-        - Recommendation
-        - Automation / CI
+        - 도메인 / 서비스
+        - 영속 저장소
+        - 통계
+        - 추천
+        - 자동화 / CI
     validations:
       required: true
   - type: textarea
@@ -45,7 +45,7 @@ body:
     id: related_scope
     attributes:
       label: 관련 화면/클래스
-      placeholder: 예) AdminPanel, FileRepository, RecommendationService
+      placeholder: 예) AdminPanel, FileRepository, 추천Service
     validations:
       required: true
   - type: input

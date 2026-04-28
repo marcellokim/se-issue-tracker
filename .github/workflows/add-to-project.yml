@@ -28,7 +28,7 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Add item to GitHub Project
+      - name: GitHub Project에 항목 추가
         if: steps.preflight.outputs.enabled == 'true'
         uses: actions/add-to-project@v1.0.2
         with:

@@ -61,33 +61,33 @@
 ### 2-3. GitHub 협업 자동화
 | 항목 | 상태 | 목적 |
 | --- | --- | --- |
-| Issue Form | 구현 | 이슈 입력 형식 통일 |
-| Chore 템플릿 | 구현 | 자동화/환경설정 작업 분리 |
+| 이슈 양식 | 구현 | 이슈 입력 형식 통일 |
+| 정비 템플릿 | 구현 | 자동화/환경설정 작업 분리 |
 | PR Template | 구현 | 검증/문서/과제 영향 체크 |
 | PR Labeler | 구현 | 변경 영역 자동 분류 |
-| Project auto-add workflow | 부분 구현 | Issue/PR를 Project에 자동 추가 |
+| Project 자동 추가 워크플로우 | 부분 구현 | 이슈/PR를 Project에 자동 추가 |
 | CODEOWNERS | 기본 구현 | 리뷰 책임자 구조 준비 |
-| bootstrap GitHub 스크립트 | 구현 | label/milestone/project/variable/repo setting 정렬 |
+| bootstrap GitHub 스크립트 | 구현 | label/마일스톤/project/variable/repo setting 정렬 |
 
 ### 2-4. 보안 자동화
 | 항목 | 상태 | 비고 |
 | --- | --- | --- |
-| Dependabot security updates | 활성화 | 의존성 취약점 알림/PR |
+| Dependabot 보안 업데이트 | 활성화 | 의존성 취약점 알림/PR |
 | Secret scanning | 활성화 | 민감정보 탐지 |
 | Secret scanning push protection | 활성화 | push 시점 차단 |
 | Private vulnerability reporting | 활성화 | 비공개 보안 신고 |
-| Code scanning default setup | 활성화 | 현재는 GitHub가 감지한 언어 기준으로 동작 |
+| Code scanning 기본 설정 | 활성화 | 현재는 GitHub가 감지한 언어 기준으로 동작 |
 
 ---
 
 ## 3. 현재 활성화된 GitHub 보안 자동화 상세
 
 ### 이미 켜진 것
-- Dependabot security updates
+- Dependabot 보안 업데이트
 - Secret scanning
 - Secret scanning push protection
 - Private vulnerability reporting
-- Code scanning default setup
+- Code scanning 기본 설정
 
 ### 현재 비활성 상태인 것
 - Secret scanning non-provider patterns
@@ -102,14 +102,14 @@
 
 ### 자동으로 맞추는 항목
 - label 동기화
-- milestone 동기화
+- 마일스톤 동기화
 - GitHub Project 확인/생성
 - `PROJECT_URL` variable 동기화
-- `allow_auto_merge=true`
-- `delete_branch_on_merge=true`
+- `allow_auto_병합=true`
+- `delete_브랜치_on_병합=true`
 
 ### 자동으로 맞추지 않는 항목
-- branch protection 세부 규칙 전체
+- 브랜치 protection 세부 규칙 전체
 - CODEOWNERS 실제 사용자 ID 반영
 - `ADD_TO_PROJECT_PAT` secret
 - Project board view 세부 구성
@@ -122,7 +122,7 @@
 
 ### 과제 요구사항과 연결되는 이점
 1. **GitHub history 확보**
-   - Issue / PR / review / merge 이력이 남음
+   - Issue / PR / review / 병합 이력이 남음
 2. **문서와 코드 동시 추적**
    - README, docs, tests를 함께 운영 가능
 3. **제출 준비 자동화**
@@ -130,7 +130,7 @@
 4. **설정 누락 방지**
    - hooks / bootstrap / verification tasks로 사전 차단
 5. **보안 사고 예방**
-   - secret scanning, push protection, vulnerability reporting 적용
+   - Secret scanning, push protection, vulnerability reporting 적용
 
 ---
 
@@ -142,7 +142,7 @@
 | CI 다중 OS 매트릭스 | Java skeleton 단계에서는 과함 |
 | Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
 | DB 컨테이너 자동 기동 | 과제는 file persistence도 허용 |
-| custom CodeQL workflow | default setup으로 먼저 시작하는 편이 부담이 적음 |
+| custom CodeQL 워크플로우 | default setup으로 먼저 시작하는 편이 부담이 적음 |
 | 강제 commit rule 훅 강화 | 초반 생산성을 과하게 떨어뜨릴 수 있음 |
 
 ---
@@ -161,7 +161,7 @@
 - Project 뷰 다듬기
 - 팀원 권한 조정
 - CODEOWNERS 실제 ID 반영
-- 최종 milestone 정리
+- 최종 마일스톤 정리
 
 ### 제출 품질 관리
 - 데모 시나리오 검토
@@ -200,8 +200,8 @@
 - [ ] GitHub Project 접근 가능
 - [ ] `dev`에서 브랜치 생성 흐름 정상 작동
 - [ ] PR 시 `build` 체크가 실제로 보임
-- [ ] issue template / PR template이 default branch 기준으로 최신 상태
-- [ ] 보안 옵션(특히 secret scanning / push protection) 활성 상태 유지
+- [ ] issue template / PR template이 default 브랜치 기준으로 최신 상태
+- [ ] 보안 옵션(특히 Secret scanning / push protection) 활성 상태 유지
 
 ---
 

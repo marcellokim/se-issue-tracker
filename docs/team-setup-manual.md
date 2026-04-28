@@ -32,7 +32,7 @@
 - `chore/<slug>`: 자동화/환경설정/리팩터링 브랜치
 
 ### 기본 흐름
-1. GitHub Issue 생성
+1. GitHub 이슈 생성
 2. 브랜치 생성
 3. 구현/문서/테스트 작업
 4. PR 생성
@@ -68,8 +68,8 @@ gh --version
 
 ### 2-2. 저장소 clone
 ```bash
-git clone https://github.com/marcellokim/se-2026-1-term-project-issue-tracker.git
-cd se-2026-1-term-project-issue-tracker
+git clone https://github.com/marcellokim/se-issue-tracker.git
+cd se-issue-tracker
 ```
 
 ### 2-3. 로컬 bootstrap 실행
@@ -97,13 +97,13 @@ gh auth login
 
 이 스크립트가 맞춰주는 항목:
 - label 동기화
-- milestone 동기화
+- 마일스톤 동기화
 - GitHub Project 존재 여부 확인/생성
-- `allow_auto_merge=true`
-- `delete_branch_on_merge=true`
+- `allow_auto_병합=true`
+- `delete_브랜치_on_병합=true`
 - `PROJECT_URL` repository variable 동기화
 
-> 참고: `PR/Issue -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
+> 참고: `PR/이슈 -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
 
 ---
 
@@ -122,8 +122,8 @@ gh auth login
 ### GitHub 자동화
 | 항목 | 역할 |
 | --- | --- |
-| Issue Form | 형식 통일, Project 자동 등록 |
-| PR Template | 검증/문서/증빙 누락 방지 |
+| 이슈 양식 | 형식 통일, Project 자동 등록 |
+| PR 템플릿 | 검증/문서/증빙 누락 방지 |
 | Gradle CI | `build` 체크 제공 |
 | PR Labeler | 변경 파일 기준 라벨 자동 분류 |
 | Dependabot | 의존성/Actions 업데이트 추적 |
@@ -134,7 +134,7 @@ gh auth login
 ## 4. 일상 작업 흐름
 
 ### 4-1. 작업 시작 전
-1. GitHub Issue가 있는지 확인
+1. GitHub 이슈가 있는지 확인
 2. 작업 범위가 명확한지 확인
 3. 관련 문서(`README`, `assumptions`, `qna`, UML 등) 업데이트 필요 여부 확인
 
@@ -172,11 +172,11 @@ feature/18-recommendation-engine
 ## 5. 이슈 작성 가이드
 
 ### 현재 제공되는 이슈 유형
-- Feature
-- Bug
-- Test
-- Docs
-- Chore
+- 기능
+- 버그
+- 테스트
+- 문서
+- 정비
 
 ### 모든 이슈에 공통으로 적어야 하는 것
 - 목적
@@ -187,10 +187,10 @@ feature/18-recommendation-engine
 - 관련 화면/클래스/문서 범위
 
 ### 좋은 이슈 예시
-- `Feature`: “PL이 new 상태 이슈를 조회하고 assignee를 지정할 수 있도록 한다”
-- `Bug`: “fixed -> resolved 상태 전환 후 reporter 검색이 누락되는 문제 수정”
-- `Docs`: “SSD 2개와 operation contract 2개를 문서에 추가”
-- `Chore`: “GitHub project workflow 및 label 정리”
+- `기능`: “PL이 new 상태 이슈를 조회하고 assignee를 지정할 수 있도록 한다”
+- `버그`: “fixed -> resolved 상태 전환 후 reporter 검색이 누락되는 문제 수정”
+- `문서`: “SSD 2개와 Operation Contract 2개를 문서에 추가”
+- `정비`: “GitHub project 워크플로우 및 label 정리”
 
 ---
 
@@ -212,8 +212,8 @@ feature/18-recommendation-engine
 
 ### 리뷰 승인 전 확인할 것
 - CI 통과 여부
-- unresolved comment 여부
-- stale review 여부
+- 미해결 댓글 여부
+- 오래된 리뷰 상태 여부
 - 브랜치가 최신인지 여부
 
 ---
@@ -242,26 +242,26 @@ SKIP_GRADLE_PREPUSH=1 git push
 ## 8. GitHub Project 운영법
 
 ### 현재 권장 상태 흐름
-`Backlog -> Ready -> In Progress -> In Review -> Done`
+`대기 -> 준비됨 -> 진행 중 -> 리뷰 중 -> 완료`
 
 ### 각 상태의 의미
-- **Backlog**: 아직 바로 시작하지 않는 일감
-- **Ready**: 시작 조건이 갖춰진 일감
-- **In Progress**: 브랜치 작업 중
-- **In Review**: PR 생성, 리뷰/QA 진행 중
-- **Done**: 병합 완료, 문서 반영 완료
+- **대기**: 아직 바로 시작하지 않는 일감
+- **준비됨**: 시작 조건이 갖춰진 일감
+- **진행 중**: 브랜치 작업 중
+- **리뷰 중**: PR 생성, 리뷰/QA 진행 중
+- **완료**: 병합 완료, 문서 반영 완료
 
 ### 권장 필드
-- Type
-- Priority
-- Owner
-- Milestone
+- 유형
+- 우선순위
+- 담당
+- 마일스톤
 
 ### 권장 운영 방식
 - 이슈 생성 직후 Project에 반영
-- PR 생성 시 상태를 `In Review`로 이동
-- merge 후 `Done`으로 이동
-- 데모 직전에는 `Milestone` 기준으로 필터링
+- PR 생성 시 상태를 `리뷰 중`으로 이동
+- 병합 후 `완료`로 이동
+- 데모 직전에는 `마일스톤` 기준으로 필터링
 
 ---
 
@@ -287,14 +287,14 @@ SKIP_GRADLE_PREPUSH=1 git push
 ## 10. 보안 및 권한 관련 안내
 
 ### 현재 활성화된 보안 기능
-- Dependabot security updates
+- Dependabot 보안 업데이트
 - Secret scanning
 - Secret scanning push protection
 - Private vulnerability reporting
 - GitHub code scanning 기본 설정
 
 ### 민감한 보안 이슈가 생기면
-공개 Issue에 쓰지 말고 `SECURITY.md` 절차를 따릅니다.
+공개 이슈에 쓰지 말고 `SECURITY.md` 절차를 따릅니다.
 
 ### 팀원 권한 추천
 - 일반 팀원: **write**
@@ -320,8 +320,8 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 ### GitHub 증빙
 - [ ] Project history 스크린샷 확보
-- [ ] 팀원별 PR/Issue/commit 증빙 확보
-- [ ] milestone별 진행 흐름 정리
+- [ ] 팀원별 PR/이슈/commit 증빙 확보
+- [ ] 마일스톤별 진행 흐름 정리
 
 ### 제출물
 - [ ] 발표 슬라이드
