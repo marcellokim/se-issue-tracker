@@ -20,6 +20,8 @@
 | 작업 방식 | 이슈 생성 → 브랜치 생성 → PR 작성 → 리뷰 → 병합 |
 
 ## 3. 과제 핵심 요구사항 요약
+루트의 `SE_Term_Project_2026-1.pdf`를 최상위 과제 요구사항 원문으로 고정합니다. 아래 요약이나 추적 문서가 애매할 때는 이 PDF가 우선입니다.
+
 `SE_Term_Project_2026-1.pdf` 기준 핵심 요구사항:
 - 계정 추가: `admin`, `PL`, `dev`, `tester`
 - 이슈 등록 / 브라우즈 / 검색 / 상세 조회 / 코멘트 / 상태 변경
@@ -98,6 +100,7 @@ cd se-issue-tracker
 ├─ scripts/                 # 초기 세팅, 브랜치, 라벨, 제출 자동화
 ├─ src/main/java/           # 애플리케이션 소스
 ├─ src/test/java/           # JUnit 테스트
+├─ SE_Term_Project_2026-1.pdf # 과제 요구사항 원문
 ├─ build.gradle
 ├─ gradle.properties
 └─ README.md

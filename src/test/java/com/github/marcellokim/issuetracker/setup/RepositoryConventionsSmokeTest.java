@@ -13,6 +13,7 @@ class RepositoryConventionsSmokeTest {
     static Stream<String> requiredPaths() {
         return Stream.of(
                 "README.md",
+                "SE_Term_Project_2026-1.pdf",
                 ".github/workflows/gradle.yml",
                 ".github/workflows/pr-labeler.yml",
                 ".github/workflows/add-to-project.yml",
