@@ -19,8 +19,8 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 [--repo owner/name] [--dry-run]"
+            echo "알 수 없는 옵션: $1"
+            echo "사용법: $0 [--repo owner/name] [--dry-run]"
             exit 1
             ;;
     esac
@@ -84,7 +84,7 @@ for label in labels:
             text=True,
             capture_output=True,
         )
-        print(f"[updated] {name}")
+        print(f"[갱신] {name}")
     else:
         subprocess.run(
             ["gh", "api", "--method", "POST", f"repos/{repo}/labels", *payload],
@@ -92,5 +92,5 @@ for label in labels:
             text=True,
             capture_output=True,
         )
-        print(f"[created] {name}")
+        print(f"[생성] {name}")
 PY

@@ -1,6 +1,6 @@
-<why this change was made>
+<왜 이 변경이 필요한가>
 
-<context / rationale>
+<배경 / 판단 근거>
 
 Constraint:
 Rejected:
