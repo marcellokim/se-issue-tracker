@@ -7,5 +7,5 @@ cd "$repo_root"
 git config --local core.hooksPath .githooks
 chmod +x .githooks/pre-commit .githooks/pre-push
 
-echo "[ok] Git hooks path configured: .githooks"
-echo "[ok] pre-commit / pre-push hooks are executable"
+echo "[확인] Git hooks 경로를 .githooks로 설정했습니다"
+echo "[확인] pre-commit / pre-push hook에 실행 권한을 부여했습니다"

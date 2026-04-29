@@ -30,7 +30,7 @@ PY
 
 require_tool() {
     if ! command -v "$1" >/dev/null 2>&1; then
-        echo "Required tool not found: $1" >&2
+        echo "필수 도구를 찾을 수 없습니다: $1" >&2
         exit 1
     fi
 }
@@ -62,14 +62,14 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown option: $1"
+            echo "알 수 없는 옵션: $1"
             exit 1
             ;;
     esac
 done
 
 if [[ -z "$team_number" || ${#members[@]} -lt 2 ]]; then
-    echo "Usage: $0 --team-number <n> --member <name1> --member <name2> [--member <name3> ...] [--project-url <url>] [--skip-check]"
+    echo "사용법: $0 --team-number <번호> --member <팀원1> --member <팀원2> [--member <팀원3> ...] [--project-url <url>] [--skip-check]"
     exit 1
 fi
 
@@ -148,4 +148,4 @@ PY2
     zip -qr "$output_dir/${archive_name}.zip" "$archive_name"
 )
 
-echo "[ok] Created: $output_dir/${archive_name}.zip"
+echo "[확인] 생성 완료: $output_dir/${archive_name}.zip"
