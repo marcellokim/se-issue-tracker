@@ -33,7 +33,7 @@ def detect_repo() -> str:
         return remote.removeprefix("https://github.com/").removesuffix(".git")
     if remote.startswith("git@github.com:"):
         return remote.removeprefix("git@github.com:").removesuffix(".git")
-    raise SystemExit(f"Cannot derive GitHub repo from remote: {remote}")
+    raise SystemExit(f"origin remote에서 GitHub 저장소를 확인할 수 없습니다: {remote}")
 
 
 def gh_json(args: list[str]) -> object:
@@ -67,7 +67,7 @@ def sync_labels(repo: str) -> list[str]:
                     "description": label["description"],
                 },
             )
-            summary.append(f"updated label: {name}")
+            summary.append(f"라벨 갱신: {name}")
         else:
             gh_api(
                 "POST",
@@ -78,7 +78,7 @@ def sync_labels(repo: str) -> list[str]:
                     "description": label["description"],
                 },
             )
-            summary.append(f"created label: {name}")
+            summary.append(f"라벨 생성: {name}")
 
     return summary
 
@@ -90,11 +90,11 @@ def sync_repo_settings(repo: str) -> list[str]:
     for field, expected in REPO_BOOLEAN_SETTINGS.items():
         actual = current.get(field)
         if actual == expected:
-            summary.append(f"kept repo setting: {field}={expected}")
+            summary.append(f"저장소 설정 유지: {field}={expected}")
             continue
 
         gh_api("PATCH", f"repos/{repo}", {field: str(expected).lower()})
-        summary.append(f"updated repo setting: {field}={expected}")
+        summary.append(f"저장소 설정 갱신: {field}={expected}")
 
     return summary
 
@@ -107,7 +107,7 @@ def sync_milestones(repo: str) -> list[str]:
 
     for milestone in desired:
         if milestone["title"] in current_titles:
-            summary.append(f"kept milestone: {milestone['title']}")
+            summary.append(f"마일스톤 유지: {milestone['title']}")
             continue
         gh_api(
             "POST",
@@ -117,7 +117,7 @@ def sync_milestones(repo: str) -> list[str]:
                 "description": milestone["description"],
             },
         )
-        summary.append(f"created milestone: {milestone['title']}")
+        summary.append(f"마일스톤 생성: {milestone['title']}")
 
     return summary
 
@@ -130,39 +130,39 @@ def list_projects(owner: str) -> list[dict[str, object]]:
 def ensure_project(owner: str, title: str, create_if_missing: bool) -> tuple[str, str | None]:
     for project in list_projects(owner):
         if project.get("title") == title:
-            return f"kept project: {title}", project.get("url")
+            return f"Project 유지: {title}", project.get("url")
 
     if not create_if_missing:
-        return f"project creation skipped (use --create-project to enable): {title}", None
+        return f"Project 생성을 건너뜀 (--create-project 사용 시 생성): {title}", None
 
     run(["gh", "project", "create", "--owner", owner, "--title", title])
     for project in list_projects(owner):
         if project.get("title") == title:
-            return f"created project: {title}", project.get("url")
+            return f"Project 생성: {title}", project.get("url")
 
-    return f"created project: {title}", None
+    return f"Project 생성: {title}", None
 
 
 def set_project_variable(repo: str, project_url: str | None) -> str:
     if not project_url:
-        return f"skipped repo variable {PROJECT_VARIABLE_NAME} (project URL unavailable)"
+        return f"저장소 변수 {PROJECT_VARIABLE_NAME} 설정 건너뜀 (Project URL 확인 불가)"
 
     run(["gh", "variable", "set", PROJECT_VARIABLE_NAME, "--repo", repo, "--body", project_url])
-    return f"set repo variable {PROJECT_VARIABLE_NAME}={project_url}"
+    return f"저장소 변수 설정: {PROJECT_VARIABLE_NAME}={project_url}"
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Bootstrap GitHub labels, milestones, and optionally a project.")
-    parser.add_argument("--repo", help="Override owner/repo (default: derive from origin remote)")
-    parser.add_argument("--project-title", default="SE Term Project 2026-1", help="Project title to check/create")
-    parser.add_argument("--create-project", action="store_true", help="Create the GitHub Project if it does not exist")
+    parser = argparse.ArgumentParser(description="GitHub 라벨, 마일스톤, Project를 초기 설정합니다.")
+    parser.add_argument("--repo", help="owner/repo를 직접 지정합니다. 기본값은 origin remote에서 확인합니다.")
+    parser.add_argument("--project-title", default="SE 2026-1 텀프로젝트", help="확인하거나 생성할 Project 제목")
+    parser.add_argument("--create-project", action="store_true", help="GitHub Project가 없으면 생성합니다")
     args = parser.parse_args()
 
     repo = args.repo or detect_repo()
     owner = repo.split("/", 1)[0]
 
-    print(f"Repository: {repo}")
-    print(f"Owner: {owner}")
+    print(f"저장소: {repo}")
+    print(f"소유자: {owner}")
 
     for item in sync_labels(repo):
         print(f"- {item}")
@@ -177,11 +177,11 @@ def main() -> int:
     print(f"- {project_result}")
     print(f"- {set_project_variable(repo, project_url)}")
 
-    print("\nManual follow-up recommended:")
-    print("1. Enable branch protection for main/dev")
-    print("2. Keep branch protection checks aligned with the 'build' job from the Gradle CI workflow")
-    print("3. Configure GitHub Project views/fields for Backlog, Ready, In Progress, In Review, Done")
-    print("4. Replace CODEOWNERS placeholders with actual team GitHub handles")
+    print("\n수동으로 확인할 항목:")
+    print("1. main/dev 브랜치 보호 규칙을 확인합니다")
+    print("2. 브랜치 보호 필수 체크가 Gradle CI의 'build' job과 맞는지 확인합니다")
+    print("3. GitHub Project 보기/필드를 대기, 준비됨, 진행 중, 리뷰 중, 완료 흐름에 맞춥니다")
+    print("4. CODEOWNERS placeholder를 실제 팀원 GitHub ID로 교체합니다")
     return 0
 
 

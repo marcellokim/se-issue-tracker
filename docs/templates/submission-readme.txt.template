@@ -1,29 +1,29 @@
-SE 2026-1 Term Project Submission Summary
+SE 2026-1 텀프로젝트 제출물 요약
 
-1. Team Number
+1. 팀 번호
 {{TEAM_NUMBER}}
 
-2. Team Members
+2. 팀원
 {{MEMBERS}}
 
-3. GitHub Repository URL
+3. GitHub 저장소 주소
 {{GITHUB_URL}}
 
-4. GitHub Project URL
+4. GitHub Project 주소
 {{PROJECT_URL}}
 
-5. Included Artifacts
-- Source code / Gradle project files
-- Documentation under docs/
-- GitHub automation templates under .github/
-- JUnit test code under src/test/
-- Additional deliverables prepared by the team (slides / final PDF / video)
+5. 포함 산출물
+- 소스 코드 / Gradle 프로젝트 파일
+- docs/ 아래 프로젝트 문서
+- .github/ 아래 GitHub 자동화 템플릿
+- src/test/ 아래 JUnit 테스트 코드
+- 팀이 준비한 추가 제출물(발표 슬라이드 / 최종 PDF / 영상)
 
-6. How to Run
-1) Install JDK 21
-2) Run ./gradlew check
-3) Launch the application with the team-defined main entry point
+6. 실행 방법
+1) JDK 21을 설치합니다.
+2) ./gradlew check 를 실행합니다.
+3) 팀이 정한 main entry point로 애플리케이션을 실행합니다.
 
-7. Notes
-- Update this README.txt before final submission if execution commands or artifact paths change.
-- The root README.md contains the latest repository-level overview.
+7. 참고 사항
+- 실행 명령이나 산출물 경로가 바뀌면 최종 제출 전에 이 README.txt를 갱신합니다.
+- 루트 README.md에는 저장소 전체 개요가 정리되어 있습니다.

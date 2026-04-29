@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
-    echo "Usage: $0 <issue-number> <short-slug>"
+    echo "사용법: $0 <issue-number> <short-slug>"
     exit 1
 fi
 
@@ -22,5 +22,5 @@ if git rev-parse --verify origin/dev >/dev/null 2>&1; then
 fi
 git switch -c "$branch_name"
 
-echo "[ok] Created branch: $branch_name"
+echo "[확인] 브랜치 생성: $branch_name"
 echo "다음 단계: 작업 후 push 하고 PR 생성"

@@ -13,6 +13,7 @@ class RepositoryConventionsSmokeTest {
     static Stream<String> requiredPaths() {
         return Stream.of(
                 "README.md",
+                "SE_Term_Project_2026-1.pdf",
                 ".github/workflows/gradle.yml",
                 ".github/workflows/pr-labeler.yml",
                 ".github/workflows/add-to-project.yml",
@@ -33,7 +34,7 @@ class RepositoryConventionsSmokeTest {
     void requiredAutomationFilesExist(String relativePath) {
         assertTrue(
                 Files.exists(Path.of(relativePath)),
-                () -> "Missing expected repository automation file: " + relativePath
+                () -> "필수 저장소 자동화 파일이 없습니다: " + relativePath
         );
     }
 }

@@ -1,6 +1,6 @@
-name: Chore
-description: 환경설정, 자동화, 리팩터링 작업을 정의합니다.
-title: "[Chore] "
+name: chore
+description: chore, 자동화, 환경설정 작업을 정의합니다.
+title: "[chore] "
 labels: ["type:chore", "priority:medium", "area:automation"]
 projects: ["marcellokim/1"]
 body:
