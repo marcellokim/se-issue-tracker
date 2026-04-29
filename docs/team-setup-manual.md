@@ -99,8 +99,8 @@ gh auth login
 - label 동기화
 - 마일스톤 동기화
 - GitHub Project 존재 여부 확인/생성
-- `allow_auto_병합=true`
-- `delete_브랜치_on_병합=true`
+- 자동 병합 허용(`allow_auto_merge=true`)
+- 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 - `PROJECT_URL` repository variable 동기화
 
 > 참고: `PR/이슈 -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
