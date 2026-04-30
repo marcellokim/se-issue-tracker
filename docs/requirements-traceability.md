@@ -9,7 +9,7 @@
 | 단계 | 마일스톤 | 목표 | GitHub 마일스톤 |
 | --- | --- | --- | --- |
 | M1 | 요구사항 및 설계 기준선 | 요구사항, 유스케이스, 도메인 모델, SSD, Operation Contract 기준선 | [M1](https://github.com/marcellokim/se-issue-tracker/milestone/7) |
-| M2 | 핵심 도메인 및 영속 저장소 | 핵심 모델, 서비스, 파일 저장소, 검색/상태/통계/추천 | [M2](https://github.com/marcellokim/se-issue-tracker/milestone/8) |
+| M2 | 핵심 도메인 및 영속 저장소 | 핵심 모델, 서비스, DB 저장소, 검색/상태/통계/추천 | [M2](https://github.com/marcellokim/se-issue-tracker/milestone/8) |
 | M3 | 다중 UI 및 데모 흐름 | JavaFX + Swing UI, PDF 데모 시나리오 실행 | [M3](https://github.com/marcellokim/se-issue-tracker/milestone/9) |
 | M4 | 검증 및 제출 패키지 | JUnit, 최종 문서, 발표/영상, 제출 패키지 | [M4](https://github.com/marcellokim/se-issue-tracker/milestone/10) |
 
@@ -18,7 +18,7 @@
 | PDF 요구사항 | 현재 작업 단위 | 확인할 산출물 |
 | --- | --- | --- |
 | 계정 추가: admin, PL, dev, tester | [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) 계정, 역할, 프로젝트 기본 모델 구현 | Account/Role/Project 모델, 초기 데이터, 단위 테스트 |
-| demo용 계정: admin, PL1, PL2, dev1~10, tester1~5 | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) 파일 기반 영속 저장소와 데모 초기 데이터 준비 | seed 생성 코드, 저장 파일, 데모 실행 절차 |
+| demo용 계정: admin, PL1, PL2, dev1~10, tester1~5 | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) DB 기반 영속 저장소와 데모 초기 데이터 준비 | seed 생성 코드, DB schema, 데모 실행 절차 |
 | Admin이 project1 추가 | [#16](https://github.com/marcellokim/se-issue-tracker/issues/16), [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | Project 모델/저장소, 초기 project1 데이터 |
 | 이슈 등록 | [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | IssueService 등록 테스트, UI 등록 화면 |
 | reporter 자동 저장 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | 등록 서비스 테스트, Issue 필드 검증 |
@@ -33,7 +33,7 @@
 | 상태 new/assigned/resolved/closed/reopened | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | IssueStatus 정의, 상태 전이 문서 |
 | 일/월별 이슈 발생 통계 및 trend | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) 일/월별 이슈 통계와 trend 조회 구현 | 통계 서비스, 날짜 fixture, UI 표시 |
 | closed/resolved 이력 기반 assignee 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | 추천 서비스, 후보 3명 결과, 추천 근거 |
-| persistent storage | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | 파일 저장/로드 테스트, 저장 포맷 설명 |
+| persistent storage | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | DB 저장/조회 테스트, schema/seed 설명 |
 | MVC 및 UI/로직 분리 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | 패키지 구조, 클래스 다이어그램, 두 UI의 공통 서비스 사용 |
 | 두 개 이상의 UI Toolkit | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | JavaFX UI, Swing UI, 빌드/실행 캡처 |
 | JUnit 테스트 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | 테스트 코드, CI 결과, 테스트 목적 설명 |
@@ -59,6 +59,6 @@
 ## 아직 팀 확인이 필요한 부분
 
 - PDF 시나리오에는 `fixed` 표현이 나오지만, 최소 상태 목록에는 `fixed`가 없습니다. 구현에서는 `fixed`를 별도 상태로 둘지, dev가 처리한 뒤 tester가 `resolved`로 바꾸기 전의 내부 이벤트로 볼지 정해야 합니다.
-- 파일 저장 포맷은 구현 편의와 디버깅 편의를 함께 고려해야 합니다.
+- DB schema와 seed 데이터는 구현 편의와 데모 재현성을 함께 고려해야 합니다.
 - JavaFX/Swing 중 어느 UI가 어떤 역할 흐름을 담당할지 확정해야 합니다.
 - 추천 기능은 설명 가능한 규칙 기반으로 시작할지, 유사도 기반으로 확장할지 팀 합의가 필요합니다.
