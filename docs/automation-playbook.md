@@ -144,7 +144,7 @@
 | 고급 PR 자동 작성/자동 머지 | 초반에는 `scripts/open-pr.sh`로 검증, push, 기본 PR 생성까지만 고정하는 편이 안전함 |
 | CI 다중 OS 매트릭스 | Java skeleton 단계에서는 과함 |
 | Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
-| DB 컨테이너 자동 기동 | 과제는 file persistence도 허용 |
+| 외부 DB 컨테이너 자동 기동 | 과제 규모상 서버형 DB보다 내장형 DB가 단순함 |
 | custom CodeQL 워크플로우 | default setup으로 먼저 시작하는 편이 부담이 적음 |
 | 강제 commit rule 훅 강화 | 초반 생산성을 과하게 떨어뜨릴 수 있음 |
 
