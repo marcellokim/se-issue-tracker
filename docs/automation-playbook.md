@@ -47,7 +47,9 @@
 | `.githooks/pre-push` | 구현 | push 전 테스트/기본 검증 | bootstrap 시 자동 설치 |
 | `.gitmessage.txt` | 구현 | Lore commit protocol 강제 유도 | bootstrap 시 자동 적용 |
 | `scripts/start-task.sh` | 구현 | 기준선 확인 후 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
-| `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성을 한 번에 처리 | `./scripts/open-pr.sh` |
+| `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성, 이슈 review 라벨 이동, Project 정렬을 한 번에 처리 | `./scripts/open-pr.sh` |
+| `scripts/audit-project.sh` | 구현 | main/dev, 문서, DB 표준, GitHub 이슈/Project 정합성 점검 | `./scripts/audit-project.sh` |
+| `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub Project 상태로 반영 | `./scripts/sync-project-board.sh --apply` |
 | `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
 
 ### 2-2. 저장소/구성 자동화
@@ -67,6 +69,7 @@
 | PR Template | 구현 | 검증/문서/과제 영향 체크 |
 | PR Labeler | 구현 | 변경 영역 자동 분류 |
 | Project 자동 추가 워크플로우 | 부분 구현 | 이슈/PR를 Project에 자동 추가 |
+| Project 정합성 유지 워크플로우 | 구현 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 정렬/점검 |
 | CODEOWNERS | 기본 구현 | 리뷰 책임자 구조 준비 |
 | bootstrap GitHub 스크립트 | 구현 | label/마일스톤/project/variable/repo setting 정렬 |
 
@@ -140,8 +143,8 @@
 ## 6. 일부러 보류한 자동화와 이유
 | 항목 | 보류 이유 |
 | --- | --- |
-| 자동 Project 상태 전이 고급 워크플로 | 초기 팀 운영에는 과도하게 복잡함 |
-| 고급 PR 자동 작성/자동 머지 | 초반에는 `scripts/open-pr.sh`로 검증, push, 기본 PR 생성까지만 고정하는 편이 안전함 |
+| 완전 자동 머지 | 리뷰와 발표 책임이 남아 있어서 사람이 승인해야 함 |
+| Project 커스텀 필드 전체 자동 설계 | GitHub UI 변경 가능성이 있어 Status 정렬까지만 자동화 |
 | CI 다중 OS 매트릭스 | Java skeleton 단계에서는 과함 |
 | Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
 | 외부 DB 컨테이너 자동 기동 | 과제 규모상 서버형 DB보다 내장형 DB가 단순함 |
@@ -176,7 +179,7 @@
 ## 8. 현재 기준에서 “남은 수동 체크”
 아래는 자동화가 전부 대체하지 않는 항목입니다.
 
-1. **`ADD_TO_PROJECT_PAT` secret 추가 여부 결정**
+1. **`ADD_TO_PROJECT_PAT` secret 추가 여부 결정**: 없으면 Project 자동 추가/정렬 워크플로우가 건너뜁니다.
 2. **CODEOWNERS 실제 팀원 ID 반영**
 3. **GitHub Project Board/Table 최종 뷰 정리**
 4. **최종 제출 직전 `./gradlew check` + 패키징 재실행**
@@ -191,10 +194,11 @@
 4. `./scripts/start-task.sh <issue> <slug>`로 브랜치 생성
 5. 구현/문서/테스트
 6. `./scripts/open-pr.sh`로 검증과 PR 생성
-7. CI 확인
-8. 리뷰/승인
-9. `dev` 병합
-10. 제출 직전 `main` 안정화 및 패키징
+7. 필요하면 `./scripts/audit-project.sh`로 전체 정합성 점검
+8. CI 확인
+9. 리뷰/승인
+10. `dev` 병합
+11. 제출 직전 `main` 안정화 및 패키징
 
 ---
 
@@ -220,6 +224,7 @@
 ### 자동화를 점검해야 하는 순간
 - CI가 자주 깨질 때
 - 팀원이 새로 합류할 때
+- Project 상태와 이슈 라벨이 어긋날 때
 - GitHub Actions 경고(예: deprecated runtime)가 뜰 때
 - 보안 기능 상태가 바뀔 때
 
