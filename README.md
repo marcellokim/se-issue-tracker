@@ -67,6 +67,11 @@ cd se-issue-tracker
 ./scripts/start-task.sh 12 issue-search-ui
 ```
 
+작업을 끝낸 뒤 PR까지 올릴 때:
+```bash
+./scripts/open-pr.sh
+```
+
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.
 
@@ -76,6 +81,7 @@ cd se-issue-tracker
 - **보안 자동화**: Dependabot 보안 업데이트, Secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
 - **Dependabot**: Gradle / GitHub Actions 주간 업데이트 제안
 - **Git hook**: pre-commit / pre-push 검증
+- **작업 시작/PR 스크립트**: `start-task.sh`, `open-pr.sh`로 초보자용 Git 흐름 고정
 - **커밋 메시지 템플릿**: Lore commit protocol 형식 자동 적용
 - **라벨 동기화 / GitHub 초기 설정 스크립트**
 - **제출 zip 스크립트**: 제출 형식 zip + `README.txt` 자동 생성

@@ -54,6 +54,7 @@ def requiredAutomationPaths = [
     'scripts/bootstrap-github.sh',
     'scripts/install-git-hooks.sh',
     'scripts/start-task.sh',
+    'scripts/open-pr.sh',
     'scripts/sync-labels.sh',
     'scripts/package-submission.sh',
     'docs/team-setup-manual.md',
