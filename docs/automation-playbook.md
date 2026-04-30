@@ -46,7 +46,8 @@
 | `.githooks/pre-commit` | 구현 | 위험한 브랜치 작업/설정 누락 방지 | bootstrap 시 자동 설치 |
 | `.githooks/pre-push` | 구현 | push 전 테스트/기본 검증 | bootstrap 시 자동 설치 |
 | `.gitmessage.txt` | 구현 | Lore commit protocol 강제 유도 | bootstrap 시 자동 적용 |
-| `scripts/start-task.sh` | 구현 | 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
+| `scripts/start-task.sh` | 구현 | 기준선 확인 후 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
+| `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성을 한 번에 처리 | `./scripts/open-pr.sh` |
 | `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
 
 ### 2-2. 저장소/구성 자동화
@@ -98,6 +99,8 @@
 ---
 
 ## 4. GitHub bootstrap 스크립트가 실제로 해주는 일
+이 스크립트는 저장소 설정을 변경하므로 저장소 관리자만 실행합니다.
+
 `./scripts/bootstrap-github.sh --create-project`
 
 ### 자동으로 맞추는 항목
@@ -105,8 +108,8 @@
 - 마일스톤 동기화
 - GitHub Project 확인/생성
 - `PROJECT_URL` variable 동기화
-- `allow_auto_병합=true`
-- `delete_브랜치_on_병합=true`
+- 자동 병합 허용(`allow_auto_merge=true`)
+- 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 
 ### 자동으로 맞추지 않는 항목
 - 브랜치 protection 세부 규칙 전체
@@ -138,7 +141,7 @@
 | 항목 | 보류 이유 |
 | --- | --- |
 | 자동 Project 상태 전이 고급 워크플로 | 초기 팀 운영에는 과도하게 복잡함 |
-| PR 생성 스크립트 | 팀의 리뷰 문화/작성 습관에 따라 유연성이 더 중요함 |
+| 고급 PR 자동 작성/자동 머지 | 초반에는 `scripts/open-pr.sh`로 검증, push, 기본 PR 생성까지만 고정하는 편이 안전함 |
 | CI 다중 OS 매트릭스 | Java skeleton 단계에서는 과함 |
 | Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
 | DB 컨테이너 자동 기동 | 과제는 file persistence도 허용 |
@@ -183,11 +186,11 @@
 
 ## 9. 추천 운영 흐름
 1. bootstrap 실행
-2. GitHub bootstrap 실행
+2. 저장소 관리자만 GitHub bootstrap 실행
 3. 이슈 생성
-4. 브랜치 생성
+4. `./scripts/start-task.sh <issue> <slug>`로 브랜치 생성
 5. 구현/문서/테스트
-6. PR 생성
+6. `./scripts/open-pr.sh`로 검증과 PR 생성
 7. CI 확인
 8. 리뷰/승인
 9. `dev` 병합

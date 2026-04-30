@@ -75,8 +75,8 @@ cat <<'MSG'
 초기 세팅이 완료되었습니다.
 다음 단계:
 1. docs/team-setup-manual.md를 읽습니다.
-2. 필요하면 ./scripts/bootstrap-github.sh --create-project 를 실행합니다.
-3. GitHub에서 이슈를 만들거나 기존 이슈를 선택합니다.
-4. dev 브랜치에서 feature/<issue>-<slug> 브랜치를 만들어 작업합니다.
-5. PR을 열고 CI와 자동 라벨을 확인합니다.
+2. GitHub에서 이슈를 만들거나 기존 이슈를 선택합니다.
+3. ./scripts/start-task.sh <issue-number> <short-slug> 로 작업 브랜치를 만듭니다.
+4. 작업 후 ./scripts/open-pr.sh 로 검증, push, PR 생성을 처리합니다.
+5. 저장소 관리자만 필요할 때 ./scripts/bootstrap-github.sh --create-project 를 실행합니다.
 MSG
