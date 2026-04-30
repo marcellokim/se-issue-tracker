@@ -18,14 +18,17 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/gradle.yml",
                 ".github/workflows/pr-labeler.yml",
                 ".github/workflows/add-to-project.yml",
+                ".github/workflows/project-maintenance.yml",
                 "config/github/labels.json",
                 "config/github/milestones.json",
                 "docs/team-setup-manual.md",
                 "docs/automation-playbook.md",
                 "docs/templates/submission-readme.txt.template",
                 "scripts/bootstrap-dev.sh",
+                "scripts/audit-project.sh",
                 "scripts/start-task.sh",
                 "scripts/open-pr.sh",
+                "scripts/sync-project-board.sh",
                 "scripts/bootstrap.sh",
                 "scripts/package-submission.sh"
         );
@@ -47,7 +50,11 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("scripts/start-task.sh", "./scripts/open-pr.sh"),
                 new ScriptExpectation("scripts/open-pr.sh", "PR을 올릴 수 있는 작업 브랜치가 아닙니다"),
                 new ScriptExpectation("scripts/open-pr.sh", "gh auth login"),
-                new ScriptExpectation("scripts/open-pr.sh", "gh pr create")
+                new ScriptExpectation("scripts/open-pr.sh", "gh pr create"),
+                new ScriptExpectation("scripts/open-pr.sh", "상태 라벨을 review로 이동"),
+                new ScriptExpectation("scripts/open-pr.sh", "sync-project-board.sh"),
+                new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
+                new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project")
         );
     }
 

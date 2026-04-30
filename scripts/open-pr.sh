@@ -8,7 +8,7 @@ branch="$(git rev-parse --abbrev-ref HEAD)"
 
 if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feature|docs|test|chore)/[a-z0-9._-]+$ ]]; then
     echo "[중단] PR을 올릴 수 있는 작업 브랜치가 아닙니다: $branch" >&2
-    echo "feature/<issue>-<slug>, docs/<slug>, test/<slug>, chore/<slug> 브랜치에서 실행하세요." >&2
+    echo "feature/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, chore/<issue>-<slug> 브랜치에서 실행하세요." >&2
     exit 1
 fi
 
@@ -42,31 +42,65 @@ echo "[1/3] 로컬 검증 실행"
 echo "[2/3] 원격 브랜치 push"
 git push -u origin HEAD
 
-if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
-    echo "[확인] 이미 열린 PR이 있습니다: $pr_url"
-    exit 0
-fi
-
 slug="${branch#*/}"
 issue_number=""
 if [[ "$slug" =~ ^([0-9]+)- ]]; then
     issue_number="${BASH_REMATCH[1]}"
 fi
 
-title="${branch#*/}"
-body="## Summary
-- 작업 브랜치: \`$branch\`
-
-## Verification
-- \`./gradlew check\`"
-
-if [[ -n "$issue_number" ]]; then
-    body="$body
-
-## Issue
-- Related: #$issue_number"
+if [[ -z "$issue_number" ]]; then
+    echo "[중단] 브랜치 이름에서 이슈 번호를 찾을 수 없습니다: $branch" >&2
+    echo "예: feature/18-db-repository" >&2
+    exit 1
 fi
 
+if ! issue_title="$(gh issue view "$issue_number" --json title -q .title 2>/dev/null)"; then
+    echo "[중단] GitHub 이슈 #$issue_number 를 찾을 수 없습니다." >&2
+    exit 1
+fi
+
+mark_issue_review() {
+    local status_label
+    while IFS= read -r status_label; do
+        if [[ "$status_label" != "status:review" ]]; then
+            gh issue edit "$issue_number" --remove-label "$status_label" >/dev/null
+        fi
+    done < <(gh issue view "$issue_number" --json labels -q '.labels[].name' | grep '^status:' || true)
+    gh issue edit "$issue_number" --add-label status:review >/dev/null
+}
+
+sync_project_board() {
+    if ! ./scripts/sync-project-board.sh --apply --quiet; then
+        echo "[경고] Project 상태 자동 정렬에 실패했습니다. PROJECT_URL/ADD_TO_PROJECT_PAT 권한을 확인하세요." >&2
+    fi
+}
+
+if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
+    echo "[확인] 이미 열린 PR이 있습니다: $pr_url"
+    echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
+    mark_issue_review
+    echo "[확인] GitHub Project 상태 정렬"
+    sync_project_board
+    exit 0
+fi
+
+title="${issue_title}"
+body="## Summary
+- 작업 브랜치: \`$branch\`
+- 관련 이슈: #$issue_number
+
+## Verification
+- \`./gradlew check\`
+
+## Issue
+- Closes #$issue_number"
+
 echo "[3/3] GitHub PR 생성"
-# gh pr create
-gh pr create --base dev --head "$branch" --title "$title" --body "$body"
+pr_url="$(gh pr create --base dev --head "$branch" --title "$title" --body "$body")"
+echo "$pr_url"
+
+echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
+mark_issue_review
+
+echo "[확인] GitHub Project 상태 정렬"
+sync_project_board

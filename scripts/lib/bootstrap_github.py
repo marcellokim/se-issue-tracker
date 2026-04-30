@@ -107,7 +107,19 @@ def sync_milestones(repo: str) -> list[str]:
 
     for milestone in desired:
         if milestone["title"] in current_titles:
-            summary.append(f"마일스톤 유지: {milestone['title']}")
+            current_item = next(item for item in current if item["title"] == milestone["title"])
+            if current_item.get("description") == milestone["description"]:
+                summary.append(f"마일스톤 유지: {milestone['title']}")
+                continue
+            gh_api(
+                "PATCH",
+                f"repos/{repo}/milestones/{current_item['number']}",
+                {
+                    "title": milestone["title"],
+                    "description": milestone["description"],
+                },
+            )
+            summary.append(f"마일스톤 설명 갱신: {milestone['title']}")
             continue
         gh_api(
             "POST",
