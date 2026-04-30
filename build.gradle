@@ -47,14 +47,17 @@ def requiredAutomationPaths = [
     '.github/labeler.yml',
     '.github/workflows/add-to-project.yml',
     '.github/workflows/gradle.yml',
+    '.github/workflows/project-maintenance.yml',
     '.github/workflows/pr-labeler.yml',
     'config/github/labels.json',
     'config/github/milestones.json',
     'scripts/bootstrap.sh',
     'scripts/bootstrap-github.sh',
     'scripts/install-git-hooks.sh',
+    'scripts/audit-project.sh',
     'scripts/start-task.sh',
     'scripts/open-pr.sh',
+    'scripts/sync-project-board.sh',
     'scripts/sync-labels.sh',
     'scripts/package-submission.sh',
     'docs/team-setup-manual.md',
@@ -76,6 +79,12 @@ tasks.register('verifyRepositorySetup') {
 
         println "저장소 기본 구성을 확인했습니다 (${requiredAutomationPaths.size()}개 필수 경로 확인)."
     }
+}
+
+tasks.register('auditAutomation', Exec) {
+    group = '검증'
+    description = '로컬 저장소 자동화 문서, 스크립트, DB 표준 문구 정합성을 점검합니다.'
+    commandLine 'python3', 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
 }
 
 tasks.register('verifySubmissionMetadata') {
@@ -113,6 +122,7 @@ tasks.register('preflight') {
 
 tasks.named('check') {
     dependsOn 'verifyRepositorySetup'
+    dependsOn 'auditAutomation'
 }
 
 tasks.register('ci') {

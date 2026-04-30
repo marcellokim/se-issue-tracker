@@ -147,7 +147,9 @@ gh auth login
 | --- | --- |
 | `scripts/bootstrap.sh` | 새 팀원 초기 세팅 |
 | `scripts/start-task.sh` | 기준선 확인 + 이슈 번호 기반 브랜치 생성 |
-| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 |
+| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 + Project 상태 정렬 |
+| `scripts/audit-project.sh` | main/dev, 문서, 이슈, Project 정합성 점검 |
+| `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 Project 상태 정렬 |
 | `scripts/package-submission.sh` | 제출 zip + `README.txt` 자동 생성 |
 | `.githooks/pre-commit` | 위험한 브랜치 작업/설정 누락 방지 |
 | `.githooks/pre-push` | push 전 테스트/기본 검증 |
@@ -160,6 +162,7 @@ gh auth login
 | PR 템플릿 | 검증/문서/증빙 누락 방지 |
 | Gradle CI | `build` 체크 제공 |
 | PR Labeler | 변경 파일 기준 라벨 자동 분류 |
+| Project 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 점검/정렬 |
 | Dependabot | 의존성/Actions 업데이트 추적 |
 | Security 설정 | secret/push protection/code scanning/vulnerability reporting |
 
@@ -294,9 +297,19 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 ### 권장 운영 방식
 - 이슈 생성 직후 Project에 반영
-- PR 생성 시 상태를 `리뷰 중`으로 이동
+- PR 생성 시 `scripts/open-pr.sh`가 이슈 라벨을 `status:review`로 바꾸고 Project 상태를 `리뷰 중`으로 이동
 - 병합 후 `완료`로 이동
 - 데모 직전에는 `마일스톤` 기준으로 필터링
+
+### 관리자가 한 번에 점검할 때
+```bash
+./scripts/audit-project.sh
+```
+
+Project 상태만 다시 맞출 때:
+```bash
+./scripts/sync-project-board.sh --apply
+```
 
 ---
 
@@ -405,6 +418,12 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 # PR 생성
 ./scripts/open-pr.sh
+
+# 자동화/Project 정합성 점검
+./scripts/audit-project.sh
+
+# Project 상태만 수동 정렬
+./scripts/sync-project-board.sh --apply
 
 # 기본 검증
 ./gradlew check
