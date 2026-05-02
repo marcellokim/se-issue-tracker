@@ -2,7 +2,7 @@ name: Gradle 검증
 
 on:
   push:
-    branches: ["main", "dev", "feature/**", "docs/**", "chore/**"]
+    branches: ["main", "dev", "feature/**", "docs/**", "test/**", "chore/**"]
   pull_request:
     branches: ["main", "dev"]
   workflow_dispatch:
