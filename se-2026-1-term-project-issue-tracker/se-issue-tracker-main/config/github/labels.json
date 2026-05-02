@@ -1,0 +1,162 @@
+[
+  {
+    "name": "type:feature",
+    "color": "1D76DB",
+    "description": "새 기능 또는 기능 개선"
+  },
+  {
+    "name": "type:bug",
+    "color": "D73A4A",
+    "description": "버그 수정"
+  },
+  {
+    "name": "type:test",
+    "color": "5319E7",
+    "description": "테스트 또는 검증 작업"
+  },
+  {
+    "name": "type:docs",
+    "color": "0E8A16",
+    "description": "문서화 작업"
+  },
+  {
+    "name": "type:chore",
+    "color": "6F42C1",
+    "description": "환경설정, 리팩터링, 유지보수 작업"
+  },
+  {
+    "name": "priority:high",
+    "color": "B60205",
+    "description": "높은 우선순위"
+  },
+  {
+    "name": "priority:medium",
+    "color": "FBCA04",
+    "description": "중간 우선순위"
+  },
+  {
+    "name": "priority:low",
+    "color": "0E8A16",
+    "description": "낮은 우선순위"
+  },
+  {
+    "name": "status:backlog",
+    "color": "D4C5F9",
+    "description": "아직 시작하지 않은 대기 작업"
+  },
+  {
+    "name": "status:ready",
+    "color": "BFDADC",
+    "description": "바로 시작 가능한 작업"
+  },
+  {
+    "name": "status:in-progress",
+    "color": "0052CC",
+    "description": "현재 진행 중인 작업"
+  },
+  {
+    "name": "status:review",
+    "color": "5319E7",
+    "description": "리뷰 또는 QA 진행 중"
+  },
+  {
+    "name": "status:done",
+    "color": "0E8A16",
+    "description": "완료된 작업"
+  },
+  {
+    "name": "role:admin",
+    "color": "C2E0C6",
+    "description": "admin 역할 관련 작업"
+  },
+  {
+    "name": "role:pl",
+    "color": "F9D0C4",
+    "description": "PL 역할 관련 작업"
+  },
+  {
+    "name": "role:dev",
+    "color": "FEF2C0",
+    "description": "dev 역할 관련 작업"
+  },
+  {
+    "name": "role:tester",
+    "color": "C5DEF5",
+    "description": "tester 역할 관련 작업"
+  },
+  {
+    "name": "area:automation",
+    "color": "BFD4F2",
+    "description": "GitHub 또는 도구 자동화"
+  },
+  {
+    "name": "area:documentation",
+    "color": "C2E0C6",
+    "description": "문서 또는 제출 산출물"
+  },
+  {
+    "name": "area:ui",
+    "color": "F9D0C4",
+    "description": "UI 또는 화면 표현 계층"
+  },
+  {
+    "name": "area:domain",
+    "color": "FBCA04",
+    "description": "도메인/모델/서비스 로직"
+  },
+  {
+    "name": "area:persistence",
+    "color": "0052CC",
+    "description": "영속 저장소 또는 repository 계층"
+  },
+  {
+    "name": "area:analytics",
+    "color": "5319E7",
+    "description": "통계 또는 추이 분석"
+  },
+  {
+    "name": "area:recommendation",
+    "color": "D876E3",
+    "description": "담당자 추천 로직"
+  },
+  {
+    "name": "docs",
+    "color": "0E8A16",
+    "description": "문서 PR 라벨"
+  },
+  {
+    "name": "workflow",
+    "color": "BFDADC",
+    "description": "워크플로우 또는 GitHub 프로세스 변경"
+  },
+  {
+    "name": "backend",
+    "color": "0052CC",
+    "description": "백엔드 또는 도메인 로직 작업"
+  },
+  {
+    "name": "ui",
+    "color": "C5DEF5",
+    "description": "사용자 인터페이스 작업"
+  },
+  {
+    "name": "test",
+    "color": "5319E7",
+    "description": "테스트 작업"
+  },
+  {
+    "name": "architecture",
+    "color": "6F42C1",
+    "description": "아키텍처와 설계 결정"
+  },
+  {
+    "name": "dependencies",
+    "color": "0366D6",
+    "description": "의존성 또는 도구 체인 업데이트"
+  },
+  {
+    "name": "infra",
+    "color": "5319E7",
+    "description": "빌드, CI, 자동화, 저장소 인프라"
+  }
+]
