@@ -55,6 +55,8 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("scripts/open-pr.sh", "sync-project-board.sh"),
                 new ScriptExpectation(".github/workflows/gradle.yml", "test/**"),
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "synchronize"),
+                new ScriptExpectation(".github/workflows/project-maintenance.yml", "cancel-in-progress: true"),
+                new ScriptExpectation(".github/workflows/project-maintenance.yml", "min_graphql_remaining=250"),
                 new ScriptExpectation(".githooks/pre-commit", "docs/<issue>-<slug>"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project")

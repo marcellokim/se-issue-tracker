@@ -2,12 +2,16 @@ name: Project 정합성 유지
 
 on:
   issues:
-    types: [opened, edited, labeled, unlabeled, closed, reopened, assigned, unassigned]
+    types: [opened, labeled, unlabeled, closed, reopened]
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review, closed]
   workflow_dispatch:
   schedule:
     - cron: "17 15 * * *"
+
+concurrency:
+  group: project-maintenance
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -26,13 +30,24 @@ jobs:
         env:
           PROJECT_URL: ${{ vars.PROJECT_URL }}
           ADD_TO_PROJECT_PAT: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
         run: |
           if [ -z "${PROJECT_URL}" ] || [ -z "${ADD_TO_PROJECT_PAT}" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "PROJECT_URL 또는 ADD_TO_PROJECT_PAT가 없어 Project 정합성 유지를 건너뜁니다."
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          graphql_remaining="$(gh api rate_limit --jq '.resources.graphql.remaining // 0' 2>/dev/null || echo 0)"
+          graphql_reset="$(gh api rate_limit --jq '.resources.graphql.reset // 0' 2>/dev/null || echo 0)"
+          min_graphql_remaining=250
+          if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub GraphQL rate limit remaining=${graphql_remaining}; Project 정합성 유지를 건너뜁니다. reset=${graphql_reset}"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - name: Project 상태 정렬
         if: steps.preflight.outputs.enabled == 'true'
