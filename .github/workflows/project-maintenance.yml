@@ -10,7 +10,7 @@ on:
     - cron: "17 15 * * *"
 
 concurrency:
-  group: project-maintenance
+  group: project-maintenance-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -38,8 +38,14 @@ jobs:
             exit 0
           fi
 
-          graphql_remaining="$(gh api rate_limit --jq '.resources.graphql.remaining // 0' 2>/dev/null || echo 0)"
-          graphql_reset="$(gh api rate_limit --jq '.resources.graphql.reset // 0' 2>/dev/null || echo 0)"
+          if ! graphql_remaining="$(gh api rate_limit --jq '.resources.graphql.remaining')"; then
+            echo "::error::GitHub rate-limit probe failed. Check ADD_TO_PROJECT_PAT, network, and GitHub API availability."
+            exit 1
+          fi
+          if ! graphql_reset="$(gh api rate_limit --jq '.resources.graphql.reset')"; then
+            echo "::error::GitHub rate-limit reset probe failed. Check ADD_TO_PROJECT_PAT, network, and GitHub API availability."
+            exit 1
+          fi
           min_graphql_remaining=250
           if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
