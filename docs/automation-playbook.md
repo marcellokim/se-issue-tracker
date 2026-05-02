@@ -52,6 +52,12 @@
 | `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub Project 상태로 반영 | `./scripts/sync-project-board.sh --apply` |
 | `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
 
+`Project 정합성 유지` 워크플로우는 이슈/PR 이벤트가 짧은 시간에 몰릴 때 같은 기준선의 중복
+실행만 취소하고, GitHub GraphQL 잔여량이 낮으면 Project 정렬을 성공 상태로 건너뛴다. 이 경우
+저장소나 Project 데이터가 망가진 것이 아니라 외부 API 한도 보호가 동작한 것이므로, 다음 예약
+실행 또는 수동 `workflow_dispatch`에서 다시 정렬한다. 반대로 rate limit 조회 자체가 실패하면
+토큰/네트워크/API 문제일 수 있으므로 실패로 드러내고 조용히 건너뛰지 않는다.
+
 ### 2-2. 저장소/구성 자동화
 | 항목 | 상태 | 목적 |
 | --- | --- | --- |
