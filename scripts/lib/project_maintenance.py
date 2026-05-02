@@ -74,7 +74,14 @@ class ProjectContext:
 
 
 def run(cmd: list[str], *, check: bool = False, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=ROOT, check=check, text=True, capture_output=True, env=env)
+    completed = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, env=env)
+    if check and completed.returncode != 0:
+        command = " ".join(cmd)
+        stderr = completed.stderr.strip()
+        stdout = completed.stdout.strip()
+        details = stderr or stdout or f"exit code {completed.returncode}"
+        raise SystemExit(f"명령 실패: {command}\n{details}")
+    return completed
 
 
 def fail(message: str) -> CheckResult:
