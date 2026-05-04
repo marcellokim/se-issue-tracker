@@ -27,10 +27,13 @@
 | 이슈 상세 정보 확인 | [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | 상세 조회 서비스, 댓글 history 표시 |
 | 이슈 코멘트 추가 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | Comment 모델, 코멘트 누적 테스트 |
 | 이슈 배정 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) 이슈 배정과 상태 변경 흐름 구현 | assignee 변경 테스트, PL 시나리오 |
-| 이슈 상태 변경 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | 상태 전이 규칙, 잘못된 전이 테스트 |
+| 이슈 상태 변경 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20), [#43](https://github.com/marcellokim/se-issue-tracker/issues/43), [#47](https://github.com/marcellokim/se-issue-tracker/issues/47) | 상태 전이 규칙, 잘못된 fixed 역전이, reopen 테스트 |
 | fixer 기록 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | dev 작업 완료 시 fixer 저장 테스트 |
 | 우선순위 blocker/critical/major/minor/trivial | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) | Priority enum/value object, 기본값 major 테스트 |
-| 상태 new/assigned/resolved/closed/reopened | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | IssueStatus 정의, 상태 전이 문서 |
+| 상태 new/assigned/fixed/resolved/closed/reopened/deleted | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20), [#43](https://github.com/marcellokim/se-issue-tracker/issues/43), [#44](https://github.com/marcellokim/se-issue-tracker/issues/44), [#47](https://github.com/marcellokim/se-issue-tracker/issues/47) | IssueStatus 정의, 상태 전이 문서, soft-delete/FIFO 정리 테스트 |
+| reporter의 title/description 수정 제한 | [#46](https://github.com/marcellokim/se-issue-tracker/issues/46) | assigned 전 수정 허용, assigned 이후 comment 보완 흐름 |
+| PL 전용 priority 변경 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | 권한 검사, 변경 사유 comment/history |
+| 이슈 dependency 관계 | [#45](https://github.com/marcellokim/se-issue-tracker/issues/45) | IssueDependency 모델, 순환 방지, 선행 이슈 해결 제약 테스트 |
 | 일/월별 이슈 발생 통계 및 trend | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) 일/월별 이슈 통계와 trend 조회 구현 | 통계 서비스, 날짜 fixture, UI 표시 |
 | closed/resolved 이력 기반 assignee 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | 추천 서비스, 후보 3명 결과, 추천 근거 |
 | persistent storage | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | DB 저장/조회 테스트, schema/seed 설명 |
@@ -51,14 +54,17 @@
 | SSD 2개 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | SSD 2개 |
 | Operation Contract 2개 이상 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | Operation Contract 2개 이상 |
 | 클래스/시퀀스 다이어그램 및 설계 설명 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | 설계 UML, MVC 설명, UI 분리 근거 |
-| OOAD/GRASP/설계 원칙 설명 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | 설계 결정 기록, 클래스 책임 설명 |
+| OOAD/GRASP/설계 원칙 설명 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#39](https://github.com/marcellokim/se-issue-tracker/issues/39) | 설계 결정 기록, 클래스 책임 설명 |
 | 구현 결과 및 스크린샷 | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24), [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 화면 캡처, 데모 순서 |
 | 테스트 수행 내역 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25), [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 테스트 코드, 테스트 목적 설명 |
 | 최종 README.txt, 발표 슬라이드, 문서 PDF, 영상, zip | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 제출 zip, README.txt, 슬라이드, 영상 |
 
-## 아직 팀 확인이 필요한 부분
+## 팀 회의 확정 사항
 
-- PDF 시나리오에는 `fixed` 표현이 나오지만, 최소 상태 목록에는 `fixed`가 없습니다. 구현에서는 `fixed`를 별도 상태로 둘지, dev가 처리한 뒤 tester가 `resolved`로 바꾸기 전의 내부 이벤트로 볼지 정해야 합니다.
-- DB schema와 seed 데이터는 구현 편의와 데모 재현성을 함께 고려해야 합니다.
-- JavaFX/Swing 중 어느 UI가 어떤 역할 흐름을 담당할지 확정해야 합니다.
-- 추천 기능은 설명 가능한 규칙 기반으로 시작할지, 유사도 기반으로 확장할지 팀 합의가 필요합니다.
+- User당 직군/역할은 하나만 부여합니다.
+- Reporter는 assigned 전까지만 자신이 등록한 이슈의 title/description을 수정할 수 있고, assigned 이후 정정은 comment로 남깁니다.
+- Priority는 PL만 변경할 수 있으며, assigned 상태와 무관하게 변경 가능합니다.
+- Dev가 fixed 처리한 이슈를 Tester가 검증 실패하면 `fixed -> assigned`로 되돌릴 수 있습니다.
+- Reopen은 PL만 수행하며, reopen 후에는 assignee를 지정해 assigned 상태부터 재작업을 시작합니다.
+- 불필요한 이슈는 `deleted` 상태로 soft-delete하고, deleted 이슈가 30개를 초과하면 deleted 전이 시각 기준 FIFO로 오래된 이슈부터 물리 삭제합니다.
+- 이슈 dependency 관계는 구조화된 기능으로 추가합니다.

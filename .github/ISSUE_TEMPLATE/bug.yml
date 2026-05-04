@@ -1,6 +1,6 @@
-name: bug
-description: bug 수정 작업을 정의합니다.
-title: "[bug] "
+name: 버그
+description: 버그 수정 작업을 정의합니다.
+title: "[버그] "
 labels: ["type:bug", "priority:high"]
 projects: ["marcellokim/1"]
 body:

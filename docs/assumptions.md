@@ -6,14 +6,25 @@
 상태 이름은 두 층에서 분리해서 사용합니다.
 
 ### 애플리케이션 이슈 상태
-과제 PDF의 최소 상태 목록은 다음과 같습니다.
+과제 PDF의 최소 상태 목록과 팀 회의 확정 상태를 함께 반영합니다.
 
-`new -> assigned -> resolved -> closed`
+기본 흐름:
+
+`new -> assigned -> fixed -> resolved -> closed`
 
 보조 상태/흐름:
-- `reopened`는 닫혔거나 해결된 이슈가 다시 열릴 때 사용합니다.
-- PDF 예제 시나리오에는 dev가 작업 후 이슈를 `fixed`로 바꾼다는 표현이 있으나, 최소 상태 목록에는 `fixed`가 없습니다.
-- 초기 구현에서는 `fixed`를 별도 영속 상태로 둘지, dev가 fixer로 기록되고 tester가 `resolved`로 넘기기 전의 중간 이벤트로 볼지 팀 설계에서 확정합니다.
+- `fixed`는 Dev가 수정 완료를 주장한 중간 상태입니다.
+- Tester가 fixed 이슈를 검증 성공하면 `resolved`로 전이합니다.
+- Tester가 fixed 이슈를 검증 실패하면 `assigned`로 되돌리고 실패 사유를 comment/history에 남깁니다.
+- `reopened`는 resolved/closed 이슈를 PL이 다시 작업 대상으로 판단할 때 사용합니다. Reopen 후에는 PL이 assignee를 지정해 `assigned` 상태부터 재작업을 시작합니다.
+- `deleted`는 불필요한 이슈의 soft-delete 상태입니다. deleted 이슈가 30개를 초과하면 deleted 전이 시각 기준 FIFO로 오래된 이슈부터 물리 삭제합니다.
+
+### 권한 및 수정 정책
+- User당 직군/역할은 하나만 부여합니다.
+- Reporter는 assigned 전까지만 자신의 이슈 title/description을 수정할 수 있습니다.
+- assigned 이후 title/description 정정과 추가 정보는 comment로 남깁니다.
+- Priority는 PL만 변경할 수 있으며, assigned 상태와 무관하게 변경 가능합니다.
+- 이슈 dependency 관계는 comment가 아니라 구조화된 데이터로 관리합니다.
 
 ### GitHub Project 작업 상태
 GitHub Project에서 팀 작업을 관리할 때는 다음 흐름을 사용합니다.
