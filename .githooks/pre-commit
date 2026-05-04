@@ -19,6 +19,8 @@ if [[ -z "$staged_files" ]]; then
     exit 0
 fi
 
+./scripts/validate-public-attribution.sh --staged
+
 if [[ "$current_branch" != "dev" && ! "$current_branch" =~ ^(feature|docs|test|chore)/[a-z0-9._-]+$ ]]; then
     echo "[pre-commit] 브랜치 이름 권장 형식: feature/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, chore/<issue>-<slug>"
 fi

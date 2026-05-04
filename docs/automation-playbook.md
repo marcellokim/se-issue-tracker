@@ -45,6 +45,7 @@
 | `scripts/bootstrap-dev.sh` | 구현 | 새 팀원 로컬 초기 세팅 | `./scripts/bootstrap-dev.sh` |
 | `.githooks/pre-commit` | 구현 | 위험한 브랜치 작업/설정 누락 방지 | bootstrap 시 자동 설치 |
 | `.githooks/pre-push` | 구현 | push 전 테스트/기본 검증 | bootstrap 시 자동 설치 |
+| `.githooks/commit-msg` | 구현 | 공개 이력에 남기면 안 되는 외부 도구/공동작성자 표기 차단 | bootstrap 시 자동 설치 |
 | `.gitmessage.txt` | 구현 | Lore commit protocol 강제 유도 | bootstrap 시 자동 적용 |
 | `scripts/start-task.sh` | 구현 | 기준선 확인 후 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
 | `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성, 이슈 review 라벨 이동, Project 정렬을 한 번에 처리 | `./scripts/open-pr.sh` |
@@ -52,12 +53,16 @@
 | `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub Project 상태로 반영 | `./scripts/sync-project-board.sh --apply` |
 | `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
 | `scripts/validate-workflow-guard.sh` | 구현 | 정해진 PR/브랜치 흐름과 관리자 bypass 정책 검증 | GitHub Actions에서 자동 실행 |
+| `scripts/validate-public-attribution.sh` | 구현 | commit message와 tracked file의 공개 이력 표기 정책 검증 | commit hook / audit에서 자동 실행 |
 
 `Project 정합성 유지` 워크플로우는 이슈/PR 이벤트가 짧은 시간에 몰릴 때 같은 기준선의 중복
 실행만 취소하고, GitHub GraphQL 잔여량이 낮으면 Project 정렬을 성공 상태로 건너뛴다. 이 경우
 저장소나 Project 데이터가 망가진 것이 아니라 외부 API 한도 보호가 동작한 것이므로, 다음 예약
 실행 또는 수동 `workflow_dispatch`에서 다시 정렬한다. 반대로 rate limit 조회 자체가 실패하면
 토큰/네트워크/API 문제일 수 있으므로 실패로 드러내고 조용히 건너뛰지 않는다.
+
+공개 GitHub 이력에는 팀원 이름과 저장소 계정만 남긴다. 외부 도구명, 자동 생성 표기, 공동작성자
+trailer는 commit message hook, staged file hook, 저장소 감사에서 차단한다.
 
 ### 2-2. 저장소/구성 자동화
 | 항목 | 상태 | 목적 |

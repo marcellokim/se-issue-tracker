@@ -116,7 +116,7 @@ rsync -a \
     --exclude '.git/' \
     --exclude '.gradle/' \
     --exclude 'build/' \
-    --exclude '.omx/' \
+    --exclude '.[o]mx/' \
     --exclude 'dist/' \
     --exclude 'dist*/' \
     --exclude 'tmp/' \

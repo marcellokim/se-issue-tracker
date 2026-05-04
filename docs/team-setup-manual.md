@@ -174,6 +174,7 @@ gh auth login
 | `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 Project 상태 정렬 |
 | `scripts/package-submission.sh` | 제출 zip + `README.txt` 자동 생성 |
 | `.githooks/pre-commit` | 위험한 브랜치 작업/설정 누락 방지 |
+| `.githooks/commit-msg` | 공개 이력에 남기면 안 되는 도구/공동작성자 표기 차단 |
 | `.githooks/pre-push` | push 전 테스트/기본 검증 |
 | `.gitmessage.txt` | Lore commit protocol 메시지 템플릿 |
 
@@ -294,8 +295,12 @@ git commit
 
 ### pre-commit
 - `main`/`dev` 브랜치 직접 커밋 방지
+- staged 파일의 공개 이력 표기 정책 위반 차단
 - 권장 브랜치 이름 형식 안내
 - Java가 있으면 `verifyRepositorySetup` 실행
+
+### commit-msg
+- 외부 도구명, 자동 생성 표기, 공동작성자 trailer 차단
 
 ### pre-push
 - `main`/`dev` 직접 push 방지
