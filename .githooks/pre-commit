@@ -9,8 +9,8 @@ java_runtime_ready() {
 }
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
-if [[ "$current_branch" == "main" ]]; then
-    echo "[pre-commit] main 브랜치 직접 커밋은 금지입니다. feature/* 또는 docs/* 브랜치에서 작업하세요."
+if [[ "$current_branch" == "main" || "$current_branch" == "dev" ]]; then
+    echo "[pre-commit] main/dev 브랜치 직접 커밋은 금지입니다. ./scripts/start-task.sh 로 작업 브랜치를 만드세요."
     exit 1
 fi
 

@@ -11,7 +11,24 @@
 
 ## Git 초보용 5분 흐름
 
-평소에는 아래 두 스크립트만 기억하면 됩니다.
+처음 받은 컴퓨터에서는 먼저 저장소 루트로 들어갑니다.
+
+```bash
+git clone https://github.com/marcellokim/se-issue-tracker.git
+cd se-issue-tracker
+./scripts/bootstrap.sh
+```
+
+이미 `se-issue-tracker` 폴더 안에 있다면 다시 `git clone ...`을 실행하지 않습니다. 기존 폴더 안에서 다시 clone하면 `se-issue-tracker/se-issue-tracker`처럼 폴더가 중복되고, 바깥 폴더에서 `./scripts/open-pr.sh`를 실행할 때 파일이 없는 것처럼 보입니다.
+
+현재 위치가 맞는지 헷갈리면 아래 두 명령이 통과해야 합니다.
+
+```bash
+pwd
+test -f scripts/open-pr.sh && echo "OK: 저장소 루트입니다"
+```
+
+평소 작업할 때는 아래 두 스크립트만 기억하면 됩니다.
 
 ```bash
 # 1. 작업 시작: dev 최신화, 기준선 확인, 개인 브랜치 생성까지 자동 처리
@@ -37,6 +54,7 @@ git commit
 - `dev`에도 직접 커밋하지 않습니다.
 - 내 작업은 `feature/...`, `docs/...`, `test/...`, `chore/...` 브랜치에서 합니다.
 - PR은 항상 `dev`로 올립니다.
+- 이 규칙은 GitHub Actions의 `workflow-guard`와 branch protection으로 강제됩니다.
 
 ---
 
@@ -58,9 +76,9 @@ git commit
 - `main`: **제출 가능한 안정 버전**
 - `dev`: **통합 브랜치**
 - `feature/<issue>-<slug>`: 기능 작업 브랜치
-- `docs/<slug>`: 문서 작업 브랜치
-- `test/<slug>`: 테스트 보강 브랜치
-- `chore/<slug>`: 자동화/환경설정/리팩터링 브랜치
+- `docs/<issue>-<slug>`: 문서 작업 브랜치
+- `test/<issue>-<slug>`: 테스트 보강 브랜치
+- `chore/<issue>-<slug>`: 자동화/환경설정/리팩터링 브랜치
 
 ### 기본 흐름
 1. GitHub 이슈 생성
@@ -75,8 +93,10 @@ git commit
 ### 팀 규칙 핵심
 - 기능 작업은 **이슈에서 시작**합니다.
 - `main` 직접 작업은 하지 않습니다.
+- `dev` 직접 작업도 하지 않습니다.
 - PR에는 **검증 결과와 문서 반영 여부**를 남깁니다.
 - 화면/설계/테스트 증적은 가능한 한 **같은 시점에 축적**합니다.
+- 일반 팀원은 보호 자동화 파일을 수정하지 않습니다. 필요하면 관리자에게 별도 이슈로 요청합니다.
 
 ---
 
@@ -135,6 +155,8 @@ gh auth login
 - 자동 병합 허용(`allow_auto_merge=true`)
 - 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 - `PROJECT_URL` repository variable 동기화
+- `WORKFLOW_BYPASS_USERS` repository variable 동기화
+- `main`/`dev` branch protection 동기화: PR 리뷰 1개, `build`/`workflow-guard` 필수 체크, 최신 기준선 요구, 강제 push/삭제 금지
 
 > 참고: `PR/이슈 -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
 
@@ -161,6 +183,7 @@ gh auth login
 | 이슈 양식 | 형식 통일, Project 자동 등록 |
 | PR 템플릿 | 검증/문서/증빙 누락 방지 |
 | Gradle CI | `build` 체크 제공 |
+| Workflow Guard | 일반 팀원의 `main` PR, 잘못된 head 브랜치, 보호 자동화 수정 시도 차단 |
 | PR Labeler | 변경 파일 기준 라벨 자동 분류 |
 | Project 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 점검/정렬 |
 | Dependabot | 의존성/Actions 업데이트 추적 |
@@ -204,6 +227,17 @@ git commit
 - `docs/qna.md` 또는 UML 업데이트가 필요한가?
 - 이 변경이 과제 요구사항 중 무엇에 대응하는가?
 - 스크린샷이 필요한가?
+
+### 4-5. 막히는 흐름
+아래 흐름은 실수 또는 우회 시도로 간주되어 실패합니다.
+
+- `main`으로 PR 생성
+- `dev` 브랜치 자체에서 수정한 뒤 PR 생성
+- `feature/foo`처럼 이슈 번호가 없는 브랜치에서 PR 생성
+- `main`/`dev`에 직접 push
+- `.github/workflows/workflow-guard.yml`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/lib/bootstrap_github.py` 수정
+
+예외는 저장소 관리자만 처리합니다. 관리자 bypass 계정은 GitHub repository variable `WORKFLOW_BYPASS_USERS`에 등록된 계정입니다.
 
 ---
 
@@ -259,11 +293,12 @@ git commit
 ## 7. git hooks가 막을 수 있는 것
 
 ### pre-commit
-- `main` 브랜치 직접 커밋 방지
+- `main`/`dev` 브랜치 직접 커밋 방지
 - 권장 브랜치 이름 형식 안내
 - Java가 있으면 `verifyRepositorySetup` 실행
 
 ### pre-push
+- `main`/`dev` 직접 push 방지
 - Java가 있으면 `./gradlew test verifyRepositorySetup` 실행
 - Java가 없으면 경고 후 CI에 위임
 

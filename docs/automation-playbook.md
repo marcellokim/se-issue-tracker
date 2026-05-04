@@ -51,6 +51,7 @@
 | `scripts/audit-project.sh` | 구현 | main/dev, 문서, DB 표준, GitHub 이슈/Project 정합성 점검 | `./scripts/audit-project.sh` |
 | `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub Project 상태로 반영 | `./scripts/sync-project-board.sh --apply` |
 | `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
+| `scripts/validate-workflow-guard.sh` | 구현 | 정해진 PR/브랜치 흐름과 관리자 bypass 정책 검증 | GitHub Actions에서 자동 실행 |
 
 `Project 정합성 유지` 워크플로우는 이슈/PR 이벤트가 짧은 시간에 몰릴 때 같은 기준선의 중복
 실행만 취소하고, GitHub GraphQL 잔여량이 낮으면 Project 정렬을 성공 상태로 건너뛴다. 이 경우
@@ -76,8 +77,9 @@
 | PR Labeler | 구현 | 변경 영역 자동 분류 |
 | Project 자동 추가 워크플로우 | 부분 구현 | 이슈/PR를 Project에 자동 추가 |
 | Project 정합성 유지 워크플로우 | 구현 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 정렬/점검 |
+| Workflow Guard | 구현 | 일반 팀원의 `main` PR, 잘못된 head 브랜치, 보호 자동화 수정 시도 차단 |
 | CODEOWNERS | 기본 구현 | 리뷰 책임자 구조 준비 |
-| bootstrap GitHub 스크립트 | 구현 | label/마일스톤/project/variable/repo setting 정렬 |
+| bootstrap GitHub 스크립트 | 구현 | label/마일스톤/project/variable/repo setting/branch protection 정렬 |
 
 ### 2-4. 보안 자동화
 | 항목 | 상태 | 비고 |
@@ -117,16 +119,19 @@
 - 마일스톤 동기화
 - GitHub Project 확인/생성
 - `PROJECT_URL` variable 동기화
+- `WORKFLOW_BYPASS_USERS` variable 동기화
 - 자동 병합 허용(`allow_auto_merge=true`)
 - 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
+- `main`/`dev` branch protection 동기화
+- `build`/`workflow-guard` 필수 체크 설정
+- PR 리뷰 1개, 최신 기준선, force push/delete 금지 설정
 
 ### 자동으로 맞추지 않는 항목
-- 브랜치 protection 세부 규칙 전체
 - CODEOWNERS 실제 사용자 ID 반영
 - `ADD_TO_PROJECT_PAT` secret
 - Project board view 세부 구성
 
-즉, bootstrap은 **반복 세팅을 줄이는 역할**이고, 최종 운영 정책까지 완전히 대신하진 않습니다.
+즉, bootstrap은 반복되는 저장소 정책을 맞추지만, 팀원 권한과 Project 화면 구성처럼 계정/수업 운영에 묶인 항목은 관리자가 직접 확인합니다.
 
 ---
 
@@ -155,7 +160,6 @@
 | Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
 | 외부 DB 컨테이너 자동 기동 | 과제 규모상 서버형 DB보다 내장형 DB가 단순함 |
 | custom CodeQL 워크플로우 | default setup으로 먼저 시작하는 편이 부담이 적음 |
-| 강제 commit rule 훅 강화 | 초반 생산성을 과하게 떨어뜨릴 수 있음 |
 
 ---
 

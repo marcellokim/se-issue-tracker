@@ -3,10 +3,11 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
+. "$repo_root/scripts/lib/git-refs.sh"
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
 
-if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feature|docs|test|chore)/[a-z0-9._-]+$ ]]; then
+if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feature|docs|test|chore)/[0-9]+-[a-z0-9._-]+$ ]]; then
     echo "[중단] PR을 올릴 수 있는 작업 브랜치가 아닙니다: $branch" >&2
     echo "feature/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, chore/<issue>-<slug> 브랜치에서 실행하세요." >&2
     exit 1
@@ -28,11 +29,12 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 1
 fi
 
+ensure_origin_fetch_ref dev
 git fetch origin dev --quiet
 
 if ! git merge-base --is-ancestor origin/dev HEAD; then
     echo "[중단] 현재 브랜치가 최신 dev를 포함하지 않습니다." >&2
-    echo "git fetch origin dev && git rebase origin/dev 후 다시 실행하세요." >&2
+    echo "git fetch origin +refs/heads/dev:refs/remotes/origin/dev && git rebase origin/dev 후 다시 실행하세요." >&2
     exit 1
 fi
 
