@@ -39,8 +39,6 @@ dist/
 # Virtual machine crash logs
 hs_err_pid*
 replay_pid*
-SE_Term_Project_2026-1.pdf
-
 # Windows/WSL downloaded-file metadata
 *:Zone.Identifier
 

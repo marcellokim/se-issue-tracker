@@ -9,6 +9,37 @@
 
 ---
 
+## Git 초보용 5분 흐름
+
+평소에는 아래 두 스크립트만 기억하면 됩니다.
+
+```bash
+# 1. 작업 시작: dev 최신화, 기준선 확인, 개인 브랜치 생성까지 자동 처리
+./scripts/start-task.sh <이슈번호> <작업이름>
+
+# 2. 코드/문서 수정 후 커밋
+./gradlew check
+git add .
+git commit
+
+# 3. PR 올리기: 검증, push, dev 대상 PR 생성까지 자동 처리
+./scripts/open-pr.sh
+```
+
+비유:
+- `main` = 교수님께 낼 최종본
+- `dev` = 팀 작업을 합치는 공용 합본
+- `feature/...` = 내 개인 작업 공간
+- PR = 내 작업을 공용 합본에 넣어 달라는 요청
+
+규칙:
+- `main`에는 직접 작업하지 않습니다.
+- `dev`에도 직접 커밋하지 않습니다.
+- 내 작업은 `feature/...`, `docs/...`, `test/...`, `chore/...` 브랜치에서 합니다.
+- PR은 항상 `dev`로 올립니다.
+
+---
+
 ## 0. 이 문서가 답하는 질문
 이 문서는 아래 질문에 답하도록 작성되었습니다.
 
@@ -89,7 +120,9 @@ cd se-issue-tracker
 ./scripts/bootstrap-dev.sh
 ```
 
-### 2-4. GitHub 설정도 같이 맞추고 싶다면
+### 2-4. 저장소 관리자가 GitHub 설정도 맞춰야 한다면
+이 단계는 저장소 관리자 1명만 실행합니다. 일반 팀원은 실행하지 않아도 됩니다.
+
 ```bash
 gh auth login
 ./scripts/bootstrap-github.sh --create-project
@@ -99,8 +132,8 @@ gh auth login
 - label 동기화
 - 마일스톤 동기화
 - GitHub Project 존재 여부 확인/생성
-- `allow_auto_병합=true`
-- `delete_브랜치_on_병합=true`
+- 자동 병합 허용(`allow_auto_merge=true`)
+- 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 - `PROJECT_URL` repository variable 동기화
 
 > 참고: `PR/이슈 -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
@@ -113,7 +146,10 @@ gh auth login
 | 항목 | 역할 |
 | --- | --- |
 | `scripts/bootstrap.sh` | 새 팀원 초기 세팅 |
-| `scripts/start-task.sh` | 이슈 번호 기반 브랜치 이름 표준화 |
+| `scripts/start-task.sh` | 기준선 확인 + 이슈 번호 기반 브랜치 생성 |
+| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 + Project 상태 정렬 |
+| `scripts/audit-project.sh` | main/dev, 문서, 이슈, Project 정합성 점검 |
+| `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 Project 상태 정렬 |
 | `scripts/package-submission.sh` | 제출 zip + `README.txt` 자동 생성 |
 | `.githooks/pre-commit` | 위험한 브랜치 작업/설정 누락 방지 |
 | `.githooks/pre-push` | push 전 테스트/기본 검증 |
@@ -126,6 +162,7 @@ gh auth login
 | PR 템플릿 | 검증/문서/증빙 누락 방지 |
 | Gradle CI | `build` 체크 제공 |
 | PR Labeler | 변경 파일 기준 라벨 자동 분류 |
+| Project 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 점검/정렬 |
 | Dependabot | 의존성/Actions 업데이트 추적 |
 | Security 설정 | secret/push protection/code scanning/vulnerability reporting |
 
@@ -134,14 +171,12 @@ gh auth login
 ## 4. 일상 작업 흐름
 
 ### 4-1. 작업 시작 전
-1. GitHub 이슈가 있는지 확인
-2. 작업 범위가 명확한지 확인
-3. 관련 문서(`README`, `assumptions`, `qna`, UML 등) 업데이트 필요 여부 확인
+1. GitHub 이슈 번호를 확인합니다.
+2. 작업 이름을 짧은 영어 단어로 정합니다. 예: `account-role-model`
+3. 작업트리에 커밋되지 않은 변경이 없는지 확인합니다.
 
 ### 4-2. 브랜치 생성
 ```bash
-git checkout dev
-git pull origin dev
 ./scripts/start-task.sh 18 recommendation-engine
 ```
 
@@ -159,6 +194,9 @@ feature/18-recommendation-engine
 ### 4-4. PR 올리기 전
 ```bash
 ./gradlew check
+git add .
+git commit
+./scripts/open-pr.sh
 ```
 
 추가 점검:
@@ -259,9 +297,19 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 ### 권장 운영 방식
 - 이슈 생성 직후 Project에 반영
-- PR 생성 시 상태를 `리뷰 중`으로 이동
+- PR 생성 시 `scripts/open-pr.sh`가 이슈 라벨을 `status:review`로 바꾸고 Project 상태를 `리뷰 중`으로 이동
 - 병합 후 `완료`로 이동
 - 데모 직전에는 `마일스톤` 기준으로 필터링
+
+### 관리자가 한 번에 점검할 때
+```bash
+./scripts/audit-project.sh
+```
+
+Project 상태만 다시 맞출 때:
+```bash
+./scripts/sync-project-board.sh --apply
+```
 
 ---
 
@@ -362,11 +410,20 @@ SKIP_GRADLE_PREPUSH=1 git push
 # 최초 세팅
 ./scripts/bootstrap.sh
 
-# GitHub 설정 동기화
+# 저장소 관리자용 GitHub 설정 동기화
 ./scripts/bootstrap-github.sh --create-project
 
 # 작업 브랜치 생성
 ./scripts/start-task.sh 18 recommendation-engine
+
+# PR 생성
+./scripts/open-pr.sh
+
+# 자동화/Project 정합성 점검
+./scripts/audit-project.sh
+
+# Project 상태만 수동 정렬
+./scripts/sync-project-board.sh --apply
 
 # 기본 검증
 ./gradlew check

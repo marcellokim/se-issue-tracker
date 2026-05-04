@@ -1,6 +1,6 @@
 # 프로젝트 관리 계획
 
-이 문서는 GitHub Project와 이슈를 과제 진행판으로 쓰기 위한 운영 기준입니다. 목표는 보기 좋은 보드를 만드는 것이 아니라, 과제 PDF 요구사항이 구현/테스트/문서/발표까지 빠지지 않고 연결되게 하는 것입니다.
+이 문서는 GitHub Project와 이슈를 과제 진행판으로 쓰기 위한 운영 기준입니다. 목표는 보기 좋은 보드를 만드는 것이 아니라, 루트의 `SE_Term_Project_2026-1.pdf` 요구사항이 구현/테스트/문서/발표까지 빠지지 않고 연결되게 하는 것입니다.
 
 ## 운영 원칙
 
@@ -52,7 +52,7 @@
 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) [docs] 도메인 모델, SSD, Operation Contract 초안 작성 | M1 | docs/design |
 | [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) [feature] 계정, 역할, 프로젝트 기본 모델 구현 | M2 | feature |
 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) [feature] 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | M2 | feature |
-| [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) [feature] 파일 기반 영속 저장소와 데모 초기 데이터 준비 | M2 | feature |
+| [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) [feature] DB 기반 영속 저장소와 데모 초기 데이터 준비 | M2 | feature |
 | [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) [feature] 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | M2 | feature |
 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) [feature] 이슈 배정과 상태 변경 흐름 구현 | M2 | feature |
 | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) [feature] 일/월별 이슈 통계와 trend 조회 구현 | M2 | feature |
@@ -67,7 +67,7 @@
 
 1. #13, #14, #15를 먼저 처리해서 요구사항과 설계 기준을 안정화합니다.
 2. #16~#20으로 기본 도메인 흐름을 구현합니다.
-3. #18의 초기 데이터로 PDF 데모 계정을 준비합니다.
+3. #18의 DB schema와 초기 데이터로 PDF 데모 계정을 준비합니다.
 4. #21, #22를 붙여 통계/추천 요구사항을 완성합니다.
 5. #23, #24에서 UI 두 개를 같은 서비스 계층에 연결합니다.
 6. #25로 핵심 모델/서비스/저장소 테스트를 보강합니다.

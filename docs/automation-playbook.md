@@ -46,8 +46,17 @@
 | `.githooks/pre-commit` | 구현 | 위험한 브랜치 작업/설정 누락 방지 | bootstrap 시 자동 설치 |
 | `.githooks/pre-push` | 구현 | push 전 테스트/기본 검증 | bootstrap 시 자동 설치 |
 | `.gitmessage.txt` | 구현 | Lore commit protocol 강제 유도 | bootstrap 시 자동 적용 |
-| `scripts/start-task.sh` | 구현 | 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
+| `scripts/start-task.sh` | 구현 | 기준선 확인 후 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
+| `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성, 이슈 review 라벨 이동, Project 정렬을 한 번에 처리 | `./scripts/open-pr.sh` |
+| `scripts/audit-project.sh` | 구현 | main/dev, 문서, DB 표준, GitHub 이슈/Project 정합성 점검 | `./scripts/audit-project.sh` |
+| `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub Project 상태로 반영 | `./scripts/sync-project-board.sh --apply` |
 | `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` 자동 생성 | `./scripts/package-submission.sh --team-number ...` |
+
+`Project 정합성 유지` 워크플로우는 이슈/PR 이벤트가 짧은 시간에 몰릴 때 같은 기준선의 중복
+실행만 취소하고, GitHub GraphQL 잔여량이 낮으면 Project 정렬을 성공 상태로 건너뛴다. 이 경우
+저장소나 Project 데이터가 망가진 것이 아니라 외부 API 한도 보호가 동작한 것이므로, 다음 예약
+실행 또는 수동 `workflow_dispatch`에서 다시 정렬한다. 반대로 rate limit 조회 자체가 실패하면
+토큰/네트워크/API 문제일 수 있으므로 실패로 드러내고 조용히 건너뛰지 않는다.
 
 ### 2-2. 저장소/구성 자동화
 | 항목 | 상태 | 목적 |
@@ -66,6 +75,7 @@
 | PR Template | 구현 | 검증/문서/과제 영향 체크 |
 | PR Labeler | 구현 | 변경 영역 자동 분류 |
 | Project 자동 추가 워크플로우 | 부분 구현 | 이슈/PR를 Project에 자동 추가 |
+| Project 정합성 유지 워크플로우 | 구현 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 정렬/점검 |
 | CODEOWNERS | 기본 구현 | 리뷰 책임자 구조 준비 |
 | bootstrap GitHub 스크립트 | 구현 | label/마일스톤/project/variable/repo setting 정렬 |
 
@@ -98,6 +108,8 @@
 ---
 
 ## 4. GitHub bootstrap 스크립트가 실제로 해주는 일
+이 스크립트는 저장소 설정을 변경하므로 저장소 관리자만 실행합니다.
+
 `./scripts/bootstrap-github.sh --create-project`
 
 ### 자동으로 맞추는 항목
@@ -105,8 +117,8 @@
 - 마일스톤 동기화
 - GitHub Project 확인/생성
 - `PROJECT_URL` variable 동기화
-- `allow_auto_병합=true`
-- `delete_브랜치_on_병합=true`
+- 자동 병합 허용(`allow_auto_merge=true`)
+- 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 
 ### 자동으로 맞추지 않는 항목
 - 브랜치 protection 세부 규칙 전체
@@ -137,11 +149,11 @@
 ## 6. 일부러 보류한 자동화와 이유
 | 항목 | 보류 이유 |
 | --- | --- |
-| 자동 Project 상태 전이 고급 워크플로 | 초기 팀 운영에는 과도하게 복잡함 |
-| PR 생성 스크립트 | 팀의 리뷰 문화/작성 습관에 따라 유연성이 더 중요함 |
+| 완전 자동 머지 | 리뷰와 발표 책임이 남아 있어서 사람이 승인해야 함 |
+| Project 커스텀 필드 전체 자동 설계 | GitHub UI 변경 가능성이 있어 Status 정렬까지만 자동화 |
 | CI 다중 OS 매트릭스 | Java skeleton 단계에서는 과함 |
 | Docker / devcontainer | 현재 단계에선 유지비가 더 큼 |
-| DB 컨테이너 자동 기동 | 과제는 file persistence도 허용 |
+| 외부 DB 컨테이너 자동 기동 | 과제 규모상 서버형 DB보다 내장형 DB가 단순함 |
 | custom CodeQL 워크플로우 | default setup으로 먼저 시작하는 편이 부담이 적음 |
 | 강제 commit rule 훅 강화 | 초반 생산성을 과하게 떨어뜨릴 수 있음 |
 
@@ -173,7 +185,7 @@
 ## 8. 현재 기준에서 “남은 수동 체크”
 아래는 자동화가 전부 대체하지 않는 항목입니다.
 
-1. **`ADD_TO_PROJECT_PAT` secret 추가 여부 결정**
+1. **`ADD_TO_PROJECT_PAT` secret 추가 여부 결정**: 없으면 Project 자동 추가/정렬 워크플로우가 건너뜁니다.
 2. **CODEOWNERS 실제 팀원 ID 반영**
 3. **GitHub Project Board/Table 최종 뷰 정리**
 4. **최종 제출 직전 `./gradlew check` + 패키징 재실행**
@@ -183,15 +195,16 @@
 
 ## 9. 추천 운영 흐름
 1. bootstrap 실행
-2. GitHub bootstrap 실행
+2. 저장소 관리자만 GitHub bootstrap 실행
 3. 이슈 생성
-4. 브랜치 생성
+4. `./scripts/start-task.sh <issue> <slug>`로 브랜치 생성
 5. 구현/문서/테스트
-6. PR 생성
-7. CI 확인
-8. 리뷰/승인
-9. `dev` 병합
-10. 제출 직전 `main` 안정화 및 패키징
+6. `./scripts/open-pr.sh`로 검증과 PR 생성
+7. 필요하면 `./scripts/audit-project.sh`로 전체 정합성 점검
+8. CI 확인
+9. 리뷰/승인
+10. `dev` 병합
+11. 제출 직전 `main` 안정화 및 패키징
 
 ---
 
@@ -217,6 +230,7 @@
 ### 자동화를 점검해야 하는 순간
 - CI가 자주 깨질 때
 - 팀원이 새로 합류할 때
+- Project 상태와 이슈 라벨이 어긋날 때
 - GitHub Actions 경고(예: deprecated runtime)가 뜰 때
 - 보안 기능 상태가 바뀔 때
 

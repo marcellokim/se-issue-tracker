@@ -20,12 +20,14 @@
 | 작업 방식 | 이슈 생성 → 브랜치 생성 → PR 작성 → 리뷰 → 병합 |
 
 ## 3. 과제 핵심 요구사항 요약
+루트의 `SE_Term_Project_2026-1.pdf`를 최상위 과제 요구사항 원문으로 고정합니다. 아래 요약이나 추적 문서가 애매할 때는 이 PDF가 우선입니다.
+
 `SE_Term_Project_2026-1.pdf` 기준 핵심 요구사항:
 - 계정 추가: `admin`, `PL`, `dev`, `tester`
 - 이슈 등록 / 브라우즈 / 검색 / 상세 조회 / 코멘트 / 상태 변경
 - 통계 분석: 일/월별 이슈 발생 추이
 - 해결 이력 기반 assignee 자동 추천
-- 영속 저장소 필요(File System 또는 DB 가능)
+- 영속 저장소 필요: 과제 원문은 File System 또는 DB를 허용하지만, 이 저장소의 표준 구현은 **DB 기반 persistence**로 진행
 - **MVC 아키텍처 적용 필수**
 - **두 개 이상의 UI Toolkit 기반 UI 제공 필수**
 - **JUnit 테스트 및 GitHub 기반 협업 기록 필수**
@@ -65,6 +67,11 @@ cd se-issue-tracker
 ./scripts/start-task.sh 12 issue-search-ui
 ```
 
+작업을 끝낸 뒤 PR까지 올릴 때:
+```bash
+./scripts/open-pr.sh
+```
+
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.
 
@@ -74,6 +81,9 @@ cd se-issue-tracker
 - **보안 자동화**: Dependabot 보안 업데이트, Secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
 - **Dependabot**: Gradle / GitHub Actions 주간 업데이트 제안
 - **Git hook**: pre-commit / pre-push 검증
+- **작업 시작/PR 스크립트**: `start-task.sh`, `open-pr.sh`로 초보자용 Git 흐름 고정
+- **Project 상태 정렬**: `sync-project-board.sh`로 이슈/PR 상태 라벨을 Project 보드에 반영
+- **자동화 헬스체크**: `audit-project.sh`와 Gradle `auditAutomation`으로 문서/스크립트/Project 정합성 점검
 - **커밋 메시지 템플릿**: Lore commit protocol 형식 자동 적용
 - **라벨 동기화 / GitHub 초기 설정 스크립트**
 - **제출 zip 스크립트**: 제출 형식 zip + `README.txt` 자동 생성
@@ -98,6 +108,7 @@ cd se-issue-tracker
 ├─ scripts/                 # 초기 세팅, 브랜치, 라벨, 제출 자동화
 ├─ src/main/java/           # 애플리케이션 소스
 ├─ src/test/java/           # JUnit 테스트
+├─ SE_Term_Project_2026-1.pdf # 과제 요구사항 원문
 ├─ build.gradle
 ├─ gradle.properties
 └─ README.md
