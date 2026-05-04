@@ -13,6 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 LABELS_FILE = ROOT / "config/github/labels.json"
 MILESTONES_FILE = ROOT / "config/github/milestones.json"
 PROJECT_VARIABLE_NAME = "PROJECT_URL"
+WORKFLOW_BYPASS_VARIABLE_NAME = "WORKFLOW_BYPASS_USERS"
+PROTECTED_BRANCHES = ("main", "dev")
+REQUIRED_STATUS_CHECKS = ("build", "workflow-guard")
 REPO_BOOLEAN_SETTINGS = {
     "allow_auto_merge": True,
     "delete_branch_on_merge": True,
@@ -47,6 +50,18 @@ def gh_api(method: str, path: str, fields: dict[str, str] | None = None) -> obje
         cmd.extend(["-f", f"{key}={value}"])
     output = run(cmd).stdout
     return json.loads(output) if output.strip() else None
+
+
+def gh_api_json(method: str, path: str, payload: dict[str, object]) -> object:
+    process = subprocess.run(
+        ["gh", "api", "-X", method, path, "--input", "-"],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        input=json.dumps(payload),
+        capture_output=True,
+    )
+    return json.loads(process.stdout) if process.stdout.strip() else None
 
 
 def sync_labels(repo: str) -> list[str]:
@@ -163,6 +178,34 @@ def set_project_variable(repo: str, project_url: str | None) -> str:
     return f"저장소 변수 설정: {PROJECT_VARIABLE_NAME}={project_url}"
 
 
+def set_workflow_bypass_variable(repo: str, owner: str) -> str:
+    run(["gh", "variable", "set", WORKFLOW_BYPASS_VARIABLE_NAME, "--repo", repo, "--body", owner])
+    return f"저장소 변수 설정: {WORKFLOW_BYPASS_VARIABLE_NAME}={owner}"
+
+
+def sync_branch_protection(repo: str, branch: str) -> str:
+    payload: dict[str, object] = {
+        "required_status_checks": {
+            "strict": True,
+            "contexts": list(REQUIRED_STATUS_CHECKS),
+        },
+        "enforce_admins": False,
+        "required_pull_request_reviews": {
+            "dismiss_stale_reviews": True,
+            "require_code_owner_reviews": False,
+            "required_approving_review_count": 1,
+            "require_last_push_approval": False,
+        },
+        "restrictions": None,
+        "required_linear_history": True,
+        "allow_force_pushes": False,
+        "allow_deletions": False,
+        "required_conversation_resolution": True,
+    }
+    gh_api_json("PUT", f"repos/{repo}/branches/{branch}/protection", payload)
+    return f"브랜치 보호 갱신: {branch} requires {', '.join(REQUIRED_STATUS_CHECKS)} + PR review"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="GitHub 라벨, 마일스톤, Project를 초기 설정합니다.")
     parser.add_argument("--repo", help="owner/repo를 직접 지정합니다. 기본값은 origin remote에서 확인합니다.")
@@ -188,10 +231,14 @@ def main() -> int:
     project_result, project_url = ensure_project(owner, args.project_title, args.create_project)
     print(f"- {project_result}")
     print(f"- {set_project_variable(repo, project_url)}")
+    print(f"- {set_workflow_bypass_variable(repo, owner)}")
+
+    for branch in PROTECTED_BRANCHES:
+        print(f"- {sync_branch_protection(repo, branch)}")
 
     print("\n수동으로 확인할 항목:")
-    print("1. main/dev 브랜치 보호 규칙을 확인합니다")
-    print("2. 브랜치 보호 필수 체크가 Gradle CI의 'build' job과 맞는지 확인합니다")
+    print("1. main/dev 브랜치 보호 규칙의 필수 체크가 'build', 'workflow-guard'와 맞는지 확인합니다")
+    print("2. 관리자 bypass 계정이 저장소 변수 WORKFLOW_BYPASS_USERS와 일치하는지 확인합니다")
     print("3. GitHub Project 보기/필드를 대기, 준비됨, 진행 중, 리뷰 중, 완료 흐름에 맞춥니다")
     print("4. CODEOWNERS placeholder를 실제 팀원 GitHub ID로 교체합니다")
     return 0

@@ -57,20 +57,74 @@ cd se-issue-tracker
 ./scripts/bootstrap.sh
 ```
 
+이미 `se-issue-tracker` 폴더 안에 있다면 `git clone ...`을 다시 실행하지 마세요. 기존 폴더 안에서 다시 clone하면 `se-issue-tracker/se-issue-tracker`처럼 폴더가 중복되고, 바깥 폴더에서 `./scripts/open-pr.sh`가 없다고 보일 수 있습니다.
+
+현재 위치가 맞는지 확인하려면:
+```bash
+test -f scripts/open-pr.sh && echo "OK: 저장소 루트입니다"
+```
+
+`scripts/open-pr.sh`가 없다고 나오면 대부분 저장소 루트가 아닌 위치에 있는 것입니다. 아래 명령으로 현재 위치를 먼저 확인하세요.
+
+```bash
+pwd
+ls
+```
+
+`se-issue-tracker` 폴더가 또 보이면 한 단계 안으로 들어가거나, 중복 clone 폴더를 정리한 뒤 다시 시작합니다.
+
 ### 기본 검증
 ```bash
 ./gradlew check
 ```
 
-### 작업 브랜치 생성 예시
-```bash
-./scripts/start-task.sh 12 issue-search-ui
-```
+### 정해진 작업 흐름
+일반 기능/문서/테스트 작업은 반드시 아래 흐름으로 진행합니다.
 
-작업을 끝낸 뒤 PR까지 올릴 때:
 ```bash
+# 1. 이슈 번호를 기준으로 개인 작업 브랜치 생성
+./scripts/start-task.sh 12 issue-search-ui
+
+# 2. 작업 후 로컬 검증과 커밋
+./gradlew check
+git add .
+git commit
+
+# 3. dev 대상 PR 생성
 ./scripts/open-pr.sh
 ```
+
+이 스크립트는 최신 `dev` 기준선 확인, push, PR 생성, 이슈 상태 라벨 이동, Project 정렬까지 처리합니다.
+
+### 워크플로우 강제 규칙
+이 저장소는 아래 우회 흐름을 문서상 금지하는 수준이 아니라 **로컬 hook + GitHub Actions + branch protection**으로 차단합니다.
+
+- 일반 팀원 PR은 `dev` 대상으로만 허용
+- PR head 브랜치는 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`만 허용
+- `main` 대상 PR은 관리자 bypass 계정만 허용
+- `main` / `dev` 직접 push와 직접 commit은 로컬 hook 및 GitHub branch protection으로 차단
+- workflow guard, branch protection bootstrap, PR/start-task 스크립트, git hook 같은 우회 지점 수정은 관리자만 허용
+
+관리자 bypass 계정은 repository variable `WORKFLOW_BYPASS_USERS`로 관리합니다. 기본 bootstrap은 저장소 owner를 bypass 계정으로 설정합니다.
+
+저장소 관리자가 GitHub 보호 규칙을 다시 동기화해야 할 때만 실행합니다.
+
+```bash
+./scripts/bootstrap-github.sh
+```
+
+### 금지되는 흐름
+아래 방식은 저장소 이력과 자동화 정합성을 깨뜨릴 수 있으므로 사용하지 않습니다.
+
+- `main`에 직접 커밋
+- `dev`에 직접 커밋
+- 기능 작업 PR을 `main`으로 올리기
+- `dev`에서 코드를 바로 수정한 뒤 PR 올리기
+- 기존 `se-issue-tracker` 폴더 안에서 다시 `git clone ...` 실행
+- `./scripts/start-task.sh` 없이 임의 브랜치 이름으로 작업 시작
+- `.github/workflows/`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/lib/bootstrap_github.py`를 일반 작업 PR에서 수정
+
+예외는 저장소 관리자가 릴리즈/동기화 목적을 명확히 알고 수행하는 경우뿐입니다. 일반 팀원 작업은 항상 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>` 브랜치에서 시작하고 PR은 `dev`로 올립니다.
 
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.
@@ -81,6 +135,7 @@ cd se-issue-tracker
 - **보안 자동화**: Dependabot 보안 업데이트, Secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
 - **Dependabot**: Gradle / GitHub Actions 주간 업데이트 제안
 - **Git hook**: pre-commit / pre-push 검증
+- **Workflow Guard**: `main`/`dev` 우회 PR, 잘못된 브랜치 이름, 보호 자동화 수정 시도 차단
 - **작업 시작/PR 스크립트**: `start-task.sh`, `open-pr.sh`로 초보자용 Git 흐름 고정
 - **Project 상태 정렬**: `sync-project-board.sh`로 이슈/PR 상태 라벨을 Project 보드에 반영
 - **자동화 헬스체크**: `audit-project.sh`와 Gradle `auditAutomation`으로 문서/스크립트/Project 정합성 점검
@@ -135,8 +190,10 @@ cd se-issue-tracker
 ## 10. 운영 원칙
 - `main`: 제출 가능한 안정 버전
 - `dev`: 통합 브랜치
-- `feature/<issue>-<slug>`: 개인 작업 브랜치
-- 모든 작업은 **이슈 생성 → 브랜치 생성 → PR 작성 → 리뷰 → 병합** 순서로 진행
+- `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`: 개인 작업 브랜치
+- 모든 일반 작업은 **이슈 생성 → `./scripts/start-task.sh`로 개인 브랜치 생성 → 작업/검증/커밋 → `./scripts/open-pr.sh`로 `dev` 대상 PR 생성 → 리뷰 → `dev` 병합** 순서로 진행
+- `main` 대상 PR, `main` 직접 커밋, `dev` 직접 커밋, 보호 자동화 수정은 일반 작업 흐름에서 금지
+- 저장소 관리자는 릴리즈/보호 규칙 정비 같은 예외 상황에서만 bypass하며, bypass 계정은 `WORKFLOW_BYPASS_USERS`로 명시
 - 구현 내용은 문서, 스크린샷, 테스트와 함께 남깁니다.
 
 ## 11. 제출 직전 반드시 확인할 것

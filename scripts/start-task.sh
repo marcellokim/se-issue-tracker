@@ -15,6 +15,7 @@ branch_name="feature/${issue_number}-${slug}"
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
+. "$repo_root/scripts/lib/git-refs.sh"
 
 if [[ ! "$issue_number" =~ ^[0-9]+$ ]]; then
     echo "[중단] 이슈 번호는 숫자만 입력하세요: $issue_number" >&2
@@ -32,7 +33,9 @@ if [[ -n "$(git status --porcelain)" ]]; then
     exit 1
 fi
 
-git fetch origin main dev --quiet
+ensure_origin_fetch_ref main
+ensure_origin_fetch_ref dev
+git fetch origin --quiet
 
 if ! git rev-parse --verify origin/main >/dev/null 2>&1 || ! git rev-parse --verify origin/dev >/dev/null 2>&1; then
     echo "[중단] origin/main 또는 origin/dev를 확인할 수 없습니다. 원격 저장소 상태를 확인하세요." >&2
@@ -46,7 +49,7 @@ if ! git diff --quiet origin/main origin/dev; then
 fi
 
 git switch dev >/dev/null 2>&1 || git switch -c dev --track origin/dev
-git pull --ff-only origin dev
+git merge --ff-only origin/dev
 
 git switch -c "$branch_name"
 

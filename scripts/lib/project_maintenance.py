@@ -29,6 +29,7 @@ REQUIRED_FILES = [
     ".github/workflows/add-to-project.yml",
     ".github/workflows/gradle.yml",
     ".github/workflows/project-maintenance.yml",
+    ".github/workflows/workflow-guard.yml",
     "config/github/labels.json",
     "config/github/milestones.json",
     "docs/assumptions.md",
@@ -37,9 +38,11 @@ REQUIRED_FILES = [
     "docs/requirements-traceability.md",
     "docs/team-setup-manual.md",
     "scripts/audit-project.sh",
+    "scripts/lib/git-refs.sh",
     "scripts/sync-project-board.sh",
     "scripts/open-pr.sh",
     "scripts/start-task.sh",
+    "scripts/validate-workflow-guard.sh",
 ]
 
 DB_STANDARD_FILES = [
@@ -238,7 +241,7 @@ def stale_storage_phrase_checks() -> list[CheckResult]:
 def shell_syntax_checks() -> list[CheckResult]:
     results: list[CheckResult] = []
 
-    for script in sorted((ROOT / "scripts").glob("*.sh")):
+    for script in sorted((ROOT / "scripts").rglob("*.sh")):
         syntax = run(["bash", "-n", str(script.relative_to(ROOT))])
         results.append(pass_(f"shell 문법 확인: {script.name}") if syntax.returncode == 0 else fail(f"shell 문법 오류: {script.name}: {syntax.stderr.strip()}"))
     return results

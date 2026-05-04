@@ -1,0 +1,55 @@
+name: Workflow Guard
+
+on:
+  pull_request_target:
+    branches: ["main", "dev"]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+concurrency:
+  group: workflow-guard-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  workflow-guard:
+    name: workflow-guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 정책 스크립트 체크아웃
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.base.ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: PR 변경 파일 목록 생성
+        if: github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr diff "${{ github.event.pull_request.number }}" --name-only > "$RUNNER_TEMP/changed-files.txt"
+
+      - name: Push 변경 파일 목록 생성
+        if: github.event_name == 'push'
+        run: |
+          if git rev-parse --verify "${{ github.event.before }}" >/dev/null 2>&1; then
+            git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" > "$RUNNER_TEMP/changed-files.txt"
+          else
+            : > "$RUNNER_TEMP/changed-files.txt"
+          fi
+
+      - name: Workflow guard 실행
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          WORKFLOW_BYPASS_USERS: ${{ vars.WORKFLOW_BYPASS_USERS || github.repository_owner }}
+          CHANGED_FILES_PATH: ${{ runner.temp }}/changed-files.txt
+        run: bash scripts/validate-workflow-guard.sh
