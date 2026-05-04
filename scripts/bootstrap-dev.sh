@@ -39,7 +39,7 @@ done
 if command -v gh >/dev/null 2>&1; then
   echo "  - gh 확인"
 else
-  echo "  - gh를 찾을 수 없습니다 (GitHub bootstrap은 사용할 수 없습니다)"
+  echo "  - gh를 찾을 수 없습니다 (GitHub 초기 설정은 사용할 수 없습니다)"
 fi
 
 if java_runtime_ready; then

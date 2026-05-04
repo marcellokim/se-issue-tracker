@@ -73,7 +73,7 @@ mark_issue_review() {
 
 sync_project_board() {
     if ! ./scripts/sync-project-board.sh --apply --quiet; then
-        echo "[경고] Project 상태 자동 정렬에 실패했습니다. PROJECT_URL/ADD_TO_PROJECT_PAT 권한을 확인하세요." >&2
+        echo "[경고] 프로젝트 상태 자동 정렬에 실패했습니다. PROJECT_URL/ADD_TO_PROJECT_PAT 권한을 확인하세요." >&2
     fi
 }
 
@@ -81,20 +81,20 @@ if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
     echo "[확인] 이미 열린 PR이 있습니다: $pr_url"
     echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
     mark_issue_review
-    echo "[확인] GitHub Project 상태 정렬"
+    echo "[확인] GitHub 프로젝트 상태 정렬"
     sync_project_board
     exit 0
 fi
 
 title="${issue_title}"
-body="## Summary
+body="## 요약
 - 작업 브랜치: \`$branch\`
 - 관련 이슈: #$issue_number
 
-## Verification
+## 검증
 - \`./gradlew check\`
 
-## Issue
+## 관련 이슈
 - Closes #$issue_number"
 
 echo "[3/3] GitHub PR 생성"
@@ -104,5 +104,5 @@ echo "$pr_url"
 echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
 mark_issue_review
 
-echo "[확인] GitHub Project 상태 정렬"
+echo "[확인] GitHub 프로젝트 상태 정렬"
 sync_project_board

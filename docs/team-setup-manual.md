@@ -54,7 +54,7 @@ git commit
 - `dev`에도 직접 커밋하지 않습니다.
 - 내 작업은 `feature/...`, `docs/...`, `test/...`, `chore/...` 브랜치에서 합니다.
 - PR은 항상 `dev`로 올립니다.
-- 이 규칙은 GitHub Actions의 `workflow-guard`와 branch protection으로 강제됩니다.
+- 이 규칙은 GitHub Actions의 `워크플로우 정책 검사`와 브랜치 보호 규칙으로 강제됩니다.
 
 ---
 
@@ -64,7 +64,7 @@ git commit
 - 처음 clone한 뒤 무엇부터 해야 하나?
 - `main`, `dev`, `feature/*`는 어떻게 써야 하나?
 - 이슈/PR/리뷰/CI는 어떤 흐름으로 돌아가나?
-- GitHub Project는 누가 어떻게 관리하나?
+- GitHub 프로젝트는 누가 어떻게 관리하나?
 - 제출용 zip은 어떻게 만들고 무엇을 확인해야 하나?
 - 보안 이슈나 권한 문제는 어디서 해결하나?
 
@@ -151,14 +151,14 @@ gh auth login
 이 스크립트가 맞춰주는 항목:
 - label 동기화
 - 마일스톤 동기화
-- GitHub Project 존재 여부 확인/생성
+- GitHub 프로젝트 존재 여부 확인/생성
 - 자동 병합 허용(`allow_auto_merge=true`)
 - 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 - `PROJECT_URL` repository variable 동기화
 - `WORKFLOW_BYPASS_USERS` repository variable 동기화
-- `main`/`dev` branch protection 동기화: PR 리뷰 1개, `build`/`workflow-guard` 필수 체크, 최신 기준선 요구, 강제 push/삭제 금지
+- `main`/`dev` 브랜치 보호 규칙 동기화: PR 리뷰 1개, `빌드와 테스트`/`워크플로우 정책 검사` 필수 체크, 최신 기준선 요구, 강제 push/삭제 금지
 
-> 참고: `PR/이슈 -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
+> 참고: `PR/이슈 -> 프로젝트 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
 
 ---
 
@@ -169,9 +169,9 @@ gh auth login
 | --- | --- |
 | `scripts/bootstrap.sh` | 새 팀원 초기 세팅 |
 | `scripts/start-task.sh` | 기준선 확인 + 이슈 번호 기반 브랜치 생성 |
-| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 + Project 상태 정렬 |
-| `scripts/audit-project.sh` | main/dev, 문서, 이슈, Project 정합성 점검 |
-| `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 Project 상태 정렬 |
+| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 + 프로젝트 상태 정렬 |
+| `scripts/audit-project.sh` | main/dev, 문서, 이슈, 프로젝트 정합성 점검 |
+| `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 프로젝트 상태 정렬 |
 | `scripts/package-submission.sh` | 제출 zip + `README.txt` 자동 생성 |
 | `.githooks/pre-commit` | 위험한 브랜치 작업/설정 누락 방지 |
 | `.githooks/commit-msg` | 공개 이력에 남기면 안 되는 도구/공동작성자 표기 차단 |
@@ -181,12 +181,12 @@ gh auth login
 ### GitHub 자동화
 | 항목 | 역할 |
 | --- | --- |
-| 이슈 양식 | 형식 통일, Project 자동 등록 |
+| 이슈 양식 | 형식 통일, 프로젝트 자동 등록 |
 | PR 템플릿 | 검증/문서/증빙 누락 방지 |
-| Gradle CI | `build` 체크 제공 |
-| Workflow Guard | 일반 팀원의 `main` PR, 잘못된 head 브랜치, 보호 자동화 수정 시도 차단 |
+| Gradle CI | `빌드와 테스트` 체크 제공 |
+| 워크플로우 보호 | 일반 팀원의 `main` PR, 잘못된 head 브랜치, 보호 자동화 수정 시도 차단 |
 | PR Labeler | 변경 파일 기준 라벨 자동 분류 |
-| Project 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 점검/정렬 |
+| 프로젝트 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 프로젝트 상태 점검/정렬 |
 | Dependabot | 의존성/Actions 업데이트 추적 |
 | Security 설정 | secret/push protection/code scanning/vulnerability reporting |
 
@@ -238,7 +238,7 @@ git commit
 - `main`/`dev`에 직접 push
 - `.github/workflows/workflow-guard.yml`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/lib/bootstrap_github.py` 수정
 
-예외는 저장소 관리자만 처리합니다. 관리자 bypass 계정은 GitHub repository variable `WORKFLOW_BYPASS_USERS`에 등록된 계정입니다.
+예외는 저장소 관리자만 처리합니다. 관리자 우회 계정은 GitHub repository variable `WORKFLOW_BYPASS_USERS`에 등록된 계정입니다.
 
 ---
 
@@ -317,7 +317,7 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 ---
 
-## 8. GitHub Project 운영법
+## 8. GitHub 프로젝트 운영법
 
 ### 현재 권장 상태 흐름
 `대기 -> 준비됨 -> 진행 중 -> 리뷰 중 -> 완료`
@@ -336,8 +336,8 @@ SKIP_GRADLE_PREPUSH=1 git push
 - 마일스톤
 
 ### 권장 운영 방식
-- 이슈 생성 직후 Project에 반영
-- PR 생성 시 `scripts/open-pr.sh`가 이슈 라벨을 `status:review`로 바꾸고 Project 상태를 `리뷰 중`으로 이동
+- 이슈 생성 직후 프로젝트에 반영
+- PR 생성 시 `scripts/open-pr.sh`가 이슈 라벨을 `status:review`로 바꾸고 프로젝트 상태를 `리뷰 중`으로 이동
 - 병합 후 `완료`로 이동
 - 데모 직전에는 `마일스톤` 기준으로 필터링
 
@@ -346,7 +346,7 @@ SKIP_GRADLE_PREPUSH=1 git push
 ./scripts/audit-project.sh
 ```
 
-Project 상태만 다시 맞출 때:
+프로젝트 상태만 다시 맞출 때:
 ```bash
 ./scripts/sync-project-board.sh --apply
 ```
@@ -379,7 +379,7 @@ Project 상태만 다시 맞출 때:
 - Secret scanning
 - Secret scanning push protection
 - Private vulnerability reporting
-- GitHub code scanning 기본 설정
+- 보안 코드 분석 워크플로우
 
 ### 민감한 보안 이슈가 생기면
 공개 이슈에 쓰지 말고 `SECURITY.md` 절차를 따릅니다.
@@ -407,7 +407,7 @@ Project 상태만 다시 맞출 때:
 - [ ] 데모 데이터/계정 준비
 
 ### GitHub 증빙
-- [ ] Project history 스크린샷 확보
+- [ ] 프로젝트 이력 스크린샷 확보
 - [ ] 팀원별 PR/이슈/commit 증빙 확보
 - [ ] 마일스톤별 진행 흐름 정리
 
@@ -459,10 +459,10 @@ Project 상태만 다시 맞출 때:
 # PR 생성
 ./scripts/open-pr.sh
 
-# 자동화/Project 정합성 점검
+# 자동화/프로젝트 정합성 점검
 ./scripts/audit-project.sh
 
-# Project 상태만 수동 정렬
+# 프로젝트 상태만 수동 정렬
 ./scripts/sync-project-board.sh --apply
 
 # 기본 검증
@@ -491,7 +491,7 @@ Project 상태만 다시 맞출 때:
 - unresolved comment가 있음
 - 승인자의 권한이 read여서 유효 승인으로 안 잡힘
 
-### 3) Project 자동 추가가 안 됨
+### 3) 프로젝트 자동 추가가 안 됨
 - `PROJECT_URL` variable 확인
 - `ADD_TO_PROJECT_PAT` secret 확인
 - 워크플로 로그 확인
@@ -506,7 +506,7 @@ Project 상태만 다시 맞출 때:
 ## 15. 이 문서를 언제 갱신해야 하나
 아래가 바뀌면 이 문서도 갱신하세요.
 - 브랜치 전략 변경
-- GitHub Project 운영 방식 변경
+- GitHub 프로젝트 운영 방식 변경
 - 제출 방식 변경
 - 스크립트 사용법 변경
 - 보안/권한 정책 변경
