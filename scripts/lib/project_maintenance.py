@@ -32,6 +32,9 @@ REQUIRED_FILES = [
     ".github/workflows/workflow-guard.yml",
     "config/github/labels.json",
     "config/github/milestones.json",
+    ".githooks/commit-msg",
+    ".githooks/pre-commit",
+    ".githooks/pre-push",
     "docs/assumptions.md",
     "docs/automation-playbook.md",
     "docs/project-management-plan.md",
@@ -43,6 +46,7 @@ REQUIRED_FILES = [
     "scripts/open-pr.sh",
     "scripts/start-task.sh",
     "scripts/validate-workflow-guard.sh",
+    "scripts/validate-public-attribution.sh",
 ]
 
 DB_STANDARD_FILES = [
@@ -262,6 +266,11 @@ def local_checks(skip_git_branches: bool) -> list[CheckResult]:
     results.extend(db_standard_checks())
     results.extend(stale_storage_phrase_checks())
     results.extend(shell_syntax_checks())
+    attribution = run(["bash", "scripts/validate-public-attribution.sh", "--all"])
+    if attribution.returncode == 0:
+        results.append(pass_("공개 이력 표기 정책 확인"))
+    else:
+        results.append(fail(f"공개 이력 표기 정책 위반: {attribution.stderr.strip()}"))
     if not skip_git_branches:
         results.extend(branch_alignment_checks())
     return results
