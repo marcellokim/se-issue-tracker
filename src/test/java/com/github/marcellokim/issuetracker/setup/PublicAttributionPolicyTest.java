@@ -6,11 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@DisplayName("공개 이력 작성자 표기 정책")
 class PublicAttributionPolicyTest {
 
     @Test
+    @DisplayName("공동작성자 trailer가 있는 커밋 메시지를 차단한다")
     void blocksCommitMessageWithCoAuthorTrailer() throws IOException, InterruptedException {
         Path message = Files.createTempFile("commit-message", ".txt");
         Files.writeString(message, "Policy update\n\n" + "Co-authored-" + "by: Tool <tool@example.test>\n");
@@ -21,6 +24,7 @@ class PublicAttributionPolicyTest {
     }
 
     @Test
+    @DisplayName("외부 도구명이 있는 커밋 메시지를 차단한다")
     void blocksCommitMessageWithExternalToolName() throws IOException, InterruptedException {
         Path message = Files.createTempFile("commit-message", ".txt");
         Files.writeString(message, "Policy update\n\nGenerated with " + "O" + "m" + "X" + "\n");
@@ -31,6 +35,7 @@ class PublicAttributionPolicyTest {
     }
 
     @Test
+    @DisplayName("깨끗한 커밋 메시지는 허용한다")
     void allowsCleanCommitMessage() throws IOException, InterruptedException {
         Path message = Files.createTempFile("commit-message", ".txt");
         Files.writeString(message, """

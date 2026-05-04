@@ -15,7 +15,7 @@ MILESTONES_FILE = ROOT / "config/github/milestones.json"
 PROJECT_VARIABLE_NAME = "PROJECT_URL"
 WORKFLOW_BYPASS_VARIABLE_NAME = "WORKFLOW_BYPASS_USERS"
 PROTECTED_BRANCHES = ("main", "dev")
-REQUIRED_STATUS_CHECKS = ("build", "workflow-guard")
+REQUIRED_STATUS_CHECKS = ("빌드와 테스트", "워크플로우 정책 검사")
 REPO_BOOLEAN_SETTINGS = {
     "allow_auto_merge": True,
     "delete_branch_on_merge": True,
@@ -157,22 +157,22 @@ def list_projects(owner: str) -> list[dict[str, object]]:
 def ensure_project(owner: str, title: str, create_if_missing: bool) -> tuple[str, str | None]:
     for project in list_projects(owner):
         if project.get("title") == title:
-            return f"Project 유지: {title}", project.get("url")
+            return f"프로젝트 유지: {title}", project.get("url")
 
     if not create_if_missing:
-        return f"Project 생성을 건너뜀 (--create-project 사용 시 생성): {title}", None
+        return f"프로젝트 생성을 건너뜀 (--create-project 사용 시 생성): {title}", None
 
     run(["gh", "project", "create", "--owner", owner, "--title", title])
     for project in list_projects(owner):
         if project.get("title") == title:
-            return f"Project 생성: {title}", project.get("url")
+            return f"프로젝트 생성: {title}", project.get("url")
 
-    return f"Project 생성: {title}", None
+    return f"프로젝트 생성: {title}", None
 
 
 def set_project_variable(repo: str, project_url: str | None) -> str:
     if not project_url:
-        return f"저장소 변수 {PROJECT_VARIABLE_NAME} 설정 건너뜀 (Project URL 확인 불가)"
+        return f"저장소 변수 {PROJECT_VARIABLE_NAME} 설정 건너뜀 (프로젝트 URL 확인 불가)"
 
     run(["gh", "variable", "set", PROJECT_VARIABLE_NAME, "--repo", repo, "--body", project_url])
     return f"저장소 변수 설정: {PROJECT_VARIABLE_NAME}={project_url}"
@@ -181,6 +181,15 @@ def set_project_variable(repo: str, project_url: str | None) -> str:
 def set_workflow_bypass_variable(repo: str, owner: str) -> str:
     run(["gh", "variable", "set", WORKFLOW_BYPASS_VARIABLE_NAME, "--repo", repo, "--body", owner])
     return f"저장소 변수 설정: {WORKFLOW_BYPASS_VARIABLE_NAME}={owner}"
+
+
+def disable_code_scanning_default_setup(repo: str) -> str:
+    try:
+        gh_api("PATCH", f"repos/{repo}/code-scanning/default-setup", {"state": "not-configured"})
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr.strip() if exc.stderr else str(exc)
+        return f"보안 코드 분석 기본 설정 비활성화 실패: {detail}"
+    return "보안 코드 분석 기본 설정 비활성화: 한국어 표시 워크플로우 사용"
 
 
 def sync_branch_protection(repo: str, branch: str) -> str:
@@ -207,10 +216,10 @@ def sync_branch_protection(repo: str, branch: str) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="GitHub 라벨, 마일스톤, Project를 초기 설정합니다.")
+    parser = argparse.ArgumentParser(description="GitHub 라벨, 마일스톤, 프로젝트를 초기 설정합니다.")
     parser.add_argument("--repo", help="owner/repo를 직접 지정합니다. 기본값은 origin remote에서 확인합니다.")
-    parser.add_argument("--project-title", default="SE 2026-1 텀프로젝트", help="확인하거나 생성할 Project 제목")
-    parser.add_argument("--create-project", action="store_true", help="GitHub Project가 없으면 생성합니다")
+    parser.add_argument("--project-title", default="SE 2026-1 텀프로젝트", help="확인하거나 생성할 프로젝트 제목")
+    parser.add_argument("--create-project", action="store_true", help="GitHub 프로젝트가 없으면 생성합니다")
     args = parser.parse_args()
 
     repo = args.repo or detect_repo()
@@ -232,14 +241,15 @@ def main() -> int:
     print(f"- {project_result}")
     print(f"- {set_project_variable(repo, project_url)}")
     print(f"- {set_workflow_bypass_variable(repo, owner)}")
+    print(f"- {disable_code_scanning_default_setup(repo)}")
 
     for branch in PROTECTED_BRANCHES:
         print(f"- {sync_branch_protection(repo, branch)}")
 
     print("\n수동으로 확인할 항목:")
-    print("1. main/dev 브랜치 보호 규칙의 필수 체크가 'build', 'workflow-guard'와 맞는지 확인합니다")
-    print("2. 관리자 bypass 계정이 저장소 변수 WORKFLOW_BYPASS_USERS와 일치하는지 확인합니다")
-    print("3. GitHub Project 보기/필드를 대기, 준비됨, 진행 중, 리뷰 중, 완료 흐름에 맞춥니다")
+    print("1. main/dev 브랜치 보호 규칙의 필수 체크가 '빌드와 테스트', '워크플로우 정책 검사'와 맞는지 확인합니다")
+    print("2. 관리자 우회 계정이 저장소 변수 WORKFLOW_BYPASS_USERS와 일치하는지 확인합니다")
+    print("3. GitHub 프로젝트 보기/필드를 대기, 준비됨, 진행 중, 리뷰 중, 완료 흐름에 맞춥니다")
     print("4. CODEOWNERS placeholder를 실제 팀원 GitHub ID로 교체합니다")
     return 0
 

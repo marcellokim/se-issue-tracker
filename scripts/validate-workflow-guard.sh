@@ -53,7 +53,7 @@ is_guarded_file() {
 }
 
 fail() {
-    echo "[workflow-guard] $*" >&2
+    echo "[워크플로우-보호] $*" >&2
     exit 1
 }
 
@@ -85,7 +85,7 @@ case "$event_name" in
     pull_request|pull_request_target)
         if [[ "$base_ref" == "main" ]]; then
             if is_admin_bypass_actor; then
-                echo "[workflow-guard] 관리자 bypass PR 허용: $actor -> main"
+                echo "[워크플로우-보호] 관리자 우회 PR 허용: $actor -> main"
                 exit 0
             fi
             fail "일반 작업 PR은 main이 아니라 dev로 올려야 합니다."
@@ -103,24 +103,24 @@ case "$event_name" in
             fail "작업 브랜치 형식은 feature|docs|test|chore/<issue>-<slug> 여야 합니다: ${head_ref:-unknown}"
         fi
 
-        echo "[workflow-guard] dev 대상 작업 PR 허용: $head_ref"
+        echo "[워크플로우-보호] dev 대상 작업 PR 허용: $head_ref"
         ;;
     push)
         if [[ "$ref_name" == "main" || "$ref_name" == "dev" ]]; then
             if is_admin_bypass_actor; then
-                echo "[workflow-guard] 관리자 protected branch push 감지: $actor -> $ref_name"
+                echo "[워크플로우-보호] 관리자 보호 브랜치 push 감지: $actor -> $ref_name"
                 exit 0
             fi
             fail "main/dev 직접 push는 금지입니다. 작업 브랜치에서 dev 대상 PR을 사용하세요."
         fi
-        echo "[workflow-guard] protected branch push가 아닙니다: ${ref_name:-unknown}"
+        echo "[워크플로우-보호] 보호 브랜치 push가 아닙니다: ${ref_name:-unknown}"
         ;;
     workflow_dispatch)
         if is_admin_bypass_actor; then
-            echo "[workflow-guard] 관리자 수동 실행 허용: $actor"
+            echo "[워크플로우-보호] 관리자 수동 실행 허용: $actor"
             exit 0
         fi
-        fail "workflow guard 수동 실행은 관리자만 허용합니다."
+        fail "워크플로우 보호 수동 실행은 관리자만 허용합니다."
         ;;
     *)
         fail "지원하지 않는 이벤트입니다: ${event_name:-unknown}"

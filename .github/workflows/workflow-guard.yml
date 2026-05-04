@@ -1,4 +1,4 @@
-name: Workflow Guard
+name: 워크플로우 보호
 
 on:
   pull_request_target:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   workflow-guard:
-    name: workflow-guard
+    name: 워크플로우 정책 검사
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh pr diff "${{ github.event.pull_request.number }}" --name-only > "$RUNNER_TEMP/changed-files.txt"
 
-      - name: Push 변경 파일 목록 생성
+      - name: 푸시 변경 파일 목록 생성
         if: github.event_name == 'push'
         run: |
           if git rev-parse --verify "${{ github.event.before }}" >/dev/null 2>&1; then
@@ -43,7 +43,7 @@ jobs:
             : > "$RUNNER_TEMP/changed-files.txt"
           fi
 
-      - name: Workflow guard 실행
+      - name: 워크플로우 정책 검사 실행
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_BASE_REF: ${{ github.base_ref }}

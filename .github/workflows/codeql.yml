@@ -1,0 +1,52 @@
+name: 보안 코드 분석
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+  workflow_dispatch:
+  schedule:
+    - cron: "37 15 * * 0"
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: 보안 코드 분석 (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            label: GitHub Actions
+          - language: java-kotlin
+            label: Java/Kotlin
+          - language: python
+            label: Python
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v6
+
+      - name: CodeQL 초기화
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Java/Kotlin 분석 대상 빌드
+        if: matrix.language == 'java-kotlin'
+        run: ./gradlew testClasses
+
+      - name: CodeQL 분석 실행
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

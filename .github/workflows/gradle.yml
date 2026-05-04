@@ -1,4 +1,4 @@
-name: Gradle 검증
+name: 빌드와 테스트
 
 on:
   push:
@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   build:
+    name: 빌드와 테스트
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +42,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: gradle-test-reports
+          name: 테스트-리포트
           path: |
             build/reports/tests/test
             build/test-results/test

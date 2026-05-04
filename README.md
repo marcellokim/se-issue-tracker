@@ -9,7 +9,7 @@
 - **최종 제출 마감**: 2026-06-02 21:00
 - **발표 일정**: 2026-06-03 / 2026-06-08 수업 시간
 - **GitHub 저장소**: <https://github.com/marcellokim/se-issue-tracker>
-- **GitHub Project**: <https://github.com/users/marcellokim/projects/1>
+- **GitHub 프로젝트**: <https://github.com/users/marcellokim/projects/1>
 
 ## 2. 팀 정보
 | 구분 | 내용 |
@@ -94,18 +94,18 @@ git commit
 ./scripts/open-pr.sh
 ```
 
-이 스크립트는 최신 `dev` 기준선 확인, push, PR 생성, 이슈 상태 라벨 이동, Project 정렬까지 처리합니다.
+이 스크립트는 최신 `dev` 기준선 확인, push, PR 생성, 이슈 상태 라벨 이동, 프로젝트 정렬까지 처리합니다.
 
 ### 워크플로우 강제 규칙
-이 저장소는 아래 우회 흐름을 문서상 금지하는 수준이 아니라 **로컬 hook + GitHub Actions + branch protection**으로 차단합니다.
+이 저장소는 아래 우회 흐름을 문서상 금지하는 수준이 아니라 **로컬 훅 + GitHub Actions + 브랜치 보호 규칙**으로 차단합니다.
 
 - 일반 팀원 PR은 `dev` 대상으로만 허용
 - PR head 브랜치는 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`만 허용
-- `main` 대상 PR은 관리자 bypass 계정만 허용
-- `main` / `dev` 직접 push와 직접 commit은 로컬 hook 및 GitHub branch protection으로 차단
-- workflow guard, branch protection bootstrap, PR/start-task 스크립트, git hook 같은 우회 지점 수정은 관리자만 허용
+- `main` 대상 PR은 관리자 우회 계정만 허용
+- `main` / `dev` 직접 push와 직접 commit은 로컬 훅 및 GitHub 브랜치 보호 규칙으로 차단
+- 워크플로우 보호, 브랜치 보호 초기 설정, PR/start-task 스크립트, git 훅 같은 우회 지점 수정은 관리자만 허용
 
-관리자 bypass 계정은 repository variable `WORKFLOW_BYPASS_USERS`로 관리합니다. 기본 bootstrap은 저장소 owner를 bypass 계정으로 설정합니다.
+관리자 우회 계정은 repository variable `WORKFLOW_BYPASS_USERS`로 관리합니다. 기본 초기 설정은 저장소 owner를 우회 계정으로 설정합니다.
 
 저장소 관리자가 GitHub 보호 규칙을 다시 동기화해야 할 때만 실행합니다.
 
@@ -129,16 +129,16 @@ git commit
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.
 
-- **이슈 양식 → GitHub Project 자동 등록**
+- **이슈 양식 → GitHub 프로젝트 자동 등록**
 - **PR 자동 라벨링**: 변경 파일 경로 기준 라벨 부여
 - **Gradle CI**: `./gradlew clean check`
-- **보안 자동화**: Dependabot 보안 업데이트, Secret scanning, push protection, private vulnerability reporting, GitHub code scanning 기본 설정
+- **보안 자동화**: Dependabot 보안 업데이트, Secret scanning, push protection, private vulnerability reporting, 보안 코드 분석 워크플로우
 - **Dependabot**: Gradle / GitHub Actions 주간 업데이트 제안
 - **Git hook**: pre-commit / pre-push 검증
-- **Workflow Guard**: `main`/`dev` 우회 PR, 잘못된 브랜치 이름, 보호 자동화 수정 시도 차단
+- **워크플로우 보호**: `main`/`dev` 우회 PR, 잘못된 브랜치 이름, 보호 자동화 수정 시도 차단
 - **작업 시작/PR 스크립트**: `start-task.sh`, `open-pr.sh`로 초보자용 Git 흐름 고정
-- **Project 상태 정렬**: `sync-project-board.sh`로 이슈/PR 상태 라벨을 Project 보드에 반영
-- **자동화 헬스체크**: `audit-project.sh`와 Gradle `auditAutomation`으로 문서/스크립트/Project 정합성 점검
+- **프로젝트 상태 정렬**: `sync-project-board.sh`로 이슈/PR 상태 라벨을 GitHub 프로젝트 보드에 반영
+- **자동화 헬스체크**: `audit-project.sh`와 Gradle `auditAutomation`으로 문서/스크립트/프로젝트 정합성 점검
 - **커밋 메시지 템플릿**: Lore commit protocol 형식 자동 적용
 - **라벨 동기화 / GitHub 초기 설정 스크립트**
 - **제출 zip 스크립트**: 제출 형식 zip + `README.txt` 자동 생성
@@ -193,12 +193,12 @@ git commit
 - `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`: 개인 작업 브랜치
 - 모든 일반 작업은 **이슈 생성 → `./scripts/start-task.sh`로 개인 브랜치 생성 → 작업/검증/커밋 → `./scripts/open-pr.sh`로 `dev` 대상 PR 생성 → 리뷰 → `dev` 병합** 순서로 진행
 - `main` 대상 PR, `main` 직접 커밋, `dev` 직접 커밋, 보호 자동화 수정은 일반 작업 흐름에서 금지
-- 저장소 관리자는 릴리즈/보호 규칙 정비 같은 예외 상황에서만 bypass하며, bypass 계정은 `WORKFLOW_BYPASS_USERS`로 명시
+- 저장소 관리자는 릴리즈/보호 규칙 정비 같은 예외 상황에서만 우회하며, 우회 계정은 `WORKFLOW_BYPASS_USERS`로 명시
 - 구현 내용은 문서, 스크린샷, 테스트와 함께 남깁니다.
 - 공개 GitHub 이력에는 팀원 이름과 저장소 계정만 남깁니다. 외부 도구명, 자동 생성 표기, 공동작성자 trailer는 commit hook과 저장소 감사에서 차단합니다.
 
 ## 11. 제출 직전 반드시 확인할 것
-- README / README.txt / GitHub Project 링크 최신화
+- README / README.txt / GitHub 프로젝트 링크 최신화
 - 팀원 이름, 학번, 팀 번호 최신 반영
 - UML / 유스케이스 / SSD / Operation Contract / 테스트 문서 보강
 - 발표 자료 / 데모 시나리오 / 동영상 정리

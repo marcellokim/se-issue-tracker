@@ -47,6 +47,7 @@ def requiredAutomationPaths = [
     '.github/dependabot.yml',
     '.github/labeler.yml',
     '.github/workflows/add-to-project.yml',
+    '.github/workflows/codeql.yml',
     '.github/workflows/gradle.yml',
     '.github/workflows/project-maintenance.yml',
     '.github/workflows/pr-labeler.yml',
