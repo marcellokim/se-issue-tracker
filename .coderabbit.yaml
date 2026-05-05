@@ -8,6 +8,10 @@ reviews:
   request_changes_workflow: false
   high_level_summary: true
   review_status: true
+  auto_review:
+    enabled: true
+    base_branches:
+      - "dev"
   path_instructions:
     - path: "src/**/*.java"
       instructions: "상태 전이, 역할 권한, 이슈 우선순위, 의존성 처리 규칙이 회의 결정과 충돌하지 않는지 우선 확인합니다."
