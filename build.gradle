@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'application' // JavaFX 실행을 위한 어플리케이션 플러그인
+    id 'org.openjfx.javafxplugin' version '0.1.0' // JavaFX 플러그인
 }
 
 group = 'com.github.marcellokim'
@@ -9,6 +11,17 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+// --- JavaFX 설정 추가 ---
+javafx {
+    version = "21" // Java 21 툴체인에 맞춰 21 버전 사용 권장
+    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.graphics' ]
+}
+
+application {
+    // 실제 메인 클래스 경로로 수정하세요 (예: com.example.Main)
+    mainClass = 'ITS.github.mckimR1972.App' 
 }
 
 repositories {
@@ -32,6 +45,14 @@ tasks.withType(Test).configureEach {
         exceptionFormat = 'full'
     }
 }
+
+// 기존 JavaCompile 설정 아래나 파일 하단에 추가
+tasks.withType(JavaExec).configureEach {
+    // JVM 실행 시 인코딩을 UTF-8로 고정
+    jvmArgs += "-Dfile.encoding=UTF-8"
+}
+
+// --- 기존 자동화 및 검증 태스크 유지 ---
 
 def requiredAutomationPaths = [
     'SE_Term_Project_2026-1.pdf',
