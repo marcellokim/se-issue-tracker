@@ -64,7 +64,7 @@ extension point : UC2(Add Comment)
 의견을 확인하고 싶다 |
 | Preconditions | - 호출 UC가 진행 중이고, 대상 이슈가 화면에 있다<br>- Auth User가 시스템에 로그인한 상태이다 |
 | Postconditions  | - 시스템이 새 코멘트를 이슈의 코멘트 history에 추가한다<br>- 시스템이 코멘트 등록자를 현재 Auth User로, 코멘트 작성 시간을 현재 시각으로 기록한다 |
-| Trigger | - UC1(이슈 등록), UC4(이슈 상세 조회)의 extension point에서 사용자가 코멘트 추가를 선택(<<extend>>)<br>-UC5(이슈 배정), UC6(이슈 상태 변경)의 코멘트 입력 단계에서 자동 시작 (<<include>>) |
+| Trigger | - UC1(이슈 등록), UC4(이슈 상세 조회)의 extension point에서 사용자가 코멘트 추가를 선택(extend)<br>-UC5(이슈 배정), UC6(이슈 상태 변경)의 코멘트 입력 단계에서 자동 시작 (include) |
 
 ### Main Flow
 1. 시스템이 코멘트 입력 영역을 보여준다
@@ -251,15 +251,15 @@ extension point: UC8 (Assignee 자동 추천)
 
 | 관계 | Base UC | 관련 UC | 의미 |
 |---|---|---|---|
-| <<include>> | UC1 (이슈 등록) | UC14 (권한 검사) | 등록 시 시스템이 사용자 권한을 검사한다 |
-| <<include>> | UC5 (이슈 배정) | UC2 (코멘트 추가) | PL이 이슈를 배정할 때 시스템이 사유 코멘트를 강제한다 |
-| <<include>> | UC5 (이슈 배정) | UC14 (권한 검사) | 배정 시 시스템이 권한과 전이 규칙을 검사한다 |
-| <<include>> | UC6 (이슈 상태 변경) | UC2 (코멘트 추가) | 상태를 변경할 때 시스템이 사유 코멘트를 강제한다 |
-| <<include>> | UC6 (이슈 상태 변경) | UC14 (권한 검사) | 상태 전이 시 시스템이 권한과 전이 규칙을 검사한다 |
-| <<extend>> | UC1 (이슈 등록) | UC2 (코멘트 추가) | Auth User가 등록 직후 코멘트를 남기고 싶을 때 추가한다 |
-| <<extend>> | UC4 (이슈 상세 조회) | UC2 (코멘트 추가) | Auth User가 상세 화면에서 코멘트를 남기고 싶을 때 추가한다 |
-| <<extend>> | UC4 (이슈 상세 조회) | UC15 (이슈 수정) | Auth User가 상세 화면에서 이슈를 수정하고 싶을 때 추가한다 |
-| <<extend>> | UC5 (이슈 배정) | UC8 (Assignee 자동 추천) | PL이 NEW 이슈에 assignee를 지정하려는 시점에 시스템이 후보를 추천한다 |
+| include | UC1 (이슈 등록) | UC14 (권한 검사) | 등록 시 시스템이 사용자 권한을 검사한다 |
+| include | UC5 (이슈 배정) | UC2 (코멘트 추가) | PL이 이슈를 배정할 때 시스템이 사유 코멘트를 강제한다 |
+| include | UC5 (이슈 배정) | UC14 (권한 검사) | 배정 시 시스템이 권한과 전이 규칙을 검사한다 |
+| include | UC6 (이슈 상태 변경) | UC2 (코멘트 추가) | 상태를 변경할 때 시스템이 사유 코멘트를 강제한다 |
+| include | UC6 (이슈 상태 변경) | UC14 (권한 검사) | 상태 전이 시 시스템이 권한과 전이 규칙을 검사한다 |
+| extend | UC1 (이슈 등록) | UC2 (코멘트 추가) | Auth User가 등록 직후 코멘트를 남기고 싶을 때 추가한다 |
+| extend | UC4 (이슈 상세 조회) | UC2 (코멘트 추가) | Auth User가 상세 화면에서 코멘트를 남기고 싶을 때 추가한다 |
+| extend | UC4 (이슈 상세 조회) | UC15 (이슈 수정) | Auth User가 상세 화면에서 이슈를 수정하고 싶을 때 추가한다 |
+| extend | UC5 (이슈 배정) | UC8 (Assignee 자동 추천) | PL이 NEW 이슈에 assignee를 지정하려는 시점에 시스템이 후보를 추천한다 |
 
 ---
 
@@ -267,5 +267,5 @@ extension point: UC8 (Assignee 자동 추천)
 - 2026-04-29 _초안 작성_
 - 2026-05-01 _텍스트 문법 수정_
 - 2026-05-02 _가정 사항 변경을 반영하여 재작성 : 이슈 등록 actor를 Tester로 한정, UC2를 코멘트 추가로 변경, 등록&해결 전이 시 코멘트 정책 반영_
-- 2026-05-02 _명세 정합성 보강 : 오타·단계 번호 정정, UC4 Extensions에 UC5 호출 명시, UC6 Trigger·Extension Point 명확화, UC12 include 관계 요약 표에 추가, Extension Points 항목 추가, <<include>>/<<extend>> 표기 통일_
+- 2026-05-02 _명세 정합성 보강 : 오타·단계 번호 정정, UC4 Extensions에 UC5 호출 명시, UC6 Trigger·Extension Point 명확화, UC12 include 관계 요약 표에 추가, Extension Points 항목 추가, include/extend 표기 통일_
 - 2026-05-05 _UC 구조 변경 : 기존 UC5(배정 및 상태 변경)를 UC5(이슈 배정)와 UC6(이슈 상태 변경)로 분리, 기존 UC6(Assignee 추천)을 UC8로 번호 재배정, UC14(권한 검사)로 include 참조 일괄 수정, UC1 Primary Actor를 Auth User로 확장, UC2 Actor 직접 연결 제거 및 subfunction으로 정리, UC4에 UC15(이슈 수정) extension point 추가, UC5에 verifier 지정 흐름 반영, UC6에 역할별 허용 전이 요약, 역전이(FIXED->ASSIGNED) & RESOLVED→CLOSED 전이 추가, 유스케이스 관계 요약 전체 갱신_
