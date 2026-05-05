@@ -29,6 +29,15 @@ repositories {
     mavenCentral()
 }
 
+// javafx {
+//     version = '21.0.6'
+//     modules = ['javafx.controls', 'javafx.fxml']
+// }
+
+// application {
+//     mainClass = 'com.github.marcellokim.issuetracker.Main'
+// }
+
 dependencies {
     testImplementation platform('org.junit:junit-bom:6.0.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -99,6 +108,8 @@ def requiredAutomationPaths = [
 ]
 
 def submissionMarkers = ['생성 후 링크 업데이트 예정', '제출 직전에 입력', '확정 후 업데이트']
+def defaultPythonExecutable = System.getProperty('os.name').toLowerCase().contains('windows') ? 'python' : 'python3'
+def pythonExecutable = providers.gradleProperty('pythonExecutable').orElse(defaultPythonExecutable)
 
 tasks.register('verifyRepositorySetup') {
     group = '검증'
@@ -135,6 +146,7 @@ tasks.register('auditAutomation', Exec) {
             println "> [알림] auditAutomation 규칙 검사에서 경고가 발견되었으나 작업을 계속합니다."
         }
     }
+    commandLine pythonExecutable.get(), 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
 }
 
 tasks.register('verifySubmissionMetadata') {
