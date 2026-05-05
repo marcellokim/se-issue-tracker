@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ko-KR
+enable_free_tier: true
+tone_instructions: "한국어로 간결하게 작성하고, 실제 결함/리스크/누락 테스트 위주로 리뷰합니다."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  path_instructions:
+    - path: "src/**/*.java"
+      instructions: "상태 전이, 역할 권한, 이슈 우선순위, 의존성 처리 규칙이 회의 결정과 충돌하지 않는지 우선 확인합니다."
+    - path: "scripts/**"
+      instructions: "로컬/CI 환경 차이, OS별 실행 가능성, 실패 메시지의 명확성을 중점적으로 확인합니다."
+    - path: "docs/**"
+      instructions: "과제 PDF 기준, 회의 결정, GitHub 이슈/마일스톤 정책과 문서 내용이 불일치하지 않는지 확인합니다."

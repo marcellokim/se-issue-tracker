@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'org.sonarqube' version '7.2.2.6593'
 }
 
 group = 'com.github.marcellokim'
@@ -24,6 +25,14 @@ javafx {
 
 application {
     mainClass = 'com.github.marcellokim.issuetracker.Main'
+}
+
+sonar {
+    properties {
+        property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
+        property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
+    }
 }
 
 dependencies {
@@ -51,6 +60,8 @@ def requiredAutomationPaths = [
     '.java-version',
     '.gitmessage.txt',
     'gradle.properties',
+    '.coderabbit.yaml',
+    '.pr_agent.toml',
     '.githooks/commit-msg',
     '.githooks/pre-commit',
     '.githooks/pre-push',
@@ -62,6 +73,7 @@ def requiredAutomationPaths = [
     '.github/workflows/gradle.yml',
     '.github/workflows/project-maintenance.yml',
     '.github/workflows/pr-labeler.yml',
+    '.github/workflows/sonarcloud.yml',
     '.github/workflows/workflow-guard.yml',
     'config/github/labels.json',
     'config/github/milestones.json',

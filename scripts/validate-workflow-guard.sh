@@ -30,7 +30,7 @@ is_admin_bypass_actor() {
 
 is_work_branch() {
     local branch="$1"
-    [[ "$branch" =~ ^(feature|docs|test|chore)/[0-9]+-[a-z0-9._-]+$ ]]
+    [[ "$branch" =~ ^(feature|docs|test|chore)/[0-9]+-[A-Za-z0-9._-]+$ ]]
 }
 
 is_guarded_file() {
@@ -100,7 +100,7 @@ case "$event_name" in
         fi
 
         if ! is_work_branch "$head_ref"; then
-            fail "작업 브랜치 형식은 feature|docs|test|chore/<issue>-<slug> 여야 합니다: ${head_ref:-unknown}"
+            fail "작업 브랜치 형식은 feature|docs|test|chore/<issue>-<slug> 여야 합니다. slug에는 영문 대소문자, 숫자, '.', '_', '-'를 사용할 수 있습니다: ${head_ref:-unknown}"
         fi
 
         echo "[워크플로우-보호] dev 대상 작업 PR 허용: $head_ref"

@@ -1,0 +1,26 @@
+[config]
+response_language = "ko-KR"
+
+[github_app]
+pr_commands = [
+    "/agentic_describe",
+    "/agentic_review"
+]
+
+[review_agent]
+comments_location_policy = "both"
+inline_comments_severity_threshold = 3
+issues_user_guidelines = """
+한국어로 간결하게 리뷰합니다.
+스타일보다 실제 결함, 요구사항 누락, 테스트 누락, 권한/상태 전이 오류를 우선합니다.
+"""
+compliance_user_guidelines = """
+회의 결정 기준:
+- User당 직군은 하나만 가진다.
+- Title/Description은 reporter만 수정 가능하며 assigned 전까지만 가능하다.
+- Priority는 PL만 변경 가능하고 assigned 상태와 무관하게 변경 가능하다.
+- 잘못된 fixed 처리는 tester가 dev에게 되돌릴 수 있다.
+- Reopen은 PL만 가능하며 assigned부터 다시 시작한다.
+- Deleted 상태와 FIFO 삭제 정책을 사용한다.
+- Issue dependency를 지원한다.
+"""

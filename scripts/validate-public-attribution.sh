@@ -5,37 +5,31 @@ usage() {
     echo "사용법: $0 --commit-msg <file> | --staged | --all" >&2
 }
 
-blocked_terms() {
-    printf '%s\n' \
-        "$(printf 'Co-authored-%s:' by)" \
-        "$(printf 'Generated-%s:' by)" \
-        "$(printf 'O%sX' m)" \
-        "$(printf 'oh-my-%s%s' co dex)" \
-        "$(printf 'Co%s' dex)" \
-        "$(printf 'Chat%s' GPT)" \
-        "$(printf 'Open%s' "$(printf '\101\111')")" \
-        "$(printf 'Clau%s' de)" \
-        "$(printf 'Anthro%s' pic)"
-}
-
 fail_hit() {
     local target="$1"
-    echo "[public-attribution] 공개 이력에 남기면 안 되는 도구/공동작성자 표기가 감지되었습니다: $target" >&2
+    local line="$2"
+    echo "[public-attribution] 공개 이력에 남기면 안 되는 명시적 AI attribution 문구가 감지되었습니다: ${target}:${line}" >&2
     exit 1
 }
 
 scan_path() {
     local path="$1"
-    local term
+    local line_number=0
+    local line
 
     [[ -f "$path" ]] || return 0
     grep -Iq . "$path" || return 0
 
-    while IFS= read -r term; do
-        if grep -IiqF "$term" "$path"; then
-            fail_hit "$path"
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line_number=$((line_number + 1))
+        if [[ "$line" =~ ^[[:space:]]*([Cc]o-[Aa]uthored-[Bb]y|[Gg]enerated-[Bb]y)[[:space:]]*: ]]; then
+            fail_hit "$path" "$line_number"
         fi
-    done < <(blocked_terms)
+
+        if [[ "$line" =~ ([Gg]enerated|[Cc]reated|[Ww]ritten|[Aa]uthored|[Aa]ssisted)[[:space:]]+(by|BY|By|with|WITH|With|using|USING|Using)[[:space:]]+(ChatGPT|chatgpt|Codex|codex|OpenAI|openai|Claude|claude|Anthropic|anthropic|OMX|omx|oh-my-codex|Oh-my-codex|OH-MY-CODEX) ]]; then
+            fail_hit "$path" "$line_number"
+        fi
+    done < "$path"
 }
 
 scan_staged() {
