@@ -99,6 +99,9 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: 보안 코드 분석"),
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: 보안 코드 분석 (${{ matrix.label }})"),
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: Java/Kotlin 분석 대상 빌드"),
+                new ScriptExpectation("build.gradle", "id 'org.openjfx.javafxplugin' version '0.1.0'"),
+                new ScriptExpectation("build.gradle", "version = '21.0.6'"),
+                new ScriptExpectation("build.gradle", "modules = ['javafx.controls', 'javafx.fxml']"),
                 new ScriptExpectation(".githooks/pre-commit", "docs/<issue>-<slug>"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project")
