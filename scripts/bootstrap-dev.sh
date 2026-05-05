@@ -39,7 +39,7 @@ done
 if command -v gh >/dev/null 2>&1; then
   echo "  - gh 확인"
 else
-  echo "  - gh를 찾을 수 없습니다 (GitHub bootstrap은 사용할 수 없습니다)"
+  echo "  - gh를 찾을 수 없습니다 (GitHub 초기 설정은 사용할 수 없습니다)"
 fi
 
 if java_runtime_ready; then
@@ -56,7 +56,7 @@ git config --local commit.template .gitmessage.txt
 echo "  - 커밋 메시지 템플릿을 .gitmessage.txt로 설정했습니다"
 
 echo "[4/5] 실행 권한 정리"
-chmod +x gradlew scripts/*.sh .githooks/*
+chmod +x gradlew scripts/*.sh scripts/lib/*.sh .githooks/*
 
 if [[ "$SKIP_TEST" -eq 0 ]] && java_runtime_ready; then
   echo "[5/5] 로컬 검증 실행"

@@ -8,6 +8,13 @@ java_runtime_ready() {
     command -v java >/dev/null 2>&1 && java -version >/dev/null 2>&1
 }
 
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if [[ "$remote_ref" =~ ^refs/heads/(main|dev)$ && "$local_sha" != "0000000000000000000000000000000000000000" ]]; then
+        echo "[pre-push] main/dev 직접 push는 금지입니다. 작업 브랜치에서 dev 대상 PR을 사용하세요."
+        exit 1
+    fi
+done
+
 if [[ "${SKIP_GRADLE_PREPUSH:-0}" == "1" ]]; then
     echo "[pre-push] SKIP_GRADLE_PREPUSH=1 이 설정되어 로컬 검증을 건너뜁니다."
     exit 0

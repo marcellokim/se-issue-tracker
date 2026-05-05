@@ -1,6 +1,6 @@
-name: feature
-description: feature 작업 또는 개선 작업을 정의합니다.
-title: "[feature] "
+name: 기능
+description: 기능 작업 또는 개선 작업을 정의합니다.
+title: "[기능] "
 labels: ["type:feature", "priority:medium"]
 projects: ["marcellokim/1"]
 body:

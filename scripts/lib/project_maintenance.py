@@ -27,19 +27,27 @@ REQUIRED_FILES = [
     "README.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/workflows/add-to-project.yml",
+    ".github/workflows/codeql.yml",
     ".github/workflows/gradle.yml",
     ".github/workflows/project-maintenance.yml",
+    ".github/workflows/workflow-guard.yml",
     "config/github/labels.json",
     "config/github/milestones.json",
+    ".githooks/commit-msg",
+    ".githooks/pre-commit",
+    ".githooks/pre-push",
     "docs/assumptions.md",
     "docs/automation-playbook.md",
     "docs/project-management-plan.md",
     "docs/requirements-traceability.md",
     "docs/team-setup-manual.md",
     "scripts/audit-project.sh",
+    "scripts/lib/git-refs.sh",
     "scripts/sync-project-board.sh",
     "scripts/open-pr.sh",
     "scripts/start-task.sh",
+    "scripts/validate-workflow-guard.sh",
+    "scripts/validate-public-attribution.sh",
 ]
 
 DB_STANDARD_FILES = [
@@ -137,7 +145,7 @@ def resolve_project(repo: str, owner: str, project_number: int | None, project_t
                 break
 
     if project_number is None:
-        raise SystemExit("GitHub Project 번호를 찾을 수 없습니다. PROJECT_URL 변수 또는 --project-number를 확인하세요.")
+        raise SystemExit("GitHub 프로젝트 번호를 찾을 수 없습니다. PROJECT_URL 변수 또는 --project-number를 확인하세요.")
 
     view = gh_json(["project", "view", str(project_number), "--owner", owner, "--format", "json"])
     return str(view["id"]), project_number, str(view.get("readme", ""))
@@ -148,7 +156,7 @@ def load_project_context(repo: str, owner: str, project_number: int | None, proj
     fields = gh_json(["project", "field-list", str(resolved_number), "--owner", owner, "--format", "json", "--limit", "100"])
     status_field = next((field for field in fields["fields"] if field["name"] == STATUS_FIELD), None)
     if not status_field:
-        raise SystemExit("Project Status 필드를 찾을 수 없습니다.")
+        raise SystemExit("프로젝트 Status 필드를 찾을 수 없습니다.")
 
     project_items = gh_json(["project", "item-list", str(resolved_number), "--owner", owner, "--format", "json", "--limit", "200"])
     item_by_url = {
@@ -238,7 +246,7 @@ def stale_storage_phrase_checks() -> list[CheckResult]:
 def shell_syntax_checks() -> list[CheckResult]:
     results: list[CheckResult] = []
 
-    for script in sorted((ROOT / "scripts").glob("*.sh")):
+    for script in sorted((ROOT / "scripts").rglob("*.sh")):
         syntax = run(["bash", "-n", str(script.relative_to(ROOT))])
         results.append(pass_(f"shell 문법 확인: {script.name}") if syntax.returncode == 0 else fail(f"shell 문법 오류: {script.name}: {syntax.stderr.strip()}"))
     return results
@@ -259,6 +267,11 @@ def local_checks(skip_git_branches: bool) -> list[CheckResult]:
     results.extend(db_standard_checks())
     results.extend(stale_storage_phrase_checks())
     results.extend(shell_syntax_checks())
+    attribution = run(["bash", "scripts/validate-public-attribution.sh", "--all"])
+    if attribution.returncode == 0:
+        results.append(pass_("공개 이력 표기 정책 확인"))
+    else:
+        results.append(fail(f"공개 이력 표기 정책 위반: {attribution.stderr.strip()}"))
     if not skip_git_branches:
         results.extend(branch_alignment_checks())
     return results
@@ -267,12 +280,12 @@ def local_checks(skip_git_branches: bool) -> list[CheckResult]:
 def project_readme_checks(repo: str, owner: str, project_number: int | None, project_title: str) -> tuple[ProjectContext, list[CheckResult]]:
     context, readme = load_project_context(repo, owner, project_number, project_title)
     results: list[CheckResult] = []
-    results.append(pass_(f"GitHub Project 확인: {owner}/{context.project_number} ({context.project_id})"))
+    results.append(pass_(f"GitHub 프로젝트 확인: {owner}/{context.project_number} ({context.project_id})"))
 
     if "SE_Term_Project_2026-1.pdf" in readme and "DB 기반 persistence" in readme:
-        results.append(pass_("Project 설명의 PDF 원문/DB 표준 문구 확인"))
+        results.append(pass_("프로젝트 설명의 PDF 원문/DB 표준 문구 확인"))
     else:
-        results.append(fail("Project 설명에 PDF 원문 또는 DB 표준 문구가 부족합니다"))
+        results.append(fail("프로젝트 설명에 PDF 원문 또는 DB 표준 문구가 부족합니다"))
     return context, results
 
 
@@ -332,9 +345,9 @@ def issue_metadata_checks(issues: list[dict[str, object]]) -> list[CheckResult]:
         expected = expected_issue_status(issue)
         actual = project_status(issue)
         if expected and actual == expected:
-            results.append(pass_(f"Project 상태 일치: #{number} {actual}"))
+            results.append(pass_(f"프로젝트 상태 일치: #{number} {actual}"))
         else:
-            results.append(fail(f"Project 상태 불일치: #{number} expected={expected} actual={actual}"))
+            results.append(fail(f"프로젝트 상태 불일치: #{number} expected={expected} actual={actual}"))
     return results
 
 
@@ -478,31 +491,31 @@ def sync_project(args: argparse.Namespace) -> int:
         for change in changes:
             print(f"- {change}")
     elif not args.quiet:
-        print("Project 상태 변경 없음")
+        print("프로젝트 상태 변경 없음")
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="과제 저장소 자동화 정합성을 점검하고 GitHub Project 상태를 정렬합니다.")
+    parser = argparse.ArgumentParser(description="과제 저장소 자동화 정합성을 점검하고 GitHub 프로젝트 상태를 정렬합니다.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     audit_parser = subparsers.add_parser("audit", help="로컬/원격 자동화 정합성을 점검합니다.")
     audit_parser.add_argument("--repo", help="owner/repo. 기본값은 origin remote입니다.")
-    audit_parser.add_argument("--owner", help="Project owner. 기본값은 repo owner입니다.")
-    audit_parser.add_argument("--project-number", type=int, help="GitHub Project 번호")
+    audit_parser.add_argument("--owner", help="프로젝트 owner. 기본값은 repo owner입니다.")
+    audit_parser.add_argument("--project-number", type=int, help="GitHub 프로젝트 번호")
     audit_parser.add_argument("--project-title", default=PROJECT_TITLE)
     audit_parser.add_argument("--local-only", action="store_true", help="GitHub API 점검을 건너뜁니다.")
     audit_parser.add_argument("--skip-git-branches", action="store_true", help="origin/main, origin/dev 비교를 건너뜁니다.")
     audit_parser.add_argument("--quiet", action="store_true")
     audit_parser.set_defaults(func=audit)
 
-    sync_parser = subparsers.add_parser("sync-project", help="이슈/PR 라벨과 상태를 GitHub Project에 반영합니다.")
+    sync_parser = subparsers.add_parser("sync-project", help="이슈/PR 라벨과 상태를 GitHub 프로젝트에 반영합니다.")
     sync_parser.add_argument("--repo", help="owner/repo. 기본값은 origin remote입니다.")
-    sync_parser.add_argument("--owner", help="Project owner. 기본값은 repo owner입니다.")
-    sync_parser.add_argument("--project-number", type=int, help="GitHub Project 번호")
+    sync_parser.add_argument("--owner", help="프로젝트 owner. 기본값은 repo owner입니다.")
+    sync_parser.add_argument("--project-number", type=int, help="GitHub 프로젝트 번호")
     sync_parser.add_argument("--project-title", default=PROJECT_TITLE)
     mode = sync_parser.add_mutually_exclusive_group()
-    mode.add_argument("--apply", action="store_false", dest="dry_run", help="실제로 Project 상태를 수정합니다.")
+    mode.add_argument("--apply", action="store_false", dest="dry_run", help="실제로 프로젝트 상태를 수정합니다.")
     mode.add_argument("--dry-run", action="store_true", default=True, help="변경 예정 내용만 출력합니다.")
     sync_parser.add_argument("--quiet", action="store_true")
     sync_parser.set_defaults(func=sync_project)

@@ -11,7 +11,24 @@
 
 ## Git 초보용 5분 흐름
 
-평소에는 아래 두 스크립트만 기억하면 됩니다.
+처음 받은 컴퓨터에서는 먼저 저장소 루트로 들어갑니다.
+
+```bash
+git clone https://github.com/marcellokim/se-issue-tracker.git
+cd se-issue-tracker
+./scripts/bootstrap.sh
+```
+
+이미 `se-issue-tracker` 폴더 안에 있다면 다시 `git clone ...`을 실행하지 않습니다. 기존 폴더 안에서 다시 clone하면 `se-issue-tracker/se-issue-tracker`처럼 폴더가 중복되고, 바깥 폴더에서 `./scripts/open-pr.sh`를 실행할 때 파일이 없는 것처럼 보입니다.
+
+현재 위치가 맞는지 헷갈리면 아래 두 명령이 통과해야 합니다.
+
+```bash
+pwd
+test -f scripts/open-pr.sh && echo "OK: 저장소 루트입니다"
+```
+
+평소 작업할 때는 아래 두 스크립트만 기억하면 됩니다.
 
 ```bash
 # 1. 작업 시작: dev 최신화, 기준선 확인, 개인 브랜치 생성까지 자동 처리
@@ -37,6 +54,7 @@ git commit
 - `dev`에도 직접 커밋하지 않습니다.
 - 내 작업은 `feature/...`, `docs/...`, `test/...`, `chore/...` 브랜치에서 합니다.
 - PR은 항상 `dev`로 올립니다.
+- 이 규칙은 GitHub Actions의 `워크플로우 정책 검사`와 브랜치 보호 규칙으로 강제됩니다.
 
 ---
 
@@ -46,7 +64,7 @@ git commit
 - 처음 clone한 뒤 무엇부터 해야 하나?
 - `main`, `dev`, `feature/*`는 어떻게 써야 하나?
 - 이슈/PR/리뷰/CI는 어떤 흐름으로 돌아가나?
-- GitHub Project는 누가 어떻게 관리하나?
+- GitHub 프로젝트는 누가 어떻게 관리하나?
 - 제출용 zip은 어떻게 만들고 무엇을 확인해야 하나?
 - 보안 이슈나 권한 문제는 어디서 해결하나?
 
@@ -58,9 +76,9 @@ git commit
 - `main`: **제출 가능한 안정 버전**
 - `dev`: **통합 브랜치**
 - `feature/<issue>-<slug>`: 기능 작업 브랜치
-- `docs/<slug>`: 문서 작업 브랜치
-- `test/<slug>`: 테스트 보강 브랜치
-- `chore/<slug>`: 자동화/환경설정/리팩터링 브랜치
+- `docs/<issue>-<slug>`: 문서 작업 브랜치
+- `test/<issue>-<slug>`: 테스트 보강 브랜치
+- `chore/<issue>-<slug>`: 자동화/환경설정/리팩터링 브랜치
 
 ### 기본 흐름
 1. GitHub 이슈 생성
@@ -75,8 +93,10 @@ git commit
 ### 팀 규칙 핵심
 - 기능 작업은 **이슈에서 시작**합니다.
 - `main` 직접 작업은 하지 않습니다.
+- `dev` 직접 작업도 하지 않습니다.
 - PR에는 **검증 결과와 문서 반영 여부**를 남깁니다.
 - 화면/설계/테스트 증적은 가능한 한 **같은 시점에 축적**합니다.
+- 일반 팀원은 보호 자동화 파일을 수정하지 않습니다. 필요하면 관리자에게 별도 이슈로 요청합니다.
 
 ---
 
@@ -131,12 +151,14 @@ gh auth login
 이 스크립트가 맞춰주는 항목:
 - label 동기화
 - 마일스톤 동기화
-- GitHub Project 존재 여부 확인/생성
+- GitHub 프로젝트 존재 여부 확인/생성
 - 자동 병합 허용(`allow_auto_merge=true`)
 - 병합 후 브랜치 삭제(`delete_branch_on_merge=true`)
 - `PROJECT_URL` repository variable 동기화
+- `WORKFLOW_BYPASS_USERS` repository variable 동기화
+- `main`/`dev` 브랜치 보호 규칙 동기화: PR 리뷰 1개, `빌드와 테스트`/`워크플로우 정책 검사` 필수 체크, 최신 기준선 요구, 강제 push/삭제 금지
 
-> 참고: `PR/이슈 -> Project 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
+> 참고: `PR/이슈 -> 프로젝트 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
 
 ---
 
@@ -147,22 +169,24 @@ gh auth login
 | --- | --- |
 | `scripts/bootstrap.sh` | 새 팀원 초기 세팅 |
 | `scripts/start-task.sh` | 기준선 확인 + 이슈 번호 기반 브랜치 생성 |
-| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 + Project 상태 정렬 |
-| `scripts/audit-project.sh` | main/dev, 문서, 이슈, Project 정합성 점검 |
-| `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 Project 상태 정렬 |
+| `scripts/open-pr.sh` | 검증 + push + `dev` 대상 PR 생성 + 프로젝트 상태 정렬 |
+| `scripts/audit-project.sh` | main/dev, 문서, 이슈, 프로젝트 정합성 점검 |
+| `scripts/sync-project-board.sh` | 이슈/PR 라벨 기준으로 프로젝트 상태 정렬 |
 | `scripts/package-submission.sh` | 제출 zip + `README.txt` 자동 생성 |
 | `.githooks/pre-commit` | 위험한 브랜치 작업/설정 누락 방지 |
+| `.githooks/commit-msg` | 공개 이력에 남기면 안 되는 도구/공동작성자 표기 차단 |
 | `.githooks/pre-push` | push 전 테스트/기본 검증 |
 | `.gitmessage.txt` | Lore commit protocol 메시지 템플릿 |
 
 ### GitHub 자동화
 | 항목 | 역할 |
 | --- | --- |
-| 이슈 양식 | 형식 통일, Project 자동 등록 |
+| 이슈 양식 | 형식 통일, 프로젝트 자동 등록 |
 | PR 템플릿 | 검증/문서/증빙 누락 방지 |
-| Gradle CI | `build` 체크 제공 |
+| Gradle CI | `빌드와 테스트` 체크 제공 |
+| 워크플로우 보호 | 일반 팀원의 `main` PR, 잘못된 head 브랜치, 보호 자동화 수정 시도 차단 |
 | PR Labeler | 변경 파일 기준 라벨 자동 분류 |
-| Project 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 Project 상태 점검/정렬 |
+| 프로젝트 정합성 유지 | 이슈/PR 이벤트와 매일 00:17 KST에 프로젝트 상태 점검/정렬 |
 | Dependabot | 의존성/Actions 업데이트 추적 |
 | Security 설정 | secret/push protection/code scanning/vulnerability reporting |
 
@@ -204,6 +228,17 @@ git commit
 - `docs/qna.md` 또는 UML 업데이트가 필요한가?
 - 이 변경이 과제 요구사항 중 무엇에 대응하는가?
 - 스크린샷이 필요한가?
+
+### 4-5. 막히는 흐름
+아래 흐름은 실수 또는 우회 시도로 간주되어 실패합니다.
+
+- `main`으로 PR 생성
+- `dev` 브랜치 자체에서 수정한 뒤 PR 생성
+- `feature/foo`처럼 이슈 번호가 없는 브랜치에서 PR 생성
+- `main`/`dev`에 직접 push
+- `.github/workflows/workflow-guard.yml`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/lib/bootstrap_github.py` 수정
+
+예외는 저장소 관리자만 처리합니다. 관리자 우회 계정은 GitHub repository variable `WORKFLOW_BYPASS_USERS`에 등록된 계정입니다.
 
 ---
 
@@ -259,11 +294,16 @@ git commit
 ## 7. git hooks가 막을 수 있는 것
 
 ### pre-commit
-- `main` 브랜치 직접 커밋 방지
+- `main`/`dev` 브랜치 직접 커밋 방지
+- staged 파일의 공개 이력 표기 정책 위반 차단
 - 권장 브랜치 이름 형식 안내
 - Java가 있으면 `verifyRepositorySetup` 실행
 
+### commit-msg
+- 외부 도구명, 자동 생성 표기, 공동작성자 trailer 차단
+
 ### pre-push
+- `main`/`dev` 직접 push 방지
 - Java가 있으면 `./gradlew test verifyRepositorySetup` 실행
 - Java가 없으면 경고 후 CI에 위임
 
@@ -277,7 +317,7 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 ---
 
-## 8. GitHub Project 운영법
+## 8. GitHub 프로젝트 운영법
 
 ### 현재 권장 상태 흐름
 `대기 -> 준비됨 -> 진행 중 -> 리뷰 중 -> 완료`
@@ -296,8 +336,8 @@ SKIP_GRADLE_PREPUSH=1 git push
 - 마일스톤
 
 ### 권장 운영 방식
-- 이슈 생성 직후 Project에 반영
-- PR 생성 시 `scripts/open-pr.sh`가 이슈 라벨을 `status:review`로 바꾸고 Project 상태를 `리뷰 중`으로 이동
+- 이슈 생성 직후 프로젝트에 반영
+- PR 생성 시 `scripts/open-pr.sh`가 이슈 라벨을 `status:review`로 바꾸고 프로젝트 상태를 `리뷰 중`으로 이동
 - 병합 후 `완료`로 이동
 - 데모 직전에는 `마일스톤` 기준으로 필터링
 
@@ -306,7 +346,7 @@ SKIP_GRADLE_PREPUSH=1 git push
 ./scripts/audit-project.sh
 ```
 
-Project 상태만 다시 맞출 때:
+프로젝트 상태만 다시 맞출 때:
 ```bash
 ./scripts/sync-project-board.sh --apply
 ```
@@ -339,7 +379,7 @@ Project 상태만 다시 맞출 때:
 - Secret scanning
 - Secret scanning push protection
 - Private vulnerability reporting
-- GitHub code scanning 기본 설정
+- 보안 코드 분석 워크플로우
 
 ### 민감한 보안 이슈가 생기면
 공개 이슈에 쓰지 말고 `SECURITY.md` 절차를 따릅니다.
@@ -367,7 +407,7 @@ Project 상태만 다시 맞출 때:
 - [ ] 데모 데이터/계정 준비
 
 ### GitHub 증빙
-- [ ] Project history 스크린샷 확보
+- [ ] 프로젝트 이력 스크린샷 확보
 - [ ] 팀원별 PR/이슈/commit 증빙 확보
 - [ ] 마일스톤별 진행 흐름 정리
 
@@ -419,10 +459,10 @@ Project 상태만 다시 맞출 때:
 # PR 생성
 ./scripts/open-pr.sh
 
-# 자동화/Project 정합성 점검
+# 자동화/프로젝트 정합성 점검
 ./scripts/audit-project.sh
 
-# Project 상태만 수동 정렬
+# 프로젝트 상태만 수동 정렬
 ./scripts/sync-project-board.sh --apply
 
 # 기본 검증
@@ -451,7 +491,7 @@ Project 상태만 다시 맞출 때:
 - unresolved comment가 있음
 - 승인자의 권한이 read여서 유효 승인으로 안 잡힘
 
-### 3) Project 자동 추가가 안 됨
+### 3) 프로젝트 자동 추가가 안 됨
 - `PROJECT_URL` variable 확인
 - `ADD_TO_PROJECT_PAT` secret 확인
 - 워크플로 로그 확인
@@ -466,7 +506,7 @@ Project 상태만 다시 맞출 때:
 ## 15. 이 문서를 언제 갱신해야 하나
 아래가 바뀌면 이 문서도 갱신하세요.
 - 브랜치 전략 변경
-- GitHub Project 운영 방식 변경
+- GitHub 프로젝트 운영 방식 변경
 - 제출 방식 변경
 - 스크립트 사용법 변경
 - 보안/권한 정책 변경

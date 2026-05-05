@@ -1,4 +1,4 @@
-name: Project 정합성 유지
+name: 프로젝트 정합성 유지
 
 on:
   issues:
@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   project-sync:
+    name: 프로젝트 상태 정렬
     runs-on: ubuntu-latest
     steps:
       - name: 저장소 체크아웃
@@ -34,28 +35,28 @@ jobs:
         run: |
           if [ -z "${PROJECT_URL}" ] || [ -z "${ADD_TO_PROJECT_PAT}" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "PROJECT_URL 또는 ADD_TO_PROJECT_PAT가 없어 Project 정합성 유지를 건너뜁니다."
+            echo "PROJECT_URL 또는 ADD_TO_PROJECT_PAT가 없어 프로젝트 정합성 유지를 건너뜁니다."
             exit 0
           fi
 
           if ! graphql_remaining="$(gh api rate_limit --jq '.resources.graphql.remaining')"; then
-            echo "::error::GitHub rate-limit probe failed. Check ADD_TO_PROJECT_PAT, network, and GitHub API availability."
+            echo "::error::GitHub rate-limit 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
             exit 1
           fi
           if ! graphql_reset="$(gh api rate_limit --jq '.resources.graphql.reset')"; then
-            echo "::error::GitHub rate-limit reset probe failed. Check ADD_TO_PROJECT_PAT, network, and GitHub API availability."
+            echo "::error::GitHub rate-limit reset 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
             exit 1
           fi
           min_graphql_remaining=250
           if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::GitHub GraphQL rate limit remaining=${graphql_remaining}; Project 정합성 유지를 건너뜁니다. reset=${graphql_reset}"
+            echo "::notice::GitHub GraphQL 잔여량=${graphql_remaining}; 프로젝트 정합성 유지를 건너뜁니다. reset=${graphql_reset}"
             exit 0
           fi
 
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
-      - name: Project 상태 정렬
+      - name: 프로젝트 상태 정렬
         if: steps.preflight.outputs.enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}

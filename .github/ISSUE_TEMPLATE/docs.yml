@@ -1,6 +1,6 @@
-name: docs
-description: docs 작업을 정의합니다.
-title: "[docs] "
+name: 문서
+description: 문서 작업을 정의합니다.
+title: "[문서] "
 labels: ["type:docs", "priority:low", "area:documentation"]
 projects: ["marcellokim/1"]
 body:

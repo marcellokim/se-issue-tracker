@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   label:
+    name: PR 라벨 적용
     runs-on: ubuntu-latest
     steps:
       - name: 변경 경로 기준 라벨 적용

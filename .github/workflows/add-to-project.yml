@@ -1,4 +1,4 @@
-name: Project 자동 추가
+name: 프로젝트 자동 추가
 
 on:
   issues:
@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   add-to-project:
+    name: 프로젝트 항목 자동 추가
     runs-on: ubuntu-latest
     steps:
       - name: 설정 확인
@@ -23,12 +24,12 @@ jobs:
         run: |
           if [ -z "${PROJECT_URL}" ] || [ -z "${ADD_TO_PROJECT_PAT}" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "PROJECT_URL 또는 ADD_TO_PROJECT_PAT가 없어 Project 자동 추가를 건너뜁니다."
+            echo "PROJECT_URL 또는 ADD_TO_PROJECT_PAT가 없어 프로젝트 자동 추가를 건너뜁니다."
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: GitHub Project에 항목 추가
+      - name: GitHub 프로젝트에 항목 추가
         if: steps.preflight.outputs.enabled == 'true'
         uses: actions/add-to-project@v1.0.2
         with:

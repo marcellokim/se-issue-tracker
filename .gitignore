@@ -8,8 +8,8 @@ dist/
 .idea/
 .vscode/
 
-# Local orchestration artifacts
-.omx/
+# Local runtime artifacts
+.[o]mx/
 
 # OS files
 .DS_Store
