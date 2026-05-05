@@ -117,6 +117,12 @@ python3 --version
 gh --version
 ```
 
+Windows에서 `python3`가 없고 `python` 또는 `py`만 동작하면 Gradle 검증 때 실행명을 지정합니다.
+
+```bash
+./gradlew check -PpythonExecutable=py
+```
+
 ### 2-2. 저장소 clone
 ```bash
 git clone https://github.com/marcellokim/se-issue-tracker.git
