@@ -64,7 +64,7 @@ extension point : UC2(Add Comment)
 의견을 확인하고 싶다 |
 | Preconditions | - 호출 UC가 진행 중이고, 대상 이슈가 화면에 있다<br>- Auth User가 시스템에 로그인한 상태이다 |
 | Postconditions  | - 시스템이 새 코멘트를 이슈의 코멘트 history에 추가한다<br>- 시스템이 코멘트 등록자를 현재 Auth User로, 코멘트 작성 시간을 현재 시각으로 기록한다 |
-| Trigger | - UC1(이슈 등록), UC4(이슈 상세 조회)의 extension point에서 사용자가 코멘트 추가를 선택(extend)<br>-UC5(이슈 배정), UC6(이슈 상태 변경)의 코멘트 입력 단계에서 자동 시작 (include) |
+| Trigger | - UC1(이슈 등록), UC4(이슈 상세 조회), UC5(이슈 배정)의 extension point에서 사용자가 코멘트 추가를 선택(extend)<br>-UC6(이슈 상태 변경)의 코멘트 입력 단계에서 자동 시작 (include) |
 
 ### Main Flow
 1. 시스템이 코멘트 입력 영역을 보여준다
@@ -76,9 +76,9 @@ extension point : UC2(Add Comment)
 
 ### Alternative Flows
 - 4a. 코멘트 내용이 비어있다
-    - 4a-1. UC1 또는 UC4에서 호출된 경우
+    - 4a-1. UC1, UC4, UC5에서 호출된 경우
         - 시스템이 코멘트 입력을 취소한것으로 간주하여 호출 UC로 복귀한다
-    - 4a-2. UC5, UC6에서 호출된 경우
+    - 4a-2. UC6에서 호출된 경우
         - 시스템이 코멘트 내용을 입력하라는 메시지를 보여준다
         - 단계 2로 되돌아 간다
         - Auth User가 코멘트 내용을 입력할 때까지 호출 UC가 다음 단계로 진행하지 않는다
@@ -167,9 +167,9 @@ extension points : UC2(Add Comment), UC15(이슈 수정)
 ### Main Flow
 1. PL이 이슈 배정 버튼을 누른다
 2. 시스템이 배정 가능한 Dev 목록과 Tester 목록을 보여준다
-extension point: UC8 (Assignee 자동 추천)
-3. PL이 assignee로 지정할 Dev와 verifier로 지정할 Tester를 선택한다
-4. 시스템이 배정 사유 코멘트 입력을 요청한다 (include UC2/코멘트 추가)
+3. 시스템이 해결 이력 기반으로 적합한 Dev 후보를 추천한다 (include UC8/Assignee 자동 추천)
+4. PL이 assignee로 지정할 Dev와 verifier로 지정할 Tester를 선택한다
+extension point: UC2(코멘트 추가)
 5. 시스템이 권한과 전이 규칙을 확인한다 (include UC14/권한 검사)
 6. 시스템이 이슈의 assignee, verifier, status를 갱신한다
 7. 시스템이 갱신된 이슈 상세 화면을 보여준다.
@@ -252,14 +252,15 @@ extension point: UC8 (Assignee 자동 추천)
 | 관계 | Base UC | 관련 UC | 의미 |
 |---|---|---|---|
 | include | UC1 (이슈 등록) | UC14 (권한 검사) | 등록 시 시스템이 사용자 권한을 검사한다 |
-| include | UC5 (이슈 배정) | UC2 (코멘트 추가) | PL이 이슈를 배정할 때 시스템이 사유 코멘트를 강제한다 |
 | include | UC5 (이슈 배정) | UC14 (권한 검사) | 배정 시 시스템이 권한과 전이 규칙을 검사한다 |
 | include | UC6 (이슈 상태 변경) | UC2 (코멘트 추가) | 상태를 변경할 때 시스템이 사유 코멘트를 강제한다 |
 | include | UC6 (이슈 상태 변경) | UC14 (권한 검사) | 상태 전이 시 시스템이 권한과 전이 규칙을 검사한다 |
+| include | UC5 (이슈 배정) | UC8 (Assignee 자동 추천) | PL이 NEW 이슈에 assignee를 지정하려는 시점에 시스템이 후보를 추천한다 |
 | extend | UC1 (이슈 등록) | UC2 (코멘트 추가) | Auth User가 등록 직후 코멘트를 남기고 싶을 때 추가한다 |
 | extend | UC4 (이슈 상세 조회) | UC2 (코멘트 추가) | Auth User가 상세 화면에서 코멘트를 남기고 싶을 때 추가한다 |
+| extend | UC5 (이슈 배정) | UC2 (코멘트 추가) | PL이 이슈를 배정할 때 시스템이 사유 코멘트를 강제한다 |
 | extend | UC4 (이슈 상세 조회) | UC15 (이슈 수정) | Auth User가 상세 화면에서 이슈를 수정하고 싶을 때 추가한다 |
-| extend | UC5 (이슈 배정) | UC8 (Assignee 자동 추천) | PL이 NEW 이슈에 assignee를 지정하려는 시점에 시스템이 후보를 추천한다 |
+
 
 ---
 
