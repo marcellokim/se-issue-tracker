@@ -42,9 +42,10 @@ if ! git rev-parse --verify origin/main >/dev/null 2>&1 || ! git rev-parse --ver
     exit 1
 fi
 
-if ! git diff --quiet origin/main origin/dev; then
-    echo "[중단] origin/main과 origin/dev의 파일 내용이 다릅니다." >&2
-    echo "팀장에게 dev 기준선 정렬을 요청한 뒤 다시 시작하세요." >&2
+if ! git merge-base --is-ancestor origin/main origin/dev; then
+    echo "[중단] origin/dev가 origin/main을 포함하지 않습니다." >&2
+    echo "dev는 main보다 앞설 수 있지만, main의 최신 안정 기준선은 포함해야 합니다." >&2
+    echo "팀장에게 main/dev 분기 상태 확인을 요청한 뒤 다시 시작하세요." >&2
     exit 1
 fi
 
