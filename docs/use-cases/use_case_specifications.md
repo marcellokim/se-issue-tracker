@@ -161,7 +161,7 @@ extension points : UC2(Add Comment), UC15(이슈 수정)
 | Primary Actor | PL |
 | Stakeholders & Interests | - PL: 적절한 Dev에게 이슈를 배정하고 싶다<br>- Dev: 자신에게 맞는 이슈를 배정 받고 싶다<br>- Tester: 이슈가 Dev에게 배정되어 수정된 후에 검증할 수 있기를 원한다 |
 | Preconditions | - PL이 시스템에 로그인한 상태이다<br>- 대상 이슈가 시스템에 존재한다<br>- 대상 이슈의 상태가 NEW이다 |
-| Postconditions | - 시스템이 이슈의 assignee를 PL이 선택한 Dev로 설정한다<br>- 시스템이 이슈의 verifier를 PL이 선택한 Tester로 설정한다<br>- 시스템이 이슈의 status를 ASSIGNED로 변경한다<br>- 시스템이 배정 사유 코멘트를 코멘트 history에 추가한다 |
+| Postconditions | - 시스템이 이슈의 assignee를 PL이 선택한 Dev로 설정한다<br>- 시스템이 이슈의 verifier를 PL이 선택한 Tester로 설정한다<br>- 시스템이 이슈의 status를 ASSIGNED로 변경한다 |
 | Trigger | PL이 이슈 상세 화면에서 이슈 배정 액션을 선택한다 |
 
 ### Main Flow
