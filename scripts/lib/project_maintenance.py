@@ -25,7 +25,11 @@ STATUS_BY_LABEL = {
 REQUIRED_FILES = [
     "SE_Term_Project_2026-1.pdf",
     "README.md",
+    ".coderabbit.yaml",
+    ".pr_agent.toml",
+    "QODO.MD",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/copilot-instructions.md",
     ".github/workflows/add-to-project.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/gradle.yml",

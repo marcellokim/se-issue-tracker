@@ -6,6 +6,10 @@ pr_commands = [
     "/agentic_describe",
     "/agentic_review"
 ]
+handle_push_trigger = true
+push_commands = [
+    "/agentic_review"
+]
 
 [review_agent]
 comments_location_policy = "both"
@@ -29,3 +33,8 @@ compliance_user_guidelines = """
 - Deleted 상태와 FIFO 삭제 정책을 사용한다.
 - Issue dependency를 지원한다.
 """
+
+[checks]
+enable_auto_checks_feedback = true
+persistent_comment = true
+final_update_message = true

@@ -23,6 +23,10 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/add-to-project.yml",
                 ".github/workflows/codeql.yml",
                 ".github/workflows/project-maintenance.yml",
+                ".coderabbit.yaml",
+                ".pr_agent.toml",
+                "QODO.MD",
+                ".github/copilot-instructions.md",
                 "config/github/labels.json",
                 "config/github/milestones.json",
                 "docs/team-setup-manual.md",
@@ -123,7 +127,17 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".githooks/pre-commit", "docs/<issue>-<slug>"),
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
-                new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project")
+                new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),
+                new ScriptExpectation(".coderabbit.yaml", "language: \"ko-KR\""),
+                new ScriptExpectation(".coderabbit.yaml", "tone_instructions"),
+                new ScriptExpectation(".coderabbit.yaml", "auto_title_instructions"),
+                new ScriptExpectation(".coderabbit.yaml", "poem: false"),
+                new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
+                new ScriptExpectation(".pr_agent.toml", "response_language = \"ko-KR\""),
+                new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = true"),
+                new ScriptExpectation(".pr_agent.toml", "[checks]"),
+                new ScriptExpectation("QODO.MD", "CI 실패 분석"),
+                new ScriptExpectation(".github/copilot-instructions.md", "자동 리뷰, 요약, 제안, 체크 실패 분석, 채팅 응답은 가능한 한 한국어")
         );
     }
 
