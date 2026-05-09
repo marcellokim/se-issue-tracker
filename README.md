@@ -78,7 +78,7 @@ ls
 ./gradlew check
 ```
 
-Windows에서 `python3` 대신 `python` 또는 `py`만 잡히는 경우에는 Gradle 속성으로 실행명을 지정합니다.
+Windows에서 `python3` 대신 `python` 또는 `py`만 잡히는 경우에는 Gradle 속성으로 실행명을 지정합니다. shell 스크립트는 `python3`, `python`, `py` 순서로 자동 탐색하며, 필요하면 `PYTHON_EXECUTABLE=py`처럼 지정할 수 있습니다.
 
 ```bash
 ./gradlew check -PpythonExecutable=py
@@ -98,6 +98,9 @@ Windows에서 `python3` 대신 `python` 또는 `py`만 잡히는 경우에는 Gr
 # 1. 이슈 번호를 기준으로 개인 작업 브랜치 생성
 ./scripts/start-task.sh 12 issue-search-ui
 
+# 문서/테스트/정리 작업이면 타입 지정
+./scripts/start-task.sh --type docs 12 update-readme
+
 # 2. 작업 후 로컬 검증과 커밋
 ./gradlew check
 git add .
@@ -109,11 +112,13 @@ git commit
 
 이 스크립트는 최신 `dev` 기준선 확인, push, PR 생성, 이슈 상태 라벨 이동, 프로젝트 정렬까지 처리합니다.
 
+`dev`는 팀 작업이 먼저 합쳐지는 통합 브랜치라 `main`보다 앞설 수 있습니다. 이 상태는 정상입니다. 그래도 팀원은 `dev`에 직접 들어가서 수정하지 말고, 항상 `./scripts/start-task.sh`로 `dev`에서 새 작업 브랜치를 만들어 작업합니다.
+
 ### 워크플로우 강제 규칙
 이 저장소는 아래 우회 흐름을 문서상 금지하는 수준이 아니라 **로컬 훅 + GitHub Actions + 브랜치 보호 규칙**으로 차단합니다.
 
 - 일반 팀원 PR은 `dev` 대상으로만 허용
-- PR head 브랜치는 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`만 허용
+- PR head 브랜치는 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`만 허용. slug에는 영문 대소문자, 숫자, `.`, `_`, `-`를 사용할 수 있음
 - `main` 대상 PR은 관리자 우회 계정만 허용
 - `main` / `dev` 직접 push와 직접 commit은 로컬 훅 및 GitHub 브랜치 보호 규칙으로 차단
 - 워크플로우 보호, 브랜치 보호 초기 설정, PR/start-task 스크립트, git 훅 같은 우회 지점 수정은 관리자만 허용
@@ -135,9 +140,9 @@ git commit
 - `dev`에서 코드를 바로 수정한 뒤 PR 올리기
 - 기존 `se-issue-tracker` 폴더 안에서 다시 `git clone ...` 실행
 - `./scripts/start-task.sh` 없이 임의 브랜치 이름으로 작업 시작
-- `.github/workflows/`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/lib/bootstrap_github.py`를 일반 작업 PR에서 수정
+- `.github/workflows/`, `.github/labeler.yml`, `.github/dependabot.yml`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/validate-public-attribution.sh`, `scripts/lib/git-refs.sh`, `scripts/lib/bootstrap_github.py`를 일반 작업 PR에서 수정
 
-예외는 저장소 관리자가 릴리즈/동기화 목적을 명확히 알고 수행하는 경우뿐입니다. 일반 팀원 작업은 항상 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>` 브랜치에서 시작하고 PR은 `dev`로 올립니다.
+예외는 저장소 관리자가 릴리즈/동기화 목적을 명확히 알고 수행하는 경우뿐입니다. 일반 팀원 작업은 항상 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>` 브랜치에서 시작하고 PR은 `dev`로 올립니다. `./scripts/start-task.sh --type docs|test|chore <issue> <slug>`로 기능 외 작업 브랜치도 만들 수 있습니다.
 
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.

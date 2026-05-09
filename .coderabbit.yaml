@@ -1,14 +1,17 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-language: ko-KR
+language: "ko-KR"
 enable_free_tier: true
-tone_instructions: "가능한 모든 리뷰, 요약, 코멘트는 한국어로 작성합니다. 서비스 고정 템플릿만 번역이 불가능하면 영어를 유지합니다. 실제 결함/리스크/누락 테스트 위주로 간결하게 리뷰합니다."
+tone_instructions: "리뷰, 요약, 채팅 답변은 한국어로 작성합니다. 고정 UI 라벨과 코드 식별자만 원문 유지합니다."
 
 reviews:
   profile: chill
   request_changes_workflow: false
   high_level_summary: true
   high_level_summary_instructions: "PR 요약은 한국어로 작성합니다. 변경 의도, 주요 파일, 검증 상태만 간결하게 정리합니다."
+  auto_title_instructions: "PR 제목을 생성하거나 제안할 때 한국어로 작성합니다. 이슈 번호와 작업 유형은 유지합니다."
   review_status: true
+  in_progress_fortune: false
+  poem: false
   auto_review:
     enabled: true
     base_branches:
@@ -20,3 +23,14 @@ reviews:
       instructions: "로컬/CI 환경 차이, OS별 실행 가능성, 실패 메시지의 명확성을 중점적으로 확인합니다."
     - path: "docs/**"
       instructions: "과제 PDF 기준, 회의 결정, GitHub 이슈/마일스톤 정책과 문서 내용이 불일치하지 않는지 확인합니다."
+
+chat:
+  auto_reply: true
+  art: false
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - ".github/copilot-instructions.md"
+      - "QODO.MD"

@@ -25,7 +25,11 @@ STATUS_BY_LABEL = {
 REQUIRED_FILES = [
     "SE_Term_Project_2026-1.pdf",
     "README.md",
+    ".coderabbit.yaml",
+    ".pr_agent.toml",
+    "QODO.MD",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/copilot-instructions.md",
     ".github/workflows/add-to-project.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/gradle.yml",
@@ -43,6 +47,7 @@ REQUIRED_FILES = [
     "docs/team-setup-manual.md",
     "scripts/audit-project.sh",
     "scripts/lib/git-refs.sh",
+    "scripts/lib/python.sh",
     "scripts/sync-project-board.sh",
     "scripts/open-pr.sh",
     "scripts/start-task.sh",
@@ -256,8 +261,10 @@ def branch_alignment_checks() -> list[CheckResult]:
     fetch = run(["git", "fetch", "origin", "main", "dev", "--quiet"])
     if fetch.returncode != 0:
         return [fail(f"origin/main, origin/dev fetch 실패: {fetch.stderr.strip()}")]
-    diff = run(["git", "diff", "--quiet", "origin/main", "origin/dev"])
-    return [pass_("origin/main과 origin/dev 파일 트리 일치") if diff.returncode == 0 else fail("origin/main과 origin/dev 파일 트리가 다릅니다")]
+    ancestry = run(["git", "merge-base", "--is-ancestor", "origin/main", "origin/dev"])
+    if ancestry.returncode == 0:
+        return [pass_("origin/main이 origin/dev의 조상입니다")]
+    return [fail("origin/dev가 origin/main을 포함하지 않습니다")]
 
 
 def local_checks(skip_git_branches: bool) -> list[CheckResult]:

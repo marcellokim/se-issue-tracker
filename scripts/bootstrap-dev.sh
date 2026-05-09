@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN_GITHUB=0
 SKIP_TEST=0
 
+. "$ROOT_DIR/scripts/lib/python.sh"
+
 java_runtime_ready() {
   command -v java >/dev/null 2>&1 && java -version >/dev/null 2>&1
 }
@@ -28,13 +30,16 @@ done
 cd "$ROOT_DIR"
 
 echo "[1/5] 필수 도구 확인"
-for tool in git python3; do
+for tool in git; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "필수 도구를 찾을 수 없습니다: $tool" >&2
     exit 1
   fi
   echo "  - $tool 확인"
 done
+
+python_executable="$(resolve_python_executable)"
+echo "  - Python 확인: $python_executable"
 
 if command -v gh >/dev/null 2>&1; then
   echo "  - gh 확인"

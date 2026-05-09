@@ -2,6 +2,7 @@
 set -euo pipefail
 
 actor="${GITHUB_ACTOR:-}"
+pr_author="${PR_AUTHOR:-}"
 event_name="${GITHUB_EVENT_NAME:-}"
 base_ref="${GITHUB_BASE_REF:-}"
 head_ref="${GITHUB_HEAD_REF:-}"
@@ -18,10 +19,15 @@ trim() {
 
 is_admin_bypass_actor() {
     local user
+    local policy_actor="$actor"
+    if [[ "$event_name" == "pull_request" || "$event_name" == "pull_request_target" ]]; then
+        policy_actor="${pr_author:-$actor}"
+    fi
+
     IFS=',' read -r -a users <<< "$bypass_users"
     for user in "${users[@]}"; do
         user="$(trim "$user")"
-        if [[ -n "$user" && "$actor" == "$user" ]]; then
+        if [[ -n "$user" && "$policy_actor" == "$user" ]]; then
             return 0
         fi
     done
@@ -35,14 +41,17 @@ is_work_branch() {
 
 is_guarded_file() {
     case "$1" in
-        .github/workflows/workflow-guard.yml|\
+        .github/workflows/*|\
+        .github/dependabot.yml|\
+        .github/labeler.yml|\
         scripts/validate-workflow-guard.sh|\
+        scripts/validate-public-attribution.sh|\
         scripts/bootstrap-github.sh|\
         scripts/lib/bootstrap_github.py|\
+        scripts/lib/git-refs.sh|\
         scripts/start-task.sh|\
         scripts/open-pr.sh|\
-        .githooks/pre-commit|\
-        .githooks/pre-push|\
+        .githooks/*|\
         .github/CODEOWNERS)
             return 0
             ;;
