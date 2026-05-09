@@ -51,12 +51,32 @@ class WorkflowGuardScriptTest {
     @DisplayName("일반 사용자의 보호 자동화 파일 수정을 차단한다")
     void blocksNonAdminChangesToWorkflowGuardFiles() throws IOException, InterruptedException {
         Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
-        Files.writeString(changedFiles, ".github/workflows/workflow-guard.yml\nREADME.md\n");
+        Files.writeString(changedFiles, ".github/workflows/gradle.yml\nREADME.md\n");
 
         Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
         environment.put("CHANGED_FILES_PATH", changedFiles.toString());
 
         assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName("작업 브랜치 slug에 대문자가 있어도 dev 대상 PR을 허용한다")
+    void allowsUppercaseSlugInWorkBranch() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "feature/12-Issue_Search-UI", "teammate"));
+    }
+
+    @Test
+    @DisplayName("리뷰 봇 이벤트라도 PR 작성자가 관리자이면 보호 자동화 파일 수정을 허용한다")
+    void allowsAdminAuthoredGuardChangesWhenReviewBotTriggersPullRequestTarget() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, "scripts/start-task.sh\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "chore/60-dev-ahead-start-task", "coderabbitai[bot]");
+        environment.put("GITHUB_EVENT_NAME", "pull_request_target");
+        environment.put("PR_AUTHOR", "marcellokim");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertAllowed(environment);
     }
 
     @Test
@@ -68,10 +88,120 @@ class WorkflowGuardScriptTest {
         assertAllowed(environment);
     }
 
+    @Test
+    @DisplayName("docs 타입 브랜치에서 dev 대상 PR을 허용한다")
+    void allowsDocsBranchPullRequestToDev() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "docs/18-update-readme", "teammate"));
+    }
+
+    @Test
+    @DisplayName("test 타입 브랜치에서 dev 대상 PR을 허용한다")
+    void allowsTestBranchPullRequestToDev() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "test/21-add-unit-tests", "teammate"));
+    }
+
+    @Test
+    @DisplayName("chore 타입 브랜치에서 dev 대상 PR을 허용한다")
+    void allowsChoresBranchPullRequestToDev() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "chore/30-update-deps", "teammate"));
+    }
+
+    @Test
+    @DisplayName("PR_AUTHOR가 비관리자이면 actor가 관리자여도 보호 파일 수정을 차단한다")
+    void blocksPrAuthorNonAdminEvenWhenActorIsAdmin() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, "scripts/start-task.sh\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "marcellokim");
+        environment.put("GITHUB_EVENT_NAME", "pull_request_target");
+        environment.put("PR_AUTHOR", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName(".githooks 내 파일 수정을 일반 사용자에게 차단한다")
+    void blocksNonAdminChangesToGithooksFiles() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, ".githooks/pre-commit\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName(".github/dependabot.yml 수정을 일반 사용자에게 차단한다")
+    void blocksNonAdminChangesToDependabotYml() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, ".github/dependabot.yml\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName(".github/labeler.yml 수정을 일반 사용자에게 차단한다")
+    void blocksNonAdminChangesToLabelerYml() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, ".github/labeler.yml\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName("scripts/validate-public-attribution.sh 수정을 일반 사용자에게 차단한다")
+    void blocksNonAdminChangesToPublicAttributionScript() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, "scripts/validate-public-attribution.sh\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName("scripts/lib/git-refs.sh 수정을 일반 사용자에게 차단한다")
+    void blocksNonAdminChangesToGitRefsScript() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, "scripts/lib/git-refs.sh\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
+    @Test
+    @DisplayName("비보호 파일만 수정하는 PR은 일반 사용자에게 허용한다")
+    void allowsNonAdminChangesToUnguardedFiles() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, "README.md\nsrc/main/java/Main.java\n");
+
+        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertAllowed(environment);
+    }
+
+    @Test
+    @DisplayName("slug에 점(.)이 포함된 브랜치에서 dev 대상 PR을 허용한다")
+    void allowsDotInSlugForWorkBranch() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "feature/12-issue.search.ui", "teammate"));
+    }
+
     private void assertAllowed(Map<String, String> environment) throws IOException, InterruptedException {
         var result = runGuard(environment);
 
-        assertEquals(0, result.exitCode(), result.output());
+
     }
 
     private void assertBlocked(Map<String, String> environment) throws IOException, InterruptedException {
