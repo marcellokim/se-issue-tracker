@@ -60,6 +60,20 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
+    @DisplayName("리뷰 봇 이벤트라도 PR 작성자가 관리자이면 보호 자동화 파일 수정을 허용한다")
+    void allowsAdminAuthoredGuardChangesWhenReviewBotTriggersPullRequestTarget() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
+        Files.writeString(changedFiles, "scripts/start-task.sh\nREADME.md\n");
+
+        Map<String, String> environment = pullRequest("dev", "chore/60-dev-ahead-start-task", "coderabbitai[bot]");
+        environment.put("GITHUB_EVENT_NAME", "pull_request_target");
+        environment.put("PR_AUTHOR", "marcellokim");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertAllowed(environment);
+    }
+
+    @Test
     @DisplayName("pull_request_target 이벤트에서도 기준 브랜치 정책을 적용한다")
     void acceptsPullRequestTargetEventForBaseBranchPolicy() throws IOException, InterruptedException {
         Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");

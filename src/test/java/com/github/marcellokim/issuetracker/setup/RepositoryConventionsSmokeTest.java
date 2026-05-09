@@ -76,6 +76,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "name: 워크플로우 보호"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "name: 워크플로우 정책 검사"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "WORKFLOW_BYPASS_USERS"),
+                new ScriptExpectation(".github/workflows/workflow-guard.yml", "PR_AUTHOR"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "gh pr diff"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "일반 작업 PR은 main이 아니라 dev"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "feature|docs|test|chore"),
