@@ -134,8 +134,13 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".coderabbit.yaml", "poem: false"),
                 new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
                 new ScriptExpectation(".pr_agent.toml", "response_language = \"ko-KR\""),
+                new ScriptExpectation(".pr_agent.toml", "use_repo_settings_file = true"),
                 new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = true"),
                 new ScriptExpectation(".pr_agent.toml", "[checks]"),
+                new ScriptExpectation(".pr_agent.toml", "[pr_reviewer]"),
+                new ScriptExpectation(".pr_agent.toml", "[pr_description]"),
+                new ScriptExpectation(".pr_agent.toml", "[pr_code_suggestions]"),
+                new ScriptExpectation(".pr_agent.toml", "실제 설명 문장은 한국어"),
                 new ScriptExpectation("QODO.MD", "CI 실패 분석"),
                 new ScriptExpectation(".github/copilot-instructions.md", "자동 리뷰, 요약, 제안, 체크 실패 분석, 채팅 응답은 가능한 한 한국어")
         );
