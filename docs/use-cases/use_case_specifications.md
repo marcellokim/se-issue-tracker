@@ -60,8 +60,7 @@ extension point : UC2(Add Comment)
 | 범위 | Issue Tracking System |
 | 수준 | Subfunction |
 | Primary Actor | Auth User(Tester, Dev, PL) |
-| Stakeholders & Interests | - Auth User: 이슈에 자신의 의견과 진행 상황 등을 기록하고 싶다<br>- 조직: 이슈 배정 이후 해당 이슈와 관련된 사용자들의 이슈에 대한 
-의견을 확인하고 싶다 |
+| Stakeholders & Interests | - Auth User: 이슈에 자신의 의견과 진행 상황 등을 기록하고 싶다<br>- 조직: 이슈 배정 이후 해당 이슈와 관련된 사용자들의 이슈에 대한 의견을 확인하고 싶다 |
 | Preconditions | - 호출 UC가 진행 중이고, 대상 이슈가 화면에 있다<br>- Auth User가 시스템에 로그인한 상태이다 |
 | Postconditions  | - 시스템이 새 코멘트를 이슈의 코멘트 history에 추가한다<br>- 시스템이 코멘트 등록자를 현재 Auth User로, 코멘트 작성 시간을 현재 시각으로 기록한다 |
 | Trigger | - UC1(이슈 등록), UC4(이슈 상세 조회), UC5(이슈 배정)의 extension point에서 사용자가 코멘트 추가를 선택(extend)<br>-UC6(이슈 상태 변경)의 코멘트 입력 단계에서 자동 시작 (include) |
@@ -213,7 +212,7 @@ extension point: UC2(코멘트 추가)
 | FIXED | RESOLVED | Tester (verifier 본인) | — | verifier가 수정 결과를 검증하여 해결됨을 확인 |
 | FIXED | ASSIGNED | Tester (verifier 본인) | fixer 초기화 | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림 |
 | RESOLVED | CLOSED | PL | — | PL이 검증 완료된 이슈를 종료시킴 |
-| CLOSED / RESOLVED | REOPENED | PL | assignee, verifier, fixer 초기화 | PL이 종료된 이슈를 재개 |
+| CLOSED / RESOLVED | REOPENED | PL | assignee, verifier, fixer를 마지막으로 지정되었던 값으로 변경 | PL이 종료된 이슈를 재개 |
 
 ### Main Flow
 1. 사용자가 상태 변경 버튼을 누른다
