@@ -168,6 +168,7 @@ git commit
 - [자동화 옵션 조사 및 적용 현황](docs/automation-playbook.md)
 - [보안 정책](SECURITY.md)
 - [기본 가정 문서](docs/assumptions.md)
+- [과제 수행 개념 기준선](docs/textbook-concept-baseline.md)
 - [Q&A / 의사결정 기록](docs/qna.md)
 
 ## 8. 저장소 구조
