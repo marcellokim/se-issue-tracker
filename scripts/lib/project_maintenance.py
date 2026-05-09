@@ -43,6 +43,7 @@ REQUIRED_FILES = [
     "docs/team-setup-manual.md",
     "scripts/audit-project.sh",
     "scripts/lib/git-refs.sh",
+    "scripts/lib/python.sh",
     "scripts/sync-project-board.sh",
     "scripts/open-pr.sh",
     "scripts/start-task.sh",

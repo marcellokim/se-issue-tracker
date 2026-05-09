@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+. "$repo_root/scripts/lib/python.sh"
 
 team_number=""
 output_dir="$repo_root/dist"
@@ -16,7 +17,7 @@ java_runtime_ready() {
 }
 
 sanitize_member_name() {
-    python3 - "$1" <<'PY'
+    "$python_executable" - "$1" <<'PY'
 import sys
 
 name = sys.argv[1].replace(" ", "_")
@@ -75,7 +76,7 @@ fi
 
 require_tool rsync
 require_tool zip
-require_tool python3
+python_executable="$(resolve_python_executable)"
 
 if [[ -z "$project_url" ]] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
     repo_name="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
@@ -125,7 +126,7 @@ rsync -a \
     --exclude '*.zip' \
     "$repo_root/" "$stage_root/"
 
-python3 - <<'PY2' "$repo_root/docs/templates/submission-readme.txt.template" "$stage_root/README.txt" "$team_number" "$github_url" "$project_url" "${members[*]}"
+"$python_executable" - <<'PY2' "$repo_root/docs/templates/submission-readme.txt.template" "$stage_root/README.txt" "$team_number" "$github_url" "$project_url" "${members[*]}"
 from pathlib import Path
 import sys
 

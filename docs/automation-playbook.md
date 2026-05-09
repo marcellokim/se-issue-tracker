@@ -47,7 +47,7 @@
 | `.githooks/pre-push` | 구현 | push 전 테스트/기본 검증 | 초기 설정 시 자동 설치 |
 | `.githooks/commit-msg` | 구현 | 공개 이력에 남기면 안 되는 외부 도구/공동작성자 표기 차단 | 초기 설정 시 자동 설치 |
 | `.gitmessage.txt` | 구현 | Lore commit protocol 강제 유도 | 초기 설정 시 자동 적용 |
-| `scripts/start-task.sh` | 구현 | 기준선 확인 후 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine` |
+| `scripts/start-task.sh` | 구현 | 기준선 확인 후 브랜치 이름 표준화 | `./scripts/start-task.sh 18 recommendation-engine`, `./scripts/start-task.sh --type docs 18 update-readme` |
 | `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성, 이슈 review 라벨 이동, 프로젝트 정렬을 한 번에 처리 | `./scripts/open-pr.sh` |
 | `scripts/audit-project.sh` | 구현 | main/dev, 문서, DB 표준, GitHub 이슈/프로젝트 정합성 점검 | `./scripts/audit-project.sh` |
 | `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub 프로젝트 상태로 반영 | `./scripts/sync-project-board.sh --apply` |

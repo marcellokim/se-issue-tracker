@@ -32,6 +32,7 @@ class RepositoryConventionsSmokeTest {
                 "scripts/bootstrap-dev.sh",
                 "scripts/audit-project.sh",
                 "scripts/lib/git-refs.sh",
+                "scripts/lib/python.sh",
                 "scripts/start-task.sh",
                 "scripts/open-pr.sh",
                 "scripts/validate-workflow-guard.sh",
@@ -56,8 +57,10 @@ class RepositoryConventionsSmokeTest {
     static Stream<ScriptExpectation> requiredScriptGuardrails() {
         return Stream.of(
                 new ScriptExpectation("scripts/start-task.sh", "작업트리에 커밋되지 않은 변경이 있습니다"),
+                new ScriptExpectation("scripts/start-task.sh", "--type feature|docs|test|chore"),
                 new ScriptExpectation("scripts/start-task.sh", "ensure_origin_fetch_ref dev"),
                 new ScriptExpectation("scripts/lib/git-refs.sh", "refs/heads/${branch}:refs/remotes/origin/${branch}"),
+                new ScriptExpectation("scripts/lib/python.sh", "python3 python py"),
                 new ScriptExpectation("scripts/bootstrap-dev.sh", "scripts/lib/*.sh"),
                 new ScriptExpectation("scripts/start-task.sh", "git merge-base --is-ancestor origin/main origin/dev"),
                 new ScriptExpectation("scripts/start-task.sh", "origin/dev가 origin/main을 포함하지 않습니다"),
@@ -65,7 +68,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "origin/main이 origin/dev의 조상입니다"),
                 new ScriptExpectation("scripts/start-task.sh", "./scripts/open-pr.sh"),
                 new ScriptExpectation("scripts/open-pr.sh", "PR을 올릴 수 있는 작업 브랜치가 아닙니다"),
-                new ScriptExpectation("scripts/open-pr.sh", "[0-9]+-[a-z0-9._-]+"),
+                new ScriptExpectation("scripts/open-pr.sh", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/open-pr.sh", "refs/heads/dev:refs/remotes/origin/dev"),
                 new ScriptExpectation("scripts/open-pr.sh", "gh auth login"),
                 new ScriptExpectation("scripts/open-pr.sh", "gh pr create"),
@@ -78,8 +81,10 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "WORKFLOW_BYPASS_USERS"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "PR_AUTHOR"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "gh pr diff"),
+                new ScriptExpectation(".github/workflows/workflow-guard.yml", "github.event.pull_request.number || github.ref"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "일반 작업 PR은 main이 아니라 dev"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "feature|docs|test|chore"),
+                new ScriptExpectation("scripts/validate-workflow-guard.sh", ".github/workflows/*"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "관리자 외에는 워크플로우/브랜치 보호 우회 지점을 수정할 수 없습니다"),
                 new ScriptExpectation("scripts/lib/bootstrap_github.py", "WORKFLOW_BYPASS_USERS"),
                 new ScriptExpectation("scripts/lib/bootstrap_github.py", "빌드와 테스트"),
@@ -114,7 +119,9 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("build.gradle", "commandLine pythonExecutable.get(), 'scripts/lib/project_maintenance.py'"),
                 new ScriptExpectation("README.md", "./gradlew run"),
                 new ScriptExpectation("README.md", "./gradlew check -PpythonExecutable=py"),
+                new ScriptExpectation("README.md", "./scripts/start-task.sh --type docs"),
                 new ScriptExpectation(".githooks/pre-commit", "docs/<issue>-<slug>"),
+                new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project")
         );

@@ -7,7 +7,7 @@ cd "$repo_root"
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
 
-if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feature|docs|test|chore)/[0-9]+-[a-z0-9._-]+$ ]]; then
+if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feature|docs|test|chore)/[0-9]+-[A-Za-z0-9._-]+$ ]]; then
     echo "[중단] PR을 올릴 수 있는 작업 브랜치가 아닙니다: $branch" >&2
     echo "feature/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, chore/<issue>-<slug> 브랜치에서 실행하세요." >&2
     exit 1
@@ -38,12 +38,6 @@ if ! git merge-base --is-ancestor origin/dev HEAD; then
     exit 1
 fi
 
-echo "[1/3] 로컬 검증 실행"
-./gradlew check
-
-echo "[2/3] 원격 브랜치 push"
-git push -u origin HEAD
-
 slug="${branch#*/}"
 issue_number=""
 if [[ "$slug" =~ ^([0-9]+)- ]]; then
@@ -60,6 +54,12 @@ if ! issue_title="$(gh issue view "$issue_number" --json title -q .title 2>/dev/
     echo "[중단] GitHub 이슈 #$issue_number 를 찾을 수 없습니다." >&2
     exit 1
 fi
+
+echo "[1/3] 로컬 검증 실행"
+./gradlew check
+
+echo "[2/3] 원격 브랜치 push"
+git push -u origin HEAD
 
 mark_issue_review() {
     local status_label

@@ -41,14 +41,17 @@ is_work_branch() {
 
 is_guarded_file() {
     case "$1" in
-        .github/workflows/workflow-guard.yml|\
+        .github/workflows/*|\
+        .github/dependabot.yml|\
+        .github/labeler.yml|\
         scripts/validate-workflow-guard.sh|\
+        scripts/validate-public-attribution.sh|\
         scripts/bootstrap-github.sh|\
         scripts/lib/bootstrap_github.py|\
+        scripts/lib/git-refs.sh|\
         scripts/start-task.sh|\
         scripts/open-pr.sh|\
-        .githooks/pre-commit|\
-        .githooks/pre-push|\
+        .githooks/*|\
         .github/CODEOWNERS)
             return 0
             ;;

@@ -1,9 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+    echo "사용법: $0 [--type feature|docs|test|chore] <issue-number> <short-slug>" >&2
+    echo "예시: $0 16 account-role-model" >&2
+    echo "예시: $0 --type docs 16 update-readme" >&2
+}
+
+branch_type="feature"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --type)
+            if [[ $# -lt 2 ]]; then
+                usage
+                exit 1
+            fi
+            branch_type="$2"
+            shift 2
+            ;;
+        --type=*)
+            branch_type="${1#--type=}"
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 if [[ $# -lt 2 ]]; then
-    echo "사용법: $0 <issue-number> <short-slug>"
-    echo "예시: $0 16 account-role-model"
+    usage
     exit 1
 fi
 
@@ -11,7 +42,7 @@ issue_number="$1"
 shift
 slug_raw="$*"
 slug="$(echo "$slug_raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')"
-branch_name="feature/${issue_number}-${slug}"
+branch_name="${branch_type}/${issue_number}-${slug}"
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
@@ -19,6 +50,11 @@ cd "$repo_root"
 
 if [[ ! "$issue_number" =~ ^[0-9]+$ ]]; then
     echo "[중단] 이슈 번호는 숫자만 입력하세요: $issue_number" >&2
+    exit 1
+fi
+
+if [[ ! "$branch_type" =~ ^(feature|docs|test|chore)$ ]]; then
+    echo "[중단] 작업 브랜치 타입은 feature, docs, test, chore 중 하나여야 합니다: $branch_type" >&2
     exit 1
 fi
 

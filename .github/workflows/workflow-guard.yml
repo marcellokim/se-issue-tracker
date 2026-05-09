@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: workflow-guard-${{ github.workflow }}-${{ github.ref }}
+  group: workflow-guard-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
