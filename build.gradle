@@ -4,6 +4,7 @@ plugins {
     id 'java'
     id 'application' // JavaFX 실행을 위한 플러그인
     id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'org.sonarqube' version '7.2.2.6593'
 }
 
 group = 'com.github.marcellokim'
@@ -37,6 +38,14 @@ repositories {
 // application {
 //     mainClass = 'com.github.marcellokim.issuetracker.Main'
 // }
+
+sonar {
+    properties {
+        property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
+        property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
+    }
+}
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:6.0.3')
@@ -76,6 +85,10 @@ def requiredAutomationPaths = [
     '.java-version',
     '.gitmessage.txt',
     'gradle.properties',
+    '.coderabbit.yaml',
+    '.pr_agent.toml',
+    'QODO.MD',
+    '.github/copilot-instructions.md',
     '.githooks/commit-msg',
     '.githooks/pre-commit',
     '.githooks/pre-push',
@@ -87,6 +100,7 @@ def requiredAutomationPaths = [
     '.github/workflows/gradle.yml',
     '.github/workflows/project-maintenance.yml',
     '.github/workflows/pr-labeler.yml',
+    '.github/workflows/sonarcloud.yml',
     '.github/workflows/workflow-guard.yml',
     'config/github/labels.json',
     'config/github/milestones.json',
@@ -95,6 +109,7 @@ def requiredAutomationPaths = [
     'scripts/install-git-hooks.sh',
     'scripts/audit-project.sh',
     'scripts/lib/git-refs.sh',
+    'scripts/lib/python.sh',
     'scripts/start-task.sh',
     'scripts/open-pr.sh',
     'scripts/validate-workflow-guard.sh',

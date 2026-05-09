@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+. "$repo_root/scripts/lib/python.sh"
 
 labels_file="$repo_root/config/github/labels.json"
 dry_run=false
@@ -45,7 +46,8 @@ if [[ -z "$repo" ]]; then
     exit 1
 fi
 
-python3 - "$labels_file" "$repo" "$dry_run" <<'PY'
+python_executable="$(resolve_python_executable)"
+"$python_executable" - "$labels_file" "$repo" "$dry_run" <<'PY'
 from __future__ import annotations
 
 import json

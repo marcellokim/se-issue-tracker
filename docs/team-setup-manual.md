@@ -34,6 +34,9 @@ test -f scripts/open-pr.sh && echo "OK: 저장소 루트입니다"
 # 1. 작업 시작: dev 최신화, 기준선 확인, 개인 브랜치 생성까지 자동 처리
 ./scripts/start-task.sh <이슈번호> <작업이름>
 
+# 문서/테스트/정리 작업은 타입 지정
+./scripts/start-task.sh --type docs <이슈번호> <작업이름>
+
 # 2. 코드/문서 수정 후 커밋
 ./gradlew check
 git add .
@@ -48,6 +51,8 @@ git commit
 - `dev` = 팀 작업을 합치는 공용 합본
 - `feature/...` = 내 개인 작업 공간
 - PR = 내 작업을 공용 합본에 넣어 달라는 요청
+
+`dev`는 통합 브랜치라 `main`보다 앞설 수 있습니다. 이 상태는 오류가 아닙니다. 다만 팀원은 `dev`에서 직접 수정하지 않고, `./scripts/start-task.sh`로 `dev` 기준의 개인 작업 브랜치를 만든 뒤 작업합니다.
 
 규칙:
 - `main`에는 직접 작업하지 않습니다.
@@ -117,7 +122,7 @@ python3 --version
 gh --version
 ```
 
-Windows에서 `python3`가 없고 `python` 또는 `py`만 동작하면 Gradle 검증 때 실행명을 지정합니다.
+Windows에서 `python3`가 없고 `python` 또는 `py`만 동작하면 Gradle 검증 때 실행명을 지정합니다. shell 스크립트는 `python3`, `python`, `py` 순서로 자동 탐색하며, 필요하면 `PYTHON_EXECUTABLE=py`처럼 지정합니다.
 
 ```bash
 ./gradlew check -PpythonExecutable=py
@@ -208,11 +213,15 @@ gh auth login
 ### 4-2. 브랜치 생성
 ```bash
 ./scripts/start-task.sh 18 recommendation-engine
+
+# 문서 작업 예시
+./scripts/start-task.sh --type docs 18 update-readme
 ```
 
 예시 결과:
 ```text
 feature/18-recommendation-engine
+docs/18-update-readme
 ```
 
 ### 4-3. 작업 중 체크 포인트
