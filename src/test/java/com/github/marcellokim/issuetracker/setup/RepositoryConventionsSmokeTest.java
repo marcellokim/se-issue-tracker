@@ -138,11 +138,13 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".coderabbit.yaml", "tone_instructions"),
                 new ScriptExpectation(".coderabbit.yaml", "auto_title_instructions"),
                 new ScriptExpectation(".coderabbit.yaml", "poem: false"),
-                new ScriptExpectation(".coderabbit.yaml", "finishing_touches:\n"
-                        + "    unit_tests:\n"
-                        + "      enabled: false\n"
-                        + "    docstrings:\n"
-                        + "      enabled: false"),
+                new ScriptExpectation(".coderabbit.yaml", """
+                finishing_touches:
+                    unit_tests:
+                      enabled: false
+                    docstrings:
+                      enabled: false
+                """),
                 new ScriptExpectation(".coderabbit.yaml", "pre_merge_checks"),
                 new ScriptExpectation(".coderabbit.yaml", "mode: \"off\""),
                 new ScriptExpectation(".coderabbit.yaml", "auto_reply: false"),
