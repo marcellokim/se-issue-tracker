@@ -19,7 +19,7 @@ reviews:
       enabled: false
   pre_merge_checks:
     docstrings:
-      mode: off
+      mode: "off"
   auto_review:
     enabled: true
     base_branches:
