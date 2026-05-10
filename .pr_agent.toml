@@ -4,12 +4,12 @@ use_repo_settings_file = true
 
 [github_app]
 pr_commands = [
-    "/agentic_describe",
-    "/agentic_review"
+    "/agentic_describe --config.response_language=ko-KR",
+    "/agentic_review --config.response_language=ko-KR"
 ]
 handle_push_trigger = true
 push_commands = [
-    "/agentic_review"
+    "/agentic_review --config.response_language=ko-KR"
 ]
 
 [review_agent]
