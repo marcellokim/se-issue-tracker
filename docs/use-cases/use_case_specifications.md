@@ -295,7 +295,7 @@ extension point: UC2(코멘트 추가)
 | 관계 | Base UC | 관련 UC | 의미 |
 |---|---|---|---|
 | include | UC1 (이슈 등록) | UC14 (권한 검사) | 등록 시 시스템이 사용자 권한을 검사한다 |
-| include | UC5 (이슈 배정) | UC8 (Assignee 자동 추천) | PL이 NEW 이슈에 assignee를 지정하려는 시점에 시스템이 후보를 추천한다 |
+| include | UC5 (이슈 배정) | UC8 (Assignee 자동 추천) | PL이 NEW 또는 REOPENED 이슈에 assignee를 지정하려는 시점에 시스템이 후보를 추천한다 |
 | include | UC5 (이슈 배정) | UC14 (권한 검사) | 배정 시 시스템이 권한과 전이 규칙을 검사한다 |
 | include | UC6 (이슈 상태 변경) | UC2 (코멘트 추가) | 상태를 변경할 때 시스템이 사유 코멘트를 강제한다 |
 | include | UC6 (이슈 상태 변경) | UC14 (권한 검사) | 상태 전이 시 시스템이 권한과 전이 규칙을 검사한다 |
@@ -343,12 +343,12 @@ extension point: UC2(코멘트 추가)
 | tester1이 생성한 이슈에 코멘트를 추가한다 | UC2 Add Comment |
 | PL1이 모든 이슈를 브라우즈하고 NEW 상태 이슈를 찾는다 | UC3 Search Issues |
 | PL1이 특정 이슈 상세 정보를 확인한다 | UC4 View Issue Detail |
-| PL1이 dev1을 assignee로, tester를 verifier로 지정한다 | UC5 Assign Issue |
+| PL1이 dev1을 assignee로, tester1를 verifier로 지정한다 | UC5 Assign Issue |
 | dev1이 assigned 이슈를 찾고 내용을 확인한다 | UC3, UC4 |
 | dev1이 수정 완료 후 fixed로 변경하고 코멘트를 남긴다 | UC6 Change Issue State, UC2 Add Comment |
 | tester1이 fixed 이슈를 resolved로 변경한다 | UC6 Change Issue State |
 | PL1이 resolved 이슈를 closed로 변경한다 | UC6 Change Issue State |
-| 시스템이 fixed/resolved/closed 이력을 바탕으로 assignee를 추천한다 | UC8 Recommend Assignee (UC5에서 include) |
+| 시스템이 resolved/closed 이력을 바탕으로 assignee를 추천한다 | UC8 Recommend Assignee (UC5에서 include) |
 | 일/월별 이슈 통계를 확인한다 | UC10 Statistics |
 
 ---
