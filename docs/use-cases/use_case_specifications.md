@@ -203,7 +203,7 @@ extension points: UC2(Add Comment), UC15(이슈 수정)
 | 수준 | User goal |
 | Primary Actor | PL |
 | Stakeholders & Interests | - PL: 적절한 Dev에게 이슈를 배정하고 싶다<br>- Dev: 자신에게 맞는 이슈를 배정 받고 싶다<br>- Tester: 이슈가 Dev에게 배정되어 수정된 후에 검증할 수 있기를 원한다 |
-| Preconditions | - PL이 시스템에 로그인한 상태이다<br>- 대상 이슈가 시스템에 존재한다<br>- 대상 이슈의 상태가 NEW이다 |
+| Preconditions | - PL이 시스템에 로그인한 상태이다<br>- 대상 이슈가 시스템에 존재한다<br>- 대상 이슈의 상태가 NEW 또는 REOPENED이다 |
 | Postconditions | - 시스템이 이슈의 assignee를 PL이 선택한 Dev로 설정한다<br>- 시스템이 이슈의 verifier를 PL이 선택한 Tester로 설정한다<br>- 시스템이 이슈의 status를 ASSIGNED로 변경한다 |
 | Trigger | PL이 이슈 상세 화면에서 이슈 배정 액션을 선택한다 |
 
@@ -211,7 +211,7 @@ extension points: UC2(Add Comment), UC15(이슈 수정)
 1. PL이 이슈 배정 버튼을 누른다
 2. 시스템이 권한과 전이 규칙을 확인한다 (include UC14/권한 검사)
 3. 시스템이 배정 가능한 Dev 목록과 Tester 목록을 보여준다
-4. 시스템이 해결 이력 기반으로 적합한 Dev 후보를 추천한다 (include UC8/Assignee 자동 추천)
+4. 시스템이 resolved/closed 이력 기반으로 적합한 Dev 후보를 추천한다 (include UC8/Assignee 자동 추천)
 5. PL이 assignee로 지정할 Dev와 verifier로 지정할 Tester를 선택한다
 extension point: UC2(코멘트 추가)
 6. 시스템이 이슈의 assignee, verifier, status를 갱신한다
@@ -221,7 +221,7 @@ extension point: UC2(코멘트 추가)
 - 2a. PL의 역할이 배정 권한을 가지지 않는다
     - 2a1. 시스템이 권한 거부 메시지를 보여준다
     - 2a2. 흐름이 종료된다
-- 2b. 이슈 상태가 NEW가 아니어서 배정 전이가 불가능하다
+- 2b. 이슈 상태가 NEW 또는 REOPENED가 아니어서 배정 전이가 불가능하다
     - 2b1. 시스템이 현재 상태에서는 배정할 수 없다는 메시지를 보여준다
     - 2b2. PL이 이전 화면으로 돌아간다
 - 3a. 배정 가능한 Dev가 없다
