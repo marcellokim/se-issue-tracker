@@ -31,7 +31,7 @@ jobs:
 
       - name: GitHub 프로젝트에 항목 추가
         if: steps.preflight.outputs.enabled == 'true'
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@v2.0.0
         with:
           project-url: ${{ vars.PROJECT_URL }}
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
