@@ -276,8 +276,6 @@ extension point: UC2(코멘트 추가)
 | FIXED | ASSIGNED | Tester (verifier 본인) | fixer 초기화 | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림 |
 | RESOLVED | CLOSED | PL | — | PL이 검증 완료된 이슈를 종료시킴 |
 | CLOSED / RESOLVED | REOPENED | PL | 마지막 assignee, verifier, fixer를 복원 | PL이 종료된 이슈를 재개. PL은 필요 시 UC5를 통해 재배정할 수 있다 |
-| CLOSED | DELETED | PL | — | PL이 해결된 이슈에 대해 더 이상 필요하지 않다고 여겨 이슈를 soft하게 삭제 |
-| DELETED | CLOSED | PL | - | PL이 soft하게 삭제한 이슈들 중에서 다시 다룰 필요가 있다고 판단하여 이슈를 다시 복구 | 
 
 ### Main Flow
 1. 사용자가 상태 변경 버튼을 누른다
