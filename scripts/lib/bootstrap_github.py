@@ -72,27 +72,32 @@ def sync_labels(repo: str) -> list[str]:
 
     for label in desired:
         name = label["name"]
-        if name in current_by_name:
+        aliases = label.get("aliases", [])
+        source_name = name if name in current_by_name else next(
+            (alias for alias in aliases if alias in current_by_name),
+            None,
+        )
+        payload = {
+            "color": label["color"],
+            "description": label["description"],
+        }
+        if source_name:
             gh_api(
                 "PATCH",
-                f"repos/{repo}/labels/{quote(name, safe='')}",
-                {
-                    "new_name": name,
-                    "color": label["color"],
-                    "description": label["description"],
-                },
+                f"repos/{repo}/labels/{quote(source_name, safe='')}",
+                {"new_name": name, **payload},
             )
-            summary.append(f"라벨 갱신: {name}")
+            current_by_name.pop(source_name, None)
+            current_by_name[name] = label
+            action = "갱신" if source_name == name else f"이름변경: {source_name} ->"
+            summary.append(f"라벨 {action} {name}")
         else:
             gh_api(
                 "POST",
                 f"repos/{repo}/labels",
-                {
-                    "name": name,
-                    "color": label["color"],
-                    "description": label["description"],
-                },
+                {"name": name, **payload},
             )
+            current_by_name[name] = label
             summary.append(f"라벨 생성: {name}")
 
     return summary

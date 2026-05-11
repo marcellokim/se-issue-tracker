@@ -2,12 +2,12 @@
 set -euo pipefail
 
 usage() {
-    echo "사용법: $0 [--type feature|docs|test|chore] <issue-number> <short-slug>" >&2
+    echo "사용법: $0 [--type feat|fix|docs|test|ci|chore|refactor] <issue-number> <short-slug>" >&2
     echo "예시: $0 16 account-role-model" >&2
     echo "예시: $0 --type docs 16 update-readme" >&2
 }
 
-branch_type="feature"
+branch_type="feat"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -53,8 +53,8 @@ if [[ ! "$issue_number" =~ ^[0-9]+$ ]]; then
     exit 1
 fi
 
-if [[ ! "$branch_type" =~ ^(feature|docs|test|chore)$ ]]; then
-    echo "[중단] 작업 브랜치 타입은 feature, docs, test, chore 중 하나여야 합니다: $branch_type" >&2
+if [[ ! "$branch_type" =~ ^(feat|fix|docs|test|ci|chore|refactor)$ ]]; then
+    echo "[중단] 작업 브랜치 타입은 feat, fix, docs, test, ci, chore, refactor 중 하나여야 합니다: $branch_type" >&2
     exit 1
 fi
 

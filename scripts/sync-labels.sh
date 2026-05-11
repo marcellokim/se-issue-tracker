@@ -61,33 +61,58 @@ repo = sys.argv[2]
 dry_run = sys.argv[3].lower() == "true"
 
 labels = json.loads(labels_path.read_text(encoding="utf-8"))
+current_by_name = {}
+if not dry_run:
+    current = subprocess.run(
+        ["gh", "api", f"repos/{repo}/labels?per_page=100"],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    current_by_name = {item["name"]: item for item in json.loads(current.stdout)}
 
 for label in labels:
     name = label["name"]
+    aliases = label.get("aliases", [])
     if dry_run:
-        print(f"[dry-run] {name}")
+        alias_text = f" aliases={', '.join(aliases)}" if aliases else ""
+        print(f"[dry-run] {name}{alias_text}")
         continue
 
-    encoded = quote(name, safe="")
-    probe = subprocess.run(
-        ["gh", "api", f"repos/{repo}/labels/{encoded}"],
-        text=True,
-        capture_output=True,
+    source_name = name if name in current_by_name else next(
+        (alias for alias in aliases if alias in current_by_name),
+        None,
     )
 
     payload = []
     for key, value in label.items():
+        if key in {"name", "aliases"}:
+            continue
         payload.extend(["-f", f"{key}={value}"])
 
-    if probe.returncode == 0:
+    if source_name:
+        encoded = quote(source_name, safe="")
         subprocess.run(
-            ["gh", "api", "--method", "PATCH", f"repos/{repo}/labels/{encoded}", *payload],
+            [
+                "gh",
+                "api",
+                "--method",
+                "PATCH",
+                f"repos/{repo}/labels/{encoded}",
+                "-f",
+                f"new_name={name}",
+                *payload,
+            ],
             check=True,
             text=True,
             capture_output=True,
         )
-        print(f"[갱신] {name}")
+        action = "갱신" if source_name == name else f"이름변경 {source_name} ->"
+        print(f"[{action}] {name}")
+        current_by_name.pop(source_name, None)
+        current_by_name[name] = label
     else:
+        payload = ["-f", f"name={name}", *payload]
         subprocess.run(
             ["gh", "api", "--method", "POST", f"repos/{repo}/labels", *payload],
             check=True,
@@ -95,4 +120,5 @@ for label in labels:
             capture_output=True,
         )
         print(f"[생성] {name}")
+        current_by_name[name] = label
 PY

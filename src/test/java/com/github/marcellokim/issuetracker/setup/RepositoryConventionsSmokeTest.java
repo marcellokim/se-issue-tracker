@@ -62,7 +62,7 @@ class RepositoryConventionsSmokeTest {
     static Stream<ScriptExpectation> requiredScriptGuardrails() {
         return Stream.of(
                 new ScriptExpectation("scripts/start-task.sh", "작업트리에 커밋되지 않은 변경이 있습니다"),
-                new ScriptExpectation("scripts/start-task.sh", "--type feature|docs|test|chore"),
+                new ScriptExpectation("scripts/start-task.sh", "--type feat|fix|docs|test|ci|chore|refactor"),
                 new ScriptExpectation("scripts/start-task.sh", "ensure_origin_fetch_ref dev"),
                 new ScriptExpectation("scripts/lib/git-refs.sh", "refs/heads/${branch}:refs/remotes/origin/${branch}"),
                 new ScriptExpectation("scripts/lib/python.sh", "python3 python py"),
@@ -88,7 +88,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "gh pr diff"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "github.event.pull_request.number || github.ref"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "일반 작업 PR은 main이 아니라 dev"),
-                new ScriptExpectation("scripts/validate-workflow-guard.sh", "feature|docs|test|chore"),
+                new ScriptExpectation("scripts/validate-workflow-guard.sh", "feat|fix|docs|test|ci|chore|refactor"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", ".github/workflows/*"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "관리자 외에는 워크플로우/브랜치 보호 우회 지점을 수정할 수 없습니다"),
                 new ScriptExpectation("scripts/lib/bootstrap_github.py", "WORKFLOW_BYPASS_USERS"),
@@ -130,7 +130,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("docs/textbook-concept-baseline.md", "도메인 모델은 개념 모델"),
                 new ScriptExpectation("docs/textbook-concept-baseline.md", "SSD는 선택한 한 유스케이스 시나리오마다 작성"),
                 new ScriptExpectation("docs/textbook-concept-baseline.md", "Operation Contract는 system operation 하나의 효과"),
-                new ScriptExpectation(".githooks/pre-commit", "docs/<issue>-<slug>"),
+                new ScriptExpectation(".githooks/pre-commit", "feat/<issue>-<slug>"),
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),

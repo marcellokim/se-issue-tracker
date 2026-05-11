@@ -7,9 +7,9 @@ cd "$repo_root"
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
 
-if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feature|docs|test|chore)/[0-9]+-[A-Za-z0-9._-]+$ ]]; then
+if [[ "$branch" == "main" || "$branch" == "dev" || ! "$branch" =~ ^(feat|fix|docs|test|ci|chore|refactor|feature)/[0-9]+-[A-Za-z0-9._-]+$ ]]; then
     echo "[중단] PR을 올릴 수 있는 작업 브랜치가 아닙니다: $branch" >&2
-    echo "feature/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, chore/<issue>-<slug> 브랜치에서 실행하세요." >&2
+    echo "feat/<issue>-<slug>, fix/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, ci/<issue>-<slug>, chore/<issue>-<slug>, refactor/<issue>-<slug> 브랜치에서 실행하세요." >&2
     exit 1
 fi
 
@@ -46,7 +46,7 @@ fi
 
 if [[ -z "$issue_number" ]]; then
     echo "[중단] 브랜치 이름에서 이슈 번호를 찾을 수 없습니다: $branch" >&2
-    echo "예: feature/18-db-repository" >&2
+    echo "예: feat/18-db-repository" >&2
     exit 1
 fi
 

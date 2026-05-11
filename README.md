@@ -118,7 +118,7 @@ git commit
 이 저장소는 아래 우회 흐름을 문서상 금지하는 수준이 아니라 **로컬 훅 + GitHub Actions + 브랜치 보호 규칙**으로 차단합니다.
 
 - 일반 팀원 PR은 `dev` 대상으로만 허용
-- PR head 브랜치는 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`만 허용. slug에는 영문 대소문자, 숫자, `.`, `_`, `-`를 사용할 수 있음
+- PR head 브랜치는 `feat/<issue>-<slug>`, `fix/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `ci/<issue>-<slug>`, `chore/<issue>-<slug>`, `refactor/<issue>-<slug>`를 표준으로 사용. 기존에 열린 `feature/<issue>-<slug>` 브랜치는 호환을 위해 허용. slug에는 영문 대소문자, 숫자, `.`, `_`, `-`를 사용할 수 있음
 - `main` 대상 PR은 관리자 우회 계정만 허용
 - `main` / `dev` 직접 push와 직접 commit은 로컬 훅 및 GitHub 브랜치 보호 규칙으로 차단
 - 워크플로우 보호, 브랜치 보호 초기 설정, PR/start-task 스크립트, git 훅 같은 우회 지점 수정은 관리자만 허용
@@ -142,7 +142,7 @@ git commit
 - `./scripts/start-task.sh` 없이 임의 브랜치 이름으로 작업 시작
 - `.github/workflows/`, `.github/labeler.yml`, `.github/dependabot.yml`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/validate-public-attribution.sh`, `scripts/lib/git-refs.sh`, `scripts/lib/bootstrap_github.py`를 일반 작업 PR에서 수정
 
-예외는 저장소 관리자가 릴리즈/동기화 목적을 명확히 알고 수행하는 경우뿐입니다. 일반 팀원 작업은 항상 `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>` 브랜치에서 시작하고 PR은 `dev`로 올립니다. `./scripts/start-task.sh --type docs|test|chore <issue> <slug>`로 기능 외 작업 브랜치도 만들 수 있습니다.
+예외는 저장소 관리자가 릴리즈/동기화 목적을 명확히 알고 수행하는 경우뿐입니다. 일반 팀원 작업은 항상 `feat/<issue>-<slug>`, `fix/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `ci/<issue>-<slug>`, `chore/<issue>-<slug>`, `refactor/<issue>-<slug>` 브랜치에서 시작하고 PR은 `dev`로 올립니다. `./scripts/start-task.sh --type feat|fix|docs|test|ci|chore|refactor <issue> <slug>`로 작업 유형을 명시할 수 있습니다.
 
 ## 6. 자동화 구성
 이 저장소는 코딩 전/초기 단계 생산성을 높이기 위해 아래 자동화를 포함합니다.
@@ -209,7 +209,7 @@ git commit
 ## 10. 운영 원칙
 - `main`: 제출 가능한 안정 버전
 - `dev`: 통합 브랜치
-- `feature/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `chore/<issue>-<slug>`: 개인 작업 브랜치
+- `feat/<issue>-<slug>`, `fix/<issue>-<slug>`, `docs/<issue>-<slug>`, `test/<issue>-<slug>`, `ci/<issue>-<slug>`, `chore/<issue>-<slug>`, `refactor/<issue>-<slug>`: 개인 작업 브랜치
 - 모든 일반 작업은 **이슈 생성 → `./scripts/start-task.sh`로 개인 브랜치 생성 → 작업/검증/커밋 → `./scripts/open-pr.sh`로 `dev` 대상 PR 생성 → 리뷰 → `dev` 병합** 순서로 진행
 - `main` 대상 PR, `main` 직접 커밋, `dev` 직접 커밋, 보호 자동화 수정은 일반 작업 흐름에서 금지
 - 저장소 관리자는 릴리즈/보호 규칙 정비 같은 예외 상황에서만 우회하며, 우회 계정은 `WORKFLOW_BYPASS_USERS`로 명시
