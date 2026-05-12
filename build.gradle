@@ -62,6 +62,8 @@ def requiredAutomationPaths = [
     'gradle.properties',
     '.coderabbit.yaml',
     '.pr_agent.toml',
+    '.gemini/config.yaml',
+    '.gemini/styleguide.md',
     '.github/copilot-instructions.md',
     '.githooks/commit-msg',
     '.githooks/pre-commit',

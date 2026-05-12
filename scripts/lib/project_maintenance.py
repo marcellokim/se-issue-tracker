@@ -27,6 +27,8 @@ REQUIRED_FILES = [
     "README.md",
     ".coderabbit.yaml",
     ".pr_agent.toml",
+    ".gemini/config.yaml",
+    ".gemini/styleguide.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/copilot-instructions.md",
     ".github/workflows/add-to-project.yml",

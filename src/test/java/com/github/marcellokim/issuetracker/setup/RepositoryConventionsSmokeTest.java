@@ -25,7 +25,10 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/project-maintenance.yml",
                 ".coderabbit.yaml",
                 ".pr_agent.toml",
+                ".gemini/config.yaml",
+                ".gemini/styleguide.md",
                 ".github/copilot-instructions.md",
+                ".github/dependabot.yml",
                 "config/github/labels.json",
                 "config/github/milestones.json",
                 "docs/team-setup-manual.md",
@@ -148,6 +151,8 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".coderabbit.yaml", "mode: \"off\""),
                 new ScriptExpectation(".coderabbit.yaml", "auto_reply: false"),
                 new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
+                new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
+                new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
                 new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
                 new ScriptExpectation(".pr_agent.toml", "use_repo_settings_file = true"),
                 new ScriptExpectation(".pr_agent.toml", "pr_commands = []"),
@@ -155,6 +160,11 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".pr_agent.toml", "push_commands = []"),
                 new ScriptExpectation(".pr_agent.toml", "enable_auto_checks_feedback = false"),
                 new ScriptExpectation(".pr_agent.toml", "[checks]"),
+                new ScriptExpectation(".gemini/config.yaml", "comment_severity_threshold: MEDIUM"),
+                new ScriptExpectation(".gemini/config.yaml", "max_review_comments: 10"),
+                new ScriptExpectation(".gemini/config.yaml", "include_drafts: false"),
+                new ScriptExpectation(".gemini/styleguide.md", "Write review comments in Korean"),
+                new ScriptExpectation(".gemini/styleguide.md", "Normal pull requests target `dev`"),
                 new ScriptExpectation(".github/copilot-instructions.md", "자동 리뷰, 요약, 제안, 체크 실패 분석, 채팅 응답은 가능한 한 한국어")
         );
     }
