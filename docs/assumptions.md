@@ -16,8 +16,9 @@
 - `fixed`는 Dev가 수정 완료를 주장한 중간 상태입니다.
 - Tester가 fixed 이슈를 검증 성공하면 `resolved`로 전이합니다.
 - Tester가 fixed 이슈를 검증 실패하면 `assigned`로 되돌리고 실패 사유를 comment/history에 남깁니다.
-- `reopened`는 resolved/closed 이슈를 PL이 다시 작업 대상으로 판단할 때 사용합니다. Reopen 전이 시 시스템은 마지막 assignee/verifier/fixer를 복원하고, 이후 PL이 필요하면 UC5 배정 흐름으로 assignee/verifier를 재지정해 `assigned` 상태부터 재작업을 시작합니다.
+- `reopened`는 resolved/closed 이슈를 PL이 다시 작업 대상으로 판단할 때 사용합니다. Reopen 후에는 PL이 assignee를 지정해 `assigned` 상태부터 재작업을 시작합니다.
 - `deleted`는 불필요한 이슈의 soft-delete 상태입니다. deleted 이슈가 30개를 초과하면 deleted 전이 시각 기준 FIFO로 오래된 이슈부터 물리 삭제합니다.
+- 만약 `deleted` 상태인 이슈에 대해 PL이 해당 이슈가 다시 필요하다고 여기면 해당 이슈가 물리적으로 삭제되기 전에 `closed` 상태로 바꿔 물리적 삭제를 막을 수 있습니다.
 
 ### 권한 및 수정 정책
 - User당 직군/역할은 하나만 부여합니다.
