@@ -27,7 +27,6 @@ REQUIRED_FILES = [
     "README.md",
     ".coderabbit.yaml",
     ".pr_agent.toml",
-    "QODO.MD",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/copilot-instructions.md",
     ".github/workflows/add-to-project.yml",

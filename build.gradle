@@ -62,7 +62,6 @@ def requiredAutomationPaths = [
     'gradle.properties',
     '.coderabbit.yaml',
     '.pr_agent.toml',
-    'QODO.MD',
     '.github/copilot-instructions.md',
     '.githooks/commit-msg',
     '.githooks/pre-commit',
