@@ -26,7 +26,7 @@
 - DEV, TESTER는 delted 상태의 이슈를 볼 수 없습니다.
 - 이슈의 상태가 delted->closed로 상태 전이가 되면 DEV, TESTER는 해당 이슈를 다시 볼 수 있습니다.
 - deleted 이슈는 PL만 볼 수 있는 bin이라는 별도의 페이지에 축적됩니다.
-- deleted 이슈가 bin에 30개가 되면 FIFO 방식대로 물리적으로 삭제됩니다.
+- deleted 이슈가 bin에 30개 초과일 때 FIFO 방식대로 물리적으로 삭제됩니다.
 - PL은 bin에서 deleted 이슈를 restore할 수 있으며, 이 경우에 delted 이슈의 상태는 closed로 전이됩니다.
 
 ### reopen 상태 전이 세부 정책 
