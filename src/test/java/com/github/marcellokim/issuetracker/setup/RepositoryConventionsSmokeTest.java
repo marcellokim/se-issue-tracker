@@ -159,6 +159,8 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = false"),
                 new ScriptExpectation(".pr_agent.toml", "push_commands = []"),
                 new ScriptExpectation(".pr_agent.toml", "enable_auto_checks_feedback = false"),
+                new ScriptExpectation(".pr_agent.toml", "persistent_comment = false"),
+                new ScriptExpectation(".pr_agent.toml", "final_update_message = false"),
                 new ScriptExpectation(".pr_agent.toml", "[checks]"),
                 new ScriptExpectation(".gemini/config.yaml", "comment_severity_threshold: MEDIUM"),
                 new ScriptExpectation(".gemini/config.yaml", "max_review_comments: 10"),
