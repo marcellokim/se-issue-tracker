@@ -285,11 +285,11 @@ extension point: UC2(코멘트 추가)
 5. 시스템이 상태 변경 사유 코멘트 입력을 요청한다 (include UC2/코멘트 추가)
 6. 시스템이 선택된 목표 상태가 허용된 전이인지 최종 확인한다
 7. 시스템이 이슈의 status를 갱신하고, 전이에 따른 자동 필드를 처리한다
-    - ASSIGNED → FIXED: fixer를 현재 Dev로 기록한다
-    - FIXED → RESOLVED: 추가 자동 필드 없이 상태만 변경한다
-    - FIXED → ASSIGNED: fixer를 초기화하고 기존 assignee에게 재배정한다
-    - RESOLVED → CLOSED: 추가 자동 필드 없이 상태를 최종 종료한다
-    - CLOSED/RESOLVED → REOPENED: 마지막 assignee, verifier, fixer 정보를 복원하여 재작업 가능 상태로 설정한다. PL은 필요 시 UC5를 통해 재배정할 수 있다
+    - ASSIGNED -> FIXED: fixer를 현재 Dev로 기록한다
+    - FIXED -> RESOLVED: 추가 자동 필드 없이 상태만 변경한다
+    - FIXED -> ASSIGNED: fixer를 초기화하고 기존 assignee에게 재배정한다
+    - RESOLVED -> CLOSED: 추가 자동 필드 없이 상태를 최종 종료한다
+    - CLOSED/RESOLVED -> REOPENED: 마지막 assignee, verifier, fixer 정보를 복원하여 재작업 가능 상태로 설정한다. PL은 필요 시 UC5를 통해 재배정할 수 있다
 8. 시스템이 갱신된 이슈 상세 화면을 보여준다
 
 ### Alternative Flows
