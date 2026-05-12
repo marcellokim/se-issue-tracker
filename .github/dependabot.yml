@@ -2,13 +2,19 @@ version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     labels:
       - "type:chore"
       - "area:automation"
+    ignore:
+      - dependency-name: "actions/add-to-project"
+        update-types:
+          - "version-update:semver-major"
   - package-ecosystem: "gradle"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     labels:
