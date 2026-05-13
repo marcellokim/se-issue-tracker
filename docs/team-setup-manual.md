@@ -49,7 +49,7 @@ git commit
 비유:
 - `main` = 교수님께 낼 최종본
 - `dev` = 팀 작업을 합치는 공용 합본
-- `feature/...` = 내 개인 작업 공간
+- `feat/...` = 내 개인 작업 공간
 - PR = 내 작업을 공용 합본에 넣어 달라는 요청
 
 `dev`는 통합 브랜치라 `main`보다 앞설 수 있습니다. 이 상태는 오류가 아닙니다. 다만 팀원은 `dev`에서 직접 수정하지 않고, `./scripts/start-task.sh`로 `dev` 기준의 개인 작업 브랜치를 만든 뒤 작업합니다.
@@ -57,7 +57,7 @@ git commit
 규칙:
 - `main`에는 직접 작업하지 않습니다.
 - `dev`에도 직접 커밋하지 않습니다.
-- 내 작업은 `feature/...`, `docs/...`, `test/...`, `chore/...` 브랜치에서 합니다.
+- 내 작업은 `feat/...`, `fix/...`, `docs/...`, `test/...`, `ci/...`, `chore/...`, `refactor/...` 브랜치에서 합니다.
 - PR은 항상 `dev`로 올립니다.
 - 이 규칙은 GitHub Actions의 `워크플로우 정책 검사`와 브랜치 보호 규칙으로 강제됩니다.
 
@@ -67,7 +67,7 @@ git commit
 이 문서는 아래 질문에 답하도록 작성되었습니다.
 
 - 처음 clone한 뒤 무엇부터 해야 하나?
-- `main`, `dev`, `feature/*`는 어떻게 써야 하나?
+- `main`, `dev`, `feat/*`는 어떻게 써야 하나?
 - 이슈/PR/리뷰/CI는 어떤 흐름으로 돌아가나?
 - GitHub 프로젝트는 누가 어떻게 관리하나?
 - 제출용 zip은 어떻게 만들고 무엇을 확인해야 하나?
@@ -80,10 +80,13 @@ git commit
 ### 브랜치 역할
 - `main`: **제출 가능한 안정 버전**
 - `dev`: **통합 브랜치**
-- `feature/<issue>-<slug>`: 기능 작업 브랜치
+- `feat/<issue>-<slug>`: 기능 작업 브랜치
+- `fix/<issue>-<slug>`: 버그 수정 브랜치
 - `docs/<issue>-<slug>`: 문서 작업 브랜치
 - `test/<issue>-<slug>`: 테스트 보강 브랜치
-- `chore/<issue>-<slug>`: 자동화/환경설정/리팩터링 브랜치
+- `ci/<issue>-<slug>`: CI/워크플로우 작업 브랜치
+- `chore/<issue>-<slug>`: 자동화/환경설정 브랜치
+- `refactor/<issue>-<slug>`: 동작 변경 없는 구조 개선 브랜치
 
 ### 기본 흐름
 1. GitHub 이슈 생성
@@ -220,7 +223,7 @@ gh auth login
 
 예시 결과:
 ```text
-feature/18-recommendation-engine
+feat/18-recommendation-engine
 docs/18-update-readme
 ```
 
@@ -249,7 +252,7 @@ git commit
 
 - `main`으로 PR 생성
 - `dev` 브랜치 자체에서 수정한 뒤 PR 생성
-- `feature/foo`처럼 이슈 번호가 없는 브랜치에서 PR 생성
+- `feat/foo`처럼 이슈 번호가 없는 브랜치에서 PR 생성
 - `main`/`dev`에 직접 push
 - `.github/workflows/workflow-guard.yml`, `.githooks/`, `scripts/start-task.sh`, `scripts/open-pr.sh`, `scripts/validate-workflow-guard.sh`, `scripts/lib/bootstrap_github.py` 수정
 
@@ -260,11 +263,13 @@ git commit
 ## 5. 이슈 작성 가이드
 
 ### 현재 제공되는 이슈 유형
-- `feature`
-- `bug`
-- `test`
 - `docs`
+- `feat`
+- `fix`
+- `test`
+- `ci`
 - `chore`
+- `refactor`
 
 ### 모든 이슈에 공통으로 적어야 하는 것
 - 목적
@@ -275,10 +280,12 @@ git commit
 - 관련 화면/클래스/문서 범위
 
 ### 좋은 이슈 예시
-- `feature`: “PL이 new 상태 이슈를 조회하고 assignee를 지정할 수 있도록 한다”
-- `bug`: “fixed -> resolved 상태 전환 후 reporter 검색이 누락되는 문제 수정”
 - `docs`: “SSD 2개와 Operation Contract 2개를 문서에 추가”
+- `feat`: “PL이 new 상태 이슈를 조회하고 assignee를 지정할 수 있도록 한다”
+- `fix`: “fixed -> resolved 상태 전환 후 reporter 검색이 누락되는 문제 수정”
+- `ci`: “GitHub Actions 필수 체크 이름을 정리”
 - `chore`: “GitHub project 워크플로우 및 label 정리”
+- `refactor`: “서비스 책임을 나누되 외부 동작은 유지”
 
 ---
 

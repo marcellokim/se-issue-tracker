@@ -85,6 +85,122 @@
 
 ---
 
+# ITS Operation Contracts
+
+---
+
+## OC-1. `addDependency(blockingIssueId, blockedIssueId)`
+
+| 항목 | 내용 |
+|---|---|
+| 관련 UC | UC7 Manage Dependency |
+| Actor | PL |
+| 목적 | PL이 두 이슈 사이에 의존성을 추가한다. |
+
+### Preconditions
+
+- PL이 로그인했고 의존성 관리 권한이 있다.
+- `blockingIssueId`, `blockedIssueId`에 해당하는 이슈가 모두 존재한다.
+- 두 이슈가 서로 다른 이슈이다.
+- 동일한 의존성이 이미 존재하지 않는다.
+- 추가 시 순환 의존성이 발생하지 않는다.
+
+### Postconditions
+
+- `IssueDependency`가 생성되었다.
+- 생성된 `IssueDependency`의 식별자는 `blockingIssueId`와 `blockedIssueId`의 결합 해시값으로 설정되었다.
+- `blockingIssue`와 `blockedIssue` 사이의 의존성 관계가 형성되었다.
+- 관련 이슈에 `IssueHistory(DEPENDENCY_CHANGED)`가 기록되었다.
+- 이슈 상태와 담당자 정보는 변경되지 않았다.
+
+---
+
+## OC-2. `changeStatus(issueId, ASSIGNED, comment)`
+
+| 항목 | 내용 |
+|---|---|
+| 관련 UC | UC6 Change Issue State, UC2 Add Comment |
+| Actor | Verifier |
+| 목적 | Verifier가 `FIXED` 이슈를 검증 실패로 판단해 `ASSIGNED`로 되돌린다. |
+
+### Preconditions
+
+- Verifier가 로그인했고 해당 이슈의 verifier이다.
+- 대상 이슈가 존재한다.
+- 대상 이슈의 현재 상태가 `FIXED`이다.
+- `comment`가 입력되어 있다.
+
+### Postconditions
+
+- 대상 이슈의 상태가 `FIXED`에서 `ASSIGNED`로 변경되었다.
+- 기존 `assignee`, `verifier`, `fixer` 값은 유지되었다.
+- 검증 실패 사유 `Comment`가 생성되어 이슈에 연결되었다.
+- 상태 변경에 대해 `IssueHistory(STATUS_CHANGED)`가 기록되었다.
+- 코멘트 추가에 대해 `IssueHistory(COMMENTED)`가 기록되었다.
+
+---
+
+## OC-3. `changeStatus(issueId, REOPENED, comment)`
+
+| 항목 | 내용 |
+|---|---|
+| 관련 UC | UC6 Change Issue State, UC2 Add Comment |
+| Actor | PL |
+| 목적 | PL이 종료/해결된 이슈를 다시 작업 대상으로 전환한다. |
+
+### Preconditions
+
+- PL이 로그인했고 reopen 권한이 있다.
+- 대상 이슈가 존재한다.
+- 대상 이슈의 현재 상태가 `CLOSED` 또는 `RESOLVED`이다.
+- `comment`가 입력되어 있다.
+
+### Postconditions
+
+- 대상 이슈의 상태가 `REOPENED`로 변경되었다.
+- 기존 reporter는 유지되었다.
+- 최근 assignee, verifier, fixer 정보가 유지 또는 복원되었다.
+- reopen 사유 `Comment`가 생성되어 이슈에 연결되었다.
+- 상태 변경에 대해 `IssueHistory(STATUS_CHANGED)`가 기록되었다.
+- 코멘트 추가에 대해 `IssueHistory(COMMENTED)`가 기록되었다.
+
+---
+
+## OC-4. `restoreIssue(issueId)`
+
+| 항목 | 내용 |
+|---|---|
+| 관련 UC | UC9 Manage Deleted Issue |
+| Actor | PL |
+| 목적 | PL이 Bin의 `DELETED` 이슈를 삭제 전 상태로 복구한다. |
+
+### Preconditions
+
+- PL이 로그인했고 Bin 복구 권한이 있다.
+- 대상 이슈가 존재한다.
+- 대상 이슈의 현재 상태가 `DELETED`이다.
+- 대상 이슈가 아직 FIFO 정책으로 영구 삭제되지 않았다.
+- 삭제 직전 상태가 `NEW` 또는 `CLOSED`로 확인된다.
+
+### Postconditions
+
+- 대상 이슈의 상태가 삭제 직전 상태로 복구되었다.
+  - 삭제 전 `NEW`였으면 `NEW`로 복구된다.
+  - 삭제 전 `CLOSED`였으면 `CLOSED`로 복구된다.
+- 대상 이슈는 Bin 목록에서 제외되었다.
+- 삭제 시 제거된 의존성은 복구되지 않았다.
+- PL이 필요하면 UC7을 통해 의존성을 별도로 다시 추가해야 한다.
+- 상태 복구에 대해 `IssueHistory(STATUS_CHANGED)`가 기록되었다.
+
+---
+
+## 정리 메모
+
+- **OC-1**: `type=BLOCKS`, `dependencyName` 제거. 의존성 식별은 `blockingIssueId + blockedIssueId` 결합 해시값.
+- **OC-2**: `fixer` 초기화/null 처리 제거. 기존 fixer 유지.
+- **OC-4**: `NEW → DELETED`도 반영. restore는 삭제 전 상태로 복구.
+- **OC-4**: dependency는 restore 때 자동 복구 안 함. UC7로 별도 재추가.
+
 ## 작성 근거
 
 ### Contract 선택 기준

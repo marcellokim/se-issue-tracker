@@ -228,7 +228,7 @@ extension points: UC2(Add Comment), UC15(이슈 수정)
 ### Main Flow
 1. PL이 이슈 배정 버튼을 누른다
 2. 시스템이 권한과 전이 규칙을 확인한다 (include UC14/권한 검사)
-3. 시스템이 배정 가능한 Dev 목록과 Tester 목록을 보여준다
+3. 시스템이 배정 가능한 Dev 목록과 Tester 목록을 보여준다 - 이슈 상태가 REOPENED인 경우, 기존 assignee와 verifier를 기본값으로 표시한다
 4. 시스템이 resolved/closed 이력 기반으로 적합한 Dev 후보를 추천한다 (include UC8/Assignee 자동 추천)
 5. PL이 assignee로 지정할 Dev와 verifier로 지정할 Tester를 선택한다
 extension point: UC2(코멘트 추가)
@@ -273,11 +273,9 @@ extension point: UC2(코멘트 추가)
 |---|---|---|---|---|
 | ASSIGNED | FIXED | Dev (assignee 본인) | fixer = 현재 Dev | Dev가 이슈 수정을 완료했음을 표시 |
 | FIXED | RESOLVED | Tester (verifier 본인) | — | verifier가 수정 결과를 검증하여 해결됨을 확인 |
-| FIXED | ASSIGNED | Tester (verifier 본인) | fixer 초기화 | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림 |
+| FIXED | ASSIGNED | Tester (verifier 본인) | — | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림. fixer는 다음 FIXED 전이에서 갱신된다 |
 | RESOLVED | CLOSED | PL | — | PL이 검증 완료된 이슈를 종료시킴 |
 | CLOSED / RESOLVED | REOPENED | PL | 마지막 assignee, verifier, fixer를 복원 | PL이 종료된 이슈를 재개. PL은 필요 시 UC5를 통해 재배정할 수 있다 |
-| CLOSED | DELETED | PL | — | PL이 해결된 이슈에 대해 더 이상 필요하지 않다고 여겨 이슈를 soft하게 삭제 |
-| DELETED | CLOSED | PL | - | PL이 soft하게 삭제한 이슈들 중에서 다시 다룰 필요가 있다고 판단하여 이슈를 다시 복구 | 
 
 ### Main Flow
 1. 사용자가 상태 변경 버튼을 누른다
@@ -287,11 +285,11 @@ extension point: UC2(코멘트 추가)
 5. 시스템이 상태 변경 사유 코멘트 입력을 요청한다 (include UC2/코멘트 추가)
 6. 시스템이 선택된 목표 상태가 허용된 전이인지 최종 확인한다
 7. 시스템이 이슈의 status를 갱신하고, 전이에 따른 자동 필드를 처리한다
-    - ASSIGNED → FIXED: fixer를 현재 Dev로 기록한다
-    - FIXED → RESOLVED: 추가 자동 필드 없이 상태만 변경한다
-    - FIXED → ASSIGNED: fixer를 초기화하고 기존 assignee에게 재배정한다
-    - RESOLVED → CLOSED: 추가 자동 필드 없이 상태를 최종 종료한다
-    - CLOSED/RESOLVED → REOPENED: 마지막 assignee, verifier, fixer 정보를 복원하여 재작업 가능 상태로 설정한다. PL은 필요 시 UC5를 통해 재배정할 수 있다
+    - ASSIGNED -> FIXED: fixer를 현재 Dev로 기록한다
+    - FIXED -> RESOLVED: 추가 자동 필드 없이 상태만 변경한다
+    - FIXED -> ASSIGNED: fixer를 초기화하고 기존 assignee에게 재배정한다
+    - RESOLVED -> CLOSED: 추가 자동 필드 없이 상태를 최종 종료한다
+    - CLOSED/RESOLVED -> REOPENED: 마지막 assignee, verifier, fixer 정보를 복원하여 재작업 가능 상태로 설정한다. PL은 필요 시 UC5를 통해 재배정할 수 있다
 8. 시스템이 갱신된 이슈 상세 화면을 보여준다
 
 ### Alternative Flows

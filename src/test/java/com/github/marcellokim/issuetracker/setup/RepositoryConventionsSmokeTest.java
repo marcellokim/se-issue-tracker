@@ -25,8 +25,10 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/project-maintenance.yml",
                 ".coderabbit.yaml",
                 ".pr_agent.toml",
-                "QODO.MD",
+                ".gemini/config.yaml",
+                ".gemini/styleguide.md",
                 ".github/copilot-instructions.md",
+                ".github/dependabot.yml",
                 "config/github/labels.json",
                 "config/github/milestones.json",
                 "docs/team-setup-manual.md",
@@ -62,7 +64,7 @@ class RepositoryConventionsSmokeTest {
     static Stream<ScriptExpectation> requiredScriptGuardrails() {
         return Stream.of(
                 new ScriptExpectation("scripts/start-task.sh", "작업트리에 커밋되지 않은 변경이 있습니다"),
-                new ScriptExpectation("scripts/start-task.sh", "--type feature|docs|test|chore"),
+                new ScriptExpectation("scripts/start-task.sh", "--type feat|fix|docs|test|ci|chore|refactor"),
                 new ScriptExpectation("scripts/start-task.sh", "ensure_origin_fetch_ref dev"),
                 new ScriptExpectation("scripts/lib/git-refs.sh", "refs/heads/${branch}:refs/remotes/origin/${branch}"),
                 new ScriptExpectation("scripts/lib/python.sh", "python3 python py"),
@@ -88,7 +90,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "gh pr diff"),
                 new ScriptExpectation(".github/workflows/workflow-guard.yml", "github.event.pull_request.number || github.ref"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "일반 작업 PR은 main이 아니라 dev"),
-                new ScriptExpectation("scripts/validate-workflow-guard.sh", "feature|docs|test|chore"),
+                new ScriptExpectation("scripts/validate-workflow-guard.sh", "feat|fix|docs|test|ci|chore|refactor"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", ".github/workflows/*"),
                 new ScriptExpectation("scripts/validate-workflow-guard.sh", "관리자 외에는 워크플로우/브랜치 보호 우회 지점을 수정할 수 없습니다"),
                 new ScriptExpectation("scripts/lib/bootstrap_github.py", "WORKFLOW_BYPASS_USERS"),
@@ -130,7 +132,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("docs/textbook-concept-baseline.md", "도메인 모델은 개념 모델"),
                 new ScriptExpectation("docs/textbook-concept-baseline.md", "SSD는 선택한 한 유스케이스 시나리오마다 작성"),
                 new ScriptExpectation("docs/textbook-concept-baseline.md", "Operation Contract는 system operation 하나의 효과"),
-                new ScriptExpectation(".githooks/pre-commit", "docs/<issue>-<slug>"),
+                new ScriptExpectation(".githooks/pre-commit", "feat/<issue>-<slug>"),
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),
@@ -138,16 +140,33 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".coderabbit.yaml", "tone_instructions"),
                 new ScriptExpectation(".coderabbit.yaml", "auto_title_instructions"),
                 new ScriptExpectation(".coderabbit.yaml", "poem: false"),
+                new ScriptExpectation(".coderabbit.yaml", """
+                finishing_touches:
+                    unit_tests:
+                      enabled: false
+                    docstrings:
+                      enabled: false
+                """),
+                new ScriptExpectation(".coderabbit.yaml", "pre_merge_checks"),
+                new ScriptExpectation(".coderabbit.yaml", "mode: \"off\""),
+                new ScriptExpectation(".coderabbit.yaml", "auto_reply: false"),
                 new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
-                new ScriptExpectation(".pr_agent.toml", "response_language = \"ko-KR\""),
+                new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
+                new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
+                new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
                 new ScriptExpectation(".pr_agent.toml", "use_repo_settings_file = true"),
-                new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = true"),
+                new ScriptExpectation(".pr_agent.toml", "pr_commands = []"),
+                new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = false"),
+                new ScriptExpectation(".pr_agent.toml", "push_commands = []"),
+                new ScriptExpectation(".pr_agent.toml", "enable_auto_checks_feedback = false"),
+                new ScriptExpectation(".pr_agent.toml", "persistent_comment = false"),
+                new ScriptExpectation(".pr_agent.toml", "final_update_message = false"),
                 new ScriptExpectation(".pr_agent.toml", "[checks]"),
-                new ScriptExpectation(".pr_agent.toml", "[pr_reviewer]"),
-                new ScriptExpectation(".pr_agent.toml", "[pr_description]"),
-                new ScriptExpectation(".pr_agent.toml", "[pr_code_suggestions]"),
-                new ScriptExpectation(".pr_agent.toml", "실제 설명 문장은 한국어"),
-                new ScriptExpectation("QODO.MD", "CI 실패 분석"),
+                new ScriptExpectation(".gemini/config.yaml", "comment_severity_threshold: MEDIUM"),
+                new ScriptExpectation(".gemini/config.yaml", "max_review_comments: 10"),
+                new ScriptExpectation(".gemini/config.yaml", "include_drafts: false"),
+                new ScriptExpectation(".gemini/styleguide.md", "Write review comments in Korean"),
+                new ScriptExpectation(".gemini/styleguide.md", "Normal pull requests target `dev`"),
                 new ScriptExpectation(".github/copilot-instructions.md", "자동 리뷰, 요약, 제안, 체크 실패 분석, 채팅 응답은 가능한 한 한국어")
         );
     }

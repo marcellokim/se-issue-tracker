@@ -21,8 +21,8 @@ fi
 
 ./scripts/validate-public-attribution.sh --staged
 
-if [[ "$current_branch" != "dev" && ! "$current_branch" =~ ^(feature|docs|test|chore)/[0-9]+-[A-Za-z0-9._-]+$ ]]; then
-    echo "[pre-commit] 브랜치 이름 권장 형식: feature/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, chore/<issue>-<slug>"
+if [[ "$current_branch" != "dev" && ! "$current_branch" =~ ^(feat|fix|docs|test|ci|chore|refactor|feature)/[0-9]+-[A-Za-z0-9._-]+$ ]]; then
+    echo "[pre-commit] 브랜치 이름 권장 형식: feat/<issue>-<slug>, fix/<issue>-<slug>, docs/<issue>-<slug>, test/<issue>-<slug>, ci/<issue>-<slug>, chore/<issue>-<slug>, refactor/<issue>-<slug>"
 fi
 
 if ! java_runtime_ready; then

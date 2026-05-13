@@ -15,15 +15,15 @@ import org.junit.jupiter.api.Test;
 class WorkflowGuardScriptTest {
 
     @Test
-    @DisplayName("기능 브랜치에서 dev 대상 PR을 허용한다")
-    void allowsFeatureBranchPullRequestToDev() throws IOException, InterruptedException {
-        assertAllowed(pullRequest("dev", "feature/12-issue-search-ui", "teammate"));
+    @DisplayName("feat 브랜치에서 dev 대상 PR을 허용한다")
+    void allowsFeatBranchPullRequestToDev() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "feat/12-issue-search-ui", "teammate"));
     }
 
     @Test
     @DisplayName("일반 사용자의 main 대상 PR을 차단한다")
     void blocksNonAdminPullRequestToMain() throws IOException, InterruptedException {
-        assertBlocked(pullRequest("main", "feature/12-issue-search-ui", "teammate"));
+        assertBlocked(pullRequest("main", "feat/12-issue-search-ui", "teammate"));
     }
 
     @Test
@@ -53,7 +53,7 @@ class WorkflowGuardScriptTest {
         Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
         Files.writeString(changedFiles, ".github/workflows/gradle.yml\nREADME.md\n");
 
-        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        Map<String, String> environment = pullRequest("dev", "feat/12-issue-search-ui", "teammate");
         environment.put("CHANGED_FILES_PATH", changedFiles.toString());
 
         assertBlocked(environment);
@@ -62,7 +62,7 @@ class WorkflowGuardScriptTest {
     @Test
     @DisplayName("작업 브랜치 slug에 대문자가 있어도 dev 대상 PR을 허용한다")
     void allowsUppercaseSlugInWorkBranch() throws IOException, InterruptedException {
-        assertAllowed(pullRequest("dev", "feature/12-Issue_Search-UI", "teammate"));
+        assertAllowed(pullRequest("dev", "feat/12-Issue_Search-UI", "teammate"));
     }
 
     @Test
@@ -82,10 +82,16 @@ class WorkflowGuardScriptTest {
     @Test
     @DisplayName("pull_request_target 이벤트에서도 기준 브랜치 정책을 적용한다")
     void acceptsPullRequestTargetEventForBaseBranchPolicy() throws IOException, InterruptedException {
-        Map<String, String> environment = pullRequest("dev", "feature/12-issue-search-ui", "teammate");
+        Map<String, String> environment = pullRequest("dev", "feat/12-issue-search-ui", "teammate");
         environment.put("GITHUB_EVENT_NAME", "pull_request_target");
 
         assertAllowed(environment);
+    }
+
+    @Test
+    @DisplayName("이미 열린 feature 브랜치는 호환용으로 허용한다")
+    void allowsLegacyFeatureBranchForOpenPullRequestCompatibility() throws IOException, InterruptedException {
+        assertAllowed(pullRequest("dev", "feature/12-issue-search-ui", "teammate"));
     }
 
     private void assertAllowed(Map<String, String> environment) throws IOException, InterruptedException {

@@ -41,34 +41,34 @@
 
 이슈 본문은 길어도 괜찮지만, 최종 보고서처럼 완성된 문장일 필요는 없습니다. 팀원이 작업을 시작할 때 헷갈리지 않는 정도가 가장 중요합니다.
 
-이슈 제목은 팀원이 바로 읽을 수 있도록 `[기능]`, `[문서]`, `[테스트]`, `[작업]` 접두어를 사용합니다. 자동화용 라벨과 Project의 Type 값은 기존 스크립트 호환성을 위해 `type:feature`, `type:bug`, `type:docs`, `type:test`, `type:chore` 형식을 유지합니다.
+이슈 제목 prefix는 팀원이 바로 읽을 수 있도록 `feat:`, `fix:`, `docs:`, `test:`, `ci:`, `chore:`, `refactor:`를 사용합니다. 본문과 설명은 한국어로 작성해도 되지만, 라벨과 자동화 prefix는 `type:feat`, `type:fix`, `type:docs`, `type:test`, `type:ci`, `type:chore`, `type:refactor` 형식으로 고정합니다.
 
 ## 현재 초기 작업 목록
 
 | 이슈 | 마일스톤 | 성격 |
 | --- | --- | --- |
-| [#13](https://github.com/marcellokim/se-issue-tracker/issues/13) [문서] 과제 PDF 요구사항 추적표와 팀 가정 정리 | M1 | 문서/관리 |
-| [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) [문서] 유스케이스 다이어그램과 핵심 유스케이스 6개 명세 작성 | M1 | 문서/분석 |
-| [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) [문서] 도메인 모델, SSD, Operation Contract 초안 작성 | M1 | 문서/설계 |
-| [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) [기능] 계정, 역할, 프로젝트 기본 모델 구현 | M2 | 기능/도메인 |
-| [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) [기능] 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | M2 | 기능/도메인 |
-| [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) [기능] DB 기반 영속 저장소와 데모 초기 데이터 준비 | M2 | 기능/저장소 |
-| [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) [기능] 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | M2 | 기능/서비스 |
-| [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) [기능] 이슈 배정과 상태 변경 흐름 구현 | M2 | 기능/상태 전이 |
-| [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) [기능] 일/월별 이슈 통계와 추이 조회 구현 | M2 | 기능/통계 |
-| [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) [기능] 해결 이력 기반 담당자 추천 기능 구현 | M2 | 기능/추천 |
-| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) [기능] JavaFX 메인 UI로 기본 사용자 흐름 구현 | M3 | 기능/UI |
-| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) [기능] Swing 보조 UI로 모델 재사용 구조 입증 | M3 | 기능/UI |
-| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) [테스트] 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | M4 | 테스트 |
-| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) [문서] 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | M4 | 문서/제출 |
-| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) [작업] GitHub Project 자동 등록과 진행 이력 캡처 준비 | M1 | 작업/자동화 |
-| [#39](https://github.com/marcellokim/se-issue-tracker/issues/39) [문서] MVC, GRASP, Repository, Strategy 설계원칙 기준선 정리 | M1 | 문서/설계 원칙 |
-| [#43](https://github.com/marcellokim/se-issue-tracker/issues/43) [기능] Tester 검증 실패 시 fixed 이슈를 assigned로 되돌리는 역전이 구현 | M2 | 기능/상태 전이 |
-| [#44](https://github.com/marcellokim/se-issue-tracker/issues/44) [기능] deleted 상태와 삭제 후보 보관/FIFO 정리 정책 구현 | M2 | 기능/상태 전이/저장소 |
-| [#45](https://github.com/marcellokim/se-issue-tracker/issues/45) [기능] 이슈 dependency 관계와 선행 이슈 해결 제약 구현 | M2 | 기능/의존성 |
-| [#46](https://github.com/marcellokim/se-issue-tracker/issues/46) [기능] assigned 전까지만 reporter의 title/description 수정 허용 | M2 | 기능/권한 |
-| [#47](https://github.com/marcellokim/se-issue-tracker/issues/47) [기능] PL 전용 reopen 흐름과 최우선 개발자 재배정 구현 | M2 | 기능/상태 전이 |
-| [#51](https://github.com/marcellokim/se-issue-tracker/issues/51) [작업] 공개 이력 작성자 표기 정책 강제 | M1 | 작업/자동화/문서 |
+| [#13](https://github.com/marcellokim/se-issue-tracker/issues/13) docs: 과제 PDF 요구사항 추적표와 팀 가정 정리 | M1 | 문서/관리 |
+| [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) docs: 유스케이스 다이어그램과 핵심 유스케이스 6개 명세 작성 | M1 | 문서/분석 |
+| [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) docs: 도메인 모델, SSD, Operation Contract 초안 작성 | M1 | 문서/설계 |
+| [#16](https://github.com/marcellokim/se-issue-tracker/issues/16) feat: 계정, 역할, 프로젝트 기본 모델 구현 | M2 | 기능/도메인 |
+| [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) feat: 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | M2 | 기능/도메인 |
+| [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) feat: DB 기반 영속 저장소와 데모 초기 데이터 준비 | M2 | 기능/저장소 |
+| [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) feat: 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | M2 | 기능/서비스 |
+| [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) feat: 이슈 배정과 상태 변경 흐름 구현 | M2 | 기능/상태 전이 |
+| [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) feat: 일/월별 이슈 통계와 추이 조회 구현 | M2 | 기능/통계 |
+| [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) feat: 해결 이력 기반 담당자 추천 기능 구현 | M2 | 기능/추천 |
+| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) feat: JavaFX 메인 UI로 기본 사용자 흐름 구현 | M3 | 기능/UI |
+| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) feat: Swing 보조 UI로 모델 재사용 구조 입증 | M3 | 기능/UI |
+| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) test: 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | M4 | 테스트 |
+| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) docs: 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | M4 | 문서/제출 |
+| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) chore: GitHub Project 자동 등록과 진행 이력 캡처 준비 | M1 | 작업/자동화 |
+| [#39](https://github.com/marcellokim/se-issue-tracker/issues/39) docs: MVC, GRASP, Repository, Strategy 설계원칙 기준선 정리 | M1 | 문서/설계 원칙 |
+| [#43](https://github.com/marcellokim/se-issue-tracker/issues/43) feat: Tester 검증 실패 시 fixed 이슈를 assigned로 되돌리는 역전이 구현 | M2 | 기능/상태 전이 |
+| [#44](https://github.com/marcellokim/se-issue-tracker/issues/44) feat: deleted 상태와 삭제 후보 보관/FIFO 정리 정책 구현 | M2 | 기능/상태 전이/저장소 |
+| [#45](https://github.com/marcellokim/se-issue-tracker/issues/45) feat: 이슈 dependency 관계와 선행 이슈 해결 제약 구현 | M2 | 기능/의존성 |
+| [#46](https://github.com/marcellokim/se-issue-tracker/issues/46) feat: assigned 전까지만 reporter의 title/description 수정 허용 | M2 | 기능/권한 |
+| [#47](https://github.com/marcellokim/se-issue-tracker/issues/47) feat: PL 전용 reopen 흐름과 최우선 개발자 재배정 구현 | M2 | 기능/상태 전이 |
+| [#51](https://github.com/marcellokim/se-issue-tracker/issues/51) chore: 공개 이력 작성자 표기 정책 강제 | M1 | 작업/자동화/문서 |
 
 ## 진행 순서 제안
 

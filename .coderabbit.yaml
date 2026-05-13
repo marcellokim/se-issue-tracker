@@ -12,6 +12,14 @@ reviews:
   review_status: true
   in_progress_fortune: false
   poem: false
+  finishing_touches:
+    unit_tests:
+      enabled: false
+    docstrings:
+      enabled: false
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
   auto_review:
     enabled: true
     base_branches:
@@ -25,7 +33,7 @@ reviews:
       instructions: "과제 PDF 기준, 회의 결정, GitHub 이슈/마일스톤 정책과 문서 내용이 불일치하지 않는지 확인합니다."
 
 chat:
-  auto_reply: true
+  auto_reply: false
   art: false
 
 knowledge_base:

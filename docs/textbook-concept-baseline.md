@@ -101,7 +101,7 @@
 
 우선 작성 후보는 다음입니다.
 
-- `registerIssue(...)`: `Issue`가 생성되고 reporter, status, priority, reportedAt, history가 설정됨
+- `registerIssue(...)`: `Issue`가 생성되고 reporter, status, priority, reportedDate, history가 설정됨
 - `assignIssue(...)`: `IssueAssignment`가 생성 또는 교체되고 status가 `ASSIGNED`로 바뀌며 history가 기록됨
 - `markFixed(...)`: fixer, fixedAt, status가 설정되고 history가 기록됨
 - `resolveIssue(...)`: verifiedAt, status가 설정되고 history가 기록됨
