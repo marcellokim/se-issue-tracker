@@ -63,28 +63,6 @@
 - blocking issue가 resolved 또는 closed 상태가 아닌데 blocked issue가 resolved로 상태전이를 시도하면, 시스템상에서 이슈 종속성 관계 검사를 통해 blocked issue의 resolved로의 상태전이를 차단합니다.
 - 별도 `BLOCK`/`BLOCKED` 이슈 상태는 도입하지 않고, dependency는 `FIXED -> RESOLVED` 전이에 대한 guard로만 사용합니다.
 
-### deleted 상태 전이 세부 정책 
-- new->delted, closed->deleted로의 전이만 가능합니다.
-- deleted로의 상태 전이는 PL만 할 수 있는 권한 입니다.
-- DEV, TESTER는 delted 상태의 이슈를 볼 수 없습니다.
-- 이슈의 상태가 delted->closed로 상태 전이가 되면 DEV, TESTER는 해당 이슈를 다시 볼 수 있습니다.
-- deleted 이슈는 PL만 볼 수 있는 bin이라는 별도의 페이지에 축적됩니다.
-- deleted 이슈가 bin에 30개 초과일 때 FIFO 방식대로 물리적으로 삭제됩니다.
-- PL은 bin에서 deleted 이슈를 restore할 수 있으며, 이 경우에 delted 이슈의 상태는 closed로 전이됩니다.
-
-### reopen 상태 전이 세부 정책 
-- resolved/closed 상태에서만 reopen 상태 전이가 가능합니다. 
-- reopen 상태 전이는 PL만 할 수 있는 고유 권한입니다.
-- reopen 상태 전이가 발생하면 해당 이슈의 히스토리 이력을 통해 reporter는 초기 이슈 생성자, assignee와 verifier는 각각 가장 최근 DEV, TESTER값으로 자동 배정됩니다.
-- reopen시 reporter 값은 변경할 수 없습니다 
-- reopen시 assignee와 verifier는 해당 이슈의 히스토리를 기반으로 최신값들로 자동 설정되지만 PL이 원하는 assignee와 verifier를 지정할 수도 있습니다. 
-- PL이 reopen 상태의 이슈에서 assignee와 verifier를 재결정하면 해당 이슈는 assigned 상태로 전이됩니다.(reopen->assigned)  
-
-### 이슈 종속성에 따른 상태 전이 영향 
-- 종속되는 이슈(blocked issue)를 해결하기 위해서는 종속하는 이슈(blocking issue)를 먼저 해결해야합니다 
-- 예를 들어, 두 이슈 A, B에 대해 B를 해결하기 위해서는 A가 B보다 먼저 해결되어야 합니다.(A가 blocking issue, B가 blcoked issue) 
-- blocking issue가 resolved되지 않은 상태임에도 blocked issue가 resolved로 상태전이를 시도하면, 시스템상에서 이슈 종속성 관계 검사를 통해 blocked issue의 resolved로의 상태전이를 차단합니다. 
-
 ### 권한 및 수정 정책
 - User당 직군/역할은 하나만 부여합니다.
 - Reporter는 assigned 전까지만 자신의 이슈 title/description을 수정할 수 있습니다.
