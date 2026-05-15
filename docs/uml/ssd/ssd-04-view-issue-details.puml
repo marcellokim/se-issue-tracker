@@ -11,6 +11,6 @@ S --> A: issueDetails(issue, comments, history, dependencies, availableActions)
 note over S
 결과: 도메인 상태를 변경하지 않음.
 UC15 Edit Issue는 UC4를 확장하는 subfunction이다.
-UC5와 UC6은 별도 actor-goal UC에서 실행된다.
+UC4 상세 화면의 availableActions에서 UC5 Assign / Update Issue Assignment와 UC6 Change Issue State가 파생/연계 실행될 수 있다.
 end note
 @enduml
