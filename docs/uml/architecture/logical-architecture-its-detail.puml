@@ -1,0 +1,32 @@
+@startuml logical-architecture-its-detail
+!include ../_shared/its-uml-style.puml
+
+title Issue Tracking System - Logical Architecture Detail
+
+top to bottom direction
+
+skinparam componentStyle rectangle
+skinparam nodesep 28
+skinparam ranksep 36
+skinparam linetype ortho
+skinparam rectangle {
+  FontSize 12
+  BorderColor #37474F
+  FontColor #263238
+}
+
+rectangle "Presentation Layer\n--\nJavaFX UI\n  IssueListView, IssueDetailView, AssignmentView\n  StatisticsView, LoginView\n\nSwing UI\n  AccountManagementView, ProjectManagementView\n  DeletedIssueBinView" as PRES <<boundary>> #E3F2FD
+
+rectangle "Application Layer\n--\nUse Case Controllers\n  IssueController\n    registerIssue(), searchIssues(), viewIssueDetail(), editIssue()\n    addComment(), changePriority(), addDependency(), removeDependency()\n  AssignmentController\n    startAssignment(), assignIssue(), reassignIssue(), changeVerifier()\n  IssueStateController\n    changeStatus()\n  DeletedIssueController\n    deleteIssue(), restoreIssue(), viewDeletedIssues()\n  AccountController\n    createAccount(), updateAccount(), deactivateAccount()\n  ProjectController\n    createProject(), addProjectParticipant(), removeProjectParticipant()\n  StatisticsController\n    viewStatistics()\n\nApplication Policies / Services\n  PermissionPolicy\n    verifyPermission()\n  AssignmentRecommendationService\n    recommendAssignmentCandidates()\n  AuthenticationService\n    logIn(), currentUser()" as APP <<control>> #FFF8E1
+
+rectangle "Use Case / Policy Partitions\n--\nIssue Management\n  UC1, UC2, UC3, UC4, UC7, UC15, UC16\n\nAssignment / Recommendation\n  UC5 four branches + UC8\n  status-based candidates\n  ASSIGNMENT_CHANGED\n\nState Transition\n  UC6 scenarios\n  fixer/resolver set\n  R->C clears assignee/verifier\n  F->R dependency guard\n\nDeleted Issue Management\n  UC9 soft-delete, FIFO 30\n  NEW/CLOSED -> DELETED\n  restore keeps reporter/fixer/resolver\n\nStatistics\n  UC10 viewStatistics(period, filters)\n  filters.scope\n\nPermission\n  UC14 included by protected UCs" as PARTITIONS <<control>> #FFF3E0
+
+rectangle "Domain Layer\n--\nIssue Aggregate\n  Issue, Comment, IssueHistory, IssueDependency\n\nIssue Role Relations\n  reporter, assignee, verifier, fixer, resolver\n\nIdentity / Project\n  User, Project\n\nRepository Interfaces\n  IssueRepository, UserRepository, ProjectRepository\n\nValue Types\n  Role\n    ADMIN, PL, DEV, TESTER\n  IssueStatus\n    NEW, ASSIGNED, FIXED, RESOLVED\n    CLOSED, REOPENED, DELETED\n  Priority\n    BLOCKER, CRITICAL, MAJOR, MINOR, TRIVIAL\n  ActionType\n    CREATED, TITLE_DESCRIPTION_UPDATED, PRIORITY_CHANGED\n    STATUS_CHANGED, ASSIGNMENT_CHANGED\n    DEPENDENCY_CHANGED, COMMENTED" as DOM <<domain>> #F1F8E9
+
+rectangle "Technical Services\n--\nPersistence Implementations\n  JdbcIssueRepository, JdbcUserRepository, JdbcProjectRepository\n  DatabaseConnectionProvider\n\nSecurity Support\n  PasswordHasher, SessionStore" as TECH <<infrastructure>> #F3E5F5
+
+PRES -down-> APP : user actions
+APP -down-> PARTITIONS : use-case policy selection
+PARTITIONS -down-> DOM : domain coordination / repository abstractions
+TECH -up-> DOM : repository implementations / technical support
+@enduml

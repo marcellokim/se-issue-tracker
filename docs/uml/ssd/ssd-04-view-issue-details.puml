@@ -1,0 +1,16 @@
+@startuml ssd-04-view-issue-details
+!include ssd-style.puml
+title SSD 04 - UC4 이슈 상세 조회
+actor "Auth User" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: Auth User 로그인, Issue 존재
+end note
+A -> S: viewIssueDetail(issueId)
+S --> A: issueDetails(issue, comments, history, dependencies, availableActions)
+note over S
+결과: 도메인 상태를 변경하지 않음.
+UC15 Edit Issue는 UC4를 확장하는 subfunction이다.
+UC4 상세 화면의 availableActions에서 UC5 Assign / Update Issue Assignment와 UC6 Change Issue State가 파생/연계 실행될 수 있다.
+end note
+@enduml

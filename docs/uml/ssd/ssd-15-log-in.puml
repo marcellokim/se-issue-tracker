@@ -1,0 +1,18 @@
+@startuml ssd-15-log-in
+!include ssd-style.puml
+title SSD 15 - UC11 로그인
+actor "User" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: User 존재, isActive=true
+end note
+A -> S: logIn(loginId, password)
+alt 인증 성공
+  S --> A: loginSucceeded(userId, role, name)
+else 인증 실패
+  S --> A: loginFailed(reason)
+end
+note over S
+결과: 성공 시 loginId로 현재 사용자 식별, 실패 시 거부
+end note
+@enduml

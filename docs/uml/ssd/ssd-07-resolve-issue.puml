@@ -1,0 +1,18 @@
+@startuml ssd-07-resolve-issue
+!include ssd-style.puml
+title SSD 07 - UC6 상태 변경: Resolve 처리
+actor "Tester" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: Tester 로그인, verifier 본인, Issue가 FIXED 상태, UC14 권한 검사
+모든 blocking Issue가 RESOLVED 또는 CLOSED 상태여야 함
+end note
+A -> S: changeStatus(issueId, targetStatus=RESOLVED, comment)
+S --> A: updatedIssue(issueId, status=RESOLVED, resolver=currentTester)
+note over S
+UC6 includes UC2; the comment is mandatory and recorded with the status change.
+결과: status=RESOLVED, resolver=current Tester 기록, assignee/verifier/fixer 유지, 필수 Comment와 IssueHistory(STATUS_CHANGED, previousValue=FIXED, newValue=RESOLVED) 기록
+blocking Issue 중 RESOLVED/CLOSED가 아닌 항목이 있으면 FIXED -> RESOLVED 전이를 거부
+별도 BLOCK/BLOCKED IssueStatus는 만들지 않음
+end note
+@enduml

@@ -1,0 +1,18 @@
+@startuml ssd-24-add-dependency
+!include ssd-style.puml
+title SSD 24 - UC7 의존성 추가
+actor "PL" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: PL 로그인, 두 Issue 존재, 자기참조/순환 아님, UC14 권한 검사
+end note
+A -> S: addDependency(blockingIssueId, blockedIssueId)
+S --> A: dependencyAdded(dependencyId)
+note over S
+결과: IssueDependency 생성, blockingIssue/blockedIssue association 설정
+dependencyId는 blockingIssueId와 blockedIssueId 조합에서 파생
+별도 dependencyName/type 파라미터는 추가하지 않음
+의존성 효과는 UC6 FIXED -> RESOLVED guard에서만 검사
+IssueHistory(DEPENDENCY_CHANGED) 기록
+end note
+@enduml

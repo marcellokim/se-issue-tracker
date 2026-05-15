@@ -1,0 +1,15 @@
+@startuml ssd-06-mark-fixed
+!include ssd-style.puml
+title SSD 06 - UC6 상태 변경: Fixed 처리
+actor "DEV" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: DEV 로그인, 자신에게 배정된 Issue, status=ASSIGNED, UC14 권한 검사
+end note
+A -> S: changeStatus(issueId, targetStatus=FIXED, comment)
+S --> A: updatedIssue(issueId, status=FIXED)
+note over S
+UC6 includes UC2; the comment is mandatory and recorded with the status change.
+결과: status=FIXED, fixer=current DEV 자동 기록, 필수 Comment와 IssueHistory(STATUS_CHANGED, previousValue=ASSIGNED, newValue=FIXED) 기록
+end note
+@enduml
