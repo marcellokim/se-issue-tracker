@@ -1,5 +1,5 @@
 @startuml sd-01-register-issue-detailed
-!include ../../_shared/its-uml-style.puml
+!include ../_shared/its-uml-style.puml
 
 title Detailed SD 01 - Register Issue
 hide footbox
@@ -33,20 +33,17 @@ else valid and authorized
   Logical Architecture의 contextual service로 간주한다.
   end note
 
-  IC -> IC : priorityOrMajor := defaultIfMissing(priority, MAJOR)
-  IC -> Project : registerIssue(title, description, priorityOrMajor,\ncurrentUser, now)
+  IC -> Project : registerIssue(title, description, priority,\ncurrentUser, now)
   activate Project
+  Project -> Project : priorityOrMajor := defaultIfMissing(priority, MAJOR)
 
   create "newIssue:Issue" as Issue
-  Project --> Issue : new(title, description, priorityOrMajor,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
+  Project -> Issue : new(title, description, priorityOrMajor,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
   activate Issue
-  Project -> Project : addIssue(newIssue)
-  Project --> IC : newIssue
-  deactivate Project
 
-  IC -> Issue : recordCreation(currentUser, now)
+  Project -> Issue : recordCreation(currentUser, now)
   create "createdHistory:IssueHistory" as CreatedHistory
-  Issue --> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
+  Issue -> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
   Issue -> Issue : addHistory(createdHistory)
 
   note right of Issue
@@ -60,13 +57,18 @@ else valid and authorized
     User-IssueHistory changes association 형성을 의미
   end note
 
-  Issue --> IC : createdHistory
+  Issue --> Project : creationRecorded
   deactivate Issue
+
+  Project -> Project : addIssue(newIssue)
+  Project --> IC : newIssue
+  deactivate Project
 
   note over Project
   Creator / Information Expert:
-  Domain Model에서 Project는 Issue를 포함하므로
-  새 Issue 생성 및 등록 책임을 맡는다.
+  Project.registerIssue는 priority 기본값 결정,
+  Issue 생성, CREATED history 기록, contains 등록을
+  하나의 원자적 도메인 작업으로 캡슐화한다.
   end note
 
   IC --> User : issueRegistered(issueId,\nstatus=NEW,\nconfirmation)
