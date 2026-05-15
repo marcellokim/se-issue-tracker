@@ -1,0 +1,25 @@
+SD 01 Register Issue - GRASP 적용 설명
+
+관련 산출물:
+- UC1 Register Issue: 새 이슈 저장, reporter/current time/status=NEW/default MAJOR, IssueHistory(CREATED) 기록
+- SSD 01: registerIssue(title, description, priority)
+- OC-01: Issue 생성, Project-Issue contains, User-Issue reports, Issue-IssueHistory logs, User-IssueHistory changes
+- Domain Model: Project contains Issue, User reports Issue, Issue logs IssueHistory, User changes IssueHistory
+- Logical Architecture: IssueController.registerIssue()
+
+적용 GRASP:
+
+1. Controller
+issueController:IssueController가 SSD의 system operation registerIssue(...)를 처음 받는다. UI나 persistence를 직접 SD에 펼치지 않고, use case 흐름의 진입점과 조정자 역할만 담당한다.
+
+2. Creator
+currentProject:Project가 newIssue:Issue를 생성한다. Domain Model에서 Project가 Issue를 contains 하므로, Project가 새 Issue를 생성하고 등록하는 책임을 갖는 것이 자연스럽다.
+
+3. Information Expert
+newIssue:Issue는 자신의 status, priority, reportedDate, reporter, history 목록을 관리한다. 따라서 IssueHistory(CREATED) 생성과 addHistory 책임을 Issue에 둔다.
+
+4. Low Coupling / High Cohesion
+issueController가 Issue의 내부 필드를 직접 설정하지 않고 Project와 Issue에 registerIssue, recordCreation 메시지를 보낸다. Controller는 흐름 조정에 집중하고, 도메인 상태 변경은 도메인 객체가 수행한다.
+
+5. Pure Fabrication / Indirection
+권한 정책, 현재 사용자/프로젝트 조회, 현재 시각, 영속성 처리는 Logical Architecture에는 존재하지만 SD에서는 lifeline으로 펼치지 않았다. UC1의 핵심 책임 협력을 선명하게 유지하기 위해 note로만 처리했다.
