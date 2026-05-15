@@ -1,0 +1,15 @@
+!include ../_shared/its-uml-style.puml
+
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+skinparam sequence {
+  LifeLineBorderColor #455A64
+  LifeLineBackgroundColor #ECEFF1
+  ParticipantBorderColor #2F3A4A
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantFontColor #000000
+  ActorBorderColor #263238
+  ActorBackgroundColor #FFFFFF
+  ActorFontColor #000000
+}

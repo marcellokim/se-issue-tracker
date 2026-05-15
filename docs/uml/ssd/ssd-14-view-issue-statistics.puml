@@ -1,0 +1,18 @@
+@startuml ssd-14-view-issue-statistics
+!include ssd-style.puml
+title SSD 14 - UC10 이슈 통계 조회
+actor "Auth User" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: Auth User 로그인, 현재 Project 안에 조회 가능한 Issue 데이터 존재, UC14 권한 검사
+end note
+A -> S: viewStatistics(period, filters)
+S --> A: statisticsReport(issueCounts, trendData, statusBreakdown, priorityBreakdown)
+note over S
+결과: 현재 Project 범위의 일/월별 발생 수, trend, status/priority breakdown 반환
+projectId는 전송 필드에 두지 않고 현재 Project context를 사용한다.
+currentUserRole은 인증 context에서 결정하며 사용자가 임의 입력하지 않는다.
+filters.scope는 전체/내 직군/특정 직군별 통계 범위를 구분한다.
+Statistics 도메인 객체와 IssueHistory는 생성하지 않음
+end note
+@enduml

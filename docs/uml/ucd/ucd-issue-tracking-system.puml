@@ -1,0 +1,100 @@
+@startuml ucd-issue-tracking-system
+!include ../_shared/its-uml-style.puml
+
+left to right direction
+hide stereotype
+skinparam nodesep 35
+skinparam ranksep 40
+skinparam ArrowThickness 1.0
+skinparam usecase {
+  BorderColor #37474F
+  BackgroundColor #FFFFFF
+  FontColor #263238
+  BorderColor<<shared>> #1565C0
+  BorderColor<<pl>> #2E7D32
+  BorderColor<<admin>> #6A1B9A
+  BorderColor<<include>> #8D6E63
+  BackgroundColor<<include>> #FFF8E1
+}
+skinparam actor {
+  BorderColor #263238
+  BackgroundColor #FFFFFF
+  FontColor #263238
+}
+
+title Issue Tracking System - Use Case Diagram
+
+actor Admin as Admin
+actor "Auth User\n<<abstract>>" as AuthUser
+actor Tester as Tester
+actor Dev as Dev
+actor PL as PL
+
+Tester --|> AuthUser
+Dev --|> AuthUser
+PL --|> AuthUser
+
+rectangle "Issue Tracking System" as System {
+  usecase "UC11\nLog In" as UC11 <<shared>>
+  usecase "UC3\nSearch Issues" as UC3 <<shared>>
+  usecase "UC6\nChange Issue State" as UC6 <<shared>>
+  usecase "UC2\nAdd Comment" as UC2 <<shared>>
+  usecase "UC15\nEdit Issue\n(reporter only, NEW)" as UC15 <<shared>>
+  usecase "UC4\nView Issue Detail" as UC4 <<shared>>
+  usecase "UC1\nRegister Issue" as UC1 <<shared>>
+  usecase "UC10\nStatistics" as UC10 <<shared>>
+
+  usecase "UC5\nAssign / Update\nIssue Assignment" as UC5 <<pl>>
+  usecase "UC16\nChange Priority" as UC16 <<pl>>
+  usecase "UC7\nManage Dependency" as UC7 <<pl>>
+  usecase "UC9\nManage Deleted Issue" as UC9 <<pl>>
+
+  usecase "UC12\nManage Accounts" as UC12 <<admin>>
+  usecase "UC13\nManage Projects" as UC13 <<admin>>
+
+  usecase "UC8\nRecommend Assignment\nCandidates" as UC8 <<include>>
+  usecase "UC14\nVerify Permission" as UC14 <<include>>
+}
+
+Admin -[#B0BEC5]- UC11
+Admin -[#B0BEC5]- UC12
+Admin -[#B0BEC5]- UC13
+
+AuthUser -[#B0BEC5]- UC11
+AuthUser -[#B0BEC5]- UC1
+AuthUser -[#B0BEC5]- UC3
+AuthUser -[#B0BEC5]- UC4
+AuthUser -[#B0BEC5]- UC6
+AuthUser -[#B0BEC5]- UC10
+
+PL -[#B0BEC5]- UC5
+PL -[#B0BEC5]- UC7
+PL -[#B0BEC5]- UC9
+PL -[#B0BEC5]- UC16
+
+UC1 .[#8D6E63].> UC14 : <<include>>
+UC5 .[#8D6E63].> UC8 : <<include>>
+UC5 .[#8D6E63].> UC14 : <<include>>
+UC6 .[#8D6E63].> UC2 : <<include>>
+UC6 .[#8D6E63].> UC14 : <<include>>
+UC7 .[#8D6E63].> UC14 : <<include>>
+UC9 .[#8D6E63].> UC14 : <<include>>
+UC10 .[#8D6E63].> UC14 : <<include>>
+UC12 .[#8D6E63].> UC14 : <<include>>
+UC13 .[#8D6E63].> UC14 : <<include>>
+UC16 .[#8D6E63].> UC14 : <<include>>
+
+UC2 .[#1565C0].> UC1 : <<extend>>
+UC2 .[#1565C0].> UC4 : <<extend>>
+UC2 .[#1565C0].> UC5 : <<extend>>
+UC15 .[#1565C0].> UC4 : <<extend>>
+
+legend bottom
+  파란 테두리: Auth User 공통 목표 / 초록 테두리: PL 전용 목표 / 보라 테두리: Admin 전용 목표 / 노랑: include 보조 기능.
+  actor association은 실제 user-goal use case ellipse에 직접 연결한다. UC2 Add Comment와 UC15 Edit Issue는 subfunction이므로 Auth User와 직접 연결하지 않는다.
+  UC8은 UC5의 상태별 배정 후보 추천 subfunction이고, UC14는 권한 검사 subfunction이다.
+  Admin은 Auth User의 하위 actor가 아니며 이슈 업무에는 접근하지 않는다.
+  UC5 코멘트는 선택이고, UC6 상태 변경 코멘트는 필수이다.
+  dependency는 UC6 FIXED -> RESOLVED guard로만 작동하며 BLOCK/BLOCKED IssueStatus는 없다.
+endlegend
+@enduml

@@ -3,6 +3,7 @@
 이 문서는 이슈 관리 시스템 과제를 진행하면서 유스케이스, 도메인 모델, SSD, Operation Contract, 개발 클래스 관점을 흔들리지 않게 맞추기 위한 기준선입니다.
 
 강의 PDF 원문은 용량, 저작권, 공개 저장소 노출 범위 때문에 이 저장소에 올리지 않습니다. 대신 과제 수행 중 반복해서 판단해야 하는 핵심 개념만 요약해 팀원이 계속 참조할 수 있게 고정합니다.
+프로젝트별 최신 결정은 `docs/assumptions.md`와 `docs/uml/README.md`를 우선하며, 이 문서는 강의 개념 경계를 확인하기 위한 기준선으로 사용합니다.
 
 ## 우선순위
 
@@ -44,26 +45,26 @@
 - DB 테이블, repository, controller, UI 화면, session, DTO, application service는 제출용 도메인 모델에서 제외합니다.
 - 조회 결과나 통계 결과는 보통 도메인 개념이 아닙니다. 구현에서는 read model이나 DTO로 둘 수 있지만 제출용 도메인 모델에는 신중하게 넣습니다.
 
-## 프로젝트 고정 용어
+## 도메인 용어 판단 기준
+
+아래 표는 과제 산출물을 읽을 때 흔들리기 쉬운 도메인 용어의 판단 기준이다. 최신 제출용 도메인 모델의 정확한 클래스/속성/연관은 `docs/uml/domain/domain-model-issue-tracking-system.puml`을 따른다.
 
 | 용어 | 고정 의미 |
 | --- | --- |
-| `UserAccount` | Admin, PL, Developer, Tester가 사용하는 인증 계정 |
-| `Role` | `ADMIN`, `PL`, `DEVELOPER`, `TESTER` 중 하나 |
+| `User` | Admin, PL, Dev, Tester가 사용하는 사용자 계정 |
+| `Role` | `ADMIN`, `PL`, `DEV`, `TESTER` 중 하나. `DEV`는 Developer 역할을 의미한다 |
 | `Project` | Admin이 생성하고 팀원이 속하는 이슈 관리 프로젝트 |
-| `ProjectMember` | 프로젝트와 사용자 계정의 멤버십 연결 |
 | `Issue` | 하나의 등록 이슈를 대표하는 핵심 aggregate |
 | `IssueStatus` | `NEW`, `ASSIGNED`, `FIXED`, `RESOLVED`, `CLOSED`, `REOPENED`, `DELETED` |
 | `Priority` | `BLOCKER`, `CRITICAL`, `MAJOR`, `MINOR`, `TRIVIAL` |
-| `IssueAssignment` | 현재 담당자, 검증자, 수정자, 배정 시각을 담는 배정 정보 |
 | `Comment` | 이슈에 붙는 토론, 보완 설명, 반려 사유 |
 | `IssueHistory` | 이슈 생명주기와 주요 변경의 감사 기록 |
-| `IssueDependency` | 선행/차단 관계를 구조화해 저장하는 이슈 간 의존성 |
+| `IssueDependency` | 선행/차단 관계를 구조화해 저장하는 이슈 간 의존성. 별도 name/type보다 blocking issue와 blocked issue의 연결 방향으로 의미를 표현한다 |
 
 경계가 애매한 용어는 아래처럼 취급합니다.
 
 - `AssigneeRecommendation`: 추천 유스케이스의 조회 결과입니다. 개발 클래스 관점이나 DTO로는 가능하지만, 제출용 도메인 모델에서는 추천 결과 자체를 저장해야 할 때만 넣습니다.
-- `DeletedIssueRetention`: 삭제된 이슈 30개 초과 시 오래된 항목을 정리하는 정책입니다. 도메인 모델에서는 `Issue.status = DELETED`, `Issue.deletedAt` 정도로 표현합니다.
+- `DeletedIssueRetention`: 삭제된 이슈 30개 초과 시 오래된 항목을 정리하는 정책입니다. 도메인 모델에서는 `Issue.status = DELETED`와 `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate`로 표현하고, 별도 `Issue.deletedAt` 속성은 두지 않습니다.
 - `PermissionPolicy`: 권한 검사를 담당하는 정책/서비스입니다. 도메인 엔티티가 아니라 operation contract의 사전조건이나 개발 클래스 관점에서 다룹니다.
 
 ## 상태와 권한 기준
@@ -102,9 +103,9 @@
 우선 작성 후보는 다음입니다.
 
 - `registerIssue(...)`: `Issue`가 생성되고 reporter, status, priority, reportedDate, history가 설정됨
-- `assignIssue(...)`: `IssueAssignment`가 생성 또는 교체되고 status가 `ASSIGNED`로 바뀌며 history가 기록됨
-- `markFixed(...)`: fixer, fixedAt, status가 설정되고 history가 기록됨
-- `resolveIssue(...)`: verifiedAt, status가 설정되고 history가 기록됨
+- `assignIssue(...)`: assignee/verifier association이 설정되고 status가 `ASSIGNED`로 바뀌며 history가 기록됨
+- `markFixed(...)`: fixer, status가 설정되고 `IssueHistory(STATUS_CHANGED).changedDate` 기준으로 변경 시각이 기록됨
+- `resolveIssue(...)`: status가 설정되고 `IssueHistory(STATUS_CHANGED).changedDate` 기준으로 검증 성공 시각이 기록됨
 
 ## 판단 체크리스트
 

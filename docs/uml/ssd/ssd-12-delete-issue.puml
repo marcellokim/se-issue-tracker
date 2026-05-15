@@ -1,0 +1,19 @@
+@startuml ssd-12-delete-issue
+!include ssd-style.puml
+title SSD 12 - UC9 Delete Closed/New Issue
+actor "PL" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: PL 로그인, Issue 존재, Issue.status가 NEW 또는 CLOSED, UC14 권한 검사
+end note
+A -> S: deleteIssue(issueId)
+S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+note over S
+결과: status가 NEW/CLOSED에서 DELETED로 변경됨
+NEW/CLOSED 대상은 assignee/verifier가 null인 상태로 취급한다.
+IssueHistory(STATUS_CHANGED, previousValue=NEW 또는 CLOSED, newValue=DELETED) 기록
+삭제 시 해당 Issue와 연결된 IssueDependency association을 제거한다.
+제거된 dependency는 restore 시 자동 복원하지 않는다.
+DELETED Issue가 30개를 초과하면 deleted transition time 기준 oldest-first FIFO로 물리 삭제
+end note
+@enduml

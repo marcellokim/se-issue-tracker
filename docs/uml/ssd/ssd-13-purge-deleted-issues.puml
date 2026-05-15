@@ -1,0 +1,10 @@
+@startuml ssd-13-purge-deleted-issues
+!include ssd-style.puml
+title SSD 13 - UC9 삭제 이슈 보관 정책 Reference
+participant ":Issue Tracking System" as S
+note over S
+이 그림은 actor-goal SSD가 아니라 UC9 deleteIssue(issueId) 내부 보관 정책 참고도이다.
+DELETED Issue가 30개를 초과하면 deleted transition time 기준 oldest-first FIFO로 오래된 DELETED Issue를 물리 삭제한다.
+보관 정책은 별도 외부 system operation으로 공개하지 않는다.
+end note
+@enduml
