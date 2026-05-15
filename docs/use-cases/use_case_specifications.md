@@ -220,15 +220,15 @@ extension points: UC2(Add Comment), UC15(이슈 수정)
 | 범위 | Issue Tracking System |
 | 수준 | User goal |
 | Primary Actor | PL |
-| Stakeholders & Interests | - PL: 적절한 Dev에게 이슈를 배정하고 싶다<br>- Dev: 자신에게 맞는 이슈를 배정 받고 싶다<br>- Tester: 이슈가 Dev에게 배정되어 수정된 후에 검증할 수 있기를 원한다 |
-| Preconditions | - PL이 시스템에 로그인한 상태이다<br>- 대상 이슈가 시스템에 존재한다<br>- 대상 이슈의 상태가 NEW 또는 REOPENED이다 |
-| Postconditions | - 시스템이 이슈의 assignee를 PL이 선택한 Dev로 설정한다<br>- 시스템이 이슈의 verifier를 PL이 선택한 Tester로 설정한다<br>- 시스템이 이슈의 status를 ASSIGNED로 변경한다 |
+| Stakeholders & Interests | - PL: 적절한 DEV에게 이슈를 배정, TESTER에게 이슈를 검증 시키고 싶다 <br>- DEV: 자신에게 맞는 이슈를 배정 받고 싶다<br>- Tester: 이슈가 DEV에게 배정되어 수정된 후에 검증할 수 있기를 원한다 |
+| Preconditions | - PL이 시스템에 로그인한 상태이다<br>- 대상 이슈가 시스템에 존재한다<br>- 대상 이슈의 상태가 NEW, ASSIGNED, REOPENED이다 |
+| Postconditions | - 시스템이 이슈의 assignee를 PL이 선택한 DEV로 설정한다<br>- 시스템이 이슈의 verifier를 PL이 선택한 Tester로 설정한다<br>- 시스템이 이슈 이전 상태가 NEW 혹은 REOPENED이였다면 status를 ASSIGNED로 변경하고 이전 상태가 ASSIGNED였다면 status를 유지한다 |
 | Trigger | PL이 이슈 상세 화면에서 이슈 배정 액션을 선택한다 |
 
 ### Main Flow
 1. PL이 이슈 배정 버튼을 누른다
 2. 시스템이 권한과 전이 규칙을 확인한다 (include UC14/권한 검사)
-3. 시스템이 배정 가능한 Dev 목록과 Tester 목록을 보여준다 - 이슈 상태가 REOPENED인 경우, 기존 assignee와 verifier를 기본값으로 표시한다
+3. 시스템이 배정 가능한 Dev 목록과 Tester 목록을 보여준다 - 이슈 상태가 ASSIGNED 혹은 REOPENED인 경우, 기존 assignee와 verifier를 기본값으로 표시한다
 4. 시스템이 resolved/closed 이력 기반으로 적합한 Dev 후보를 추천한다 (include UC8/Assignee 자동 추천)
 5. PL이 assignee로 지정할 Dev와 verifier로 지정할 Tester를 선택한다
 extension point: UC2(코멘트 추가)
@@ -239,7 +239,7 @@ extension point: UC2(코멘트 추가)
 - 2a. PL의 역할이 배정 권한을 가지지 않는다
     - 2a1. 시스템이 권한 거부 메시지를 보여준다
     - 2a2. 흐름이 종료된다
-- 2b. 이슈 상태가 NEW 또는 REOPENED가 아니어서 배정 전이가 불가능하다
+- 2b. 이슈 상태가 NEW, ASSIGNED, REOPENED이 아니어서 배정 전이가 불가능하다
     - 2b1. 시스템이 현재 상태에서는 배정할 수 없다는 메시지를 보여준다
     - 2b2. PL이 이전 화면으로 돌아간다
 - 3a. 배정 가능한 Dev가 없다
@@ -275,7 +275,7 @@ extension point: UC2(코멘트 추가)
 | FIXED | RESOLVED | Tester (verifier 본인) | — | verifier가 수정 결과를 검증하여 해결됨을 확인 |
 | FIXED | ASSIGNED | Tester (verifier 본인) | — | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림. fixer는 다음 FIXED 전이에서 갱신된다 |
 | RESOLVED | CLOSED | PL | — | PL이 검증 완료된 이슈를 종료시킴 |
-| CLOSED / RESOLVED | REOPENED | PL | 마지막 assignee, verifier, fixer를 복원 | PL이 종료된 이슈를 재개. PL은 필요 시 UC5를 통해 재배정할 수 있다 |
+| CLOSED / RESOLVED | REOPENEDED | PL | 마지막 assignee, verifier, fixer를 복원 | PL이 종료된 이슈를 재개. PL은 필요 시 UC5를 통해 재배정할 수 있다 |
 
 ### Main Flow
 1. 사용자가 상태 변경 버튼을 누른다
@@ -402,9 +402,9 @@ extension point: UC2(코멘트 추가)
 | tester1이 생성한 이슈에 코멘트를 추가한다 | UC2 Add Comment |
 | PL1이 모든 이슈를 브라우즈하고 NEW 상태 이슈를 찾는다 | UC3 Search Issues |
 | PL1이 특정 이슈 상세 정보를 확인한다 | UC4 View Issue Detail |
-| PL1이 dev1을 assignee로, tester1를 verifier로 지정한다 | UC5 Assign Issue |
-| dev1이 assigned 이슈를 찾고 내용을 확인한다 | UC3, UC4 |
-| dev1이 수정 완료 후 fixed로 변경하고 코멘트를 남긴다 | UC6 Change Issue State, UC2 Add Comment |
+| PL1이 Dev1을 assignee로, tester1를 verifier로 지정한다 | UC5 Assign Issue |
+| Dev1이 assigned 이슈를 찾고 내용을 확인한다 | UC3, UC4 |
+| Dev1이 수정 완료 후 fixed로 변경하고 코멘트를 남긴다 | UC6 Change Issue State, UC2 Add Comment |
 | tester1이 fixed 이슈를 resolved로 변경한다 | UC6 Change Issue State |
 | PL1이 resolved 이슈를 closed로 변경한다 | UC6 Change Issue State |
 | 시스템이 resolved/closed 이력을 바탕으로 assignee를 추천한다 | UC8 Recommend Assignee (UC5에서 include) |
