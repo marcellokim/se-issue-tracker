@@ -151,7 +151,7 @@ Use Case: UC5 Assign / Update Issue Assignment
 - 속성값 변화
   - `Issue.status`는 `ASSIGNED`로 유지된다.
   - `ASSIGNMENT_CHANGED` history에는 이전 assignee와 새 assignee가 기록된다.
-  - - 이 operation은 assignee만 변경하며, 기존 `verifies`, `fixes`, `resolves` association은 변경되지 않는다.
+  - 이 operation은 assignee만 변경하며, 기존 `verifies`, `fixes`, `resolves` association은 변경되지 않는다.
 
 ---
 
