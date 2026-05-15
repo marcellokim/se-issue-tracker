@@ -1,0 +1,15 @@
+@startuml ssd-03-search-issues
+!include ssd-style.puml
+title SSD 03 - UC3 이슈 검색/브라우즈
+actor "Auth User" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: 사용자 로그인, 조회 가능한 Project 존재
+end note
+A -> S: searchIssues(issueSearchFilters)
+S --> A: issueList(issues)
+note over S
+issueSearchFilters:
+titleKeyword, assignee, reporter, status, priority, reportedDateRange, project
+end note
+@enduml

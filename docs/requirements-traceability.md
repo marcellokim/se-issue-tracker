@@ -26,7 +26,7 @@
 | 이슈 브라우즈 및 검색 | [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | assignee/status/reporter 검색 테스트, 목록 UI |
 | 이슈 상세 정보 확인 | [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | 상세 조회 서비스, 댓글 history 표시 |
 | 이슈 코멘트 추가 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#19](https://github.com/marcellokim/se-issue-tracker/issues/19) | Comment 모델, 코멘트 누적 테스트 |
-| 이슈 배정 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) 이슈 배정과 상태 변경 흐름 구현 | assignee 변경 테스트, PL 시나리오 |
+| 이슈 배정 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) 이슈 배정과 상태 변경 흐름 구현 | assignee/verifier 지정 및 변경 테스트, PL 시나리오 |
 | 이슈 상태 변경 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20), [#43](https://github.com/marcellokim/se-issue-tracker/issues/43), [#47](https://github.com/marcellokim/se-issue-tracker/issues/47) | 상태 전이 규칙, 잘못된 fixed 역전이, reopen 테스트 |
 | fixer 기록 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | dev 작업 완료 시 fixer 저장 테스트 |
 | 우선순위 blocker/critical/major/minor/trivial | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17) | Priority enum/value object, 기본값 major 테스트 |
@@ -35,7 +35,7 @@
 | PL 전용 priority 변경 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | 권한 검사, 변경 사유 comment/history |
 | 이슈 dependency 관계 | [#45](https://github.com/marcellokim/se-issue-tracker/issues/45) | IssueDependency 모델, 순환 방지, 선행 이슈 해결 제약 테스트 |
 | 일/월별 이슈 발생 통계 및 trend | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) 일/월별 이슈 통계와 trend 조회 구현 | 통계 서비스, 날짜 fixture, UI 표시 |
-| closed/resolved 이력 기반 assignee 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | 추천 서비스, 후보 3명 결과, 추천 근거 |
+| closed/resolved 이력 기반 assignee 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | UC8 배정 후보 추천 서비스, 후보 3명 결과, 추천 근거 |
 | persistent storage | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | DB 저장/조회 테스트, schema/seed 설명 |
 | MVC 및 UI/로직 분리 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | 패키지 구조, 클래스 다이어그램, 두 UI의 공통 서비스 사용 |
 | 두 개 이상의 UI Toolkit | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | JavaFX UI, Swing UI, 빌드/실행 캡처 |

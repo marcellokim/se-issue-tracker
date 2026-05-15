@@ -1,0 +1,33 @@
+@startuml logical-architecture-its
+!include ../_shared/its-uml-style.puml
+
+title Issue Tracking System - Logical Architecture Overview
+
+top to bottom direction
+
+skinparam componentStyle rectangle
+skinparam nodesep 42
+skinparam ranksep 44
+skinparam linetype ortho
+skinparam rectangle {
+  FontSize 13
+  BorderColor #37474F
+  FontColor #263238
+}
+
+rectangle "Presentation Layer\n--\nJavaFX UI\nSwing UI" as PRES <<boundary>> #E3F2FD
+
+rectangle "Application Layer\n--\nUse Case Controllers\nApplication Policies / Services" as APP <<control>> #FFF8E1
+
+rectangle "Use Case / Policy Partitions\n--\nIssue / Assignment / State / Deleted Issue\nStatistics / Permission" as PARTITIONS <<control>> #FFF3E0
+
+rectangle "Domain Layer\n--\nIssue Aggregate\nUser / Project\nIssue role relations\nRepository interfaces\nValue types" as DOM <<domain>> #F1F8E9
+
+rectangle "Technical Services\n--\nPersistence implementations\nSecurity support" as TECH <<infrastructure>> #F3E5F5
+
+PRES -down-> APP : user actions
+APP -down-> PARTITIONS : use-case policy selection
+PARTITIONS -down-> DOM : domain coordination
+APP -down-> DOM : repository abstractions
+TECH -up-> DOM : implements repositories / supports security
+@enduml

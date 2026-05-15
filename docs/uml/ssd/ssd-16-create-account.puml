@@ -1,0 +1,14 @@
+@startuml ssd-16-create-account
+!include ssd-style.puml
+title SSD 16 - UC12 계정 생성
+actor "Admin" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: Admin 로그인, loginId 중복 없음, UC14 권한 검사
+end note
+A -> S: createAccount(loginId, name, password, role)
+S --> A: accountCreated(userId, loginId, role, isActive=true)
+note over S
+결과: User 생성, loginId/name/role 저장, password는 passwordHash로 저장, isActive=true
+end note
+@enduml

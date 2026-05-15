@@ -1,0 +1,14 @@
+@startuml ssd-19-create-project
+!include ssd-style.puml
+title SSD 19 - UC13 프로젝트 생성
+actor "Admin" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: Admin 로그인, project name 유효 및 중복 없음, UC14 권한 검사
+end note
+A -> S: createProject(name, description)
+S --> A: projectCreated(projectId, name, createdDate)
+note over S
+결과: Project 생성, description과 createdDate 저장, Admin manages association 설정
+end note
+@enduml

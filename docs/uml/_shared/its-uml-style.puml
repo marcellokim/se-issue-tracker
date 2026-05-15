@@ -1,0 +1,50 @@
+' Shared visual language for ITS UML artifacts.
+' Goals:
+' - Keep diagrams readable in PDF/PNG at presentation scale.
+' - Use one restrained palette across UCD, Domain Model, and SSD.
+' - Prefer orthogonal lines, generous spacing, and light grouping backgrounds.
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam dpi 170
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam defaultFontSize 14
+skinparam defaultFontColor #263238
+
+skinparam TitleFontName "Noto Sans CJK KR"
+skinparam TitleFontSize 24
+skinparam TitleFontStyle bold
+skinparam TitleFontColor #1F2937
+
+skinparam linetype polyline
+skinparam nodesep 45
+skinparam ranksep 50
+skinparam ArrowColor #263238
+skinparam ArrowThickness 1.2
+
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BorderColor #90A4AE
+  BackgroundColor #F8FAFC
+  FontColor #263238
+  FontStyle bold
+}
+
+skinparam package {
+  BorderColor #90A4AE
+  BackgroundColor #F8FAFC
+  FontColor #263238
+  FontStyle bold
+}
+
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #8D6E63
+  FontColor #263238
+}
+
+skinparam legend {
+  BackgroundColor #F8FAFC
+  BorderColor #90A4AE
+  FontColor #263238
+}

@@ -1,0 +1,15 @@
+@startuml ssd-23-edit-issue
+!include ssd-style.puml
+title SSD 23 - UC15 이슈 수정
+actor "Reporter" as A
+participant ":Issue Tracking System" as S
+note over A, S
+사전조건: Reporter 로그인, 본인이 등록한 Issue, status=NEW, UC14 권한 검사
+end note
+A -> S: editIssue(issueId, newTitle, newDescription)
+S --> A: issueUpdated(issueId, title, description)
+note over S
+결과: title/description 수정, IssueHistory(TITLE_DESCRIPTION_UPDATED) 기록
+priority 변경은 UC16, status 변경은 UC6에서만 처리
+end note
+@enduml
