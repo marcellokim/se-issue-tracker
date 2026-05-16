@@ -1,0 +1,54 @@
+@startuml sd-06-mark-fixed-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 06 - Mark Issue as Fixed
+hide footbox
+
+actor "DEV" as Dev
+participant "issueStateController:IssueStateController" as ISC
+participant "targetIssue:Issue" as Issue
+
+Dev -> ISC : changeStatus(issueId,\ntargetStatus=FIXED, comment)
+
+alt not assignee or status is not ASSIGNED or comment is empty
+  ISC --> Dev : statusChangeRejected(reason)
+else valid ASSIGNED -> FIXED transition
+  note right of ISC
+  UC6은 UC2 Add Comment를 include하므로
+  상태 변경 사유 comment는 필수이다.
+  권한/현재 사용자/now 조회는 contextual service로 둔다.
+  end note
+
+  ISC -> Issue : markFixed(currentDev, comment, now)
+  activate Issue
+
+  create "fixComment:Comment" as Comment
+  Issue --> Comment : new(content=comment,\nwriter=currentDev,\ncreatedDate=now)
+  Issue -> Issue : addComment(fixComment)
+
+  create "commentHistory:IssueHistory" as CommentHistory
+  Issue --> CommentHistory : new(action=COMMENTED,\nmessage=comment,\nchangedBy=currentDev,\nchangedDate=now)
+  Issue -> Issue : addHistory(commentHistory)
+
+  Issue -> Issue : setFixer(currentDev)
+  Issue -> Issue : changeStatus(FIXED)
+
+  create "statusHistory:IssueHistory" as StatusHistory
+  Issue --> StatusHistory : new(action=STATUS_CHANGED,\npreviousValue=ASSIGNED,\nnewValue=FIXED,\nchangedBy=currentDev,\nchangedDate=now)
+  Issue -> Issue : addHistory(statusHistory)
+
+  note right of Issue
+  OC-06 사후조건:
+  - Comment 생성 및 Issue에 추가
+  - IssueHistory(COMMENTED) 기록
+  - fixer = currentDev
+  - Issue.status = FIXED
+  - IssueHistory(STATUS_CHANGED) 기록
+  end note
+
+  Issue --> ISC : updatedIssue(status=FIXED)
+  deactivate Issue
+  ISC --> Dev : updatedIssue(issueId,\nstatus=FIXED)
+end
+
+@enduml

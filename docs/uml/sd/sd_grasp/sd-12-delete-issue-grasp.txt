@@ -1,0 +1,28 @@
+SD 12 Delete Issue - GRASP 적용 설명
+
+관련 산출물:
+- UC9 Manage Deleted Issue: PL이 NEW/CLOSED 이슈를 DELETED로 soft-delete
+- SSD 12: deleteIssue(issueId)
+- OC-10: status=DELETED, 관련 IssueDependency 제거, STATUS_CHANGED history, FIFO 30개 보관 정책
+- 기본 가정사항: deleted transition time은 IssueHistory.changedDate에서 결정, 삭제 dependency는 restore 시 자동 복원하지 않음
+- Logical Architecture: DeletedIssueController.deleteIssue()
+
+적용 GRASP:
+
+1. Controller
+deletedIssueController:DeletedIssueController가 UC9 deleteIssue system operation을 수신한다. 삭제/복구는 UC6 상태 변경과 구분되는 별도 PL 관리 목표이므로 전용 controller가 적절하다.
+
+2. Information Expert
+targetIssue:Issue는 자신의 status와 관련 dependency, history를 알고 있으므로 softDelete(...) 책임을 맡는다.
+
+3. Creator
+statusHistory는 targetIssue의 상태 변경 이력이므로 targetIssue가 생성하고 addHistory로 기록한다.
+
+4. Low Coupling / High Cohesion
+Controller가 dependency 제거, status 변경, history 생성의 세부 순서를 직접 수행하지 않고 targetIssue에 위임한다. 삭제 정책의 핵심 변경 책임이 Issue에 응집된다.
+
+5. 다이어그램 추상화 수준
+DELETED 이슈 30개 초과 FIFO 보관 정책은 Logical Architecture에서 별도 policy/service로 상세화할 수 있지만, 이 SD에서는 Larman식 주요 도메인 협력을 선명하게 유지하기 위해 lifeline으로 펼치지 않는다. 대신 deleted issue count가 30개를 초과하는 경우 DeletedIssueController 내부의 enforceDeletedLimit(max=30) 처리로 축약한다.
+
+6. Protected Variations
+FIFO 보관 한도나 물리 삭제 기준은 변경될 수 있으므로 삭제 상태 전이와 분리해 표현한다. SD 본문에서는 보관 한도 적용을 opt fragment로 분리하여, 삭제 도메인 작업과 보관 정책 변경 가능성이 과하게 결합하지 않도록 한다.

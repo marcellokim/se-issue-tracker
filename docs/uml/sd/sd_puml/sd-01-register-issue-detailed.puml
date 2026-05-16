@@ -4,17 +4,6 @@
 title Detailed SD 01 - Register Issue
 hide footbox
 
-skinparam sequence {
-  ArrowColor #000000
-  ArrowThickness 1.4
-  LifeLineBorderColor #7E57C2
-  LifeLineBackgroundColor #FFFFFF
-  ParticipantBorderColor #B39DDB
-  ParticipantBackgroundColor #F3E5F5
-  ActorBorderColor #7E57C2
-  ActorBackgroundColor #FFFFFF
-}
-
 actor "Auth User" as User
 participant "issueController:IssueController" as IC
 participant "currentProject:Project" as Project
@@ -35,15 +24,14 @@ else valid and authorized
 
   IC -> Project : registerIssue(title, description, priority,\ncurrentUser, now)
   activate Project
-  Project -> Project : priorityOrMajor := defaultIfMissing(priority, MAJOR)
 
   create "newIssue:Issue" as Issue
-  Project -> Issue : new(title, description, priorityOrMajor,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
+  Project --> Issue : createWithDefaultPriority(title, description, priority,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
   activate Issue
 
   Project -> Issue : recordCreation(currentUser, now)
   create "createdHistory:IssueHistory" as CreatedHistory
-  Issue -> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
+  Issue --> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
   Issue -> Issue : addHistory(createdHistory)
 
   note right of Issue
@@ -66,8 +54,8 @@ else valid and authorized
 
   note over Project
   Creator / Information Expert:
-  Project.registerIssue는 priority 기본값 결정,
-  Issue 생성, CREATED history 기록, contains 등록을
+  Project.registerIssue는 Issue 생성,
+  priority 기본값 적용, CREATED history 기록, contains 등록을
   하나의 원자적 도메인 작업으로 캡슐화한다.
   end note
 
