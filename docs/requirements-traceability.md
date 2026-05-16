@@ -65,6 +65,6 @@
 - Reporter는 assigned 전까지만 자신이 등록한 이슈의 title/description을 수정할 수 있고, assigned 이후 정정은 comment로 남깁니다.
 - Priority는 PL만 변경할 수 있으며, assigned 상태와 무관하게 변경 가능합니다.
 - Dev가 fixed 처리한 이슈를 Tester가 검증 실패하면 `fixed -> assigned`로 되돌릴 수 있습니다.
-- Reopen은 PL만 수행하며, reopen 전이 시 마지막 fixer, resolver값을 기준으로 assignee와 verifier에 각각 재할당합니다. 이후 PL이 필요하면 assignee/verifier를 재지정해 assigned 상태부터 재작업을 시작합니다.
+- Reopen은 PL만 수행하며, reopen 전이 시 마지막 fixer, resolver값을 기준으로 assignee와 verifier에 재지정할 수도 있습니다. 이후 PL이 필요하면 assignee/verifier를 재지정해 assigned 상태부터 재작업을 시작합니다.
 - 불필요한 이슈는 `deleted` 상태로 soft-delete하고, deleted 이슈가 30개를 초과하면 deleted 전이 시각 기준 FIFO로 오래된 이슈부터 물리 삭제합니다.
 - 이슈 dependency 관계는 구조화된 기능으로 추가합니다.
