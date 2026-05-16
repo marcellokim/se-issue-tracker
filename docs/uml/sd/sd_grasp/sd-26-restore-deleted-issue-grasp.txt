@@ -1,0 +1,28 @@
+SD 26 Restore Deleted Issue - GRASP 적용 설명
+
+관련 산출물:
+- UC9 Manage Deleted Issue: PL이 DELETED 이슈를 삭제 직전 상태 NEW 또는 CLOSED로 복구
+- SSD 26: viewDeletedIssues(projectId), restoreIssue(issueId)
+- OC-11: 기존 Issue를 복구, restoreTargetStatus는 delete history.previousValue에서 결정, assignee/verifier null 유지, dependency 자동 복원 없음
+- 기본 가정사항: 복구 대상 상태는 별도 Issue 속성이 아니라 delete history.previousValue에서 읽으며, 미존재/영구 삭제된 이슈는 복구할 수 없음
+- Logical Architecture: DeletedIssueController.restoreIssue()
+
+적용 GRASP:
+
+1. Controller
+deletedIssueController:DeletedIssueController가 deleted issue 목록 조회와 복구 system operation을 수신한다. 삭제/복구 관리 유스케이스의 조정자 역할을 맡는다. not PL, permission denied, issue not found, permanently deleted, Issue is not DELETED는 복구 대상 검증 단계에서 거부한다.
+
+2. Information Expert
+targetIssue:Issue는 자신의 history 목록을 알고 있으므로 findDeleteStatusHistory()를 통해 삭제 직전 상태를 찾는다.
+
+3. Information Expert - history
+deleteHistory:IssueHistory는 previousValue를 알고 있으므로 restoreTargetStatus를 제공한다. 이 값이 복구 대상 상태의 근거가 된다.
+
+4. Creator
+restoreHistory는 targetIssue의 상태 변경 이력이므로 targetIssue가 생성하고 addHistory로 기록한다.
+
+5. Low Coupling / High Cohesion
+Controller가 별도 복구용 상태 필드를 관리하지 않고 targetIssue와 deleteHistory에 책임을 위임한다. deleteHistory.previousValue에서 읽은 previousStatusFromDeleteHistory를 restoreTargetStatus라는 지역 값으로 표현해, history 기반 복구 정책이 도메인 객체 협력으로 드러난다.
+
+6. Protected Variations
+복구 정책에서 dependency 자동 복원 없음, assignee/verifier null 유지, reporter/fixer/resolver 보존을 note로 명확히 분리한다. 이후 정책 변경 시 restore(...) 내부 책임만 조정하면 된다.

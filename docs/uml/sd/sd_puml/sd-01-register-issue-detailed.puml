@@ -35,10 +35,9 @@ else valid and authorized
 
   IC -> Project : registerIssue(title, description, priority,\ncurrentUser, now)
   activate Project
-  Project -> Project : priorityOrMajor := defaultIfMissing(priority, MAJOR)
 
   create "newIssue:Issue" as Issue
-  Project -> Issue : new(title, description, priorityOrMajor,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
+  Project -> Issue : createWithDefaultPriority(title, description, priority,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
   activate Issue
 
   Project -> Issue : recordCreation(currentUser, now)
@@ -66,8 +65,8 @@ else valid and authorized
 
   note over Project
   Creator / Information Expert:
-  Project.registerIssue는 priority 기본값 결정,
-  Issue 생성, CREATED history 기록, contains 등록을
+  Project.registerIssue는 Issue 생성,
+  priority 기본값 적용, CREATED history 기록, contains 등록을
   하나의 원자적 도메인 작업으로 캡슐화한다.
   end note
 

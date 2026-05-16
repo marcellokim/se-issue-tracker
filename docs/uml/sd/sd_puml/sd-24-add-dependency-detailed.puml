@@ -1,0 +1,76 @@
+@startuml sd-24-add-dependency-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 24 - Add Dependency
+hide footbox
+
+skinparam sequence {
+  ArrowColor #000000
+  ArrowThickness 1.4
+  LifeLineBorderColor #7E57C2
+  LifeLineBackgroundColor #FFFFFF
+  ParticipantBorderColor #B39DDB
+  ParticipantBackgroundColor #F3E5F5
+  ActorBorderColor #7E57C2
+  ActorBackgroundColor #FFFFFF
+}
+
+actor "PL" as PL
+participant "issueController:IssueController" as IC
+participant "blockingIssue:Issue" as BlockingIssue
+participant "blockedIssue:Issue" as BlockedIssue
+
+PL -> IC : addDependency(blockingIssueId, blockedIssueId)
+
+alt not PL or permission denied
+  IC --> PL : dependencyRejected(reason)
+else authorized PL
+  IC -> BlockedIssue : validateDependencyCandidate(blockingIssue)
+  BlockedIssue -> BlockedIssue : rejectIfSameIssue(blockingIssue)
+  BlockedIssue -> BlockedIssue : rejectIfDuplicate(blockingIssue)
+  BlockedIssue -> BlockedIssue : rejectIfCycleWouldBeCreated(blockingIssue)
+  BlockedIssue --> IC : dependencyCandidateValid or reason
+
+  alt self reference, duplicate, or cycle detected
+    IC --> PL : dependencyRejected(reason)
+  else valid dependency
+    note right of BlockedIssue
+    순환 검사:
+    새 관계 blockingIssue -> blockedIssue를 추가했을 때
+    순환 dependency가 생기면 거부한다.
+    구현 의미는 blockedIssue에서 blockingIssue로
+    이미 도달 가능한 경로가 있는지 확인하는 것이다.
+
+    의미상 blockingIssue가 먼저 해결되어야
+    blockedIssue가 RESOLVED 될 수 있다.
+    dependency는 별도 IssueStatus가 아니라
+    UC6 FIXED -> RESOLVED guard에서 사용된다.
+    end note
+
+    IC -> BlockedIssue : addDependency(blockingIssue,\nchangedBy=currentPL, now)
+    activate BlockedIssue
+
+    create "newDependency:IssueDependency" as Dependency
+    BlockedIssue -> Dependency : new(dependencyId,\nblockingIssue=blockingIssue,\nblockedIssue=blockedIssue,\ndiscoveredDate=now)
+    BlockedIssue -> BlockedIssue : addBlockingDependency(newDependency)
+
+    create "dependencyHistory:IssueHistory" as History
+    BlockedIssue -> History : new(action=DEPENDENCY_CHANGED,\npreviousValue=null,\nnewValue=dependencyId,\nchangedBy=currentPL,\nchangedDate=now)
+    BlockedIssue -> BlockedIssue : addHistory(dependencyHistory)
+
+    note right of BlockedIssue
+    OC-14 사후조건:
+    - IssueDependency 생성
+    - blockingIssue association 형성
+    - blockedIssue association 형성
+    - blockedIssue에 DEPENDENCY_CHANGED history 기록
+    - Issue.status는 변경하지 않음
+    end note
+
+    BlockedIssue --> IC : dependencyAdded(dependencyId)
+    deactivate BlockedIssue
+    IC --> PL : dependencyAdded(dependencyId)
+  end
+end
+
+@enduml

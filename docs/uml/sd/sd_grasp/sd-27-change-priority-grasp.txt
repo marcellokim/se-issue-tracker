@@ -1,0 +1,28 @@
+SD 27 Change Priority - GRASP 적용 설명
+
+관련 산출물:
+- UC16 Change Priority: PL이 이슈 우선순위를 변경하며 UC14 권한 검사를 포함
+- SSD 27: changePriority(issueId, newPriority)
+- OC-16: Issue.priority 변경, PRIORITY_CHANGED history 생성, status 및 assignment 관련 association 유지
+- Domain Model: Issue는 Priority 값을 가지고 IssueHistory를 logs association으로 보유
+- Logical Architecture: IssueController.changePriority()
+
+적용 GRASP:
+
+1. Controller
+issueController:IssueController가 changePriority(issueId, newPriority)를 수신한다. 이는 Logical Architecture에서 changePriority가 IssueController 책임으로 배치되어 있기 때문이다.
+
+2. Information Expert
+targetIssue:Issue는 현재 priority와 status, role association, history 목록을 알고 있으므로 priority 변경 가능 여부 확인과 changePriority(...) 책임을 맡는다.
+
+3. Creator
+priorityHistory:IssueHistory는 targetIssue의 priority 변경을 기록하고 targetIssue에 logs association으로 연결된다. 따라서 targetIssue가 생성 책임을 갖는다.
+
+4. Low Coupling / High Cohesion
+Controller는 priority 값을 직접 비교하거나 history를 직접 만들지 않고 targetIssue에 의도 중심 메시지를 보낸다. priority 변경과 이력 기록이 Issue 내부 책임으로 응집된다.
+
+5. Information Expert - invariant 유지
+OC-16은 status 및 assigned to/verifies/fixes/resolves association이 변경되지 않는다고 명시한다. Issue가 자신의 상태와 role relation을 알고 있으므로 변경하지 않는 책임도 Issue가 가진다.
+
+6. Information Expert 보강
+IssueHistory.changedBy=currentPL이 PL과 history의 changes association을 함께 의미하므로, 별도 currentPL:User lifeline 없이 생성 파라미터로 표현한다.

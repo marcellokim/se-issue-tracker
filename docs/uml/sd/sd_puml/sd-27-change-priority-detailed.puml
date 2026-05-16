@@ -1,0 +1,64 @@
+@startuml sd-27-change-priority-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 27 - Change Priority
+hide footbox
+
+skinparam sequence {
+  ArrowColor #000000
+  ArrowThickness 1.4
+  LifeLineBorderColor #7E57C2
+  LifeLineBackgroundColor #FFFFFF
+  ParticipantBorderColor #B39DDB
+  ParticipantBackgroundColor #F3E5F5
+  ActorBorderColor #7E57C2
+  ActorBackgroundColor #FFFFFF
+}
+
+actor "PL" as PL
+participant "issueController:IssueController" as IC
+participant "targetIssue:Issue" as Issue
+
+PL -> IC : changePriority(issueId, newPriority)
+
+IC -> Issue : verifyPriorityChange(newPriority)
+Issue -> Issue : validatePriority(newPriority)
+Issue -> Issue : compareCurrentPriority(newPriority)
+Issue --> IC : priorityChangeAllowed or reason
+
+alt not PL or invalid priority or same as current priority
+  IC --> PL : priorityChangeRejected(reason)
+else valid priority change
+  note right of IC
+  UC16은 IssueController가 수신한다.
+  권한 확인과 이슈 조회는 보조 흐름이므로
+  이 SD에서는 guard로 축약한다.
+  end note
+
+  IC -> Issue : changePriority(newPriority, currentPL, now)
+  activate Issue
+
+  Issue -> Issue : oldPriority := currentPriority()
+  Issue -> Issue : setPriority(newPriority)
+
+  create "priorityHistory:IssueHistory" as PriorityHistory
+  Issue --> PriorityHistory : new(action=PRIORITY_CHANGED,\npreviousValue=oldPriority,\nnewValue=newPriority,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue -> Issue : addHistory(priorityHistory)
+
+  note right of Issue
+  OC-16 사후조건:
+  - Issue.priority = newPriority
+  - PRIORITY_CHANGED history 기록
+  - Issue.status 변경 없음
+  - assigned to/verifies/fixes/resolves
+    association 변경 없음
+  - IssueHistory.changedBy=currentPL이
+    PL과 history의 changes association을 의미
+  end note
+
+  Issue --> IC : updatedIssue(priority=newPriority,\nstatus=unchanged)
+  deactivate Issue
+  IC --> PL : priorityChanged(issueId,\npriority=newPriority)
+end
+
+@enduml

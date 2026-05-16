@@ -16,7 +16,7 @@ issueController:IssueController가 SSD의 system operation registerIssue(...)를
 currentProject:Project가 newIssue:Issue를 생성한다. Domain Model에서 Project가 Issue를 contains 하므로, Project.registerIssue 내부에서 새 Issue 생성, Project-Issue contains 등록, 초기 생성 이력 기록 흐름을 하나의 원자적 도메인 작업으로 묶는 것이 자연스럽다.
 
 3. Information Expert
-currentProject:Project는 자신이 포함할 Issue 목록을 알고 있으므로 등록 책임을 맡는다. newIssue:Issue는 자신의 status, priority, reportedDate, reporter, history 목록을 관리하므로 Project.registerIssue 내부에서 recordCreation(...) 요청을 받아 IssueHistory(CREATED)를 생성하고 addHistory를 수행한다.
+currentProject:Project는 자신이 포함할 Issue 목록을 알고 있으므로 등록 책임을 맡는다. newIssue:Issue는 자신의 status, priority, reportedDate, reporter, history 목록을 관리하므로 createWithDefaultPriority(...)에서 누락된 priority를 MAJOR로 해석하고, Project.registerIssue 내부에서 recordCreation(...) 요청을 받아 IssueHistory(CREATED)를 생성하고 addHistory를 수행한다.
 
 4. Low Coupling / High Cohesion
 issueController가 Issue의 내부 필드를 직접 설정하지 않고 Project.registerIssue(...)에 의도를 전달한다. priority 기본값 결정과 초기 history 기록이 Controller 밖으로 이동했기 때문에 Controller와 도메인 모델 사이의 결합도가 낮아지고, 이슈 등록 불변식이 도메인 작업 안에 응집된다.

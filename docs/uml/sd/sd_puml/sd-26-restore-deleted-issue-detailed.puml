@@ -1,0 +1,71 @@
+@startuml sd-26-restore-deleted-issue-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 26 - Restore Deleted Issue
+hide footbox
+
+skinparam sequence {
+  ArrowColor #000000
+  ArrowThickness 1.4
+  LifeLineBorderColor #7E57C2
+  LifeLineBackgroundColor #FFFFFF
+  ParticipantBorderColor #B39DDB
+  ParticipantBackgroundColor #F3E5F5
+  ActorBorderColor #7E57C2
+  ActorBackgroundColor #FFFFFF
+}
+
+actor "PL" as PL
+participant "deletedIssueController:DeletedIssueController" as DIC
+participant "targetIssue:Issue" as Issue
+participant "deleteHistory:IssueHistory" as DeleteHistory
+
+PL -> DIC : viewDeletedIssues(projectId)
+DIC --> PL : deletedIssueList(issues)
+
+PL -> DIC : restoreIssue(issueId)
+
+alt not PL or permission denied
+  DIC --> PL : restoreRejected(reason)
+else issue not found or permanently deleted
+  DIC --> PL : restoreRejected(reason)
+else Issue is not DELETED
+  DIC --> PL : restoreRejected(reason)
+else valid restore target
+  note right of DIC
+  previousStatusFromDeleteHistory는
+  NEW/CLOSED -> DELETED 전이 때의
+  IssueHistory.previousValue에서 읽는다.
+  이 값이 restoreTargetStatus가 된다.
+  end note
+
+  DIC -> Issue : restore(currentPL, now)
+  activate Issue
+  Issue -> Issue : findDeleteStatusHistory()
+  Issue -> DeleteHistory : previousValue()
+  DeleteHistory --> Issue : previousStatusFromDeleteHistory(NEW or CLOSED)
+  Issue -> Issue : restoreTargetStatus := previousStatusFromDeleteHistory
+
+  Issue -> Issue : changeStatus(restoreTargetStatus)
+  Issue -> Issue : keepReporterFixerResolverCommentsHistory()
+  Issue -> Issue : keepAssigneeVerifierNull()
+
+  create "restoreHistory:IssueHistory" as RestoreHistory
+  Issue -> RestoreHistory : new(action=STATUS_CHANGED,\npreviousValue=DELETED,\nnewValue=restoreTargetStatus,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue -> Issue : addHistory(restoreHistory)
+
+  note right of Issue
+  OC-11 사후조건:
+  - 새 Issue를 만들지 않고 기존 Issue 복구
+  - status = NEW 또는 CLOSED
+  - reporter/fixer/resolver/comments/history 유지
+  - assignee/verifier는 null 유지
+  - 삭제 때 제거된 dependency는 자동 복원하지 않음
+  end note
+
+  Issue --> DIC : restoredIssue(status=restoreTargetStatus)
+  deactivate Issue
+  DIC --> PL : issueRestored(issueId,\nstatus=restoreTargetStatus)
+end
+
+@enduml
