@@ -23,7 +23,15 @@ REPO_BOOLEAN_SETTINGS = {
 
 
 def run(cmd: list[str], *, check: bool = True, capture_output: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=ROOT, check=check, text=True, capture_output=capture_output)
+    return subprocess.run(
+        cmd,
+        cwd=ROOT,
+        check=check,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=capture_output,
+    )
 
 
 def detect_repo() -> str:
@@ -58,6 +66,8 @@ def gh_api_json(method: str, path: str, payload: dict[str, object]) -> object:
         cwd=ROOT,
         check=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         input=json.dumps(payload),
         capture_output=True,
     )

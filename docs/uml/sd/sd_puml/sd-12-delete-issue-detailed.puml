@@ -4,17 +4,6 @@
 title Detailed SD 12 - Delete Issue
 hide footbox
 
-skinparam sequence {
-  ArrowColor #000000
-  ArrowThickness 1.4
-  LifeLineBorderColor #7E57C2
-  LifeLineBackgroundColor #FFFFFF
-  ParticipantBorderColor #B39DDB
-  ParticipantBackgroundColor #F3E5F5
-  ActorBorderColor #7E57C2
-  ActorBackgroundColor #FFFFFF
-}
-
 actor "PL" as PL
 participant "deletedIssueController:DeletedIssueController" as DIC
 participant "targetIssue:Issue" as Issue

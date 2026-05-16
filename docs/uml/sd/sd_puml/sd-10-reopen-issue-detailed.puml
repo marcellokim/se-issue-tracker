@@ -4,17 +4,6 @@
 title Detailed SD 10 - Reopen Issue
 hide footbox
 
-skinparam sequence {
-  ArrowColor #000000
-  ArrowThickness 1.4
-  LifeLineBorderColor #7E57C2
-  LifeLineBackgroundColor #FFFFFF
-  ParticipantBorderColor #B39DDB
-  ParticipantBackgroundColor #F3E5F5
-  ActorBorderColor #7E57C2
-  ActorBackgroundColor #FFFFFF
-}
-
 actor "PL" as PL
 participant "issueStateController:IssueStateController" as ISC
 participant "targetIssue:Issue" as Issue
@@ -41,8 +30,8 @@ else valid reopen transition
   Issue --> CommentHistory : new(action=COMMENTED,\nmessage=comment,\nchangedBy=currentPL,\nchangedDate=now)
   Issue -> Issue : addHistory(commentHistory)
 
-  Issue -> Issue : clearActiveAssigneeIfAny()
-  Issue -> Issue : clearActiveVerifierIfAny()
+  Issue -> Issue : clearAssignee()
+  Issue -> Issue : clearVerifier()
   Issue -> Issue : preserveFixerAndResolver()
   Issue -> Issue : changeStatus(REOPENED)
 

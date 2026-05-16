@@ -4,17 +4,6 @@
 title Detailed SD 01 - Register Issue
 hide footbox
 
-skinparam sequence {
-  ArrowColor #000000
-  ArrowThickness 1.4
-  LifeLineBorderColor #7E57C2
-  LifeLineBackgroundColor #FFFFFF
-  ParticipantBorderColor #B39DDB
-  ParticipantBackgroundColor #F3E5F5
-  ActorBorderColor #7E57C2
-  ActorBackgroundColor #FFFFFF
-}
-
 actor "Auth User" as User
 participant "issueController:IssueController" as IC
 participant "currentProject:Project" as Project

@@ -5,17 +5,6 @@ title Detailed SD 05 - Assign / Update Issue Assignment
 scale 0.58
 hide footbox
 
-skinparam sequence {
-  ArrowColor #000000
-  ArrowThickness 1.4
-  LifeLineBorderColor #7E57C2
-  LifeLineBackgroundColor #FFFFFF
-  ParticipantBorderColor #B39DDB
-  ParticipantBackgroundColor #F3E5F5
-  ActorBorderColor #7E57C2
-  ActorBackgroundColor #FFFFFF
-}
-
 actor "PL" as PL
 participant "assignmentController:AssignmentController" as AC
 participant "targetIssue:Issue" as Issue
@@ -50,7 +39,8 @@ else Issue.status == NEW
   Issue -> NewAH : new(action=ASSIGNMENT_CHANGED,\nnewValue=assigneeId/verifierId,\nchangedBy=currentPL,\nchangedDate=now)
   create "statusHistory:IssueHistory" as NewSH
   Issue -> NewSH : new(action=STATUS_CHANGED,\npreviousValue=NEW,\nnewValue=ASSIGNED,\nchangedBy=currentPL,\nchangedDate=now)
-  Issue -> Issue : addHistories(assignmentHistory, statusHistory)
+  Issue -> Issue : addHistory(assignmentHistory)
+  Issue -> Issue : addHistory(statusHistory)
 
   Issue --> AC : assignmentResult(status=ASSIGNED)
   deactivate Issue
@@ -71,7 +61,8 @@ else Issue.status == REOPENED
   Issue -> ReopenedAH : new(action=ASSIGNMENT_CHANGED,\nnewValue=assigneeId/verifierId,\nchangedBy=currentPL,\nchangedDate=now)
   create "statusHistory:IssueHistory" as ReopenedSH
   Issue -> ReopenedSH : new(action=STATUS_CHANGED,\npreviousValue=REOPENED,\nnewValue=ASSIGNED,\nchangedBy=currentPL,\nchangedDate=now)
-  Issue -> Issue : addHistories(assignmentHistory, statusHistory)
+  Issue -> Issue : addHistory(assignmentHistory)
+  Issue -> Issue : addHistory(statusHistory)
 
   Issue --> AC : assignmentResult(status=ASSIGNED,\nfixer/resolver=retained)
   deactivate Issue

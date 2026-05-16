@@ -88,7 +88,15 @@ class ProjectContext:
 
 
 def run(cmd: list[str], *, check: bool = False, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-    completed = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, env=env)
+    completed = subprocess.run(
+        cmd,
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        env=env,
+    )
     if check and completed.returncode != 0:
         command = " ".join(cmd)
         stderr = completed.stderr.strip()
