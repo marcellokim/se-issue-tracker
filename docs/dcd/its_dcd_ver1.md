@@ -35,7 +35,7 @@ SSD의 system operation을 use case 성격별 controller에 배치했다.
 - `IssueStateController`: UC6 상태 전이
 - `DeletedIssueController`: UC9 삭제/복구/보관 한도 정리
 - `StatisticsController`: UC10 통계 조회
-- `AccountController`: UC12 계정 생성/수정/비활성화
+- `AccountController`: UC12 계정 생성/수정/비활성화, 로그인
 - `ProjectController`: UC13 프로젝트 생성/참여자 관리
 
 ### Information Expert

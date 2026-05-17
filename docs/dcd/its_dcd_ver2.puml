@@ -230,8 +230,9 @@ User "1" -- "0..*" Project : manages\n(Admin only)
 Issue "1" *-- "0..*" Comment : comments {ordered}
 Issue "1" *-- "0..*" IssueHistory : histories {ordered}
 
-Issue "1" -- "0..*" IssueDependency : blockingIssue
-Issue "1" -- "0..*" IssueDependency : blockedIssue
+IssueDependency "0..*" --> "1" Issue : blockingIssue
+IssueDependency "0..*" --> "1" Issue : blockedIssue
+
 
 Issue --> User : reporter / assignee /\nverifier / fixer / resolver
 
