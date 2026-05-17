@@ -1,0 +1,72 @@
+@startuml sd-01-register-issue-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 01 - Register Issue
+hide footbox
+
+actor "Auth User" as User
+participant "issueController:IssueController" as IC
+participant "currentProject:Project" as Project
+
+User -> IC : registerIssue(title, description, priority)
+
+alt not authorized
+  IC --> User : permissionDenied()
+else invalid title or description
+  IC --> User : validationError(missingFields)
+else valid and authorized
+  note right of IC
+  issueController는 UC1의 SSD system operation을 수신한다.
+  UI, 권한 정책, 현재 사용자/프로젝트 조회,
+  현재 시각, 영속성 처리는 lifeline으로 펼치지 않고
+  Logical Architecture의 contextual service로 간주한다.
+  end note
+
+  IC -> Project : registerIssue(title, description, priority,\ncurrentUser, now)
+  activate Project
+
+  create "newIssue:Issue" as Issue
+  Project --> Issue : createWithDefaultPriority(title, description, priority,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
+  activate Issue
+
+  Project -> Issue : recordCreation(currentUser, now)
+  create "createdHistory:IssueHistory" as CreatedHistory
+  Issue --> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
+  Issue -> Issue : addHistory(createdHistory)
+
+  note right of Issue
+  OC-01 사후조건:
+  - Issue.status = NEW
+  - reporter = currentUser
+  - reportedDate = now
+  - priority = priority 또는 MAJOR
+  - IssueHistory(CREATED) 기록
+  - changedBy=currentUser는
+    User-IssueHistory changes association 형성을 의미
+  end note
+
+  Issue --> Project : creationRecorded
+  deactivate Issue
+
+  Project -> Project : addIssue(newIssue)
+  Project --> IC : newIssue
+  deactivate Project
+
+  note over Project
+  Creator / Information Expert:
+  Project.registerIssue는 Issue 생성,
+  priority 기본값 적용, CREATED history 기록, contains 등록을
+  하나의 원자적 도메인 작업으로 캡슐화한다.
+  end note
+
+  IC --> User : issueRegistered(issueId,\nstatus=NEW,\nconfirmation)
+end
+
+opt Auth User wants to add an initial comment
+  ref over User, IC
+  UC2 Add Comment
+  addComment(issueId, content)
+  end ref
+end
+
+@enduml

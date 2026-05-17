@@ -1,0 +1,25 @@
+SD 01 Register Issue - GRASP 적용 설명
+
+관련 산출물:
+- UC1 Register Issue: 새 이슈 저장, reporter/current time/status=NEW/default MAJOR, IssueHistory(CREATED) 기록
+- SSD 01: registerIssue(title, description, priority)
+- OC-01: Issue 생성, Project-Issue contains, User-Issue reports, Issue-IssueHistory logs, User-IssueHistory changes
+- Domain Model: Project contains Issue, User reports Issue, Issue logs IssueHistory, User changes IssueHistory
+- Logical Architecture: IssueController.registerIssue()
+
+적용 GRASP:
+
+1. Controller
+issueController:IssueController가 SSD의 system operation registerIssue(...)를 처음 받는다. UI나 persistence를 직접 SD에 펼치지 않고, use case 흐름의 진입점 역할만 담당한다. priority 기본값 결정이나 CREATED history 기록은 Controller가 직접 수행하지 않는다.
+
+2. Creator
+currentProject:Project가 newIssue:Issue를 생성한다. Domain Model에서 Project가 Issue를 contains 하므로, Project.registerIssue 내부에서 새 Issue 생성, Project-Issue contains 등록, 초기 생성 이력 기록 흐름을 하나의 원자적 도메인 작업으로 묶는 것이 자연스럽다.
+
+3. Information Expert
+currentProject:Project는 자신이 포함할 Issue 목록을 알고 있으므로 등록 책임을 맡는다. newIssue:Issue는 자신의 status, priority, reportedDate, reporter, history 목록을 관리하므로 createWithDefaultPriority(...)에서 누락된 priority를 MAJOR로 해석하고, Project.registerIssue 내부에서 recordCreation(...) 요청을 받아 IssueHistory(CREATED)를 생성하고 addHistory를 수행한다.
+
+4. Low Coupling / High Cohesion
+issueController가 Issue의 내부 필드를 직접 설정하지 않고 Project.registerIssue(...)에 의도를 전달한다. priority 기본값 결정과 초기 history 기록이 Controller 밖으로 이동했기 때문에 Controller와 도메인 모델 사이의 결합도가 낮아지고, 이슈 등록 불변식이 도메인 작업 안에 응집된다.
+
+5. 다이어그램 추상화 수준
+권한 정책, 현재 사용자/프로젝트 조회, 현재 시각, 영속성 처리를 lifeline으로 펼치지 않은 것은 Pure Fabrication 적용이라기보다 제출용 SD의 추상화 수준 결정이다. AuthorizationService, Repository, Clock 같은 별도 설계 객체를 DCD나 상세 설계에서 명시한다면 그때 Pure Fabrication 또는 Indirection의 예로 설명할 수 있다.

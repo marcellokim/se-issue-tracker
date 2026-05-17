@@ -1,0 +1,69 @@
+@startuml sd-10-reopen-issue-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 10 - Reopen Issue
+hide footbox
+
+actor "PL" as PL
+participant "issueStateController:IssueStateController" as ISC
+participant "targetIssue:Issue" as Issue
+
+PL -> ISC : changeStatus(issueId,\ntargetStatus=REOPENED, comment)
+
+ISC -> Issue : verifyReopenPreconditions(currentPL, comment)
+Issue -> Issue : verifyStatus(RESOLVED or CLOSED)
+Issue -> Issue : verifyRole(PL)
+Issue -> Issue : verifyComment(comment)
+Issue --> ISC : reopenAllowed or reason
+
+alt not PL or status is not RESOLVED/CLOSED or comment is empty
+  ISC --> PL : statusChangeRejected(reason)
+else preconditions valid
+  note right of ISC
+  UC6 reopen은 PL 전용 상태 전이이다.
+  재작업 담당자 배정은 이 operation에서 자동 수행하지 않고,
+  필요 시 UC5 Assign Issue를 별도로 수행한다.
+  end note
+
+  ISC -> Issue : reopen(currentPL, comment, now)
+  activate Issue
+
+  create "reopenComment:Comment" as Comment
+  Issue --> Comment : new(content=comment,\nwriter=currentPL,\ncreatedDate=now)
+  Issue -> Issue : addComment(reopenComment)
+
+  create "commentHistory:IssueHistory" as CommentHistory
+  Issue --> CommentHistory : new(action=COMMENTED,\nmessage=comment,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue -> Issue : addHistory(commentHistory)
+
+  Issue -> Issue : clearAssignee()
+  Issue -> Issue : clearVerifier()
+  Issue -> Issue : preserveFixerAndResolver()
+  Issue -> Issue : changeStatus(REOPENED)
+
+  create "statusHistory:IssueHistory" as StatusHistory
+  Issue --> StatusHistory : new(action=STATUS_CHANGED,\npreviousValue=RESOLVED or CLOSED,\nnewValue=REOPENED,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue -> Issue : addHistory(statusHistory)
+
+  note right of Issue
+  OC-09 사후조건:
+  - Issue.status = REOPENED
+  - assignee/verifier 자동복원 없음
+  - fixer/resolver 보존
+  - Comment와 COMMENTED history 기록
+  - STATUS_CHANGED history 기록
+  end note
+
+  Issue --> ISC : updatedIssue(status=REOPENED,\nfixer=preserved,\nresolver=preserved)
+  deactivate Issue
+  ISC --> PL : updatedIssue(issueId,\nstatus=REOPENED,\nfixer=preserved,\nresolver=preserved)
+end
+
+opt PL decides assignee/verifier for rework
+  ref over PL, ISC
+  UC5 Assign Issue
+  assignIssue(issueId, assigneeId, verifierId)
+  end ref
+end
+
+@enduml

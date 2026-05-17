@@ -35,7 +35,7 @@
 | PL 전용 priority 변경 | [#17](https://github.com/marcellokim/se-issue-tracker/issues/17), [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) | 권한 검사, 변경 사유 comment/history |
 | 이슈 dependency 관계 | [#45](https://github.com/marcellokim/se-issue-tracker/issues/45) | IssueDependency 모델, 순환 방지, 선행 이슈 해결 제약 테스트 |
 | 일/월별 이슈 발생 통계 및 trend | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) 일/월별 이슈 통계와 trend 조회 구현 | 통계 서비스, 날짜 fixture, UI 표시 |
-| closed/resolved 이력 기반 assignee/verifier 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee/verifier 추천 기능 구현 | UC8 배정 후보 추천 서비스, 후보 3명 결과, 추천 근거 |
+| closed/resolved 이력 기반 assignee/verifier 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | UC8 배정 후보 추천 서비스, 후보 3명 결과, 추천 근거 |
 | persistent storage | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | DB 저장/조회 테스트, schema/seed 설명 |
 | MVC 및 UI/로직 분리 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | 패키지 구조, 클래스 다이어그램, 두 UI의 공통 서비스 사용 |
 | 두 개 이상의 UI Toolkit | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | JavaFX UI, Swing UI, 빌드/실행 캡처 |
@@ -65,6 +65,6 @@
 - Reporter는 assigned 전까지만 자신이 등록한 이슈의 title/description을 수정할 수 있고, assigned 이후 정정은 comment로 남깁니다.
 - Priority는 PL만 변경할 수 있으며, assigned 상태와 무관하게 변경 가능합니다.
 - Dev가 fixed 처리한 이슈를 Tester가 검증 실패하면 `fixed -> assigned`로 되돌릴 수 있습니다.
-- Reopen은 PL만 수행하며, reopen 전이 시 마지막 verifier/fixer를 복원합니다. 이후 PL이 필요하면 assignee/verifier를 재지정해 assigned 상태부터 재작업을 시작합니다.
+- Reopen은 PL만 수행하며, reopen 전이 시 마지막 fixer, resolver값을 기준으로 assignee와 verifier에 재지정할 수도 있습니다. 이후 PL이 필요하면 assignee/verifier를 재지정해 assigned 상태부터 재작업을 시작합니다.
 - 불필요한 이슈는 `deleted` 상태로 soft-delete하고, deleted 이슈가 30개를 초과하면 deleted 전이 시각 기준 FIFO로 오래된 이슈부터 물리 삭제합니다.
 - 이슈 dependency 관계는 구조화된 기능으로 추가합니다.

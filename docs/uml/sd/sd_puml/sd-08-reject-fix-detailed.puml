@@ -1,0 +1,61 @@
+@startuml sd-08-reject-fix-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 08 - Reject Fix
+hide footbox
+
+actor "Tester" as Tester
+participant "issueStateController:IssueStateController" as ISC
+participant "targetIssue:Issue" as Issue
+
+Tester -> ISC : changeStatus(issueId,\ntargetStatus=ASSIGNED, comment)
+
+ISC -> Issue : verifyRejectFixPreconditions(currentTester, comment)
+Issue -> Issue : verifyStatus(FIXED)
+Issue -> Issue : verifyVerifier(currentTester)
+Issue --> ISC : rejectAllowed or reason
+
+alt not verifier or status is not FIXED or comment is empty
+  ISC --> Tester : statusChangeRejected(reason)
+else valid FIXED -> ASSIGNED transition
+  note right of ISC
+  UC6은 상태 변경 사유 comment를 필수로 요구한다.
+  권한/인증/현재 시각 조회는 보조 책임이므로
+  이 SD에서는 guard와 파라미터로 축약한다.
+  end note
+
+  ISC -> Issue : rejectFix(currentTester, comment, now)
+  activate Issue
+
+  create "rejectComment:Comment" as Comment
+  Issue --> Comment : new(content=comment,\nwriter=currentTester,\ncreatedDate=now)
+  Issue -> Issue : addComment(rejectComment)
+
+  create "commentHistory:IssueHistory" as CommentHistory
+  Issue --> CommentHistory : new(action=COMMENTED,\nmessage=comment,\nchangedBy=currentTester,\nchangedDate=now)
+  Issue -> Issue : addHistory(commentHistory)
+
+  Issue -> Issue : keepAssigneeVerifierFixer()
+  Issue -> Issue : changeStatus(ASSIGNED)
+
+  create "statusHistory:IssueHistory" as StatusHistory
+  Issue --> StatusHistory : new(action=STATUS_CHANGED,\npreviousValue=FIXED,\nnewValue=ASSIGNED,\nchangedBy=currentTester,\nchangedDate=now)
+  Issue -> Issue : addHistory(statusHistory)
+
+  note right of Issue
+  OC-13 사후조건:
+  - Issue.status = ASSIGNED
+  - 기존 assignee/verifier/fixer 유지
+  - 새 DEV 교체는 UC5 reassignIssue에서 수행
+  - Comment와 COMMENTED history 기록
+  - STATUS_CHANGED history 기록
+  - IssueHistory.changedBy=currentTester가
+    Tester와 history의 changes association을 의미
+  end note
+
+  Issue --> ISC : updatedIssue(status=ASSIGNED,\nassignee=retained,\nverifier=retained,\nfixer=retained)
+  deactivate Issue
+  ISC --> Tester : updatedIssue(issueId,\nstatus=ASSIGNED,\nfixer=retained)
+end
+
+@enduml

@@ -1,0 +1,28 @@
+SD 09 Close Issue - GRASP 적용 설명
+
+관련 산출물:
+- UC6 Change Issue State: PL이 RESOLVED -> CLOSED 전이를 수행하고 종료 사유 comment를 필수 입력
+- SSD 09: changeStatus(issueId, targetStatus=CLOSED, comment)
+- OC-08: Comment 생성, COMMENTED history 생성, STATUS_CHANGED history 생성, status=CLOSED, assignee/verifier 제거, fixer/resolver 보존
+- 기본 가정사항: CLOSED는 최종 종료 상태이며 assignee와 verifier는 null로 제거
+- Logical Architecture: IssueStateController.changeStatus()
+
+적용 GRASP:
+
+1. Controller
+issueStateController:IssueStateController가 changeStatus(...CLOSED...)를 수신하고 close 흐름을 시작한다.
+
+2. Information Expert
+targetIssue:Issue는 자신의 현재 status, assignee, verifier, fixer, resolver, comment 목록, history 목록을 알고 있으므로 close(...) 책임을 맡는다.
+
+3. Creator
+closeComment, commentHistory, statusHistory는 targetIssue에 연결되어야 하는 객체들이므로 targetIssue가 생성하고 logs/has association을 형성한다.
+
+4. Low Coupling / High Cohesion
+Controller가 assignee/verifier 필드를 직접 null로 만들지 않고 targetIssue.close(...)에 위임한다. 최종 종료 전이, association 제거, 이력 기록이 Issue 내부에 응집된다.
+
+5. Information Expert - association management
+assignee/verifier 제거와 fixer/resolver 보존은 Issue가 보유한 role relation에 대한 변경이다. 따라서 Issue가 clearAssignee, clearVerifier, preserveFixerAndResolver 책임을 가진다.
+
+6. Information Expert 보강
+IssueHistory.changedBy=currentPL이 PL과 history의 changes association을 함께 의미하므로, 별도의 currentPL:User lifeline 없이 생성 메시지의 파라미터로 표현한다.

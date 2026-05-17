@@ -1,0 +1,61 @@
+@startuml sd-12-delete-issue-detailed
+!include ../_shared/its-uml-style.puml
+
+title Detailed SD 12 - Delete Issue
+hide footbox
+
+actor "PL" as PL
+participant "deletedIssueController:DeletedIssueController" as DIC
+participant "targetIssue:Issue" as Issue
+participant "relatedDependency:IssueDependency" as Dependency
+
+PL -> DIC : deleteIssue(issueId)
+
+alt not PL or status is not NEW/CLOSED
+  DIC --> PL : deleteRejected(reason)
+else valid soft delete target
+  note right of DIC
+  UC9 delete는 UC6 상태 변경에 편입하지 않는다.
+  삭제/복구는 별도 PL 관리 목표이며,
+  삭제 사유 comment는 필수로 두지 않는다.
+  end note
+
+  DIC -> Issue : softDelete(currentPL, now)
+  activate Issue
+
+  loop each related IssueDependency
+    Issue -> Dependency : removeBlockingAndBlockedAssociations()
+    Issue -> Issue : removeDependency(relatedDependency)
+    note right of Dependency
+    blockingIssue / blockedIssue association을 제거한다.
+    제거된 dependency는 restoreIssue에서 자동 복원하지 않는다.
+    end note
+    destroy Dependency
+  end
+
+  Issue -> Issue : changeStatus(DELETED)
+
+  create "statusHistory:IssueHistory" as StatusHistory
+  Issue -> StatusHistory : new(action=STATUS_CHANGED,\npreviousValue=NEW or CLOSED,\nnewValue=DELETED,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue -> Issue : addHistory(statusHistory)
+
+  note right of Issue
+  OC-10 사후조건:
+  - Issue.status = DELETED
+  - 관련 IssueDependency 제거
+  - STATUS_CHANGED history 기록
+  - deleted transition time은 history.changedDate
+  - 제거된 dependency는 restore 시 자동 복원하지 않음
+  end note
+
+  Issue --> DIC : deletedIssue(status=DELETED,\ndeletedTransitionTime=statusHistory.changedDate)
+  deactivate Issue
+
+  opt deleted issue count exceeds 30
+    DIC -> DIC : enforceDeletedLimit(max=30)
+  end
+
+  DIC --> PL : issueDeleted(issueId,\nstatus=DELETED)
+end
+
+@enduml
