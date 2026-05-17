@@ -1,0 +1,29 @@
+SD 07 Resolve Fixed Issue - GRASP 적용 설명
+
+관련 산출물:
+- UC6 Change Issue State: Tester verifier가 FIXED -> RESOLVED 전이를 수행하고 사유 comment를 필수 입력
+- SSD 07: changeStatus(issueId, targetStatus=RESOLVED, comment)
+- OC-07: resolver=currentTester, assignee/verifier/fixer 유지, Comment/COMMENTED history, STATUS_CHANGED history
+- 기본 가정사항: 모든 blocking issue가 RESOLVED 또는 CLOSED일 때만 resolve 허용, BLOCK/BLOCKED 상태는 도입하지 않음
+- Domain Model: IssueDependency는 blockingIssue/blockedIssue association으로 방향을 표현
+
+적용 GRASP:
+
+1. Controller
+issueStateController:IssueStateController가 changeStatus(...RESOLVED...)를 수신하고 전이 흐름을 시작한다.
+
+2. Information Expert
+targetIssue:Issue는 자신의 status, verifier, resolver, dependency, history를 알고 있으므로 checkResolvePreconditions와 resolve 책임을 맡는다.
+
+3. Information Expert - dependency guard
+FIXED -> RESOLVED 가능 여부는 targetIssue와 연결된 blockingIssue들의 상태에 달려 있다. 따라서 targetIssue가 blockingIssue에게 isResolvedOrClosed()를 물어 guard를 평가한다.
+Issue가 checkResolvePreconditions(currentTester, comment)를 통해 not verifier, status is not FIXED, comment is empty를 먼저 검사하고 resolveAllowed or reason을 Controller에 반환한다. 이 검증을 통과한 경우에만 unresolved blocking issue guard를 평가한다.
+
+4. Creator
+resolveComment, commentHistory, statusHistory는 targetIssue에 기록되는 객체들이므로 targetIssue가 생성한다.
+
+5. Low Coupling / High Cohesion
+Controller가 dependency 목록이나 status enum의 세부 규칙을 직접 순회하지 않고 targetIssue에 전이 가능성 확인을 위임한다. 이로써 상태 전이 규칙이 Issue에 응집된다.
+
+6. Protected Variations
+dependency 정책은 이후 확장될 수 있으므로 SD에서는 별도 IssueStatus를 만들지 않고 FIXED -> RESOLVED guard로 표현한다. 이는 기본 가정사항과 OC-07 정책을 안정적으로 반영한다.
