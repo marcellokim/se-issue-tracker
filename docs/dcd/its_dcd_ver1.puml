@@ -1,5 +1,5 @@
 @startuml its_dcd_ver1
-!include ../_shared/its-uml-style.puml
+!include ../uml/_shared/its-uml-style.puml
 
 title Issue Tracking System - Design Class Diagram
 
@@ -101,6 +101,7 @@ package "Application Layer\n(concrete controllers)" #FFF8E1 {
   }
 
   class AccountController <<control>> {
+    +logIn(loginId, password): void
     +createAccount(loginId, name, password, role): UserDto
     +updateAccount(userId, name, role): UserDto
     +deactivateAccount(userId): UserDto
@@ -225,6 +226,7 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     -resolver: User
     +createWithDefaultPriority(title, description, priority, reporter, now): Issue
     +recordCreation(changedBy, now): void
+    +updateTitleAndDescription(title, description, changedBy, now): void
     +addComment(content, writer, now): Comment
     +addHistory(history): void
     +verifyPriorityChange(newPriority): ValidationResult
@@ -331,16 +333,15 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
 }
 
 JavaFxIssueView --> IssueController
+JavaFxIssueView --> AccountController
 JavaFxIssueView --> AssignmentController
 JavaFxIssueView --> IssueStateController
 JavaFxIssueView --> DeletedIssueController
 JavaFxIssueView --> StatisticsController
-JavaFxIssueView ..> AuthenticationService
 
 SwingAdminView --> AccountController
 SwingAdminView --> ProjectController
 SwingAdminView --> StatisticsController
-SwingAdminView ..> AuthenticationService
 
 IssueController ..> AuthenticationService
 IssueController ..> PermissionPolicy
