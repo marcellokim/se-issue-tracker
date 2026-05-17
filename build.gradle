@@ -36,9 +36,18 @@ sonar {
 }
 
 dependencies {
+    implementation 'com.oracle.database.jdbc:ojdbc17:23.26.1.0.0'
+
     testImplementation platform('org.junit:junit-bom:6.0.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.register('oracleConnectionCheck', JavaExec) {
+    group = 'application'
+    description = 'Checks Oracle Database connectivity using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.OracleConnectionCheck'
 }
 
 tasks.withType(JavaCompile).configureEach {

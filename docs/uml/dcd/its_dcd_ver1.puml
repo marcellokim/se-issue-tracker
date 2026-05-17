@@ -1,0 +1,421 @@
+@startuml its_dcd_ver1
+!include ../_shared/its-uml-style.puml
+
+title Issue Tracking System - Design Class Diagram
+
+left to right direction
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam nodesep 35
+skinparam ranksep 45
+scale 0.48
+
+legend left
+  == Type Notation ==
+  class: concrete class unless marked abstract
+  interface: contract type, implemented elsewhere
+  enum: enumeration value type
+  abstract class: <<abstract>> / italic name
+  note: no abstract class is currently required
+  == Visibility Notation ==
+  + public operation
+  - private attribute
+  # protected member
+  / derived attribute
+  note: no protected or derived members are currently required
+endlegend
+
+package "Presentation Layer\n(concrete boundary)" #E3F2FD {
+  class JavaFxIssueView <<boundary>> {
+    +logIn(loginId, password)
+    +registerIssue(title, description, priority)
+    +addComment(issueId, content)
+    +searchIssues(filters)
+    +viewIssueDetail(issueId)
+    +assignIssue(issueId, assigneeId, verifierId)
+    +changeIssueState(issueId, targetStatus, comment)
+    +deleteIssue(issueId)
+    +restoreIssue(issueId)
+    +changePriority(issueId, newPriority)
+    +addDependency(blockingIssueId, blockedIssueId)
+    +viewStatistics(period, filters)
+  }
+
+  class SwingAdminView <<boundary>> {
+    +logIn(loginId, password)
+    +createAccount(loginId, name, password, role)
+    +updateAccount(userId, name, role)
+    +deactivateAccount(userId)
+    +createProject(name, description)
+    +addProjectParticipant(projectId, userId)
+    +removeProjectParticipant(projectId, userId)
+    +viewStatistics(period, filters)
+  }
+
+  note bottom of JavaFxIssueView
+  JavaFX boundary는 일반 사용자 이슈 흐름
+  UC1-UC10의 핵심 issue workflow를 대표한다.
+  end note
+
+  note bottom of SwingAdminView
+  Swing boundary는 Admin 중심의
+  account/project 관리 UI를 대표한다.
+  end note
+}
+
+package "Application Layer\n(concrete controllers)" #FFF8E1 {
+  class IssueController <<control>> {
+    +registerIssue(title, description, priority): IssueDto
+    +addComment(issueId, content): CommentDto
+    +searchIssues(filters): List<IssueDto>
+    +viewIssueDetail(issueId): IssueDto
+    +editIssue(issueId, title, description): IssueDto
+    +changePriority(issueId, newPriority): IssueDto
+    +addDependency(blockingIssueId, blockedIssueId): DependencyDto
+    +removeDependency(dependencyId): void
+  }
+
+  class AssignmentController <<control>> {
+    +startAssignment(issueId): AssignmentOptions
+    +assignIssue(issueId, assigneeId, verifierId): IssueDto
+    +reassignIssue(issueId, assigneeId): IssueDto
+    +changeVerifier(issueId, verifierId): IssueDto
+  }
+
+  class IssueStateController <<control>> {
+    +changeStatus(issueId, targetStatus, comment): IssueDto
+    +markFixed(issueId, comment): IssueDto
+    +resolveIssue(issueId, comment): IssueDto
+    +rejectFix(issueId, comment): IssueDto
+    +closeIssue(issueId, comment): IssueDto
+    +reopenIssue(issueId, comment): IssueDto
+  }
+
+  class DeletedIssueController <<control>> {
+    +viewDeletedIssues(projectId): List<IssueDto>
+    +deleteIssue(issueId): IssueDto
+    +restoreIssue(issueId): IssueDto
+    -enforceDeletedLimit(max): void
+  }
+
+  class AccountController <<control>> {
+    +createAccount(loginId, name, password, role): UserDto
+    +updateAccount(userId, name, role): UserDto
+    +deactivateAccount(userId): UserDto
+  }
+
+  class ProjectController <<control>> {
+    +createProject(name, description): ProjectDto
+    +addProjectParticipant(projectId, userId): ProjectDto
+    +removeProjectParticipant(projectId, userId): ProjectDto
+  }
+
+  class StatisticsController <<control>> {
+    +viewStatistics(period, filters): StatisticsDto
+  }
+}
+
+package "Application Services / Policies\n(concrete services and policies)" #FFF3E0 {
+  class AuthenticationService <<service>> {
+    +currentUser(): User
+    +logIn(loginId, password): User
+  }
+
+  class PermissionPolicy <<policy>> {
+    +verifyPermission(user, operation, resource): boolean
+    +assertCanRegisterIssue(user, project): void
+    +assertCanAssignIssue(user, issue): void
+    +assertCanChangeStatus(user, issue, targetStatus): void
+    +assertCanManageDeletedIssue(user, issue): void
+    +assertCanManageDependency(user, issue): void
+    +assertCanChangePriority(user, issue): void
+    +assertCanManageAccount(user): void
+    +assertCanManageProject(user): void
+    +assertCanViewStatistics(user, filters): void
+  }
+
+  class AssignmentRecommendationService <<service>> {
+    +recommendAssignmentCandidates(issue): AssignmentOptions
+    +findDevAssigneeCandidates(issue): List<User>
+    +findTesterVerifierCandidates(issue): List<User>
+  }
+
+  class Clock <<service>> {
+    +now(): DateTime
+  }
+}
+
+package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
+  interface ProjectRepository <<interface>> {
+    +findById(projectId): Project
+    +save(project): void
+  }
+
+  interface IssueRepository <<interface>> {
+    +findById(issueId): Issue
+    +findDeletedByProject(projectId): List<Issue>
+    +findByCriteria(filters): List<Issue>
+    +save(issue): void
+    +deleteDependency(dependency): void
+    +purge(issue): void
+  }
+
+  interface UserRepository <<interface>> {
+    +findById(userId): User
+    +findActiveByRole(projectId, role): List<User>
+    +save(user): void
+  }
+}
+
+package "Technical Services\n(concrete adapters and security support)" #F3E5F5 {
+  class JdbcProjectRepository <<repository>> {
+    -connectionProvider: DatabaseConnectionProvider
+  }
+
+  class JdbcIssueRepository <<repository>> {
+    -connectionProvider: DatabaseConnectionProvider
+  }
+
+  class JdbcUserRepository <<repository>> {
+    -connectionProvider: DatabaseConnectionProvider
+  }
+
+  class DatabaseConnectionProvider <<service>> {
+    +getConnection(): Connection
+  }
+
+  class PasswordHasher <<service>> {
+    +hash(password): String
+    +matches(password, passwordHash): boolean
+  }
+
+  class SessionStore <<service>> {
+    +startSession(user): void
+    +currentUser(): User
+    +clear(): void
+  }
+}
+
+package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
+  class Project <<entity>> {
+    -projectId: ProjectId
+    -name: Text
+    -description: Text
+    -createdDate: DateTime
+    +registerIssue(title, description, priority, reporter, now): Issue
+    +addIssue(issue): void
+    +assignManager(admin): void
+    +addParticipant(user): void
+    +removeParticipant(user): void
+  }
+
+  class Issue <<aggregate root>> {
+    -issueId: IssueId
+    -title: Text
+    -description: Text
+    -reportedDate: DateTime
+    -priority: Priority
+    -status: IssueStatus
+    -reporter: User
+    -assignee: User
+    -verifier: User
+    -fixer: User
+    -resolver: User
+    +createWithDefaultPriority(title, description, priority, reporter, now): Issue
+    +recordCreation(changedBy, now): void
+    +addComment(content, writer, now): Comment
+    +addHistory(history): void
+    +verifyPriorityChange(newPriority): ValidationResult
+    +changePriority(newPriority, changedBy, now): void
+    +getAssignmentContext(): AssignmentContext
+    +assignFromNew(assignee, verifier, changedBy, now): void
+    +assignReopened(assignee, verifier, changedBy, now): void
+    +reassignAssignee(assignee, changedBy, now): void
+    +changeVerifier(verifier, changedBy, now): void
+    +markFixed(dev, comment, now): void
+    +checkResolvePreconditions(tester, comment): ValidationResult
+    +resolve(tester, comment, now): void
+    +verifyRejectFixPreconditions(tester, comment): ValidationResult
+    +rejectFix(tester, comment, now): void
+    +verifyClosePreconditions(pl, comment): ValidationResult
+    +close(pl, comment, now): void
+    +verifyReopenPreconditions(pl, comment): ValidationResult
+    +reopen(pl, comment, now): void
+    +clearAssignee(): void
+    +clearVerifier(): void
+    +softDelete(pl, now): void
+    +restore(pl, now): void
+    +findDeleteStatusHistory(): IssueHistory
+    +validateDependencyCandidate(blockingIssue): ValidationResult
+    +addDependency(blockingIssue, changedBy, now): IssueDependency
+    +removeDependency(dependency, changedBy, now): void
+  }
+
+  class User <<entity>> {
+    -userId: UserId
+    -loginId: Text
+    -name: Text
+    -passwordHash: Text
+    -role: Role
+    -isActive: boolean
+    +hasRole(role): boolean
+    +isActive(): boolean
+  }
+
+  class Comment <<entity>> {
+    -commentId: CommentId
+    -content: Text
+    -createdDate: DateTime
+    -writer: User
+  }
+
+  class IssueHistory <<entity>> {
+    -historyId: HistoryId
+    -action: ActionType
+    -previousValue: Text
+    -newValue: Text
+    -changedBy: User
+    -changedDate: DateTime
+    -message: Text
+  }
+
+  class IssueDependency <<entity>> {
+    -dependencyId: DependencyId
+    -blockingIssue: Issue
+    -blockedIssue: Issue
+    -discoveredDate: DateTime
+    +removeBlockingAndBlockedAssociations(): void
+  }
+
+  enum Role {
+    ADMIN
+    PL
+    DEV
+    TESTER
+  }
+
+  enum IssueStatus {
+    NEW
+    ASSIGNED
+    FIXED
+    RESOLVED
+    CLOSED
+    REOPENED
+    DELETED
+  }
+
+  enum Priority {
+    BLOCKER
+    CRITICAL
+    MAJOR
+    MINOR
+    TRIVIAL
+  }
+
+  enum ActionType {
+    CREATED
+    TITLE_DESCRIPTION_UPDATED
+    PRIORITY_CHANGED
+    STATUS_CHANGED
+    ASSIGNMENT_CHANGED
+    DEPENDENCY_CHANGED
+    COMMENTED
+  }
+
+  class AssignmentOptions <<value object>>
+  class AssignmentContext <<value object>>
+  class ValidationResult <<value object>>
+  class StatisticsReport <<value object>>
+}
+
+JavaFxIssueView --> IssueController
+JavaFxIssueView --> AssignmentController
+JavaFxIssueView --> IssueStateController
+JavaFxIssueView --> DeletedIssueController
+JavaFxIssueView --> StatisticsController
+JavaFxIssueView ..> AuthenticationService
+
+SwingAdminView --> AccountController
+SwingAdminView --> ProjectController
+SwingAdminView --> StatisticsController
+SwingAdminView ..> AuthenticationService
+
+IssueController ..> AuthenticationService
+IssueController ..> PermissionPolicy
+IssueController ..> ProjectRepository
+IssueController ..> IssueRepository
+IssueController ..> UserRepository
+IssueController ..> Clock
+
+AssignmentController ..> AuthenticationService
+AssignmentController ..> PermissionPolicy
+AssignmentController ..> AssignmentRecommendationService
+AssignmentController ..> IssueRepository
+AssignmentController ..> UserRepository
+AssignmentController ..> Clock
+
+IssueStateController ..> AuthenticationService
+IssueStateController ..> PermissionPolicy
+IssueStateController ..> IssueRepository
+IssueStateController ..> Clock
+
+DeletedIssueController ..> AuthenticationService
+DeletedIssueController ..> PermissionPolicy
+DeletedIssueController ..> IssueRepository
+DeletedIssueController ..> Clock
+
+AccountController ..> AuthenticationService
+AccountController ..> PermissionPolicy
+AccountController ..> UserRepository
+AccountController ..> PasswordHasher
+
+ProjectController ..> AuthenticationService
+ProjectController ..> PermissionPolicy
+ProjectController ..> ProjectRepository
+ProjectController ..> UserRepository
+ProjectController ..> Clock
+
+StatisticsController ..> AuthenticationService
+StatisticsController ..> PermissionPolicy
+StatisticsController ..> IssueRepository
+
+AssignmentRecommendationService ..> IssueRepository
+AssignmentRecommendationService ..> UserRepository
+AuthenticationService ..> UserRepository
+AuthenticationService ..> PasswordHasher
+AuthenticationService ..> SessionStore
+
+ProjectRepository ..> Project
+IssueRepository ..> Issue
+UserRepository ..> User
+
+JdbcProjectRepository ..|> ProjectRepository
+JdbcIssueRepository ..|> IssueRepository
+JdbcUserRepository ..|> UserRepository
+JdbcProjectRepository ..> DatabaseConnectionProvider
+JdbcIssueRepository ..> DatabaseConnectionProvider
+JdbcUserRepository ..> DatabaseConnectionProvider
+
+Project "1" -- "0..*" Issue : contains
+User "*" -- "*" Project : participates in
+User "1" -- "0..*" Project : manages\n(Admin only)
+Issue "1" *-- "0..*" Comment : comments
+Issue "1" *-- "0..*" IssueHistory : histories
+IssueDependency "0..*" --> "1" Issue : blockingIssue
+IssueDependency "0..*" --> "1" Issue : blockedIssue
+
+Issue --> User : reporter / assignee /\nverifier / fixer / resolver
+Comment --> User : writer
+IssueHistory --> User : changedBy
+Issue --> IssueStatus
+Issue --> Priority
+User --> Role
+IssueHistory --> ActionType
+AssignmentRecommendationService ..> AssignmentOptions
+StatisticsController ..> StatisticsReport
+Issue ..> AssignmentContext
+Issue ..> ValidationResult
+
+@enduml
