@@ -92,6 +92,27 @@ public final class JdbcProjectRepository implements ProjectRepository {
     }
 
     @Override
+    public void deleteById(long projectId) {
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                deleteProjectMembers(connection, projectId);
+                deleteProjectIssues(connection, projectId);
+                deleteProject(connection, projectId);
+                connection.commit();
+                connection.setAutoCommit(originalAutoCommit);
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection);
+                connection.setAutoCommit(originalAutoCommit);
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to delete project.", exception);
+        }
+    }
+
+    @Override
     public void addParticipant(long projectId, String userId) {
         String sql = """
                 merge into project_members target
@@ -191,6 +212,38 @@ public final class JdbcProjectRepository implements ProjectRepository {
                     .orElseThrow(() -> new RepositoryException("Updated project was not found.", null));
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update project.", exception);
+        }
+    }
+
+    private static void deleteProjectMembers(Connection connection, long projectId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "delete from project_members where project_id = ?")) {
+            statement.setLong(1, projectId);
+            statement.executeUpdate();
+        }
+    }
+
+    private static void deleteProjectIssues(Connection connection, long projectId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "delete from issues where project_id = ?")) {
+            statement.setLong(1, projectId);
+            statement.executeUpdate();
+        }
+    }
+
+    private static void deleteProject(Connection connection, long projectId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "delete from projects where id = ?")) {
+            statement.setLong(1, projectId);
+            statement.executeUpdate();
+        }
+    }
+
+    private static void rollback(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+            // Keep the original repository failure.
         }
     }
 

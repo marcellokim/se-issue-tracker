@@ -40,7 +40,7 @@ class OracleRepositoryIntegrationTest {
 
     @BeforeAll
     static void initializeDatabase() throws SQLException, IOException {
-        connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
+        connectionProvider = DriverManagerConnectionProvider.fromIntegrationTestEnvironment();
 
         DatabaseInitializer.initialize(connectionProvider);
         DatabaseInitializer.initialize(connectionProvider);
@@ -270,10 +270,11 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Project repository creates projects and manages participants")
-    void projectRepositorySupportsParticipantCrud() {
+    @DisplayName("Project repository creates projects, manages participants, and deletes composition issues")
+    void projectRepositorySupportsParticipantCrudAndCompositionDelete() {
         String projectName = uniqueId("crud_project");
         Project project = null;
+        Issue issue = null;
 
         try {
             project = repositories.projects().save(new Project(
@@ -303,9 +304,37 @@ class OracleRepositoryIntegrationTest {
             repositories.projects().removeParticipant(project.id(), "dev1");
             assertFalse(repositories.projects().findParticipants(project.id()).stream()
                     .anyMatch(member -> member.userId().equals("dev1")));
+
+            issue = repositories.issues().save(new Issue(
+                    0L,
+                    project.id(),
+                    uniqueId("crud_project_composition_issue"),
+                    "Issue should be removed when its owning project is deleted.",
+                    LocalDateTime.now(),
+                    Priority.MINOR,
+                    IssueStatus.NEW,
+                    "dev1",
+                    null,
+                    null,
+                    null,
+                    null,
+                    LocalDateTime.now()));
+
+            long issueId = issue.id();
+            repositories.projects().addParticipant(project.id(), "dev1");
+            repositories.projects().deleteById(project.id());
+            project = null;
+            issue = null;
+
+            assertTrue(repositories.projects().findById(updated.id()).isEmpty());
+            assertTrue(repositories.projects().findParticipants(updated.id()).isEmpty());
+            assertTrue(repositories.issues().findById(issueId).isEmpty());
         } finally {
+            if (issue != null) {
+                repositories.issues().purge(issue.id());
+            }
             if (project != null) {
-                deleteProject(project.id());
+                repositories.projects().deleteById(project.id());
             }
         }
     }
@@ -621,8 +650,7 @@ class OracleRepositoryIntegrationTest {
     }
 
     private static void deleteProject(long projectId) {
-        executeUpdate("delete from project_members where project_id = ?", statement -> statement.setLong(1, projectId));
-        executeUpdate("delete from projects where id = ?", statement -> statement.setLong(1, projectId));
+        repositories.projects().deleteById(projectId);
     }
 
     private static void deleteUser(String loginId) {

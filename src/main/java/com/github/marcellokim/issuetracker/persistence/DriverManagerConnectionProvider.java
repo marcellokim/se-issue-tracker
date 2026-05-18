@@ -26,6 +26,13 @@ public final class DriverManagerConnectionProvider implements DatabaseConnection
         return new DriverManagerConnectionProvider(url, user, password);
     }
 
+    public static DriverManagerConnectionProvider fromIntegrationTestEnvironment() {
+        String url = readEnvironment("ITS_TEST_DB_URL", readEnvironment("ITS_DB_URL", DEFAULT_ORACLE_URL));
+        String user = readRequiredEnvironment("ITS_TEST_DB_USER");
+        String password = readRequiredEnvironment("ITS_TEST_DB_PASSWORD");
+        return new DriverManagerConnectionProvider(url, user, password);
+    }
+
     @Override
     public Connection getConnection() throws SQLException {
         return DriverManager.getConnection(url, user, password);

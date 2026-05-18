@@ -15,6 +15,8 @@ public interface ProjectRepository {
 
     Project save(Project project);
 
+    void deleteById(long projectId);
+
     void addParticipant(long projectId, String userLoginId);
 
     void removeParticipant(long projectId, String userLoginId);

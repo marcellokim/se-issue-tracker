@@ -70,6 +70,21 @@ tasks.register('oracleInitializeDatabase', JavaExec) {
     mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
 }
 
+tasks.register('oracleIntegrationTest', Test) {
+    group = 'verification'
+    description = 'Runs Oracle repository integration tests against an isolated test schema. Set ITS_TEST_DB_URL, ITS_TEST_DB_USER, and ITS_TEST_DB_PASSWORD.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/OracleRepositoryIntegrationTest.class'
+    environment 'ITS_DB_INTEGRATION_TESTS', 'true'
+    shouldRunAfter tasks.named('test')
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
