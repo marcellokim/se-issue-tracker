@@ -79,7 +79,7 @@ class DeletedIssueController {
   + viewDeletedIssues(projectId)
   + deleteIssue(issueId)
   + restoreIssue(issueId)
-- enforceDeletedLimit(max)
+  - enforceDeletedLimit(max)
 }
 
 class PermissionPolicy {
