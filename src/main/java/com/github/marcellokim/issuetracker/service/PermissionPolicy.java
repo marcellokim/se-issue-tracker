@@ -17,13 +17,15 @@ public final class PermissionPolicy {
         }
 
         return switch (operation.trim().toUpperCase(Locale.ROOT)) {
-            case "ASSIGN_ISSUE", "MANAGE_DELETED_ISSUE", "VIEW_STATISTICS" -> isPlOrAdmin(user);
+            case "MANAGE_DELETED_ISSUE" -> isPlOrAdmin(user) && isPersistedProjectResource(resource);
+            case "ASSIGN_ISSUE", "VIEW_STATISTICS" -> isPlOrAdmin(user);
             default -> false;
         };
     }
 
     public void assertCanRegisterIssue(User user, Project project) {
-        // 다른 팀원이 구현해야하는 부분: 이슈 등록 권한 정책.
+        Objects.requireNonNull(user, "user");
+        Objects.requireNonNull(project, "project");
         throw pendingOtherTeam();
     }
 
@@ -33,36 +35,43 @@ public final class PermissionPolicy {
     }
 
     public void assertCanChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
-        // 다른 팀원이 구현해야하는 부분: role별 이슈 상태 전이 권한 정책.
+        Objects.requireNonNull(user, "user");
+        Objects.requireNonNull(issue, "issue");
+        Objects.requireNonNull(targetStatus, "targetStatus");
         throw pendingOtherTeam();
     }
 
     public void assertCanManageDeletedIssue(User user, Issue issue) {
-        Objects.requireNonNull(issue, "issue");
-        requirePlOrAdmin(user, "Only PL or ADMIN can manage deleted issues.");
+        Issue targetIssue = Objects.requireNonNull(issue, "issue");
+        if (!verifyPermission(user, "MANAGE_DELETED_ISSUE", targetIssue.projectId())) {
+            throw new SecurityException("Only PL or ADMIN can manage deleted issues.");
+        }
     }
 
     public void assertCanManageDependency(User user, Issue issue) {
-        // 다른 팀원이 구현해야하는 부분: dependency 추가/삭제 권한 정책.
+        Objects.requireNonNull(user, "user");
+        Objects.requireNonNull(issue, "issue");
         throw pendingOtherTeam();
     }
 
     public void assertCanChangePriority(User user, Issue issue) {
-        // 다른 팀원이 구현해야하는 부분: priority 변경 권한 정책.
+        Objects.requireNonNull(user, "user");
+        Objects.requireNonNull(issue, "issue");
         throw pendingOtherTeam();
     }
 
     public void assertCanChangePriority(User user, Issue issue, Priority newPriority) {
+        Objects.requireNonNull(newPriority, "newPriority");
         assertCanChangePriority(user, issue);
     }
 
     public void assertCanManageAccount(User user) {
-        // 다른 팀원이 구현해야하는 부분: Admin 계정 관리 권한 정책.
+        Objects.requireNonNull(user, "user");
         throw pendingOtherTeam();
     }
 
     public void assertCanManageProject(User user) {
-        // 다른 팀원이 구현해야하는 부분: Admin/PL 프로젝트 관리 권한 정책.
+        Objects.requireNonNull(user, "user");
         throw pendingOtherTeam();
     }
 
@@ -84,7 +93,11 @@ public final class PermissionPolicy {
         return user != null && user.active();
     }
 
+    private static boolean isPersistedProjectResource(Object resource) {
+        return resource instanceof Long projectId && projectId > 0;
+    }
+
     private static UnsupportedOperationException pendingOtherTeam() {
-        return new UnsupportedOperationException("다른 팀원이 구현해야하는 부분");
+        return new UnsupportedOperationException("Other team member should implement this part.");
     }
 }

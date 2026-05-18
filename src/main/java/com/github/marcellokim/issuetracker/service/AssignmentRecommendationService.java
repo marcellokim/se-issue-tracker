@@ -11,6 +11,7 @@ import java.util.Objects;
 public final class AssignmentRecommendationService {
 
     private static final int MAX_CANDIDATES = 3;
+    private static final String ISSUE_REQUIRED = "issue";
 
     private final AssignmentRecommendationRepository recommendations;
 
@@ -19,7 +20,7 @@ public final class AssignmentRecommendationService {
     }
 
     public AssignmentOptions recommendAssignmentCandidates(Issue issue) {
-        Objects.requireNonNull(issue, "issue");
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
         return new AssignmentOptions(
                 findDevAssigneeCandidateDetails(issue),
                 findTesterVerifierCandidateDetails(issue)
@@ -39,12 +40,12 @@ public final class AssignmentRecommendationService {
     }
 
     public List<AssignmentCandidate> findDevAssigneeCandidateDetails(Issue issue) {
-        Objects.requireNonNull(issue, "issue");
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
         return topCandidates(recommendations.findDevAssigneeCandidates(issue.projectId()));
     }
 
     public List<AssignmentCandidate> findTesterVerifierCandidateDetails(Issue issue) {
-        Objects.requireNonNull(issue, "issue");
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
         return topCandidates(recommendations.findTesterVerifierCandidates(issue.projectId()));
     }
 

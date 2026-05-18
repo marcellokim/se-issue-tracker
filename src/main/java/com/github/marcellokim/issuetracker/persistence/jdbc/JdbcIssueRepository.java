@@ -4,6 +4,8 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
@@ -26,7 +28,7 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     @Override
     public Optional<Issue> findById(long issueId) {
-        String sql = baseSelect() + " where id = ?";
+        String sql = baseSelect() + " where i.id = ?";
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, issueId);
@@ -43,7 +45,7 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findByProject(long projectId) {
-        String sql = baseSelect() + " where project_id = ? and status <> 'DELETED' order by id";
+        String sql = baseSelect() + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
@@ -55,7 +57,8 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findDeletedByProject(long projectId) {
-        String sql = baseSelect() + " where project_id = ? and status = 'DELETED' order by reported_date desc, id desc";
+        String sql = baseSelect()
+                + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_date desc, i.id desc";
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
@@ -72,49 +75,49 @@ public final class JdbcIssueRepository implements IssueRepository {
         sql.append(" where 1 = 1");
 
         if (criteria.projectId() != null) {
-            sql.append(" and project_id = ?");
+            sql.append(" and i.project_id = ?");
             binders.add((statement, index) -> statement.setLong(index, criteria.projectId()));
         }
         if (criteria.status() != null) {
-            sql.append(" and status = ?");
+            sql.append(" and i.status = ?");
             binders.add((statement, index) -> statement.setString(index, criteria.status().name()));
         } else if (!criteria.includeDeleted()) {
-            sql.append(" and status <> 'DELETED'");
+            sql.append(" and i.status <> 'DELETED'");
         }
         if (criteria.priority() != null) {
-            sql.append(" and priority = ?");
+            sql.append(" and i.priority = ?");
             binders.add((statement, index) -> statement.setString(index, criteria.priority().name()));
         }
         if (criteria.reporterId() != null) {
-            sql.append(" and reporter_login_id = ?");
+            sql.append(" and i.reporter_login_id = ?");
             binders.add((statement, index) -> statement.setString(index, criteria.reporterId()));
         }
         if (criteria.assigneeId() != null) {
-            sql.append(" and assignee_login_id = ?");
+            sql.append(" and i.assignee_login_id = ?");
             binders.add((statement, index) -> statement.setString(index, criteria.assigneeId()));
         }
         if (criteria.verifierId() != null) {
-            sql.append(" and verifier_login_id = ?");
+            sql.append(" and i.verifier_login_id = ?");
             binders.add((statement, index) -> statement.setString(index, criteria.verifierId()));
         }
         if (criteria.keyword() != null && !criteria.keyword().isBlank()) {
-            sql.append(" and (lower(title) like ? or lower(description) like ?)");
+            sql.append(" and (lower(i.title) like ? or lower(i.description) like ?)");
             String keyword = "%" + criteria.keyword().toLowerCase() + "%";
             binders.add((statement, index) -> statement.setString(index, keyword));
             binders.add((statement, index) -> statement.setString(index, keyword));
         }
         if (criteria.reportedFrom() != null) {
-            sql.append(" and reported_date >= ?");
+            sql.append(" and i.reported_date >= ?");
             binders.add(
                     (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedFrom()));
         }
         if (criteria.reportedTo() != null) {
-            sql.append(" and reported_date < ?");
+            sql.append(" and i.reported_date < ?");
             binders.add(
                     (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedTo()));
         }
 
-        sql.append(" order by reported_date desc, id desc");
+        sql.append(" order by i.reported_date desc, i.id desc");
 
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql.toString())) {
@@ -150,8 +153,9 @@ public final class JdbcIssueRepository implements IssueRepository {
                     throw new RepositoryException("Issue is already deleted.", null);
                 }
 
+                LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
                 deleteDependencies(connection, issueId);
-                updateIssueStatus(connection, issueId, IssueStatus.DELETED, changedDate);
+                updateIssueStatus(connection, issueId, IssueStatus.DELETED, effectiveChangedDate);
                 insertStatusHistory(
                         connection,
                         issueId,
@@ -159,12 +163,11 @@ public final class JdbcIssueRepository implements IssueRepository {
                         issue.status().name(),
                         IssueStatus.DELETED.name(),
                         message,
-                        changedDate
+                        effectiveChangedDate
                 );
                 connection.commit();
                 connection.setAutoCommit(originalAutoCommit);
-                return findById(issueId)
-                        .orElseThrow(() -> new RepositoryException("Deleted issue was not found.", null));
+                return copyWithStatus(issue, IssueStatus.DELETED, effectiveChangedDate);
             } catch (SQLException | RuntimeException exception) {
                 rollback(connection);
                 connection.setAutoCommit(originalAutoCommit);
@@ -195,7 +198,8 @@ public final class JdbcIssueRepository implements IssueRepository {
                 if (restoreStatus == IssueStatus.DELETED) {
                     throw new RepositoryException("Pre-delete status history must not be DELETED.", null);
                 }
-                updateIssueStatus(connection, issueId, restoreStatus, changedDate);
+                LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
+                updateIssueStatus(connection, issueId, restoreStatus, effectiveChangedDate);
                 insertStatusHistory(
                         connection,
                         issueId,
@@ -203,12 +207,11 @@ public final class JdbcIssueRepository implements IssueRepository {
                         IssueStatus.DELETED.name(),
                         restoreStatus.name(),
                         message,
-                        changedDate
+                        effectiveChangedDate
                 );
                 connection.commit();
                 connection.setAutoCommit(originalAutoCommit);
-                return findById(issueId)
-                        .orElseThrow(() -> new RepositoryException("Restored issue was not found.", null));
+                return copyWithStatus(issue, restoreStatus, effectiveChangedDate);
             } catch (SQLException | RuntimeException exception) {
                 rollback(connection);
                 connection.setAutoCommit(originalAutoCommit);
@@ -350,7 +353,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     private Optional<Issue> findById(Connection connection, long issueId) throws SQLException {
-        String sql = baseSelect() + " where id = ?";
+        String sql = baseSelect() + " where i.id = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, issueId);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -439,7 +442,7 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     private static List<Long> currentDeletedIssueIdsByFifo(Connection connection, long projectId) throws SQLException {
         String sql = """
-                select id
+                select id, changed_date, history_id
                 from (
                     select i.id,
                            h.changed_date,
@@ -485,29 +488,104 @@ public final class JdbcIssueRepository implements IssueRepository {
         return value;
     }
 
+    private static LocalDateTime effectiveChangedDate(LocalDateTime changedDate) {
+        return changedDate == null ? LocalDateTime.now() : changedDate;
+    }
+
+    private static Issue copyWithStatus(Issue issue, IssueStatus status, LocalDateTime updatedAt) {
+        return Issue.fromPersistence(Issue.persistedState(
+                issue.projectId(),
+                issue.title(),
+                issue.description(),
+                issue.getReporter())
+                .id(issue.id())
+                .reportedDate(issue.reportedDate())
+                .priority(issue.priority())
+                .status(status)
+                .assignee(issue.getAssignee())
+                .verifier(issue.getVerifier())
+                .fixer(issue.getFixer())
+                .resolver(issue.getResolver())
+                .updatedAt(updatedAt));
+    }
+
     static Issue mapIssue(ResultSet resultSet) throws SQLException {
-        return new Issue(
-                resultSet.getLong("id"),
+        return Issue.fromPersistence(Issue.persistedState(
                 resultSet.getLong("project_id"),
                 resultSet.getString("title"),
                 resultSet.getString("description"),
-                JdbcSupport.nullableDateTime(resultSet, "reported_date"),
-                Priority.valueOf(resultSet.getString("priority")),
-                IssueStatus.valueOf(resultSet.getString("status")),
-                resultSet.getString("reporter_login_id"),
-                resultSet.getString("assignee_login_id"),
-                resultSet.getString("verifier_login_id"),
-                resultSet.getString("fixer_login_id"),
-                resultSet.getString("resolver_login_id"),
-                JdbcSupport.nullableDateTime(resultSet, "updated_at"));
+                mapRequiredUser(resultSet, "reporter_login_id", "reporter"))
+                .id(resultSet.getLong("id"))
+                .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_date"))
+                .priority(Priority.valueOf(resultSet.getString("priority")))
+                .status(IssueStatus.valueOf(resultSet.getString("status")))
+                .assignee(mapNullableUser(resultSet, "assignee_login_id", "assignee"))
+                .verifier(mapNullableUser(resultSet, "verifier_login_id", "verifier"))
+                .fixer(mapNullableUser(resultSet, "fixer_login_id", "fixer"))
+                .resolver(mapNullableUser(resultSet, "resolver_login_id", "resolver"))
+                .updatedAt(JdbcSupport.nullableDateTime(resultSet, "updated_at")));
     }
 
     private static String baseSelect() {
         return """
-                select id, project_id, title, description, reported_date, priority, status,
-                       reporter_login_id, assignee_login_id, verifier_login_id, fixer_login_id, resolver_login_id, updated_at
-                from issues
+                select i.id, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
+                       i.reporter_login_id, i.assignee_login_id, i.verifier_login_id, i.fixer_login_id,
+                       i.resolver_login_id, i.updated_at,
+                       reporter.password as reporter_password,
+                       reporter.role as reporter_role,
+                       reporter.active as reporter_active,
+                       reporter.created_at as reporter_created_at,
+                       reporter.updated_at as reporter_updated_at,
+                       assignee.password as assignee_password,
+                       assignee.role as assignee_role,
+                       assignee.active as assignee_active,
+                       assignee.created_at as assignee_created_at,
+                       assignee.updated_at as assignee_updated_at,
+                       verifier.password as verifier_password,
+                       verifier.role as verifier_role,
+                       verifier.active as verifier_active,
+                       verifier.created_at as verifier_created_at,
+                       verifier.updated_at as verifier_updated_at,
+                       fixer.password as fixer_password,
+                       fixer.role as fixer_role,
+                       fixer.active as fixer_active,
+                       fixer.created_at as fixer_created_at,
+                       fixer.updated_at as fixer_updated_at,
+                       resolver.password as resolver_password,
+                       resolver.role as resolver_role,
+                       resolver.active as resolver_active,
+                       resolver.created_at as resolver_created_at,
+                       resolver.updated_at as resolver_updated_at
+                from issues i
+                join users reporter on reporter.login_id = i.reporter_login_id
+                left join users assignee on assignee.login_id = i.assignee_login_id
+                left join users verifier on verifier.login_id = i.verifier_login_id
+                left join users fixer on fixer.login_id = i.fixer_login_id
+                left join users resolver on resolver.login_id = i.resolver_login_id
                 """;
+    }
+
+    private static User mapRequiredUser(ResultSet resultSet, String loginIdColumn, String prefix) throws SQLException {
+        User user = mapNullableUser(resultSet, loginIdColumn, prefix);
+        if (user == null) {
+            throw new SQLException("Required issue user was not joined: " + loginIdColumn);
+        }
+        return user;
+    }
+
+    private static User mapNullableUser(ResultSet resultSet, String loginIdColumn, String prefix) throws SQLException {
+        String loginId = resultSet.getString(loginIdColumn);
+        if (loginId == null || loginId.isBlank()) {
+            return null;
+        }
+        return new User(
+                loginId,
+                resultSet.getString(prefix + "_password"),
+                Role.valueOf(resultSet.getString(prefix + "_role")),
+                resultSet.getInt(prefix + "_active") == 1,
+                JdbcSupport.nullableDateTime(resultSet, prefix + "_created_at"),
+                JdbcSupport.nullableDateTime(resultSet, prefix + "_updated_at")
+        );
     }
 
     @FunctionalInterface

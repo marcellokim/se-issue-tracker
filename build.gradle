@@ -185,14 +185,8 @@ tasks.register('auditAutomation', Exec) {
     environment "PYTHONUTF8", "1"
     environment "PYTHONIOENCODING", "UTF-8"
 
-    // 스크립트 자체 버그(NoneType 등)로 인한 빌드 중단 방지
-    ignoreExitValue = true
-
-    doLast {
-        if (executionResult.get().exitValue != 0) {
-            println "> [알림] auditAutomation 규칙 검사에서 경고가 발견되었으나 작업을 계속합니다."
-        }
-    }
+    // 자동화 감사 실패 시 Gradle check도 실패하게 둔다.
+    ignoreExitValue = false
     commandLine pythonExecutable.get(), 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
 }
 

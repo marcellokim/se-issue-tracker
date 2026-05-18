@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 class AuthenticationServiceTest {
 
     private static final String ADMIN_PASSWORD = "DemoLocalAdmin!";
+    private static final PasswordHasher PASSWORD_HASHER = new PasswordHasher();
 
     @Test
     @DisplayName("accepts matching seeded admin credentials")
@@ -64,7 +66,7 @@ class AuthenticationServiceTest {
 
     private static User user(String loginId, String password, Role role, boolean active) {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
-        return new User(loginId, password, role, active, timestamp, timestamp);
+        return new User(loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);
     }
 
     private static final class FakeUserRepository implements UserRepository {
@@ -78,8 +80,8 @@ class AuthenticationServiceTest {
         }
 
         @Override
-        public Optional<User> findById(String loginId) {
-            return findByLoginId(loginId);
+        public Optional<User> findById(String userId) {
+            return findByLoginId(userId);
         }
 
         @Override

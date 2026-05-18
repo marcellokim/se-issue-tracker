@@ -96,18 +96,19 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
-                  and (? is null or trunc(reported_date) >= ?)
-                  and (? is null or trunc(reported_date) <= ?)
+                  and (? is null or reported_date >= ?)
+                  and (? is null or reported_date < ?)
                 group by trunc(reported_date)
                 order by reported_day
                 """;
         try (Connection connection = connectionProvider.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
             setNullableDate(statement, 2, fromInclusive);
             setNullableDate(statement, 3, fromInclusive);
-            setNullableDate(statement, 4, toInclusive);
-            setNullableDate(statement, 5, toInclusive);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
             try (ResultSet resultSet = statement.executeQuery()) {
                 Map<LocalDate, Integer> countByDate = new HashMap<>();
                 while (resultSet.next()) {

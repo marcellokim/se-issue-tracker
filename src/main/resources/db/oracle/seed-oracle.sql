@@ -130,80 +130,98 @@ begin
    merge into user_credentials target
    using (
       select 'admin' as login_id,
-             'DemoLocalAdmin!' as password
+             '4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt,
+             'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash
         from dual
       union all
       select 'pl1',
-             'DemoLocalPl1!'
+             '5158aa2245b0cd6d35eb50acb51f90f0',
+             'bfc0e50ac607c99ea9e0c30f931c059832046f2190b975c51f715d5b4e08eb48'
         from dual
       union all
       select 'pl2',
-             'DemoLocalPl2!'
+             'b6cff8e992a228c0223c6e19c4513254',
+             'e221f253a29d9201e759a693910f90f22fb66b2c48d922549c0c10c159efb44d'
         from dual
       union all
       select 'dev1',
-             'DemoLocalDev1!'
+             '780f2e9102a5710b4ab9d439b04fbbb2',
+             '6a809c6135282018f27e9ab49454553995b198b5d37c8df591a59f36c1e9aa27'
         from dual
       union all
       select 'dev2',
-             'DemoLocalDev2!'
+             'e24fd4c7135f6697853d273c58b6012a',
+             '6b15ca53ee39f47d37342723a49d2f858e8cce1c0edb6e671bbd79d90feea4ac'
         from dual
       union all
       select 'dev3',
-             'DemoLocalDev3!'
+             '51f481f3ca01e49494ac97c8433cbadc',
+             'ebf5e8bc15550305b63ebd622ab586f987608c444ed5c5984b351d161f41c1dd'
         from dual
       union all
       select 'dev4',
-             'DemoLocalDev4!'
+             '91d41e978ac3797be9276d041d1198e8',
+             '068c973da29e3b607fc630b0213f5b5a62db55f249567d88d955bc8bc052aee0'
         from dual
       union all
       select 'dev5',
-             'DemoLocalDev5!'
+             '991d64bb66d214708d91a3a956eb1940',
+             '6424c8701be088e670a51c1ea227af4806484e2099e70765ba94c71310688421'
         from dual
       union all
       select 'dev6',
-             'DemoLocalDev6!'
+             'fbcea9ca91363148673e2967942ff76d',
+             'b69dc0d1eaa1bb08e849144a49562e9ffa5b5e6564a8d96dec57bf3cd673b1d7'
         from dual
       union all
       select 'dev7',
-             'DemoLocalDev7!'
+             '02d38b80e8c06c5b02d9f4a8b512730b',
+             '529f4ff49d6cb0fdb2825f38efda20573235e4f971bc6e15d47ced71a590e2b6'
         from dual
       union all
       select 'dev8',
-             'DemoLocalDev8!'
+             'a72916048583855e543c75fdd70f1317',
+             '78ef14d74c09a5f61f8989902f3182c7f7970f32c3f69afe4802c662f9fd177c'
         from dual
       union all
       select 'dev9',
-             'DemoLocalDev9!'
+             'c43ecfac55a533aa4e5ca7233492d793',
+             'a1ce90140e1ee9931a8ab64346e40b26748305fa559eee7f70ad2d647f43c9fd'
         from dual
       union all
       select 'dev10',
-             'DemoLocalDev10!'
+             '41ffe9aa08cf84ab48c1758bf5e64a63',
+             'ff9489f3b4b0522a82b96229d69fbdd0f123f98d6d695868cce0dcebf2bec0d5'
         from dual
       union all
       select 'tester1',
-             'DemoLocalTester1!'
+             '7fe69942c0dd8b9a8c7d0109e691c13e',
+             'c82a56579bdb85cc0eb948ddf2bbeba6b2c106ac59f8a6a178128134debfb6c4'
         from dual
       union all
       select 'tester2',
-             'DemoLocalTester2!'
+             '92b65790d122706e584563b840c92de0',
+             'da02203ce16bb24ecbbdf77e752855108a3a0d554175c497f3b464071109bc79'
         from dual
       union all
       select 'tester3',
-             'DemoLocalTester3!'
+             'c33fa6ae64c6397d5ae55b8e8fd826bf',
+             '4c8ad45e23c4e89400a0677ca35d29c22520016df774e57287cab55effacf929'
         from dual
       union all
       select 'tester4',
-             'DemoLocalTester4!'
+             'd92a5ba7508931ff9d919cdcd9b42ae6',
+             '50ef0e5db933166ffbb158dcaa8fcb9116b60dfa5a7aeb7272d8f5f959ff44d5'
         from dual
       union all
       select 'tester5',
-             'DemoLocalTester5!'
+             '410692becb9135a848939b8419359965',
+             '3fbd6f0569669a2b6a072648cd26a8a5d5f18082b7146392e2b82866c07b9e96'
         from dual
    ) source on ( target.login_id = source.login_id )
    when matched then update
-   set target.password_salt = source.login_id,
-       target.password_hash = lower(standard_hash(source.login_id || ':' || source.password, 'SHA256')),
+   set target.password_salt = source.password_salt,
+       target.password_hash = source.password_hash,
        target.updated_at = current_timestamp
    when not matched then
    insert (
@@ -212,8 +230,8 @@ begin
       password_hash )
    values
       ( source.login_id,
-        source.login_id,
-        lower(standard_hash(source.login_id || ':' || source.password, 'SHA256')) );
+        source.password_salt,
+        source.password_hash );
 end;
 /
 begin

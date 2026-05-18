@@ -196,20 +196,15 @@ class OracleRepositoryIntegrationTest {
         var admin = repositories.users().findById("admin").orElseThrow();
         purgeIssuesByTitle(project.id(), "Temporary deleted issue for repository policy test");
 
-        Issue deletedIssue = repositories.issues().save(new Issue(
-                0L,
+        Issue deletedIssue = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                 project.id(),
                 "Temporary deleted issue for repository policy test",
                 "Deleted issues should stay out of normal browse and statistics.",
-                LocalDateTime.now(),
-                Priority.TRIVIAL,
-                IssueStatus.DELETED,
-                admin.loginId(),
-                null,
-                null,
-                null,
-                null,
-                LocalDateTime.now()));
+                admin)
+                .reportedDate(LocalDateTime.now())
+                .priority(Priority.TRIVIAL)
+                .status(IssueStatus.DELETED)
+                .updatedAt(LocalDateTime.now())));
 
         try {
             assertFalse(repositories.issues().findByProject(project.id()).stream()
@@ -305,20 +300,15 @@ class OracleRepositoryIntegrationTest {
             assertFalse(repositories.projects().findParticipants(project.id()).stream()
                     .anyMatch(member -> member.userId().equals("dev1")));
 
-            issue = repositories.issues().save(new Issue(
-                    0L,
+            issue = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                     project.id(),
                     uniqueId("crud_project_composition_issue"),
                     "Issue should be removed when its owning project is deleted.",
-                    LocalDateTime.now(),
-                    Priority.MINOR,
-                    IssueStatus.NEW,
-                    "dev1",
-                    null,
-                    null,
-                    null,
-                    null,
-                    LocalDateTime.now()));
+                    user("dev1"))
+                    .reportedDate(LocalDateTime.now())
+                    .priority(Priority.MINOR)
+                    .status(IssueStatus.NEW)
+                    .updatedAt(LocalDateTime.now())));
 
             long issueId = issue.id();
             repositories.projects().addParticipant(project.id(), "dev1");
@@ -347,20 +337,15 @@ class OracleRepositoryIntegrationTest {
         Issue saved = null;
 
         try {
-            saved = repositories.issues().save(new Issue(
-                    0L,
+            saved = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                     project.id(),
                     title,
                     "Issue repository CRUD test.",
-                    LocalDateTime.now(),
-                    Priority.MINOR,
-                    IssueStatus.NEW,
-                    "dev1",
-                    null,
-                    null,
-                    null,
-                    null,
-                    LocalDateTime.now()));
+                    user("dev1"))
+                    .reportedDate(LocalDateTime.now())
+                    .priority(Priority.MINOR)
+                    .status(IssueStatus.NEW)
+                    .updatedAt(LocalDateTime.now())));
 
             assertEquals(title, repositories.issues().findById(saved.id()).orElseThrow().title());
             long savedIssueId = saved.id();
@@ -368,38 +353,36 @@ class OracleRepositoryIntegrationTest {
                     project.id(), IssueStatus.NEW, Priority.MINOR, "dev1", null, null, "crud_issue",
                     null, null, false)).stream().anyMatch(issue -> issue.id() == savedIssueId));
 
-            Issue assigned = repositories.issues().save(new Issue(
-                    saved.id(),
+            Issue assigned = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                     saved.projectId(),
                     saved.title(),
                     "Issue repository CRUD test updated.",
-                    saved.reportedDate(),
-                    Priority.MAJOR,
-                    IssueStatus.ASSIGNED,
-                    saved.reporterId(),
-                    "dev2",
-                    "tester1",
-                    null,
-                    null,
-                    LocalDateTime.now()));
+                    saved.getReporter())
+                    .id(saved.id())
+                    .reportedDate(saved.reportedDate())
+                    .priority(Priority.MAJOR)
+                    .status(IssueStatus.ASSIGNED)
+                    .assignee(user("dev2"))
+                    .verifier(user("tester1"))
+                    .updatedAt(LocalDateTime.now())));
 
             assertEquals(IssueStatus.ASSIGNED, assigned.status());
             assertEquals("dev2", assigned.assigneeId());
 
-            Issue deleted = repositories.issues().save(new Issue(
-                    assigned.id(),
+            Issue deleted = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                     assigned.projectId(),
                     assigned.title(),
                     assigned.description(),
-                    assigned.reportedDate(),
-                    assigned.priority(),
-                    IssueStatus.DELETED,
-                    assigned.reporterId(),
-                    assigned.assigneeId(),
-                    assigned.verifierId(),
-                    assigned.fixerId(),
-                    assigned.resolverId(),
-                    LocalDateTime.now()));
+                    assigned.getReporter())
+                    .id(assigned.id())
+                    .reportedDate(assigned.reportedDate())
+                    .priority(assigned.priority())
+                    .status(IssueStatus.DELETED)
+                    .assignee(assigned.getAssignee())
+                    .verifier(assigned.getVerifier())
+                    .fixer(assigned.getFixer())
+                    .resolver(assigned.getResolver())
+                    .updatedAt(LocalDateTime.now())));
 
             assertFalse(repositories.issues().findByProject(project.id()).stream()
                     .anyMatch(issue -> issue.id() == deleted.id()));
@@ -548,20 +531,17 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            issue = repositories.issues().save(new Issue(
-                    0L,
+            issue = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                     project.id(),
                     uniqueId("crud_stats_issue"),
                     "Resolved issue for statistics and recommendation CRUD test.",
-                    LocalDateTime.now(),
-                    Priority.CRITICAL,
-                    IssueStatus.RESOLVED,
-                    "tester5",
-                    null,
-                    null,
-                    "dev10",
-                    "tester5",
-                    LocalDateTime.now()));
+                    user("tester5"))
+                    .reportedDate(LocalDateTime.now())
+                    .priority(Priority.CRITICAL)
+                    .status(IssueStatus.RESOLVED)
+                    .fixer(user("dev10"))
+                    .resolver(user("tester5"))
+                    .updatedAt(LocalDateTime.now())));
 
             assertEquals(resolvedBefore + 1, repositories.statistics().countByStatus(project.id())
                     .getOrDefault(IssueStatus.RESOLVED, 0));
@@ -613,20 +593,21 @@ class OracleRepositoryIntegrationTest {
     }
 
     private static Issue createIssue(long projectId, String title) {
-        return repositories.issues().save(new Issue(
-                0L,
+        return repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                 projectId,
                 title,
                 "Repository CRUD support issue.",
-                LocalDateTime.now(),
-                Priority.MINOR,
-                IssueStatus.ASSIGNED,
-                "dev1",
-                "dev1",
-                "tester1",
-                null,
-                null,
-                LocalDateTime.now()));
+                user("dev1"))
+                .reportedDate(LocalDateTime.now())
+                .priority(Priority.MINOR)
+                .status(IssueStatus.ASSIGNED)
+                .assignee(user("dev1"))
+                .verifier(user("tester1"))
+                .updatedAt(LocalDateTime.now())));
+    }
+
+    private static User user(String loginId) {
+        return repositories.users().findById(loginId).orElseThrow();
     }
 
     private static int completedIssueCountForDev(String loginId, long projectId) {
@@ -647,10 +628,6 @@ class OracleRepositoryIntegrationTest {
 
     private static String uniqueId(String prefix) {
         return prefix + "_" + Long.toString(System.nanoTime(), 36);
-    }
-
-    private static void deleteProject(long projectId) {
-        repositories.projects().deleteById(projectId);
     }
 
     private static void deleteUser(String loginId) {

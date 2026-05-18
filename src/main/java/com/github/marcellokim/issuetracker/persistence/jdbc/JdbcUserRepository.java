@@ -29,8 +29,8 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<User> findById(String loginId) {
-        return findByLoginId(loginId);
+    public Optional<User> findById(String userId) {
+        return findByLoginId(userId);
     }
 
     @Override

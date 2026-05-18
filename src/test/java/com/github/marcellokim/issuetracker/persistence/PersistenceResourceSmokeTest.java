@@ -49,7 +49,8 @@ class PersistenceResourceSmokeTest {
         assertTrue(seed.contains("'admin' as login_id"));
         assertTrue(seed.contains("'demolocaladmin!' as password"));
         assertTrue(seed.contains("merge into user_credentials"));
-        assertTrue(seed.contains("standard_hash(source.login_id || ':' || source.password, 'sha256')"));
+        assertTrue(seed.contains("'4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt"));
+        assertTrue(seed.contains("'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash"));
         assertFalse(usersTable.contains("password_hash"));
         assertFalse(usersTable.contains("name varchar2"));
         assertFalse(seed.contains("target.password = source.password"));

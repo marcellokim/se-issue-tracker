@@ -7,7 +7,11 @@ import java.util.Optional;
 
 public interface UserRepository {
 
-    Optional<User> findById(String loginId);
+    /**
+     * Finds a user by the domain identity. In the current Oracle schema, userId is
+     * persisted in USERS.LOGIN_ID because login_id is the user primary key.
+     */
+    Optional<User> findById(String userId);
 
     Optional<User> findByLoginId(String loginId);
 

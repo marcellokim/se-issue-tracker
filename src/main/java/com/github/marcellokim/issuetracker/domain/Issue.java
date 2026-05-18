@@ -37,36 +37,27 @@ public class Issue {
     private final List<IssueDependency> blockingDependencies = new ArrayList<>();
     private final List<IssueDependency> blockedByDependencies = new ArrayList<>();
 
-    public Issue(
-            long id,
-            long projectId,
-            String title,
-            String description,
-            LocalDateTime reportedDate,
-            Priority priority,
-            IssueStatus status,
-            String reporterId,
-            String assigneeId,
-            String verifierId,
-            String fixerId,
-            String resolverId,
-            LocalDateTime updatedAt
-    ) {
-        this.id = id;
-        this.projectId = projectId;
-        this.issueId = Long.toString(id);
-        this.title = requireText(title, "title");
-        this.description = requireText(description, "description");
-        this.reportedDate = reportedDate;
-        this.priority = Objects.requireNonNull(priority, "priority must not be null");
-        this.status = Objects.requireNonNull(status, "status must not be null");
-        this.reporterId = requireText(reporterId, "reporterId");
-        this.assigneeId = assigneeId;
-        this.verifierId = verifierId;
-        this.fixerId = fixerId;
-        this.resolverId = resolverId;
-        this.updatedAt = updatedAt;
-        this.reporter = null;
+    private Issue(PersistedState state) {
+        Objects.requireNonNull(state, "state must not be null");
+        this.id = state.id;
+        this.projectId = state.projectId;
+        this.issueId = Long.toString(state.id);
+        this.title = requireText(state.title, "title");
+        this.description = requireText(state.description, "description");
+        this.reportedDate = state.reportedDate;
+        this.priority = Objects.requireNonNull(state.priority, "priority must not be null");
+        this.status = Objects.requireNonNull(state.status, "status must not be null");
+        this.reporter = Objects.requireNonNull(state.reporter, "reporter must not be null");
+        this.assignee = state.assignee;
+        this.verifier = state.verifier;
+        this.fixer = state.fixer;
+        this.resolver = state.resolver;
+        this.reporterId = reporter.loginId();
+        this.assigneeId = loginIdOrNull(assignee);
+        this.verifierId = loginIdOrNull(verifier);
+        this.fixerId = loginIdOrNull(fixer);
+        this.resolverId = loginIdOrNull(resolver);
+        this.updatedAt = state.updatedAt;
     }
 
     private Issue(
@@ -100,6 +91,14 @@ public class Issue {
             LocalDateTime reportedDate
     ) {
         return new Issue(issueId, title, description, priority, reporter, reportedDate);
+    }
+
+    public static PersistedState persistedState(long projectId, String title, String description, User reporter) {
+        return new PersistedState(projectId, title, description, reporter);
+    }
+
+    public static Issue fromPersistence(PersistedState state) {
+        return new Issue(state);
     }
 
     public long id() {
@@ -422,5 +421,78 @@ public class Issue {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return value;
+    }
+
+    private static String loginIdOrNull(User user) {
+        return user == null ? null : user.loginId();
+    }
+
+    public static final class PersistedState {
+
+        private long id;
+        private final long projectId;
+        private final String title;
+        private final String description;
+        private final User reporter;
+        private LocalDateTime reportedDate;
+        private Priority priority = Priority.MAJOR;
+        private IssueStatus status = IssueStatus.NEW;
+        private User assignee;
+        private User verifier;
+        private User fixer;
+        private User resolver;
+        private LocalDateTime updatedAt;
+
+        private PersistedState(long projectId, String title, String description, User reporter) {
+            this.projectId = projectId;
+            this.title = requireText(title, "title");
+            this.description = requireText(description, "description");
+            this.reporter = Objects.requireNonNull(reporter, "reporter must not be null");
+        }
+
+        public PersistedState id(long id) {
+            this.id = id;
+            return this;
+        }
+
+        public PersistedState reportedDate(LocalDateTime reportedDate) {
+            this.reportedDate = reportedDate;
+            return this;
+        }
+
+        public PersistedState priority(Priority priority) {
+            this.priority = Objects.requireNonNull(priority, "priority must not be null");
+            return this;
+        }
+
+        public PersistedState status(IssueStatus status) {
+            this.status = Objects.requireNonNull(status, "status must not be null");
+            return this;
+        }
+
+        public PersistedState assignee(User assignee) {
+            this.assignee = assignee;
+            return this;
+        }
+
+        public PersistedState verifier(User verifier) {
+            this.verifier = verifier;
+            return this;
+        }
+
+        public PersistedState fixer(User fixer) {
+            this.fixer = fixer;
+            return this;
+        }
+
+        public PersistedState resolver(User resolver) {
+            this.resolver = resolver;
+            return this;
+        }
+
+        public PersistedState updatedAt(LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
     }
 }
