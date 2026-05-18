@@ -201,10 +201,12 @@ class RepositoryConventionsSmokeTest {
     void openPrPreparesIssueStatusBeforeCreatingPullRequest() throws IOException {
         var text = Files.readString(Path.of("scripts/open-pr.sh"));
 
-        var preCreateIssueStatus = text.indexOf("[준비] PR 생성 전 이슈 #$issue_number 상태 라벨을 review로 이동");
-        var preCreateProjectSync = text.indexOf("[준비] PR 생성 전 GitHub 프로젝트 상태 정렬");
-        var createPullRequest = text.indexOf("[3/3] GitHub PR 생성");
+        var newPullRequestBody = text.indexOf("body=\"## 요약");
+        var preCreateIssueStatus = text.indexOf("\nmark_issue_review\n", newPullRequestBody);
+        var preCreateProjectSync = text.indexOf("\nsync_project_board\n", preCreateIssueStatus);
+        var createPullRequest = text.indexOf("gh pr create --base dev", newPullRequestBody);
 
+        assertTrue(newPullRequestBody >= 0, "새 PR 생성 본문 정의가 없습니다.");
         assertTrue(preCreateIssueStatus >= 0, "PR 생성 전 이슈 상태 라벨 정렬 단계가 없습니다.");
         assertTrue(preCreateProjectSync >= 0, "PR 생성 전 프로젝트 상태 정렬 단계가 없습니다.");
         assertTrue(createPullRequest >= 0, "PR 생성 단계가 없습니다.");
@@ -216,6 +218,26 @@ class RepositoryConventionsSmokeTest {
                 preCreateProjectSync < createPullRequest,
                 "프로젝트 상태 정렬은 pull_request 체크가 시작되기 전에 끝나야 합니다."
         );
+        assertTrue(
+                preCreateIssueStatus < preCreateProjectSync,
+                "이슈 상태 라벨 정렬 후 프로젝트 상태 정렬이 수행되어야 합니다."
+        );
+    }
+
+    @Test
+    @DisplayName("표준 PR 스크립트는 PR 생성 실패 시 사전 변경한 이슈 상태를 복구한다")
+    void openPrRestoresIssueStatusWhenPullRequestCreationFails() throws IOException {
+        var text = Files.readString(Path.of("scripts/open-pr.sh"));
+
+        var previousStatusCapture = text.indexOf("previous_status_labels=\"$(current_status_labels)\"");
+        var createPullRequestFailureGuard = text.indexOf("if ! pr_url=\"$(gh pr create --base dev");
+        var restoreIssueStatus = text.indexOf("restore_issue_status_labels \"$previous_status_labels\"", createPullRequestFailureGuard);
+        var restoreProjectStatus = text.indexOf("sync_project_board", restoreIssueStatus);
+
+        assertTrue(previousStatusCapture >= 0, "PR 생성 전 기존 이슈 상태 라벨을 저장해야 합니다.");
+        assertTrue(createPullRequestFailureGuard >= 0, "gh pr create 실패를 명시적으로 처리해야 합니다.");
+        assertTrue(restoreIssueStatus > createPullRequestFailureGuard, "PR 생성 실패 시 이슈 상태 라벨을 복구해야 합니다.");
+        assertTrue(restoreProjectStatus > restoreIssueStatus, "이슈 상태 복구 후 프로젝트 상태를 다시 정렬해야 합니다.");
     }
 
     record ScriptExpectation(String relativePath, String expectedText) {
