@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,6 +35,7 @@ REQUIRED_FILES = [
     ".github/workflows/add-to-project.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/gradle.yml",
+    ".github/workflows/pr-metadata.yml",
     ".github/workflows/project-maintenance.yml",
     ".github/workflows/workflow-guard.yml",
     "config/github/labels.json",
@@ -126,6 +128,25 @@ def gh_json(args: list[str]) -> object:
 
 def gh_available() -> bool:
     return run(["gh", "auth", "status"]).returncode == 0
+
+
+def parse_issue_number_from_branch(branch: str) -> int | None:
+    match = re.match(r"^(?:feat|fix|docs|test|ci|chore|refactor|feature)/([0-9]+)-", branch)
+    return int(match.group(1)) if match else None
+
+
+def parse_issue_numbers_from_body(body: str) -> list[int]:
+    numbers: list[int] = []
+    pattern = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?):?\s+#([0-9]+)", re.IGNORECASE)
+    for match in pattern.finditer(body):
+        number = int(match.group(1))
+        if number not in numbers:
+            numbers.append(number)
+    return numbers
+
+
+def is_bot_login(login: str) -> bool:
+    return login.endswith("[bot]") or login in {"dependabot", "renovate"}
 
 
 def project_number_from_url(project_url: str) -> int | None:
@@ -412,6 +433,20 @@ def item_status_from_labels(labels: list[str], state: str) -> str:
     return "대기"
 
 
+def pr_project_status(pr: dict[str, object]) -> str:
+    if pr.get("state") != "OPEN":
+        return "완료"
+    if pr.get("isDraft"):
+        return "진행 중"
+    return "리뷰 중"
+
+
+def print_github_errors(failures: list[str]) -> int:
+    for failure in failures:
+        print(f"::error::{failure}", file=sys.stderr)
+    return 1
+
+
 def ensure_project_item(context: ProjectContext, url: str, dry_run: bool, changes: list[str]) -> dict[str, object] | None:
     if url in context.item_by_url:
         return context.item_by_url[url]
@@ -430,6 +465,149 @@ def ensure_project_item(context: ProjectContext, url: str, dry_run: bool, change
     context.item_by_url[url] = item
     changes.append(f"add item: {url}")
     return item
+
+
+def append_issue_link_if_missing(pr_number: int, pr: dict[str, object], issue_number: int, repo: str, dry_run: bool, changes: list[str]) -> None:
+    body = str(pr.get("body") or "")
+    if issue_number in parse_issue_numbers_from_body(body):
+        return
+
+    if dry_run:
+        changes.append(f"DRY-RUN PR #{pr_number} body에 Closes #{issue_number} 추가")
+        return
+
+    if "## 관련 이슈" in body:
+        new_body = body.rstrip() + f"\n- Closes #{issue_number}\n"
+    else:
+        section = f"## 관련 이슈\n- Closes #{issue_number}\n"
+        new_body = (body.rstrip() + "\n\n" + section) if body.strip() else section
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as body_file:
+        body_file.write(new_body)
+        body_file_path = body_file.name
+    try:
+        run(["gh", "pr", "edit", str(pr_number), "--repo", repo, "--body-file", body_file_path], check=True)
+    finally:
+        Path(body_file_path).unlink(missing_ok=True)
+    changes.append(f"PR #{pr_number} body에 Closes #{issue_number} 추가")
+
+
+def sync_pr_assignees(
+    pr_number: int,
+    repo: str,
+    pr: dict[str, object],
+    issue: dict[str, object],
+    dry_run: bool,
+    changes: list[str],
+    failures: list[str],
+) -> None:
+    current = {assignee["login"] for assignee in pr.get("assignees", [])}
+    desired = {assignee["login"] for assignee in issue.get("assignees", [])}
+    author = pr.get("author") or {}
+    author_login = str(author.get("login") or "")
+    if not desired and author_login and not is_bot_login(author_login):
+        desired.add(author_login)
+
+    missing = sorted(desired - current)
+    if not missing:
+        if current:
+            return
+        failures.append(f"PR #{pr_number} assignee를 정할 수 없습니다. linked issue assignee 또는 PR 작성자를 확인하세요.")
+        return
+
+    if dry_run:
+        changes.append(f"DRY-RUN PR #{pr_number} assignee 추가: {', '.join(missing)}")
+        return
+
+    run(["gh", "pr", "edit", str(pr_number), "--repo", repo, "--add-assignee", ",".join(missing)], check=True)
+    changes.append(f"PR #{pr_number} assignee 추가: {', '.join(missing)}")
+
+
+def sync_pr_milestone(
+    pr_number: int,
+    repo: str,
+    pr: dict[str, object],
+    issue: dict[str, object],
+    dry_run: bool,
+    changes: list[str],
+    failures: list[str],
+) -> None:
+    current = pr.get("milestone") or {}
+    current_title = current.get("title") if isinstance(current, dict) else None
+    issue_milestone = issue.get("milestone") or {}
+    desired_title = issue_milestone.get("title") if isinstance(issue_milestone, dict) else None
+    if not desired_title:
+        failures.append(f"linked issue #{issue['number']} milestone이 없어 PR #{pr_number} milestone을 자동 지정할 수 없습니다.")
+        return
+
+    if current_title == desired_title:
+        return
+
+    if dry_run:
+        changes.append(f"DRY-RUN PR #{pr_number} milestone 설정: {desired_title}")
+        return
+
+    run(["gh", "pr", "edit", str(pr_number), "--repo", repo, "--milestone", str(desired_title)], check=True)
+    changes.append(f"PR #{pr_number} milestone 설정: {desired_title}")
+
+
+def sync_single_pr_metadata(args: argparse.Namespace) -> int:
+    repo = args.repo or detect_repo()
+    owner = args.owner or repo.split("/", 1)[0]
+    if not gh_available():
+        raise SystemExit("GitHub CLI 인증이 필요합니다: gh auth login")
+
+    pr = gh_json([
+        "pr", "view", str(args.pr),
+        "--repo", repo,
+        "--json", "number,title,body,author,headRefName,assignees,milestone,projectItems,closingIssuesReferences,url,state,isDraft",
+    ])
+    pr_number = int(pr["number"])
+    author = pr.get("author") or {}
+    author_login = str(author.get("login") or "")
+    if args.skip_bots and is_bot_login(author_login):
+        if not args.quiet:
+            print(f"bot PR 메타데이터 자동 보정 건너뜀: PR #{pr_number} author={author_login}")
+        return 0
+
+    linked_numbers = [int(issue["number"]) for issue in pr.get("closingIssuesReferences", [])]
+    linked_numbers.extend(parse_issue_numbers_from_body(str(pr.get("body") or "")))
+    if not linked_numbers:
+        branch_issue = parse_issue_number_from_branch(str(pr.get("headRefName") or ""))
+        if branch_issue is not None:
+            linked_numbers.append(branch_issue)
+    linked_numbers = list(dict.fromkeys(linked_numbers))
+
+    failures: list[str] = []
+    changes: list[str] = []
+    if not linked_numbers:
+        failures.append(f"PR #{pr_number} linked issue를 찾을 수 없습니다. 브랜치명을 feat/<issue>-<slug>로 만들거나 PR 본문에 Closes #N을 추가하세요.")
+    if len(linked_numbers) > 1:
+        failures.append(f"PR #{pr_number} linked issue 후보가 여러 개입니다: {linked_numbers}. 하나의 대표 이슈만 남겨주세요.")
+
+    if failures:
+        return print_github_errors(failures)
+
+    issue_number = linked_numbers[0]
+    issue = gh_json(["issue", "view", str(issue_number), "--repo", repo, "--json", "number,title,assignees,milestone,url"])
+
+    append_issue_link_if_missing(pr_number, pr, issue_number, repo, args.dry_run, changes)
+    sync_pr_assignees(pr_number, repo, pr, issue, args.dry_run, changes, failures)
+    sync_pr_milestone(pr_number, repo, pr, issue, args.dry_run, changes, failures)
+
+    context, _ = load_project_context(repo, owner, args.project_number, args.project_title)
+    item = ensure_project_item(context, str(pr["url"]), args.dry_run, changes)
+    if item:
+        set_project_status(context, item, pr_project_status(pr), f"PR #{pr_number} {pr['title']}", dry_run=args.dry_run, quiet=args.quiet, changes=changes)
+
+    if failures:
+        return print_github_errors(failures)
+
+    if changes:
+        for change in changes:
+            print(f"- {change}")
+    elif not args.quiet:
+        print(f"PR #{pr_number} 메타데이터 변경 없음")
+    return 0
 
 
 def set_project_status(
@@ -474,9 +652,9 @@ def sync_issue_items(context: ProjectContext, repo: str, *, dry_run: bool, quiet
 
 
 def sync_pr_items(context: ProjectContext, repo: str, *, dry_run: bool, quiet: bool, changes: list[str]) -> None:
-    prs = gh_json(["pr", "list", "--repo", repo, "--state", "all", "--limit", "100", "--json", "number,title,state,url"])
+    prs = gh_json(["pr", "list", "--repo", repo, "--state", "all", "--limit", "100", "--json", "number,title,state,isDraft,url"])
     for pr in prs:
-        expected = "리뷰 중" if pr["state"] == "OPEN" else "완료"
+        expected = pr_project_status(pr)
         if pr["state"] != "OPEN" and pr["url"] not in context.item_by_url:
             continue
         item = ensure_project_item(context, pr["url"], dry_run, changes)
@@ -527,6 +705,19 @@ def main() -> int:
     mode.add_argument("--dry-run", action="store_true", default=True, help="변경 예정 내용만 출력합니다.")
     sync_parser.add_argument("--quiet", action="store_true")
     sync_parser.set_defaults(func=sync_project)
+
+    pr_parser = subparsers.add_parser("sync-pr-metadata", help="PR linked issue, assignee, milestone, project metadata를 자동 보정합니다.")
+    pr_parser.add_argument("--pr", type=int, required=True, help="PR 번호")
+    pr_parser.add_argument("--repo", help="owner/repo. 기본값은 origin remote입니다.")
+    pr_parser.add_argument("--owner", help="프로젝트 owner. 기본값은 repo owner입니다.")
+    pr_parser.add_argument("--project-number", type=int, help="GitHub 프로젝트 번호")
+    pr_parser.add_argument("--project-title", default=PROJECT_TITLE)
+    pr_parser.add_argument("--skip-bots", action="store_true", help="bot 작성 PR은 이슈 기반 메타데이터 강제를 건너뜁니다.")
+    mode = pr_parser.add_mutually_exclusive_group()
+    mode.add_argument("--apply", action="store_false", dest="dry_run", help="실제로 PR 메타데이터를 수정합니다.")
+    mode.add_argument("--dry-run", action="store_true", default=True, help="변경 예정 내용만 출력합니다.")
+    pr_parser.add_argument("--quiet", action="store_true")
+    pr_parser.set_defaults(func=sync_single_pr_metadata)
 
     args = parser.parse_args()
     return args.func(args)

@@ -1,0 +1,64 @@
+name: PR 메타데이터 정렬
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+concurrency:
+  group: pr-metadata-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  pr-metadata:
+    name: PR 메타데이터 정렬
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: 설정 확인
+        env:
+          PROJECT_URL: ${{ vars.PROJECT_URL }}
+          ADD_TO_PROJECT_PAT: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        run: |
+          if [ -z "${PROJECT_URL}" ]; then
+            echo "::error::PROJECT_URL 변수가 없어 PR 프로젝트 항목을 자동 보정할 수 없습니다."
+            exit 1
+          fi
+          if [ -z "${ADD_TO_PROJECT_PAT}" ]; then
+            echo "::error::ADD_TO_PROJECT_PAT secret이 없어 PR assignee/milestone/project를 자동 보정할 수 없습니다."
+            exit 1
+          fi
+
+      - name: GraphQL rate-limit 확인
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        run: |
+          if ! graphql_remaining="$(gh api rate_limit --jq '.resources.graphql.remaining')"; then
+            echo "::error::GitHub rate-limit 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
+            exit 1
+          fi
+          min_graphql_remaining=100
+          if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
+            echo "::error::GitHub GraphQL 잔여량=${graphql_remaining}; PR 메타데이터 자동 보정을 중단합니다."
+            exit 1
+          fi
+
+      - name: PR 메타데이터 자동 보정
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          PROJECT_URL: ${{ vars.PROJECT_URL }}
+        run: >
+          python3 scripts/lib/project_maintenance.py sync-pr-metadata
+          --repo "${{ github.repository }}"
+          --owner @me
+          --pr "${{ github.event.pull_request.number }}"
+          --apply
+          --skip-bots
