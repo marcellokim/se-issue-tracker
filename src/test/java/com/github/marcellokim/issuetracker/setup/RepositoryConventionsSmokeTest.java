@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -192,6 +193,28 @@ class RepositoryConventionsSmokeTest {
         assertTrue(
                 text.contains(expectation.expectedText()),
                 () -> expectation.relativePath() + "에 안내 문구가 없습니다: " + expectation.expectedText()
+        );
+    }
+
+    @Test
+    @DisplayName("표준 PR 스크립트는 PR 생성 전 이슈 상태와 프로젝트 보드를 먼저 정렬한다")
+    void openPrPreparesIssueStatusBeforeCreatingPullRequest() throws IOException {
+        var text = Files.readString(Path.of("scripts/open-pr.sh"));
+
+        var preCreateIssueStatus = text.indexOf("[준비] PR 생성 전 이슈 #$issue_number 상태 라벨을 review로 이동");
+        var preCreateProjectSync = text.indexOf("[준비] PR 생성 전 GitHub 프로젝트 상태 정렬");
+        var createPullRequest = text.indexOf("[3/3] GitHub PR 생성");
+
+        assertTrue(preCreateIssueStatus >= 0, "PR 생성 전 이슈 상태 라벨 정렬 단계가 없습니다.");
+        assertTrue(preCreateProjectSync >= 0, "PR 생성 전 프로젝트 상태 정렬 단계가 없습니다.");
+        assertTrue(createPullRequest >= 0, "PR 생성 단계가 없습니다.");
+        assertTrue(
+                preCreateIssueStatus < createPullRequest,
+                "이슈 상태 라벨 정렬은 pull_request 체크가 시작되기 전에 끝나야 합니다."
+        );
+        assertTrue(
+                preCreateProjectSync < createPullRequest,
+                "프로젝트 상태 정렬은 pull_request 체크가 시작되기 전에 끝나야 합니다."
         );
     }
 

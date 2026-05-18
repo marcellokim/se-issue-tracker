@@ -105,6 +105,12 @@ body="## 요약
 ## 관련 이슈
 - Closes #$issue_number"
 
+echo "[준비] PR 생성 전 이슈 #$issue_number 상태 라벨을 review로 이동"
+mark_issue_review
+
+echo "[준비] PR 생성 전 GitHub 프로젝트 상태 정렬"
+sync_project_board
+
 echo "[3/3] GitHub PR 생성"
 pr_url="$(gh pr create --base dev --head "$branch" --title "$title" --body "$body")"
 echo "$pr_url"
