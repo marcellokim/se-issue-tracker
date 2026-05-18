@@ -22,6 +22,7 @@ STATUS_BY_LABEL = {
     "status:review": "리뷰 중",
     "status:done": "완료",
 }
+STATUS_LABELS = set(STATUS_BY_LABEL)
 
 REQUIRED_FILES = [
     "SE_Term_Project_2026-1.pdf",
@@ -651,6 +652,52 @@ def sync_issue_items(context: ProjectContext, repo: str, *, dry_run: bool, quiet
             set_project_status(context, item, expected, f"#{issue['number']} {issue['title']}", dry_run=dry_run, quiet=quiet, changes=changes)
 
 
+def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, changes: list[str]) -> None:
+    prs = gh_json([
+        "pr", "list",
+        "--repo", repo,
+        "--state", "merged",
+        "--base", "dev",
+        "--limit", "100",
+        "--json", "number,title,closingIssuesReferences",
+    ])
+    completed_issue_numbers: dict[int, int] = {}
+    repo_owner, repo_name = repo.split("/", 1)
+    for pr in prs:
+        for issue in pr.get("closingIssuesReferences", []):
+            issue_repo = issue.get("repository") or {}
+            issue_owner = issue_repo.get("owner") or {}
+            if issue_repo.get("name") != repo_name or issue_owner.get("login") != repo_owner:
+                continue
+            completed_issue_numbers.setdefault(int(issue["number"]), int(pr["number"]))
+
+    for issue_number, pr_number in sorted(completed_issue_numbers.items()):
+        issue = gh_json([
+            "issue", "view", str(issue_number),
+            "--repo", repo,
+            "--json", "number,title,state,labels",
+        ])
+        labels = label_names(issue)
+        labels_to_remove = sorted((labels & STATUS_LABELS) - {"status:done"})
+        needs_done_label = "status:done" not in labels
+        needs_close = issue.get("state") != "CLOSED"
+        if not labels_to_remove and not needs_done_label and not needs_close:
+            continue
+
+        label = f"#{issue_number} {issue['title']}"
+        if dry_run:
+            changes.append(f"DRY-RUN merged dev PR #{pr_number} linked issue 완료 처리: {label}")
+            continue
+
+        if labels_to_remove:
+            run(["gh", "issue", "edit", str(issue_number), "--repo", repo, "--remove-label", ",".join(labels_to_remove)], check=True)
+        if needs_done_label:
+            run(["gh", "issue", "edit", str(issue_number), "--repo", repo, "--add-label", "status:done"], check=True)
+        if needs_close:
+            run(["gh", "issue", "close", str(issue_number), "--repo", repo, "--reason", "completed"], check=True)
+        changes.append(f"merged dev PR #{pr_number} linked issue 완료 처리: {label}")
+
+
 def sync_pr_items(context: ProjectContext, repo: str, *, dry_run: bool, quiet: bool, changes: list[str]) -> None:
     prs = gh_json(["pr", "list", "--repo", repo, "--state", "all", "--limit", "100", "--json", "number,title,state,isDraft,url"])
     for pr in prs:
@@ -670,6 +717,7 @@ def sync_project(args: argparse.Namespace) -> int:
 
     context, _ = load_project_context(repo, owner, args.project_number, args.project_title)
     changes: list[str] = []
+    sync_issue_completion_from_merged_dev_prs(repo, dry_run=args.dry_run, changes=changes)
     sync_issue_items(context, repo, dry_run=args.dry_run, quiet=args.quiet, changes=changes)
     sync_pr_items(context, repo, dry_run=args.dry_run, quiet=args.quiet, changes=changes)
 
