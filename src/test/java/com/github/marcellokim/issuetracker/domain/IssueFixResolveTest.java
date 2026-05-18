@@ -13,7 +13,9 @@ class IssueFixResolveTest {
 
     private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
     private final User assignee = new User("U-2", "dev1", "Dev One", "hash", Role.DEV);
+    private final User otherDeveloper = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
     private final User verifier = new User("U-3", "tester2", "Tester Two", "hash", Role.TESTER);
+    private final User otherTester = new User("U-6", "tester3", "Tester Three", "hash", Role.TESTER);
     private final User pl = new User("U-4", "pl1", "PL One", "hash", Role.PL);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
@@ -52,6 +54,25 @@ class IssueFixResolveTest {
         assertEquals(IssueStatus.RESOLVED.name(), history.getNewValue());
         assertEquals("Verified", history.getMessage());
         assertSame(verifier, history.getChangedBy());
+    }
+
+    @Test
+    @DisplayName("현재 assignee만 fixed 전이를 수행할 수 있다")
+    void onlyCurrentAssigneeCanMarkFixed() {
+        var issue = assignedIssue();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.markFixed(otherDeveloper, "Fix completed", createdAt.plusMinutes(20)));
+    }
+
+    @Test
+    @DisplayName("현재 verifier만 resolved 전이를 수행할 수 있다")
+    void onlyCurrentVerifierCanResolve() {
+        var issue = assignedIssue();
+        issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.resolve(otherTester, "Verified", createdAt.plusMinutes(30)));
     }
 
     @Test

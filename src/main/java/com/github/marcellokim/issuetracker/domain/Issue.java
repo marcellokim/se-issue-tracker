@@ -127,9 +127,52 @@ public class Issue {
         assign(assignee, verifier, changedBy, changedDate, "Issue assigned from REOPENED");
     }
 
+    public void reassignAssignee(User assignee, User changedBy, LocalDateTime changedDate) {
+        requireStatus(IssueStatus.ASSIGNED);
+        requireRole(assignee, Role.DEV, "assignee");
+        requireRole(changedBy, Role.PL, "changedBy");
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        if (sameUser(this.assignee, assignee)) {
+            throw new IllegalArgumentException("assignee must be different from current assignee");
+        }
+
+        var previousAssignee = this.assignee;
+        this.assignee = assignee;
+        recordHistory(
+                ActionType.ASSIGNMENT_CHANGED,
+                previousAssignee == null ? null : previousAssignee.getUserId(),
+                assignee.getUserId(),
+                "Assignee changed",
+                changedBy,
+                changedDate
+        );
+    }
+
+    public void changeVerifier(User verifier, User changedBy, LocalDateTime changedDate) {
+        requireStatus(IssueStatus.FIXED);
+        requireRole(verifier, Role.TESTER, "verifier");
+        requireRole(changedBy, Role.PL, "changedBy");
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        if (sameUser(this.verifier, verifier)) {
+            throw new IllegalArgumentException("verifier must be different from current verifier");
+        }
+
+        var previousVerifier = this.verifier;
+        this.verifier = verifier;
+        recordHistory(
+                ActionType.ASSIGNMENT_CHANGED,
+                previousVerifier == null ? null : previousVerifier.getUserId(),
+                verifier.getUserId(),
+                "Verifier changed",
+                changedBy,
+                changedDate
+        );
+    }
+
     public void markFixed(User fixer, String comment, LocalDateTime changedDate) {
         requireStatus(IssueStatus.ASSIGNED);
         requireRole(fixer, Role.DEV, "fixer");
+        requireCurrentParticipant(fixer, assignee, "fixer must be current assignee");
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.fixer = fixer;
@@ -139,10 +182,21 @@ public class Issue {
     public void resolve(User resolver, String comment, LocalDateTime changedDate) {
         requireStatus(IssueStatus.FIXED);
         requireRole(resolver, Role.TESTER, "resolver");
+        requireCurrentParticipant(resolver, verifier, "resolver must be current verifier");
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.resolver = resolver;
         changeStatusTo(IssueStatus.RESOLVED, requiredComment, resolver, changedDate);
+    }
+
+    public void close(User changedBy, String comment, LocalDateTime changedDate) {
+        requireStatus(IssueStatus.RESOLVED);
+        requireRole(changedBy, Role.PL, "changedBy");
+        var requiredComment = requireText(comment, COMMENT_FIELD);
+
+        changeStatusTo(IssueStatus.CLOSED, requiredComment, changedBy, changedDate);
+        assignee = null;
+        verifier = null;
     }
 
     public void reopen(User changedBy, String comment, LocalDateTime changedDate) {
@@ -253,7 +307,7 @@ public class Issue {
     private void assign(User assignee, User verifier, User changedBy, LocalDateTime changedDate, String message) {
         requireRole(assignee, Role.DEV, "assignee");
         requireRole(verifier, Role.TESTER, "verifier");
-        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        requireRole(changedBy, Role.PL, "changedBy");
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
 
         this.assignee = assignee;
@@ -293,6 +347,16 @@ public class Issue {
         if (!user.hasRole(expectedRole)) {
             throw new IllegalArgumentException(fieldName + " must have role " + expectedRole);
         }
+    }
+
+    private static void requireCurrentParticipant(User actual, User expected, String message) {
+        if (!sameUser(actual, expected)) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private static boolean sameUser(User first, User second) {
+        return first != null && second != null && Objects.equals(first.getUserId(), second.getUserId());
     }
 
     private void rejectDuplicateDependency(Issue blockingIssue) {

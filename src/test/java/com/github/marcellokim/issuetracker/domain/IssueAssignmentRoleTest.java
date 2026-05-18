@@ -13,7 +13,9 @@ class IssueAssignmentRoleTest {
 
     private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
     private final User assignee = new User("U-2", "dev1", "Dev One", "hash", Role.DEV);
+    private final User anotherAssignee = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
     private final User verifier = new User("U-3", "tester2", "Tester Two", "hash", Role.TESTER);
+    private final User anotherVerifier = new User("U-6", "tester3", "Tester Three", "hash", Role.TESTER);
     private final User pl = new User("U-4", "pl1", "PL One", "hash", Role.PL);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
@@ -48,6 +50,46 @@ class IssueAssignmentRoleTest {
         assertSame(assignee, issue.getAssignee());
         assertSame(verifier, issue.getVerifier());
         assertEquals(IssueStatus.ASSIGNED, issue.getStatus());
+    }
+
+    @Test
+    @DisplayName("ASSIGNED 이슈는 assignee만 바꾸고 상태 변경 이력은 남기지 않는다")
+    void reassignAssigneeOnly() {
+        var issue = assignedIssue();
+        var reassignedAt = createdAt.plusMinutes(20);
+
+        issue.reassignAssignee(anotherAssignee, pl, reassignedAt);
+
+        assertSame(anotherAssignee, issue.getAssignee());
+        assertSame(verifier, issue.getVerifier());
+        assertEquals(IssueStatus.ASSIGNED, issue.getStatus());
+
+        var history = issue.getHistories().getLast();
+        assertEquals(ActionType.ASSIGNMENT_CHANGED, history.getAction());
+        assertEquals(assignee.getUserId(), history.getPreviousValue());
+        assertEquals(anotherAssignee.getUserId(), history.getNewValue());
+        assertEquals(reassignedAt, history.getChangedDate());
+    }
+
+    @Test
+    @DisplayName("FIXED 이슈는 verifier만 바꾸고 상태 변경 이력은 남기지 않는다")
+    void changeVerifierOnly() {
+        var issue = assignedIssue();
+        issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+        var changedAt = createdAt.plusMinutes(30);
+
+        issue.changeVerifier(anotherVerifier, pl, changedAt);
+
+        assertSame(assignee, issue.getAssignee());
+        assertSame(anotherVerifier, issue.getVerifier());
+        assertSame(assignee, issue.getFixer());
+        assertEquals(IssueStatus.FIXED, issue.getStatus());
+
+        var history = issue.getHistories().getLast();
+        assertEquals(ActionType.ASSIGNMENT_CHANGED, history.getAction());
+        assertEquals(verifier.getUserId(), history.getPreviousValue());
+        assertEquals(anotherVerifier.getUserId(), history.getNewValue());
+        assertEquals(changedAt, history.getChangedDate());
     }
 
     @Test
@@ -87,6 +129,41 @@ class IssueAssignmentRoleTest {
 
         assertThrows(IllegalStateException.class,
                 () -> issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(20)));
+    }
+
+    @Test
+    @DisplayName("배정 변경은 상태별 허용 branch에서만 가능하다")
+    void rejectAssignmentChangesForInvalidStatus() {
+        var newIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var assignedIssue = assignedIssue();
+
+        assertThrows(IllegalStateException.class,
+                () -> newIssue.reassignAssignee(anotherAssignee, pl, createdAt.plusMinutes(10)));
+        assertThrows(IllegalStateException.class,
+                () -> assignedIssue.changeVerifier(anotherVerifier, pl, createdAt.plusMinutes(20)));
+    }
+
+    @Test
+    @DisplayName("배정 변경 대상도 올바른 역할과 활성 상태여야 한다")
+    void rejectInvalidReassignmentParticipants() {
+        var assignedIssue = assignedIssue();
+        var fixedIssue = assignedIssue();
+        fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+        var inactiveDev = new User("U-7", "dev3", "Dev Three", "hash", Role.DEV);
+        inactiveDev.deactivate();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> assignedIssue.reassignAssignee(verifier, pl, createdAt.plusMinutes(20)));
+        assertThrows(IllegalArgumentException.class,
+                () -> assignedIssue.reassignAssignee(inactiveDev, pl, createdAt.plusMinutes(20)));
+        assertThrows(IllegalArgumentException.class,
+                () -> fixedIssue.changeVerifier(assignee, pl, createdAt.plusMinutes(30)));
+    }
+
+    private Issue assignedIssue() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
+        return issue;
     }
 
     private Issue reopenedIssue() {
