@@ -1,6 +1,8 @@
 package com.github.marcellokim.issuetracker.ui;
 
-public final class AdminDashboardView {
+public final class AdminDashboardView extends PlaceholderView {
 
-    // 여기는 Admin 화면 UI 부분이고, 다른 팀원들이 구현해야 한다.
+    public AdminDashboardView() {
+        super("admin-dashboard");
+    }
 }

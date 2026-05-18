@@ -5,6 +5,7 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.technical.ConsoleOutput;
 import com.github.marcellokim.issuetracker.ui.IssueTrackerApplication;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -16,7 +17,7 @@ public final class Main {
     }
 
     public static void main(String[] args) {
-        System.out.println("Issue Tracker application started.");
+        printLine("Issue Tracker application started.");
 
         if (isLoginCheck(args)) {
             runLoginCheck(args);
@@ -38,9 +39,9 @@ public final class Main {
             DatabaseInitializer.initialize(connectionProvider);
             printRepositorySummary(new JdbcRepositoryFactory(connectionProvider));
         } catch (IOException | SQLException | RuntimeException exception) {
-            System.out.println("Oracle repository demo failed.");
-            System.out.println("Cause: " + exception.getMessage());
-            System.out.println("Check that Oracle XE is running and ITS_DB_URL points to XEPDB1.");
+            printLine("Oracle repository demo failed.");
+            printLine("Cause: " + exception.getMessage());
+            printLine("Check that Oracle XE is running and ITS_DB_URL points to XEPDB1.");
         }
     }
 
@@ -61,20 +62,20 @@ public final class Main {
     }
 
     private static void printDatabaseSetupGuide() {
-        System.out.println("Oracle repository demo skipped.");
-        System.out.println("Set database environment variables to print DB/repository status:");
-        System.out.println("  $env:ITS_DB_URL=\"jdbc:oracle:thin:@//localhost:1521/XEPDB1\"");
-        System.out.println("  $env:ITS_DB_USER=\"ITS_USER\"");
-        System.out.println("  $env:ITS_DB_PASSWORD=\"your_password\"");
-        System.out.println("Then run:");
-        System.out.println("  .\\gradlew.bat run --args=\"--cli-demo\"");
+        printLine("Oracle repository demo skipped.");
+        printLine("Set database environment variables to print DB/repository status:");
+        printLine("  $env:ITS_DB_URL=\"jdbc:oracle:thin:@//localhost:1521/XEPDB1\"");
+        printLine("  $env:ITS_DB_USER=\"ITS_USER\"");
+        printLine("  $env:ITS_DB_PASSWORD=\"your_password\"");
+        printLine("Then run:");
+        printLine("  .\\gradlew.bat run --args=\"--cli-demo\"");
     }
 
     private static void runLoginCheck(String[] args) {
         if (args.length < 3) {
-            System.out.println("Login check skipped.");
-            System.out.println("Usage:");
-            System.out.println("  .\\gradlew.bat run --args=\"--login-check dev8 DemoLocalDev8!\"");
+            printLine("Login check skipped.");
+            printLine("Usage:");
+            printLine("  .\\gradlew.bat run --args=\"--login-check dev8 DemoLocalDev8!\"");
             return;
         }
 
@@ -95,27 +96,26 @@ public final class Main {
             var user = repositories.users().findByLoginId(loginId.trim());
             var result = new AuthenticationService(repositories.users()).login(loginId, password);
 
-            System.out.println("Login ID: " + loginId.trim());
+            printLine("Login ID: " + loginId.trim());
             user.ifPresentOrElse(
                     value -> {
-                        System.out.println("Account: found");
-                        System.out.println("Role: " + value.role());
-                        System.out.println("Active: " + value.active());
-                        System.out.println("Stored password length: " + value.password().length());
+                        printLine("Account: found");
+                        printLine("Role: " + value.role());
+                        printLine("Active: " + value.active());
                     },
-                    () -> System.out.println("Account: missing")
+                    () -> printLine("Account: missing")
             );
-            System.out.println("Login result: " + (result.success() ? "SUCCESS" : "FAILURE"));
-            System.out.println("Message: " + result.message());
+            printLine("Login result: " + (result.success() ? "SUCCESS" : "FAILURE"));
+            printLine("Message: " + result.message());
         } catch (IOException | SQLException | RuntimeException exception) {
-            System.out.println("Login check failed.");
-            System.out.println("Cause: " + exception.getMessage());
+            printLine("Login check failed.");
+            printLine("Cause: " + exception.getMessage());
         }
     }
 
     private static void printConnectionContext(DriverManagerConnectionProvider connectionProvider) throws SQLException {
-        System.out.println("DB URL: " + System.getenv().getOrDefault("ITS_DB_URL", ""));
-        System.out.println("DB user: " + System.getenv().getOrDefault("ITS_DB_USER", ""));
+        printLine("DB URL: " + System.getenv().getOrDefault("ITS_DB_URL", ""));
+        printLine("DB user: " + System.getenv().getOrDefault("ITS_DB_USER", ""));
 
         String sql = """
                 select sys_context('USERENV', 'CURRENT_SCHEMA') as current_schema,
@@ -126,8 +126,8 @@ public final class Main {
              var statement = connection.prepareStatement(sql);
              var resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
-                System.out.println("Current schema: " + resultSet.getString("current_schema"));
-                System.out.println("Oracle container: " + resultSet.getString("container_name"));
+                printLine("Current schema: " + resultSet.getString("current_schema"));
+                printLine("Oracle container: " + resultSet.getString("container_name"));
             }
         }
     }
@@ -136,15 +136,15 @@ public final class Main {
         var admin = repositories.users().findByLoginId("admin");
         var project = repositories.projects().findByName("project1");
 
-        System.out.println("Oracle repository demo ready.");
+        printLine("Oracle repository demo ready.");
         admin.ifPresentOrElse(
-                user -> System.out.println("Admin: " + user.loginId() + " / " + user.role() + " / active=" + user.active()),
-                () -> System.out.println("Admin: missing")
+                user -> printLine("Admin: " + user.loginId() + " / " + user.role() + " / active=" + user.active()),
+                () -> printLine("Admin: missing")
         );
 
         project.ifPresentOrElse(
                 value -> printProjectSummary(repositories, value.id(), value.name()),
-                () -> System.out.println("Project: project1 missing")
+                () -> printLine("Project: project1 missing")
         );
     }
 
@@ -155,14 +155,18 @@ public final class Main {
         var devCandidates = repositories.assignmentRecommendations().findDevAssigneeCandidates(projectId);
         var testerCandidates = repositories.assignmentRecommendations().findTesterVerifierCandidates(projectId);
 
-        System.out.println("Project: " + projectName);
-        System.out.println("Members: " + repositories.projects().findParticipants(projectId).size());
-        System.out.println("Active devs: " + repositories.users().findActiveByRole(projectId, Role.DEV).size());
-        System.out.println("Active testers: " + repositories.users().findActiveByRole(projectId, Role.TESTER).size());
-        System.out.println("Issues: " + issues.size());
-        System.out.println("Status counts: " + statusCounts);
-        System.out.println("Priority counts: " + priorityCounts);
-        System.out.println("Dev recommendation candidates: " + devCandidates.size());
-        System.out.println("Tester recommendation candidates: " + testerCandidates.size());
+        printLine("Project: " + projectName);
+        printLine("Members: " + repositories.projects().findParticipants(projectId).size());
+        printLine("Active devs: " + repositories.users().findActiveByRole(projectId, Role.DEV).size());
+        printLine("Active testers: " + repositories.users().findActiveByRole(projectId, Role.TESTER).size());
+        printLine("Issues: " + issues.size());
+        printLine("Status counts: " + statusCounts);
+        printLine("Priority counts: " + priorityCounts);
+        printLine("Dev recommendation candidates: " + devCandidates.size());
+        printLine("Tester recommendation candidates: " + testerCandidates.size());
+    }
+
+    private static void printLine(String message) {
+        ConsoleOutput.out(message);
     }
 }

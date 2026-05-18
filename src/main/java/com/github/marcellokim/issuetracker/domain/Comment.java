@@ -19,7 +19,7 @@ public final class Comment {
         this.commentId = Long.toString(id);
         this.writerId = requireText(writerId, "writerId");
         this.content = requireText(content, "content");
-        this.createdDate = createdDate;
+        this.createdDate = Objects.requireNonNull(createdDate, "createdDate must not be null");
         this.writer = null;
     }
 

@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.persistence;
 
+import com.github.marcellokim.issuetracker.technical.ConsoleOutput;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,17 +25,17 @@ public final class DatabaseInitializer {
     public static void main(String[] args) {
         try {
             initialize(DriverManagerConnectionProvider.fromEnvironment());
-            System.out.println("Oracle schema init and seed completed.");
+            ConsoleOutput.out("Oracle schema init and seed completed.");
         } catch (IllegalStateException exception) {
-            System.err.println(exception.getMessage());
-            System.err.println("Set connection values before running init:");
-            System.err.println("  $env:ITS_DB_URL=\"jdbc:oracle:thin:@//localhost:1521/XEPDB1\"");
-            System.err.println("  $env:ITS_DB_USER=\"ITS_USER\"");
-            System.err.println("  $env:ITS_DB_PASSWORD=\"your_password\"");
+            ConsoleOutput.err(exception.getMessage());
+            ConsoleOutput.err("Set connection values before running init:");
+            ConsoleOutput.err("  $env:ITS_DB_URL=\"jdbc:oracle:thin:@//localhost:1521/XEPDB1\"");
+            ConsoleOutput.err("  $env:ITS_DB_USER=\"ITS_USER\"");
+            ConsoleOutput.err("  $env:ITS_DB_PASSWORD=\"your_password\"");
             System.exit(2);
         } catch (SQLException | IOException exception) {
-            System.err.println("Oracle schema init and seed failed.");
-            System.err.println("Cause: " + exception.getMessage());
+            ConsoleOutput.err("Oracle schema init and seed failed.");
+            ConsoleOutput.err("Cause: " + exception.getMessage());
             System.exit(1);
         }
     }
@@ -70,7 +71,7 @@ public final class DatabaseInitializer {
             }
         }
 
-        System.out.println("Executed " + executedBlocks + " blocks from " + resourcePath);
+        ConsoleOutput.out("Executed " + executedBlocks + " blocks from " + resourcePath);
     }
 
     private static List<String> readDelimitedBlocks(String resourcePath) throws IOException {

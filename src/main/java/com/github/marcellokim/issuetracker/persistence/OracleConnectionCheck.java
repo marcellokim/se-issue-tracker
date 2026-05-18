@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.persistence;
 
+import com.github.marcellokim.issuetracker.technical.ConsoleOutput;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -15,15 +16,15 @@ public final class OracleConnectionCheck {
         try {
             checkConnection(DriverManagerConnectionProvider.fromEnvironment());
         } catch (IllegalStateException exception) {
-            System.err.println(exception.getMessage());
-            System.err.println("Set connection values before running the check:");
-            System.err.println("  $env:ITS_DB_URL=\"jdbc:oracle:thin:@//localhost:1521/XEPDB1\"");
-            System.err.println("  $env:ITS_DB_USER=\"ITS_USER\"");
-            System.err.println("  $env:ITS_DB_PASSWORD=\"your_password\"");
+            ConsoleOutput.err(exception.getMessage());
+            ConsoleOutput.err("Set connection values before running the check:");
+            ConsoleOutput.err("  $env:ITS_DB_URL=\"jdbc:oracle:thin:@//localhost:1521/XEPDB1\"");
+            ConsoleOutput.err("  $env:ITS_DB_USER=\"ITS_USER\"");
+            ConsoleOutput.err("  $env:ITS_DB_PASSWORD=\"your_password\"");
             System.exit(2);
         } catch (SQLException exception) {
-            System.err.println("Oracle Database connection failed.");
-            System.err.println("Cause: " + exception.getMessage());
+            ConsoleOutput.err("Oracle Database connection failed.");
+            ConsoleOutput.err("Cause: " + exception.getMessage());
             System.exit(1);
         }
     }
@@ -38,10 +39,9 @@ public final class OracleConnectionCheck {
     private static void printConnectionMetadata(Connection connection) throws SQLException {
         DatabaseMetaData metadata = connection.getMetaData();
 
-        System.out.println("Oracle Database connection succeeded.");
-        System.out
-                .println("Database: " + metadata.getDatabaseProductName() + " " + metadata.getDatabaseProductVersion());
-        System.out.println("Driver: " + metadata.getDriverName() + " " + metadata.getDriverVersion());
+        ConsoleOutput.out("Oracle Database connection succeeded.");
+        ConsoleOutput.out("Database: " + metadata.getDatabaseProductName() + " " + metadata.getDatabaseProductVersion());
+        ConsoleOutput.out("Driver: " + metadata.getDriverName() + " " + metadata.getDriverVersion());
     }
 
     private static void printDualQueryResult(Connection connection) throws SQLException {
@@ -49,7 +49,7 @@ public final class OracleConnectionCheck {
                 .prepareStatement("select 'ITS Oracle connection OK' as message from dual");
                 ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
-                System.out.println(resultSet.getString("message"));
+                ConsoleOutput.out(resultSet.getString("message"));
             }
         }
     }

@@ -15,6 +15,8 @@ import java.util.Optional;
 
 public final class JdbcIssueHistoryRepository implements IssueHistoryRepository {
 
+    private static final String INVALID_ACTION_TYPE = "Invalid issue history action type.";
+
     private final DatabaseConnectionProvider connectionProvider;
 
     public JdbcIssueHistoryRepository(DatabaseConnectionProvider connectionProvider) {
@@ -171,11 +173,19 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
                 resultSet.getLong("id"),
                 resultSet.getLong("issue_id"),
                 resultSet.getString("changed_by_login_id"),
-                ActionType.valueOf(resultSet.getString("action_type")),
+                actionType(resultSet.getString("action_type")),
                 resultSet.getString("previous_value"),
                 resultSet.getString("new_value"),
                 resultSet.getString("message"),
                 JdbcSupport.nullableDateTime(resultSet, "changed_date"));
+    }
+
+    private static ActionType actionType(String value) throws SQLException {
+        try {
+            return ActionType.valueOf(value);
+        } catch (IllegalArgumentException exception) {
+            throw new SQLException(INVALID_ACTION_TYPE, exception);
+        }
     }
 
     private static String baseSelect() {

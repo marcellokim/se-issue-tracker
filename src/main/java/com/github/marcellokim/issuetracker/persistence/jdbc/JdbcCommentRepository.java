@@ -14,6 +14,8 @@ import java.util.Optional;
 
 public final class JdbcCommentRepository implements CommentRepository {
 
+    private static final String BASE_SELECT = "select id, issue_id, writer_login_id, content, created_date from comments";
+
     private final DatabaseConnectionProvider connectionProvider;
 
     public JdbcCommentRepository(DatabaseConnectionProvider connectionProvider) {
@@ -22,7 +24,7 @@ public final class JdbcCommentRepository implements CommentRepository {
 
     @Override
     public Optional<Comment> findById(long commentId) {
-        String sql = baseSelect() + " where id = ?";
+        String sql = BASE_SELECT + " where id = ?";
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, commentId);
@@ -39,7 +41,7 @@ public final class JdbcCommentRepository implements CommentRepository {
 
     @Override
     public List<Comment> findByIssueId(long issueId) {
-        String sql = baseSelect() + " where issue_id = ? order by created_date, id";
+        String sql = BASE_SELECT + " where issue_id = ? order by created_date, id";
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, issueId);
@@ -125,9 +127,5 @@ public final class JdbcCommentRepository implements CommentRepository {
                 resultSet.getString("writer_login_id"),
                 resultSet.getString("content"),
                 JdbcSupport.nullableDateTime(resultSet, "created_date"));
-    }
-
-    private static String baseSelect() {
-        return "select id, issue_id, writer_login_id, content, created_date from comments";
     }
 }

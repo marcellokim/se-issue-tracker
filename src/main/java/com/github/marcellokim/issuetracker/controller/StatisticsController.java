@@ -34,6 +34,8 @@ public final class StatisticsController {
     ) {
         User user = requireCurrentUser();
         permissionPolicy.assertCanViewStatistics(user, projectId);
+        requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
+        requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
         return statisticsRepository.buildReport(
                 projectId,
@@ -51,5 +53,16 @@ public final class StatisticsController {
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));
+    }
+
+    private static <T extends Comparable<T>> void requireOrderedRange(
+            T fromInclusive,
+            T toInclusive,
+            String fromName,
+            String toName
+    ) {
+        if (fromInclusive != null && toInclusive != null && fromInclusive.compareTo(toInclusive) > 0) {
+            throw new IllegalArgumentException(fromName + " must be <= " + toName);
+        }
     }
 }
