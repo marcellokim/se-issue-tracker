@@ -50,6 +50,13 @@ tasks.register('oracleConnectionCheck', JavaExec) {
     mainClass = 'com.github.marcellokim.issuetracker.persistence.OracleConnectionCheck'
 }
 
+tasks.register('oracleInitializeDatabase', JavaExec) {
+    group = 'application'
+    description = 'Initializes Oracle schema and repeatable demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
