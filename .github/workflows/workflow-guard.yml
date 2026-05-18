@@ -49,8 +49,11 @@ jobs:
           GITHUB_BASE_REF: ${{ github.base_ref }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_ACTOR: ${{ github.actor }}
           PR_AUTHOR: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.user.login || '' }}
           WORKFLOW_BYPASS_USERS: ${{ vars.WORKFLOW_BYPASS_USERS || github.repository_owner }}
           CHANGED_FILES_PATH: ${{ runner.temp }}/changed-files.txt
+          GH_TOKEN: ${{ github.token }}
         run: bash scripts/validate-workflow-guard.sh

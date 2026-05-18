@@ -7,6 +7,8 @@ event_name="${GITHUB_EVENT_NAME:-}"
 base_ref="${GITHUB_BASE_REF:-}"
 head_ref="${GITHUB_HEAD_REF:-}"
 ref_name="${GITHUB_REF_NAME:-}"
+sha="${GITHUB_SHA:-}"
+repository="${GITHUB_REPOSITORY:-}"
 changed_files_path="${CHANGED_FILES_PATH:-}"
 bypass_users="${WORKFLOW_BYPASS_USERS:-}"
 
@@ -66,6 +68,35 @@ fail() {
     exit 1
 }
 
+is_valid_pr_merge_push() {
+    local prs_json number state merged_at base head merge_sha
+
+    if [[ -z "$repository" || -z "$sha" ]]; then
+        return 1
+    fi
+
+    if ! command -v gh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if ! prs_json="$(gh api -H 'Accept: application/vnd.github+json' "repos/$repository/commits/$sha/pulls" 2>/dev/null)"; then
+        return 1
+    fi
+
+    while IFS=$'\t' read -r number state merged_at base head merge_sha; do
+        if [[ "$state" == "closed" \
+            && "$merged_at" != "null" \
+            && "$base" == "$ref_name" \
+            && "$merge_sha" == "$sha" ]] \
+            && is_work_branch "$head"; then
+            echo "[워크플로우-보호] PR merge push 허용: PR #$number ($head -> $base)"
+            return 0
+        fi
+    done < <(jq -r '.[] | [.number, .state, (.merged_at // "null"), .base.ref, .head.ref, (.merge_commit_sha // "")] | @tsv' <<< "$prs_json")
+
+    return 1
+}
+
 check_guarded_file_changes() {
     local path
 
@@ -86,6 +117,17 @@ check_guarded_file_changes() {
 
 if [[ -z "$actor" ]]; then
     fail "GITHUB_ACTOR를 확인할 수 없습니다."
+fi
+
+if [[ "$event_name" == "push" && ( "$ref_name" == "main" || "$ref_name" == "dev" ) ]]; then
+    if is_admin_bypass_actor; then
+        echo "[워크플로우-보호] 관리자 보호 브랜치 push 감지: $actor -> $ref_name"
+        exit 0
+    fi
+
+    if is_valid_pr_merge_push; then
+        exit 0
+    fi
 fi
 
 check_guarded_file_changes
@@ -116,10 +158,6 @@ case "$event_name" in
         ;;
     push)
         if [[ "$ref_name" == "main" || "$ref_name" == "dev" ]]; then
-            if is_admin_bypass_actor; then
-                echo "[워크플로우-보호] 관리자 보호 브랜치 push 감지: $actor -> $ref_name"
-                exit 0
-            fi
             fail "main/dev 직접 push는 금지입니다. 작업 브랜치에서 dev 대상 PR을 사용하세요."
         fi
         echo "[워크플로우-보호] 보호 브랜치 push가 아닙니다: ${ref_name:-unknown}"
