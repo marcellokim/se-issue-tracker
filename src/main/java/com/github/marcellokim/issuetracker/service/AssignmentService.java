@@ -56,8 +56,10 @@ public class AssignmentService {
         permissionPolicy.assertCanAssignIssue(actor, issue);
         if (issue.getStatus() == IssueStatus.NEW) {
             issue.assignFromNew(assignee, verifier, actor, now());
-        } else {
+        } else if (issue.getStatus() == IssueStatus.REOPENED) {
             issue.assignReopened(assignee, verifier, actor, now());
+        } else {
+            throw new IllegalStateException("Issue status does not allow assignment: " + issue.getStatus());
         }
         issueRepository.save(issue);
         return toResult(issue);

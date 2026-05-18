@@ -29,13 +29,14 @@ public class IssueStateService {
     }
 
     public IssueStateResult changeStatus(String issueId, IssueStatus targetStatus, String comment, String currentUserId) {
+        var requiredComment = requireComment(comment);
         var issue = findIssue(issueId);
         var actor = findUser(currentUserId);
         switch (Objects.requireNonNull(targetStatus, "targetStatus must not be null")) {
-            case FIXED -> markFixed(issue, actor, comment);
-            case RESOLVED -> resolve(issue, actor, comment);
-            case CLOSED -> close(issue, actor, comment);
-            default -> throw new UnsupportedOperationException("Target status is outside issue #20 scope: " + targetStatus);
+            case FIXED -> markFixed(issue, actor, requiredComment);
+            case RESOLVED -> resolve(issue, actor, requiredComment);
+            case CLOSED -> close(issue, actor, requiredComment);
+            default -> throw new UnsupportedOperationException("Unsupported target status: " + targetStatus);
         }
         issueRepository.save(issue);
         return toResult(issue);
@@ -78,6 +79,13 @@ public class IssueStateService {
 
     private static String nextCommentId(Issue issue) {
         return issue.getIssueId() + "-C" + (issue.getComments().size() + 1);
+    }
+
+    private static String requireComment(String comment) {
+        if (comment == null || comment.isBlank()) {
+            throw new IllegalArgumentException("comment must not be blank");
+        }
+        return comment;
     }
 
     private static IssueStateResult toResult(Issue issue) {

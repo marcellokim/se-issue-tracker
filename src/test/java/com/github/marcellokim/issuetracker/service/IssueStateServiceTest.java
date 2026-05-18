@@ -98,6 +98,16 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("상태 변경 comment가 비어 있으면 issue/user 조회 전에 거부한다")
+    void rejectBlankCommentBeforeLookup() {
+        var issue = assignedIssue();
+        var service = service(issue);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.changeStatus("UNKNOWN", IssueStatus.FIXED, " ", "UNKNOWN"));
+    }
+
+    @Test
     @DisplayName("#20 범위 밖 상태 변경 target은 거부한다")
     void rejectUnsupportedTargetStatus() {
         var issue = resolvedIssue();
