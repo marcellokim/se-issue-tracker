@@ -1,0 +1,107 @@
+package com.github.marcellokim.issuetracker.domain;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.time.LocalDateTime;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("이슈 배정 역할")
+class IssueAssignmentRoleTest {
+
+    private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
+    private final User assignee = new User("U-2", "dev1", "Dev One", "hash", Role.DEV);
+    private final User verifier = new User("U-3", "tester2", "Tester Two", "hash", Role.TESTER);
+    private final User pl = new User("U-4", "pl1", "PL One", "hash", Role.PL);
+    private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
+
+    @Test
+    @DisplayName("NEW 이슈를 배정하면 assignee/verifier가 설정되고 ASSIGNED 상태가 된다")
+    void assignFromNewIssue() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var assignedAt = createdAt.plusMinutes(10);
+
+        issue.assignFromNew(assignee, verifier, pl, assignedAt);
+
+        assertSame(assignee, issue.getAssignee());
+        assertSame(verifier, issue.getVerifier());
+        assertEquals(IssueStatus.ASSIGNED, issue.getStatus());
+        assertEquals(3, issue.getHistories().size());
+
+        var assignmentHistory = findHistory(issue, ActionType.ASSIGNMENT_CHANGED);
+        assertEquals(ActionType.ASSIGNMENT_CHANGED, assignmentHistory.getAction());
+
+        var statusHistory = findHistory(issue, ActionType.STATUS_CHANGED);
+        assertEquals(IssueStatus.NEW.name(), statusHistory.getPreviousValue());
+        assertEquals(IssueStatus.ASSIGNED.name(), statusHistory.getNewValue());
+    }
+
+    @Test
+    @DisplayName("REOPENED 이슈도 재배정하면 ASSIGNED 상태가 된다")
+    void assignReopenedIssue() {
+        var issue = reopenedIssue();
+
+        issue.assignReopened(assignee, verifier, pl, createdAt.plusMinutes(40));
+
+        assertSame(assignee, issue.getAssignee());
+        assertSame(verifier, issue.getVerifier());
+        assertEquals(IssueStatus.ASSIGNED, issue.getStatus());
+    }
+
+    @Test
+    @DisplayName("assignee는 DEV, verifier는 TESTER여야 한다")
+    void rejectInvalidAssignmentRoles() {
+        var invalidAssigneeIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var invalidVerifierIssue = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter, createdAt);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> invalidAssigneeIssue.assignFromNew(verifier, verifier, pl, createdAt));
+        assertThrows(IllegalArgumentException.class,
+                () -> invalidVerifierIssue.assignFromNew(assignee, assignee, pl, createdAt));
+    }
+
+    @Test
+    @DisplayName("비활성 사용자는 assignee 또는 verifier가 될 수 없다")
+    void rejectInactiveAssignmentParticipants() {
+        var inactiveAssignee = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
+        var inactiveVerifier = new User("U-6", "tester3", "Tester Three", "hash", Role.TESTER);
+        inactiveAssignee.deactivate();
+        inactiveVerifier.deactivate();
+
+        var issueForAssignee = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        assertThrows(IllegalArgumentException.class,
+                () -> issueForAssignee.assignFromNew(inactiveAssignee, verifier, pl, createdAt.plusMinutes(10)));
+
+        var issueForVerifier = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter, createdAt);
+        assertThrows(IllegalArgumentException.class,
+                () -> issueForVerifier.assignFromNew(assignee, inactiveVerifier, pl, createdAt.plusMinutes(10)));
+    }
+
+    @Test
+    @DisplayName("NEW가 아닌 이슈는 assignFromNew로 배정할 수 없다")
+    void rejectAssignFromNewWhenStatusIsNotNew() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
+
+        assertThrows(IllegalStateException.class,
+                () -> issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(20)));
+    }
+
+    private Issue reopenedIssue() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
+        issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+        issue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
+        issue.reopen(pl, "Needs more work", createdAt.plusMinutes(35));
+        return issue;
+    }
+
+    private static IssueHistory findHistory(Issue issue, ActionType action) {
+        return issue.getHistories().stream()
+                .filter(history -> history.getAction() == action)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("History not found for action " + action));
+    }
+}
