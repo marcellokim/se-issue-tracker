@@ -77,8 +77,16 @@ sync_project_board() {
     fi
 }
 
+sync_pr_metadata() {
+    local pr_number="$1"
+    ./scripts/lib/project_maintenance.py sync-pr-metadata --pr "$pr_number" --owner @me --apply --skip-bots
+}
+
 if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
     echo "[확인] 이미 열린 PR이 있습니다: $pr_url"
+    pr_number="${pr_url##*/}"
+    echo "[확인] PR 메타데이터 정렬"
+    sync_pr_metadata "$pr_number"
     echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
     mark_issue_review
     echo "[확인] GitHub 프로젝트 상태 정렬"
@@ -100,6 +108,10 @@ body="## 요약
 echo "[3/3] GitHub PR 생성"
 pr_url="$(gh pr create --base dev --head "$branch" --title "$title" --body "$body")"
 echo "$pr_url"
+pr_number="${pr_url##*/}"
+
+echo "[확인] PR 메타데이터 정렬"
+sync_pr_metadata "$pr_number"
 
 echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
 mark_issue_review

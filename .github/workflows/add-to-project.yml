@@ -3,8 +3,6 @@ name: 프로젝트 자동 추가
 on:
   issues:
     types: [opened, reopened]
-  pull_request:
-    types: [opened, reopened, ready_for_review]
 
 permissions:
   contents: read
