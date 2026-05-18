@@ -20,6 +20,7 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -257,7 +258,7 @@ class OracleRepositoryIntegrationTest {
                     created.createdAt(),
                     LocalDateTime.now()));
 
-            assertEquals("UpdatedPassword!", updated.password());
+            assertTrue(new PasswordHasher().matches("UpdatedPassword!", updated.password()));
             assertEquals(Role.TESTER, updated.role());
 
             repositories.users().deactivate(loginId);
@@ -474,6 +475,7 @@ class OracleRepositoryIntegrationTest {
                     LocalDateTime.now()));
 
             assertEquals(dependency.id(), repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
+            assertEquals(IssueDependency.dependencyIdFor(blocking.id(), blocked.id()), dependency.getDependencyId());
             assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
             assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
                     .anyMatch(value -> value.id() == dependency.id()));

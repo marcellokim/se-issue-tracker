@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.repository;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,12 @@ public interface IssueRepository {
     List<Issue> findByCriteria(IssueSearchCriteria criteria);
 
     Issue save(Issue issue);
+
+    Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate);
+
+    Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate);
+
+    int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues);
 
     void purge(long issueId);
 }

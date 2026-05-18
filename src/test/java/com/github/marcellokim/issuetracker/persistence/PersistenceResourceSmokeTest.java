@@ -29,25 +29,29 @@ class PersistenceResourceSmokeTest {
     }
 
     @Test
-    @DisplayName("Users schema uses login id as the primary key")
-    void usersSchemaUsesLoginIdPrimaryKeyAndPlainPassword() throws IOException {
+    @DisplayName("Users schema uses login id and separate credential hashes")
+    void usersSchemaUsesLoginIdPrimaryKeyAndCredentialHashes() throws IOException {
         String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
         String seed = readResource("db/oracle/seed-oracle.sql").toLowerCase();
+        int usersTableStart = schema.indexOf("create table users");
         String usersTable = schema.substring(
-                schema.indexOf("create table users"),
-                schema.indexOf("create table projects (")
+                usersTableStart,
+                schema.indexOf("create table user_credentials", usersTableStart)
         );
 
         assertTrue(schema.contains("login_id varchar2(50) primary key"));
-        assertTrue(schema.contains("password varchar2(255) not null"));
+        assertTrue(schema.contains("create table user_credentials"));
+        assertTrue(schema.contains("password_salt varchar2(64) not null"));
+        assertTrue(schema.contains("password_hash varchar2(64) not null"));
         assertTrue(schema.contains("reporter_login_id"));
         assertTrue(schema.contains("changed_by_login_id"));
         assertTrue(schema.contains("writer_login_id"));
         assertTrue(seed.contains("'admin' as login_id"));
         assertTrue(seed.contains("'demolocaladmin!' as password"));
+        assertTrue(seed.contains("merge into user_credentials"));
+        assertTrue(seed.contains("standard_hash(source.login_id || ':' || source.password, 'sha256')"));
         assertFalse(usersTable.contains("password_hash"));
         assertFalse(usersTable.contains("name varchar2"));
-        assertFalse(seed.contains("password_hash"));
         assertFalse(seed.contains("target.password = source.password"));
     }
 
@@ -65,6 +69,7 @@ class PersistenceResourceSmokeTest {
     @Test
     @DisplayName("Seed SQL includes required demo accounts and status history samples")
     void seedIncludesRequiredDemoAccountsAndHistorySamples() throws IOException {
+        String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
         String seed = readResource("db/oracle/seed-oracle.sql").toLowerCase();
 
         assertTrue(seed.contains("'admin'"));
@@ -83,6 +88,8 @@ class PersistenceResourceSmokeTest {
         assertTrue(seed.contains("'reopened'"));
         assertTrue(seed.contains("merge into comments"));
         assertTrue(seed.contains("merge into issue_dependencies"));
+        assertTrue(schema.contains("dependency_id varchar2(128) not null"));
+        assertTrue(seed.contains("standard_hash(to_char(blocking_issue.id) || ':' || to_char(blocked_issue.id), 'sha256')"));
     }
 
     private static java.net.URL resource(String path) {

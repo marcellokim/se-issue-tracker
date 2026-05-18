@@ -1,6 +1,9 @@
 package com.github.marcellokim.issuetracker.domain;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.Objects;
 
 public final class IssueDependency {
@@ -14,10 +17,20 @@ public final class IssueDependency {
     private final LocalDateTime discoveredDate;
 
     public IssueDependency(long id, long blockingIssueId, long blockedIssueId, LocalDateTime discoveredDate) {
+        this(id, dependencyIdFor(blockingIssueId, blockedIssueId), blockingIssueId, blockedIssueId, discoveredDate);
+    }
+
+    public IssueDependency(
+            long id,
+            String dependencyId,
+            long blockingIssueId,
+            long blockedIssueId,
+            LocalDateTime discoveredDate
+    ) {
         this.id = id;
         this.blockingIssueId = blockingIssueId;
         this.blockedIssueId = blockedIssueId;
-        this.dependencyId = Long.toString(id);
+        this.dependencyId = requireText(dependencyId, "dependencyId");
         this.blockingIssue = null;
         this.blockedIssue = null;
         this.discoveredDate = discoveredDate;
@@ -72,6 +85,16 @@ public final class IssueDependency {
 
     public LocalDateTime getDiscoveredDate() {
         return discoveredDate;
+    }
+
+    public static String dependencyIdFor(long blockingIssueId, long blockedIssueId) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String source = blockingIssueId + ":" + blockedIssueId;
+            return HexFormat.of().formatHex(digest.digest(source.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 digest is unavailable.", exception);
+        }
     }
 
     private static String requireText(String value, String fieldName) {

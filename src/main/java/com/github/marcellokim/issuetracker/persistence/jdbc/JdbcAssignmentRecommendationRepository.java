@@ -33,9 +33,15 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
 
     private List<AssignmentCandidate> findCandidates(long projectId, Role role, String issueUserColumn) {
         String sql = """
-                select u.login_id, u.password, u.role, u.active, u.created_at, u.updated_at,
+                select u.login_id,
+                       coalesce(c.password_salt || ':' || c.password_hash, u.password) as password,
+                       u.role,
+                       u.active,
+                       u.created_at,
+                       u.updated_at,
                        count(i.id) as completed_issue_count
                 from users u
+                left join user_credentials c on c.login_id = u.login_id
                 join project_members pm on pm.user_login_id = u.login_id
                 left join issues i
                   on i.project_id = pm.project_id
@@ -44,7 +50,12 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
                 where pm.project_id = ?
                   and u.role = ?
                   and u.active = 1
-                group by u.login_id, u.password, u.role, u.active, u.created_at, u.updated_at
+                group by u.login_id,
+                         coalesce(c.password_salt || ':' || c.password_hash, u.password),
+                         u.role,
+                         u.active,
+                         u.created_at,
+                         u.updated_at
                 order by completed_issue_count desc, u.login_id
                 """.formatted(issueUserColumn);
 

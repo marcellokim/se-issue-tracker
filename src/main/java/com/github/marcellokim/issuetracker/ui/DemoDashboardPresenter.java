@@ -1,4 +1,4 @@
-package com.github.marcellokim.issuetracker.service;
+package com.github.marcellokim.issuetracker.ui;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -10,14 +10,14 @@ import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public final class DemoDashboardService {
+public final class DemoDashboardPresenter {
 
     private final ProjectRepository projects;
     private final IssueRepository issues;
     private final StatisticsRepository statistics;
     private final UserRepository users;
 
-    public DemoDashboardService(
+    public DemoDashboardPresenter(
             ProjectRepository projects,
             IssueRepository issues,
             StatisticsRepository statistics,

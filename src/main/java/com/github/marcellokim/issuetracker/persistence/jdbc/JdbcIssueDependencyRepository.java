@@ -132,14 +132,15 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     private IssueDependency insert(IssueDependency dependency) {
         String sql = """
-                insert into issue_dependencies (blocking_issue_id, blocked_issue_id, discovered_date)
-                values (?, ?, coalesce(?, current_timestamp))
+                insert into issue_dependencies (dependency_id, blocking_issue_id, blocked_issue_id, discovered_date)
+                values (?, ?, ?, coalesce(?, current_timestamp))
                 """;
         try (Connection connection = connectionProvider.getConnection();
              PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
-            statement.setLong(1, dependency.blockingIssueId());
-            statement.setLong(2, dependency.blockedIssueId());
-            JdbcSupport.setNullableTimestamp(statement, 3, dependency.discoveredDate());
+            statement.setString(1, dependency.getDependencyId());
+            statement.setLong(2, dependency.blockingIssueId());
+            statement.setLong(3, dependency.blockedIssueId());
+            JdbcSupport.setNullableTimestamp(statement, 4, dependency.discoveredDate());
             statement.executeUpdate();
             return findById(JdbcSupport.generatedId(statement))
                     .orElseThrow(() -> new RepositoryException("Inserted dependency was not found.", null));
@@ -151,17 +152,19 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     private IssueDependency update(IssueDependency dependency) {
         String sql = """
                 update issue_dependencies
-                set blocking_issue_id = ?,
+                set dependency_id = ?,
+                    blocking_issue_id = ?,
                     blocked_issue_id = ?,
                     discovered_date = coalesce(?, discovered_date)
                 where id = ?
                 """;
         try (Connection connection = connectionProvider.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, dependency.blockingIssueId());
-            statement.setLong(2, dependency.blockedIssueId());
-            JdbcSupport.setNullableTimestamp(statement, 3, dependency.discoveredDate());
-            statement.setLong(4, dependency.id());
+            statement.setString(1, dependency.getDependencyId());
+            statement.setLong(2, dependency.blockingIssueId());
+            statement.setLong(3, dependency.blockedIssueId());
+            JdbcSupport.setNullableTimestamp(statement, 4, dependency.discoveredDate());
+            statement.setLong(5, dependency.id());
             statement.executeUpdate();
             return findById(dependency.id())
                     .orElseThrow(() -> new RepositoryException("Updated dependency was not found.", null));
@@ -183,6 +186,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     static IssueDependency mapDependency(ResultSet resultSet) throws SQLException {
         return new IssueDependency(
                 resultSet.getLong("id"),
+                resultSet.getString("dependency_id"),
                 resultSet.getLong("blocking_issue_id"),
                 resultSet.getLong("blocked_issue_id"),
                 JdbcSupport.nullableDateTime(resultSet, "discovered_date")
@@ -190,6 +194,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     private static String baseSelect() {
-        return "select id, blocking_issue_id, blocked_issue_id, discovered_date from issue_dependencies";
+        return "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_date from issue_dependencies";
     }
 }

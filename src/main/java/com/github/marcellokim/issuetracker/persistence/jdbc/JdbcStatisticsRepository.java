@@ -4,6 +4,7 @@ import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
@@ -12,10 +13,12 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,25 +80,42 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
 
     @Override
     public List<DailyIssueCount> countReportedIssuesByDay(long projectId) {
+        return countReportedIssuesByDay(projectId, null, null);
+    }
+
+    @Override
+    public List<DailyIssueCount> countReportedIssuesByDay(
+            long projectId,
+            LocalDate fromInclusive,
+            LocalDate toInclusive
+    ) {
+        validateDateRange(fromInclusive, toInclusive);
+
         String sql = """
                 select trunc(reported_date) as reported_day, count(*) as issue_count
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
+                  and (? is null or trunc(reported_date) >= ?)
+                  and (? is null or trunc(reported_date) <= ?)
                 group by trunc(reported_date)
                 order by reported_day
                 """;
         try (Connection connection = connectionProvider.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
+            setNullableDate(statement, 2, fromInclusive);
+            setNullableDate(statement, 3, fromInclusive);
+            setNullableDate(statement, 4, toInclusive);
+            setNullableDate(statement, 5, toInclusive);
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<DailyIssueCount> counts = new ArrayList<>();
+                Map<LocalDate, Integer> countByDate = new HashMap<>();
                 while (resultSet.next()) {
                     Date date = resultSet.getDate("reported_day");
                     LocalDate localDate = date.toLocalDate();
-                    counts.add(new DailyIssueCount(localDate, resultSet.getInt("issue_count")));
+                    countByDate.put(localDate, resultSet.getInt("issue_count"));
                 }
-                return counts;
+                return fillDailyRange(countByDate, fromInclusive, toInclusive);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to count reported issues by day.", exception);
@@ -104,27 +124,120 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
 
     @Override
     public List<MonthlyIssueCount> countReportedIssuesByMonth(long projectId) {
+        return countReportedIssuesByMonth(projectId, null, null);
+    }
+
+    @Override
+    public List<MonthlyIssueCount> countReportedIssuesByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        validateMonthRange(fromInclusive, toInclusive);
+
         String sql = """
                 select to_char(reported_date, 'YYYY-MM') as reported_month, count(*) as issue_count
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
+                  and (? is null or reported_date >= ?)
+                  and (? is null or reported_date < ?)
                 group by to_char(reported_date, 'YYYY-MM')
                 order by reported_month
                 """;
         try (Connection connection = connectionProvider.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<MonthlyIssueCount> counts = new ArrayList<>();
+                Map<YearMonth, Integer> countByMonth = new HashMap<>();
                 while (resultSet.next()) {
                     YearMonth month = YearMonth.parse(resultSet.getString("reported_month"));
-                    counts.add(new MonthlyIssueCount(month, resultSet.getInt("issue_count")));
+                    countByMonth.put(month, resultSet.getInt("issue_count"));
                 }
-                return counts;
+                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to count reported issues by month.", exception);
         }
+    }
+
+    @Override
+    public StatisticsReport buildReport(
+            long projectId,
+            LocalDate dailyFromInclusive,
+            LocalDate dailyToInclusive,
+            YearMonth monthlyFromInclusive,
+            YearMonth monthlyToInclusive
+    ) {
+        return new StatisticsReport(
+                countByStatus(projectId),
+                countByPriority(projectId),
+                countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
+                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive)
+        );
+    }
+
+    private static List<DailyIssueCount> fillDailyRange(
+            Map<LocalDate, Integer> countByDate,
+            LocalDate fromInclusive,
+            LocalDate toInclusive
+    ) {
+        if (fromInclusive == null || toInclusive == null) {
+            return countByDate.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(entry -> new DailyIssueCount(entry.getKey(), entry.getValue()))
+                    .toList();
+        }
+
+        List<DailyIssueCount> counts = new ArrayList<>();
+        for (LocalDate date = fromInclusive; !date.isAfter(toInclusive); date = date.plusDays(1)) {
+            counts.add(new DailyIssueCount(date, countByDate.getOrDefault(date, 0)));
+        }
+        return counts;
+    }
+
+    private static List<MonthlyIssueCount> fillMonthlyRange(
+            Map<YearMonth, Integer> countByMonth,
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        if (fromInclusive == null || toInclusive == null) {
+            return countByMonth.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .map(entry -> new MonthlyIssueCount(entry.getKey(), entry.getValue()))
+                    .toList();
+        }
+
+        List<MonthlyIssueCount> counts = new ArrayList<>();
+        for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
+            counts.add(new MonthlyIssueCount(month, countByMonth.getOrDefault(month, 0)));
+        }
+        return counts;
+    }
+
+    private static void validateDateRange(LocalDate fromInclusive, LocalDate toInclusive) {
+        if (fromInclusive != null && toInclusive != null && fromInclusive.isAfter(toInclusive)) {
+            throw new IllegalArgumentException("fromInclusive must not be after toInclusive");
+        }
+    }
+
+    private static void validateMonthRange(YearMonth fromInclusive, YearMonth toInclusive) {
+        if (fromInclusive != null && toInclusive != null && fromInclusive.isAfter(toInclusive)) {
+            throw new IllegalArgumentException("fromInclusive must not be after toInclusive");
+        }
+    }
+
+    private static void setNullableDate(PreparedStatement statement, int index, LocalDate date) throws SQLException {
+        if (date == null) {
+            statement.setNull(index, Types.DATE);
+            return;
+        }
+        statement.setDate(index, Date.valueOf(date));
     }
 }

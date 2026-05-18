@@ -1,36 +1,32 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
-import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import java.util.Objects;
 
-public final class ProjectController {
+public final class IssueStateController {
 
     private final AuthenticationService authenticationService;
     private final PermissionPolicy permissionPolicy;
-    private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
+    private final IssueRepository issueRepository;
     private final Clock clock;
 
-    public ProjectController(
+    public IssueStateController(
             AuthenticationService authenticationService,
             PermissionPolicy permissionPolicy,
-            ProjectRepository projectRepository,
-            UserRepository userRepository,
-            Clock clock
-    ) {
+            IssueRepository issueRepository,
+            Clock clock) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
+        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     /*
      * 다른 팀원이 구현해야하는 부분:
-     * 프로젝트 생성/수정, PL 1명 제한 검증, 프로젝트 멤버 추가/제거 UC를 구현한다.
+     * ASSIGNED/FIXED/RESOLVED/CLOSED/REOPENED 상태 전이, 필수 comment 검증, 담당 role 검증을
+     * 구현한다.
      */
 }

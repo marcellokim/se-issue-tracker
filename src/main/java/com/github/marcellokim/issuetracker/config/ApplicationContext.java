@@ -4,13 +4,13 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.DemoDashboardService;
+import com.github.marcellokim.issuetracker.ui.DemoDashboardPresenter;
 import java.io.IOException;
 import java.sql.SQLException;
 
 public record ApplicationContext(
         AuthenticationService authenticationService,
-        DemoDashboardService dashboardService
+        DemoDashboardPresenter dashboardPresenter
 ) {
 
     public static ApplicationContext fromEnvironment() throws IOException, SQLException {
@@ -26,7 +26,7 @@ public record ApplicationContext(
         var repositories = new JdbcRepositoryFactory(connectionProvider);
         return new ApplicationContext(
                 new AuthenticationService(repositories.users()),
-                new DemoDashboardService(
+                new DemoDashboardPresenter(
                         repositories.projects(),
                         repositories.issues(),
                         repositories.statistics(),

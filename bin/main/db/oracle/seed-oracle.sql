@@ -127,6 +127,96 @@ begin
 end;
 /
 begin
+   merge into user_credentials target
+   using (
+      select 'admin' as login_id,
+             'DemoLocalAdmin!' as password
+        from dual
+      union all
+      select 'pl1',
+             'DemoLocalPl1!'
+        from dual
+      union all
+      select 'pl2',
+             'DemoLocalPl2!'
+        from dual
+      union all
+      select 'dev1',
+             'DemoLocalDev1!'
+        from dual
+      union all
+      select 'dev2',
+             'DemoLocalDev2!'
+        from dual
+      union all
+      select 'dev3',
+             'DemoLocalDev3!'
+        from dual
+      union all
+      select 'dev4',
+             'DemoLocalDev4!'
+        from dual
+      union all
+      select 'dev5',
+             'DemoLocalDev5!'
+        from dual
+      union all
+      select 'dev6',
+             'DemoLocalDev6!'
+        from dual
+      union all
+      select 'dev7',
+             'DemoLocalDev7!'
+        from dual
+      union all
+      select 'dev8',
+             'DemoLocalDev8!'
+        from dual
+      union all
+      select 'dev9',
+             'DemoLocalDev9!'
+        from dual
+      union all
+      select 'dev10',
+             'DemoLocalDev10!'
+        from dual
+      union all
+      select 'tester1',
+             'DemoLocalTester1!'
+        from dual
+      union all
+      select 'tester2',
+             'DemoLocalTester2!'
+        from dual
+      union all
+      select 'tester3',
+             'DemoLocalTester3!'
+        from dual
+      union all
+      select 'tester4',
+             'DemoLocalTester4!'
+        from dual
+      union all
+      select 'tester5',
+             'DemoLocalTester5!'
+        from dual
+   ) source on ( target.login_id = source.login_id )
+   when matched then update
+   set target.password_salt = source.login_id,
+       target.password_hash = lower(standard_hash(source.login_id || ':' || source.password, 'SHA256')),
+       target.updated_at = current_timestamp
+   when not matched then
+   insert (
+      login_id,
+      password_salt,
+      password_hash )
+   values
+      ( source.login_id,
+        source.login_id,
+        lower(standard_hash(source.login_id || ':' || source.password, 'SHA256')) );
+end;
+/
+begin
    merge into projects target
    using (
       select 'project1' as name,
@@ -1236,6 +1326,7 @@ begin
    using (
       select blocking_issue.id as blocking_issue_id,
              blocked_issue.id as blocked_issue_id,
+             lower(standard_hash(to_char(blocking_issue.id) || ':' || to_char(blocked_issue.id), 'SHA256')) as dependency_id,
              s.discovered_date
         from (
          select 'project1' as blocking_project_name,
@@ -1272,14 +1363,17 @@ begin
    ) source on ( target.blocking_issue_id = source.blocking_issue_id
       and target.blocked_issue_id = source.blocked_issue_id )
    when matched then update
-   set target.discovered_date = source.discovered_date
+   set target.dependency_id = source.dependency_id,
+       target.discovered_date = source.discovered_date
    when not matched then
    insert (
+      dependency_id,
       blocking_issue_id,
       blocked_issue_id,
       discovered_date )
    values
-      ( source.blocking_issue_id,
+      ( source.dependency_id,
+        source.blocking_issue_id,
         source.blocked_issue_id,
         source.discovered_date );
 end;

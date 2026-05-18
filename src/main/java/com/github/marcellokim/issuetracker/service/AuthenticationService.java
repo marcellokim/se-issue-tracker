@@ -1,15 +1,38 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
-import java.security.MessageDigest;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class AuthenticationService {
 
     private final UserRepository users;
+    private final PasswordHasher passwordHasher;
+    private final SessionStore sessionStore;
 
     public AuthenticationService(UserRepository users) {
+        this(users, new PasswordHasher(), new SessionStore());
+    }
+
+    public AuthenticationService(
+            UserRepository users,
+            PasswordHasher passwordHasher,
+            SessionStore sessionStore
+    ) {
         this.users = Objects.requireNonNull(users, "users");
+        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
+        this.sessionStore = Objects.requireNonNull(sessionStore, "sessionStore");
+    }
+
+    public Optional<User> currentUser() {
+        return sessionStore.currentUser();
+    }
+
+    public AuthenticationResult logIn(String loginId, String password) {
+        return login(loginId, password);
     }
 
     public AuthenticationResult login(String loginId, String password) {
@@ -22,21 +45,12 @@ public final class AuthenticationService {
                     if (!user.active()) {
                         return AuthenticationResult.failure("This account is inactive.");
                     }
-                    if (!matches(password, user.password())) {
+                    if (!passwordHasher.matches(password, user.password())) {
                         return AuthenticationResult.failure("Invalid ID or password.");
                     }
+                    sessionStore.startSession(user);
                     return AuthenticationResult.success(user);
                 })
                 .orElseGet(() -> AuthenticationResult.failure("Invalid ID or password."));
-    }
-
-    private static boolean matches(String password, String storedPassword) {
-        if (storedPassword == null) {
-            return false;
-        }
-
-        byte[] expected = storedPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        byte[] actual = password.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        return MessageDigest.isEqual(expected, actual);
     }
 }
