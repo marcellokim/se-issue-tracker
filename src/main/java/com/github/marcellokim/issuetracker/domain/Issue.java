@@ -13,21 +13,61 @@ public class Issue {
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
 
+    private final long id;
+    private final long projectId;
     private final String issueId;
     private String title;
     private String description;
     private final LocalDateTime reportedDate;
-    private Priority priority = Priority.MAJOR;
-    private IssueStatus status = IssueStatus.NEW;
+    private Priority priority;
+    private IssueStatus status;
     private final User reporter;
     private User assignee;
     private User verifier;
     private User fixer;
     private User resolver;
+    private final String reporterId;
+    private String assigneeId;
+    private String verifierId;
+    private String fixerId;
+    private String resolverId;
+    private LocalDateTime updatedAt;
     private final List<Comment> comments = new ArrayList<>();
     private final List<IssueHistory> histories = new ArrayList<>();
     private final List<IssueDependency> blockingDependencies = new ArrayList<>();
     private final List<IssueDependency> blockedByDependencies = new ArrayList<>();
+
+    public Issue(
+            long id,
+            long projectId,
+            String title,
+            String description,
+            LocalDateTime reportedDate,
+            Priority priority,
+            IssueStatus status,
+            String reporterId,
+            String assigneeId,
+            String verifierId,
+            String fixerId,
+            String resolverId,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
+        this.projectId = projectId;
+        this.issueId = Long.toString(id);
+        this.title = requireText(title, "title");
+        this.description = requireText(description, "description");
+        this.reportedDate = reportedDate;
+        this.priority = Objects.requireNonNull(priority, "priority must not be null");
+        this.status = Objects.requireNonNull(status, "status must not be null");
+        this.reporterId = requireText(reporterId, "reporterId");
+        this.assigneeId = assigneeId;
+        this.verifierId = verifierId;
+        this.fixerId = fixerId;
+        this.resolverId = resolverId;
+        this.updatedAt = updatedAt;
+        this.reporter = null;
+    }
 
     private Issue(
             String issueId,
@@ -37,12 +77,17 @@ public class Issue {
             User reporter,
             LocalDateTime reportedDate
     ) {
+        this.id = 0L;
+        this.projectId = 0L;
         this.issueId = requireText(issueId, "issueId");
         this.title = requireText(title, "title");
         this.description = requireText(description, "description");
         this.priority = priority == null ? Priority.MAJOR : priority;
+        this.status = IssueStatus.NEW;
         this.reporter = Objects.requireNonNull(reporter, "reporter must not be null");
+        this.reporterId = reporter.loginId();
         this.reportedDate = Objects.requireNonNull(reportedDate, "reportedDate must not be null");
+        this.updatedAt = reportedDate;
         recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter, reportedDate);
     }
 
@@ -55,6 +100,58 @@ public class Issue {
             LocalDateTime reportedDate
     ) {
         return new Issue(issueId, title, description, priority, reporter, reportedDate);
+    }
+
+    public long id() {
+        return id;
+    }
+
+    public long projectId() {
+        return projectId;
+    }
+
+    public String title() {
+        return title;
+    }
+
+    public String description() {
+        return description;
+    }
+
+    public LocalDateTime reportedDate() {
+        return reportedDate;
+    }
+
+    public Priority priority() {
+        return priority;
+    }
+
+    public IssueStatus status() {
+        return status;
+    }
+
+    public String reporterId() {
+        return reporterId;
+    }
+
+    public String assigneeId() {
+        return assigneeId;
+    }
+
+    public String verifierId() {
+        return verifierId;
+    }
+
+    public String fixerId() {
+        return fixerId;
+    }
+
+    public String resolverId() {
+        return resolverId;
+    }
+
+    public LocalDateTime updatedAt() {
+        return updatedAt;
     }
 
     public String getIssueId() {
@@ -133,6 +230,7 @@ public class Issue {
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.fixer = fixer;
+        this.fixerId = fixer.loginId();
         changeStatusTo(IssueStatus.FIXED, requiredComment, fixer, changedDate);
     }
 
@@ -142,6 +240,7 @@ public class Issue {
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.resolver = resolver;
+        this.resolverId = resolver.loginId();
         changeStatusTo(IssueStatus.RESOLVED, requiredComment, resolver, changedDate);
     }
 
@@ -154,6 +253,8 @@ public class Issue {
 
         assignee = null;
         verifier = null;
+        assigneeId = null;
+        verifierId = null;
         changeStatusTo(IssueStatus.REOPENED, requiredComment, changedBy, changedDate);
     }
 
@@ -165,6 +266,7 @@ public class Issue {
     ) {
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(blockingIssue, "blockingIssue must not be null");
+        rejectSelfDependency(blockingIssue);
         rejectDuplicateDependency(blockingIssue);
         var dependency = IssueDependency.create(dependencyId, blockingIssue, this, discoveredDate);
         blockedByDependencies.add(dependency);
@@ -197,6 +299,7 @@ public class Issue {
 
         var previousPriority = priority;
         priority = newPriority;
+        updatedAt = changedDate;
         recordHistory(
                 ActionType.PRIORITY_CHANGED,
                 previousPriority.name(),
@@ -217,6 +320,7 @@ public class Issue {
 
         var previousStatus = status;
         status = targetStatus;
+        updatedAt = changedDate;
         recordHistory(
                 ActionType.STATUS_CHANGED,
                 previousStatus.name(),
@@ -258,10 +362,13 @@ public class Issue {
 
         this.assignee = assignee;
         this.verifier = verifier;
+        this.assigneeId = assignee.loginId();
+        this.verifierId = verifier.loginId();
+        updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
                 null,
-                assignee.getUserId() + "/" + verifier.getUserId(),
+                assignee.loginId() + "/" + verifier.loginId(),
                 message,
                 changedBy,
                 changedDate
@@ -292,6 +399,12 @@ public class Issue {
         }
         if (!user.hasRole(expectedRole)) {
             throw new IllegalArgumentException(fieldName + " must have role " + expectedRole);
+        }
+    }
+
+    private void rejectSelfDependency(Issue blockingIssue) {
+        if (Objects.equals(blockingIssue.getIssueId(), issueId)) {
+            throw new IllegalArgumentException("Issue cannot depend on itself");
         }
     }
 

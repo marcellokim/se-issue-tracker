@@ -1,0 +1,98 @@
+package com.github.marcellokim.issuetracker.persistence;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("DB initialization resources")
+class PersistenceResourceSmokeTest {
+
+    @Test
+    @DisplayName("Oracle schema and seed SQL are packaged as application resources")
+    void oracleSchemaAndSeedScriptsArePackaged() {
+        assertNotNull(resource("db/oracle/schema-oracle.sql"));
+        assertNotNull(resource("db/oracle/seed-oracle.sql"));
+    }
+
+    @Test
+    @DisplayName("Issue schema does not add deletedAt or preDeleteStatus")
+    void issueSchemaDoesNotContainDeletedAtOrPreDeleteStatus() throws IOException {
+        String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
+
+        assertFalse(schema.contains("deleted_at"));
+        assertFalse(schema.contains("pre_delete_status"));
+    }
+
+    @Test
+    @DisplayName("Users schema uses login id as the primary key")
+    void usersSchemaUsesLoginIdPrimaryKeyAndPlainPassword() throws IOException {
+        String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
+        String seed = readResource("db/oracle/seed-oracle.sql").toLowerCase();
+        String usersTable = schema.substring(
+                schema.indexOf("create table users"),
+                schema.indexOf("create table projects (")
+        );
+
+        assertTrue(schema.contains("login_id varchar2(50) primary key"));
+        assertTrue(schema.contains("password varchar2(255) not null"));
+        assertTrue(schema.contains("reporter_login_id"));
+        assertTrue(schema.contains("changed_by_login_id"));
+        assertTrue(schema.contains("writer_login_id"));
+        assertTrue(seed.contains("'admin' as login_id"));
+        assertTrue(seed.contains("'demolocaladmin!' as password"));
+        assertFalse(usersTable.contains("password_hash"));
+        assertFalse(usersTable.contains("name varchar2"));
+        assertFalse(seed.contains("password_hash"));
+        assertFalse(seed.contains("target.password = source.password"));
+    }
+
+    @Test
+    @DisplayName("Seed SQL uses repeatable merge flow")
+    void seedUsesMergeForRepeatability() throws IOException {
+        String seed = readResource("db/oracle/seed-oracle.sql").toLowerCase();
+
+        assertTrue(seed.contains("merge into users"));
+        assertTrue(seed.contains("merge into projects"));
+        assertTrue(seed.contains("merge into issues"));
+        assertTrue(seed.contains("merge into issue_history"));
+    }
+
+    @Test
+    @DisplayName("Seed SQL includes required demo accounts and status history samples")
+    void seedIncludesRequiredDemoAccountsAndHistorySamples() throws IOException {
+        String seed = readResource("db/oracle/seed-oracle.sql").toLowerCase();
+
+        assertTrue(seed.contains("'admin'"));
+        assertTrue(seed.contains("'pl1'"));
+        assertTrue(seed.contains("'pl2'"));
+        assertTrue(seed.contains("'project2'"));
+        assertTrue(seed.contains("'dev10'"));
+        assertTrue(seed.contains("'tester5'"));
+        assertTrue(seed.contains("u.role = 'pl'"));
+        assertTrue(seed.contains("'resolved'"));
+        assertTrue(seed.contains("'closed'"));
+        assertTrue(seed.contains("'reopened'"));
+        assertTrue(seed.contains("'fixed'"));
+        assertTrue(seed.contains("'assigned'"));
+        assertTrue(seed.contains("'closed'"));
+        assertTrue(seed.contains("'reopened'"));
+        assertTrue(seed.contains("merge into comments"));
+        assertTrue(seed.contains("merge into issue_dependencies"));
+    }
+
+    private static java.net.URL resource(String path) {
+        return PersistenceResourceSmokeTest.class.getClassLoader().getResource(path);
+    }
+
+    private static String readResource(String path) throws IOException {
+        try (var inputStream = PersistenceResourceSmokeTest.class.getClassLoader().getResourceAsStream(path)) {
+            assertNotNull(inputStream, () -> "Missing resource: " + path);
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+}

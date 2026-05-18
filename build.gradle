@@ -23,7 +23,7 @@ javafx {
 }
 
 application {
-    mainClass = 'ITS.github.mckimR1972.App' 
+    mainClass = 'com.github.marcellokim.issuetracker.Main'
 }
 
 repositories {
@@ -48,12 +48,28 @@ sonar {
 }
 
 dependencies {
+    implementation 'com.oracle.database.jdbc:ojdbc17:23.26.1.0.0'
+
     testImplementation platform('org.junit:junit-bom:6.0.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 // --- 인코딩 및 실행 설정 (윈도우 한글 깨짐 방지) ---
+tasks.register('oracleConnectionCheck', JavaExec) {
+    group = 'application'
+    description = 'Checks Oracle Database connectivity using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.OracleConnectionCheck'
+}
+
+tasks.register('oracleInitializeDatabase', JavaExec) {
+    group = 'application'
+    description = 'Initializes Oracle schema and repeatable demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
