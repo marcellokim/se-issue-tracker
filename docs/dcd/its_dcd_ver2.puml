@@ -223,7 +223,7 @@ IssueStateController ..> PermissionPolicy : policy
 DeletedIssueController ..> Issue : deletedIssue
 DeletedIssueController ..> PermissionPolicy : policy
 
-Project "1" -- "0..*" Issue : contains
+Project "1" *-- "0..*" Issue : contains
 User "*" -- "*" Project : participates in
 User "1" -- "0..*" Project : manages\n(Admin only)
 
@@ -232,7 +232,6 @@ Issue "1" *-- "0..*" IssueHistory : histories {ordered}
 
 IssueDependency "0..*" --> "1" Issue : blockingIssue
 IssueDependency "0..*" --> "1" Issue : blockedIssue
-
 
 Issue --> User : reporter / assignee /\nverifier / fixer / resolver
 
