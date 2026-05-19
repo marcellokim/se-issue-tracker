@@ -33,14 +33,13 @@ class ProjectControllerTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 20, 10, 0);
 
     @Test
-    @DisplayName("ADMIN creates, updates, and deletes projects")
-    void adminCreatesUpdatesAndDeletesProjects() {
+    @DisplayName("ADMIN creates and deletes projects")
+    void adminCreatesAndDeletesProjects() {
         AuthFixture auth = authenticated(Role.ADMIN);
         FakeProjectRepository projects = new FakeProjectRepository();
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         Project created = controller.createProject(" project-alpha ", "first project");
-        Project updated = controller.updateProject(created.id(), "project-beta", "updated project");
         controller.deleteProject(created.id());
 
         assertTrue(created.id() > 0L);
@@ -49,10 +48,6 @@ class ProjectControllerTest {
         assertEquals("admin", created.managedById());
         assertNotNull(created.createdDate());
         assertNotNull(created.updatedAt());
-        assertEquals(created.id(), updated.id());
-        assertEquals("project-beta", updated.name());
-        assertEquals("updated project", updated.description());
-        assertEquals("admin", updated.managedById());
         assertFalse(projects.findById(created.id()).isPresent());
     }
 
@@ -66,11 +61,29 @@ class ProjectControllerTest {
             ProjectController controller = controller(auth, projects, users);
 
             assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
-            assertThrows(SecurityException.class, () -> controller.updateProject(1L, "updated", "blocked"));
             assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
             assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
             assertThrows(SecurityException.class, () -> controller.removeProjectParticipant(1L, "dev1"));
         }
+    }
+
+    @Test
+    @DisplayName("anonymous users cannot manage projects")
+    void anonymousUsersCannotManageProjects() {
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        FakeUserRepository users = new FakeUserRepository(active("dev1", Role.DEV));
+        ProjectController controller = new ProjectController(
+                anonymousAuth(),
+                new PermissionPolicy(),
+                projects,
+                users,
+                new Clock()
+        );
+
+        assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
+        assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
+        assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
+        assertThrows(SecurityException.class, () -> controller.removeProjectParticipant(1L, "dev1"));
     }
 
     @Test
@@ -84,10 +97,7 @@ class ProjectControllerTest {
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         assertThrows(IllegalArgumentException.class, () -> controller.createProject(" ", "blank"));
-        assertThrows(IllegalArgumentException.class, () -> controller.updateProject(1L, null, "blank"));
         assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-one", "duplicate"));
-        assertThrows(IllegalArgumentException.class, () -> controller.updateProject(2L, "project-one", "duplicate"));
-        assertDoesNotThrow(() -> controller.updateProject(1L, "project-one", "same name"));
     }
 
     @Test
@@ -165,6 +175,10 @@ class ProjectControllerTest {
                 new AuthenticationService(users, new PasswordHasher(), sessionStore),
                 user
         );
+    }
+
+    private static AuthenticationService anonymousAuth() {
+        return new AuthenticationService(new FakeUserRepository(), new PasswordHasher(), new SessionStore());
     }
 
     private static User active(String loginId, Role role) {

@@ -50,22 +50,6 @@ public final class ProjectController {
                 now));
     }
 
-    public Project updateProject(long projectId, String name, String description) {
-        requireProjectId(projectId);
-        requireProjectAdmin();
-        Project existingProject = requireProject(projectId);
-        String projectName = requireProjectName(name);
-        rejectDuplicateProjectName(projectName, projectId);
-
-        return projectRepository.save(new Project(
-                existingProject.id(),
-                projectName,
-                description,
-                existingProject.managedById(),
-                existingProject.createdDate(),
-                clock.now()));
-    }
-
     public void deleteProject(long projectId) {
         requireProjectId(projectId);
         requireProjectAdmin();
