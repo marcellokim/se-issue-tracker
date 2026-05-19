@@ -41,9 +41,15 @@ repositories {
 
 sonar {
     properties {
+        def oracleSqlResources = [
+            'src/main/resources/db/oracle/schema-oracle.sql',
+            'src/main/resources/db/oracle/seed-oracle.sql'
+        ].join(',')
         property 'sonar.host.url', 'https://sonarcloud.io'
         property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
         property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
+        property 'sonar.exclusions', oracleSqlResources
+        property 'sonar.cpd.exclusions', oracleSqlResources
     }
 }
 
