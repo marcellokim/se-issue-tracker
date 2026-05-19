@@ -62,7 +62,12 @@ echo "[2/3] 원격 브랜치 push"
 git push -u origin HEAD
 
 current_status_labels() {
-    gh issue view "$issue_number" --json labels -q '.labels[].name' | grep '^status:' || true
+    local labels
+    if ! labels="$(gh issue view "$issue_number" --json labels -q '.labels[].name')"; then
+        echo "[중단] 이슈 #$issue_number 상태 라벨 조회에 실패했습니다." >&2
+        return 1
+    fi
+    grep '^status:' <<< "$labels" || true
 }
 
 restore_issue_status_labels() {
@@ -103,6 +108,21 @@ sync_pr_metadata() {
     ./scripts/lib/project_maintenance.py sync-pr-metadata --pr "$pr_number" --owner @me --apply --skip-bots
 }
 
+rollback_precreate_status_on_exit() {
+    local exit_code=$?
+
+    if [[ "${precreate_status_needs_rollback:-false}" == "true" ]]; then
+        echo "[복구] PR 생성 전 단계 실패로 이슈 #$issue_number 상태 라벨을 이전 상태로 복구합니다." >&2
+        if ! restore_issue_status_labels "$previous_status_labels"; then
+            echo "[경고] 이슈 #$issue_number 상태 라벨 복구에 실패했습니다. 수동 확인이 필요합니다." >&2
+        fi
+        echo "[복구] GitHub 프로젝트 상태를 이전 이슈 라벨 기준으로 다시 정렬합니다." >&2
+        sync_project_board
+    fi
+
+    exit "$exit_code"
+}
+
 if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
     echo "[확인] 이미 열린 PR이 있습니다: $pr_url"
     pr_number="${pr_url##*/}"
@@ -127,6 +147,8 @@ body="## 요약
 - Closes #$issue_number"
 
 previous_status_labels="$(current_status_labels)"
+precreate_status_needs_rollback=true
+trap rollback_precreate_status_on_exit EXIT
 
 echo "[준비] PR 생성 전 이슈 #$issue_number 상태 라벨을 review로 이동"
 mark_issue_review
@@ -136,12 +158,10 @@ sync_project_board
 
 echo "[3/3] GitHub PR 생성"
 if ! pr_url="$(gh pr create --base dev --head "$branch" --title "$title" --body "$body")"; then
-    echo "[복구] PR 생성 실패로 이슈 #$issue_number 상태 라벨을 이전 상태로 복구합니다." >&2
-    restore_issue_status_labels "$previous_status_labels"
-    echo "[복구] GitHub 프로젝트 상태를 이전 이슈 라벨 기준으로 다시 정렬합니다." >&2
-    sync_project_board
     exit 1
 fi
+precreate_status_needs_rollback=false
+trap - EXIT
 echo "$pr_url"
 pr_number="${pr_url##*/}"
 

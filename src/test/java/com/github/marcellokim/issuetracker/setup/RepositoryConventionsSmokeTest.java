@@ -230,13 +230,19 @@ class RepositoryConventionsSmokeTest {
         var text = Files.readString(Path.of("scripts/open-pr.sh"));
 
         var previousStatusCapture = text.indexOf("previous_status_labels=\"$(current_status_labels)\"");
-        var createPullRequestFailureGuard = text.indexOf("if ! pr_url=\"$(gh pr create --base dev");
-        var restoreIssueStatus = text.indexOf("restore_issue_status_labels \"$previous_status_labels\"", createPullRequestFailureGuard);
+        var rollbackTrap = text.indexOf("trap rollback_precreate_status_on_exit EXIT", previousStatusCapture);
+        var preCreateIssueStatus = text.indexOf("\nmark_issue_review\n", rollbackTrap);
+        var createPullRequest = text.indexOf("gh pr create --base dev", preCreateIssueStatus);
+        var clearRollbackTrap = text.indexOf("trap - EXIT", createPullRequest);
+        var restoreIssueStatus = text.indexOf("restore_issue_status_labels \"$previous_status_labels\"");
         var restoreProjectStatus = text.indexOf("sync_project_board", restoreIssueStatus);
 
         assertTrue(previousStatusCapture >= 0, "PR 생성 전 기존 이슈 상태 라벨을 저장해야 합니다.");
-        assertTrue(createPullRequestFailureGuard >= 0, "gh pr create 실패를 명시적으로 처리해야 합니다.");
-        assertTrue(restoreIssueStatus > createPullRequestFailureGuard, "PR 생성 실패 시 이슈 상태 라벨을 복구해야 합니다.");
+        assertTrue(rollbackTrap > previousStatusCapture, "PR 생성 전 상태 변경 전에 rollback trap을 등록해야 합니다.");
+        assertTrue(preCreateIssueStatus > rollbackTrap, "rollback trap 등록 후 이슈 상태 라벨을 변경해야 합니다.");
+        assertTrue(createPullRequest > preCreateIssueStatus, "이슈 상태 라벨 변경 후 gh pr create를 호출해야 합니다.");
+        assertTrue(clearRollbackTrap > createPullRequest, "PR 생성 성공 후 rollback trap을 해제해야 합니다.");
+        assertTrue(restoreIssueStatus >= 0, "PR 생성 전 단계 실패 시 이슈 상태 라벨을 복구해야 합니다.");
         assertTrue(restoreProjectStatus > restoreIssueStatus, "이슈 상태 복구 후 프로젝트 상태를 다시 정렬해야 합니다.");
     }
 
