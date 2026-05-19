@@ -179,22 +179,34 @@ class OpenPrScriptFailureTest {
 
     record Fixture(Path repo, Path bin, Path log, Path labelLookupCount, Path labelState) {
         ScriptResult run(String mode) throws IOException, InterruptedException {
-            var processBuilder = new ProcessBuilder("bash", "scripts/open-pr.sh");
+            var command = "PATH=" + shellQuote(bashPath(bin)) + ":$PATH; export PATH; bash scripts/open-pr.sh";
+            var processBuilder = new ProcessBuilder("bash", "-lc", command);
             processBuilder.directory(repo.toFile());
             processBuilder.redirectErrorStream(true);
 
             Map<String, String> environment = processBuilder.environment();
-            environment.put("PATH", bin + System.getProperty("path.separator") + environment.get("PATH"));
-            environment.put("OPEN_PR_REPO", repo.toString());
-            environment.put("OPEN_PR_LOG", log.toString());
+            environment.put("OPEN_PR_REPO", bashPath(repo));
+            environment.put("OPEN_PR_LOG", bashPath(log));
             environment.put("OPEN_PR_GH_MODE", mode);
-            environment.put("OPEN_PR_LABEL_LOOKUP_COUNT", labelLookupCount.toString());
-            environment.put("OPEN_PR_LABEL_STATE", labelState.toString());
+            environment.put("OPEN_PR_LABEL_LOOKUP_COUNT", bashPath(labelLookupCount));
+            environment.put("OPEN_PR_LABEL_STATE", bashPath(labelState));
 
             var process = processBuilder.start();
             var output = new String(process.getInputStream().readAllBytes());
             var exitCode = process.waitFor();
             return new ScriptResult(exitCode, output);
+        }
+
+        private static String bashPath(Path path) {
+            String absolutePath = path.toAbsolutePath().normalize().toString().replace('\\', '/');
+            if (absolutePath.length() > 2 && absolutePath.charAt(1) == ':') {
+                return "/" + Character.toLowerCase(absolutePath.charAt(0)) + absolutePath.substring(2);
+            }
+            return absolutePath;
+        }
+
+        private static String shellQuote(String value) {
+            return "'" + value.replace("'", "'\"'\"'") + "'";
         }
     }
 
