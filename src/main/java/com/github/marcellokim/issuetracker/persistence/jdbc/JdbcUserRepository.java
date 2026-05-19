@@ -265,7 +265,7 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     static User mapUser(ResultSet resultSet) throws SQLException {
-        return new User(
+        return User.create(
                 resultSet.getString("login_id"),
                 resultSet.getString("name"),
                 resultSet.getString("password"),

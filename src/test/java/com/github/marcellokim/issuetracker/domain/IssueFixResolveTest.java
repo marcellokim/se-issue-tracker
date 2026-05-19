@@ -11,12 +11,18 @@ import org.junit.jupiter.api.Test;
 @DisplayName("이슈 수정 완료와 검증 완료")
 class IssueFixResolveTest {
 
-    private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
-    private final User assignee = new User("U-2", "dev1", "Dev One", "hash", Role.DEV);
-    private final User otherDeveloper = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
-    private final User verifier = new User("U-3", "tester2", "Tester Two", "hash", Role.TESTER);
-    private final User otherTester = new User("U-6", "tester3", "Tester Three", "hash", Role.TESTER);
-    private final User pl = new User("U-4", "pl1", "PL One", "hash", Role.PL);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User otherDeveloper = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User otherTester = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
@@ -120,8 +126,10 @@ class IssueFixResolveTest {
     @Test
     @DisplayName("비활성 사용자는 fixer 또는 resolver가 될 수 없다")
     void rejectInactiveFixerAndResolver() {
-        var inactiveFixer = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
-        var inactiveResolver = new User("U-6", "tester3", "Tester Three", "hash", Role.TESTER);
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+        var inactiveFixer = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+        var inactiveResolver = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
         inactiveFixer.deactivate();
         inactiveResolver.deactivate();
 

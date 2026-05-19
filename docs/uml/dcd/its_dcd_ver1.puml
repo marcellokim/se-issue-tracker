@@ -46,12 +46,12 @@ package "Presentation Layer\n(concrete boundary)" #E3F2FD {
   class SwingAdminView <<boundary>> {
     +logIn(loginId, password)
     +createAccount(loginId, name, password, role)
-    +updateAccount(userId, name, role)
-    +deactivateAccount(userId)
+    +updateAccount(loginId, name, role)
+    +deactivateAccount(loginId)
     +createProject(name, description)
     +deleteProject(projectId)
-    +addProjectParticipant(projectId, userId)
-    +removeProjectParticipant(projectId, userId)
+    +addProjectParticipant(projectId, loginId)
+    +removeProjectParticipant(projectId, loginId)
     +viewStatistics(period, filters)
   }
 
@@ -104,15 +104,15 @@ package "Application Layer\n(concrete controllers)" #FFF8E1 {
   class AccountController <<control>> {
     +logIn(loginId, password): void
     +createAccount(loginId, name, password, role): UserDto
-    +updateAccount(userId, name, role): UserDto
-    +deactivateAccount(userId): UserDto
+    +updateAccount(loginId, name, role): UserDto
+    +deactivateAccount(loginId): UserDto
   }
 
   class ProjectController <<control>> {
     +createProject(name, description): ProjectDto
     +deleteProject(projectId): void
-    +addProjectParticipant(projectId, userId): ProjectDto
-    +removeProjectParticipant(projectId, userId): ProjectDto
+    +addProjectParticipant(projectId, loginId): ProjectDto
+    +removeProjectParticipant(projectId, loginId): ProjectDto
   }
 
   class StatisticsController <<control>> {
@@ -167,7 +167,7 @@ package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
   }
 
   interface UserRepository <<interface>> {
-    +findById(userId): User
+    +findById(loginId): User
     +findActiveByRole(projectId, role): List<User>
     +save(user): void
   }
@@ -260,7 +260,6 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
   }
 
   class User <<entity>> {
-    -userId: UserId
     -loginId: Text
     -name: Text
     -passwordHash: Text

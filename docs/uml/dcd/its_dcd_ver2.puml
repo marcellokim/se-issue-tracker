@@ -163,7 +163,6 @@ class IssueDependency {
 }
 
 class User {
-  - userId : UserId
   - loginId : Text
   - name : Text
   - passwordHash : Text

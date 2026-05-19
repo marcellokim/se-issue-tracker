@@ -17,7 +17,8 @@ class SessionStoreTest {
     @DisplayName("starts, reads, and clears a user session")
     void startsReadsAndClearsSession() {
         SessionStore store = new SessionStore();
-        User user = new User("dev1", "dev1", "Developer One", "hash", Role.DEV);
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+        User user = User.create("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
         assertFalse(store.currentUser().isPresent());
 

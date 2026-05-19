@@ -673,7 +673,7 @@ public final class JdbcIssueRepository implements IssueRepository {
         if (loginId == null || loginId.isBlank()) {
             return null;
         }
-        return new User(
+        return User.create(
                 loginId,
                 resultSet.getString(prefix + "_name"),
                 resultSet.getString(prefix + "_password"),

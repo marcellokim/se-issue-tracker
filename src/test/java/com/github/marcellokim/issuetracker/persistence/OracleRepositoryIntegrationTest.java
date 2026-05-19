@@ -352,7 +352,7 @@ class OracleRepositoryIntegrationTest {
         LocalDateTime now = LocalDateTime.now();
 
         try {
-            User created = repositories.users().save(new User(
+            User created = repositories.users().save(User.create(
                     loginId,
                     "Repository CRUD Dev",
                     "InitialPassword!",
@@ -366,7 +366,7 @@ class OracleRepositoryIntegrationTest {
             assertEquals(Role.DEV, repositories.users().findByLoginId(loginId).orElseThrow().role());
             assertTrue(repositories.users().findAll().stream().anyMatch(user -> user.loginId().equals(loginId)));
 
-            User updated = repositories.users().save(new User(
+            User updated = repositories.users().save(User.create(
                     loginId,
                     "Repository CRUD Tester",
                     "UpdatedPassword!",
@@ -395,7 +395,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            project = repositories.projects().save(new Project(
+            project = repositories.projects().save(Project.create(
                     0L,
                     projectName,
                     "Repository CRUD test project.",
@@ -405,7 +405,7 @@ class OracleRepositoryIntegrationTest {
 
             assertEquals(projectName, repositories.projects().findByName(projectName).orElseThrow().name());
 
-            Project updated = repositories.projects().save(new Project(
+            Project updated = repositories.projects().save(Project.create(
                     project.id(),
                     project.name(),
                     "Updated repository CRUD test project.",

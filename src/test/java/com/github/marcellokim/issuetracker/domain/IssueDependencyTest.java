@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test;
 @DisplayName("이슈 의존성")
 class IssueDependencyTest {
 
-    private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
-    private final User pl = new User("U-2", "pl1", "PL One", "hash", Role.PL);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
