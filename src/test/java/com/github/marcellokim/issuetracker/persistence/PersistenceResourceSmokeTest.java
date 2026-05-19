@@ -80,7 +80,8 @@ class PersistenceResourceSmokeTest {
         assertTrue(seed.contains("'project2'"));
         assertTrue(seed.contains("'dev10'"));
         assertTrue(seed.contains("'tester5'"));
-        assertTrue(seed.contains("u.role = 'pl'"));
+        assertTrue(seed.contains("delete from project_members target"));
+        assertTrue(seed.contains("p.name in ( 'project1'"));
         assertTrue(seed.contains("'resolved'"));
         assertTrue(seed.contains("'closed'"));
         assertTrue(seed.contains("'reopened'"));

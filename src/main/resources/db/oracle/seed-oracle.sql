@@ -266,17 +266,11 @@ end;
 /
 begin
    delete from project_members target
-    where exists (
-      select 1
+    where target.project_id in (
+      select p.id
         from projects p
-        join users u
-      on u.login_id = target.user_login_id
-       where p.id = target.project_id
-         and u.role = 'PL'
-         and ( ( p.name = 'project1'
-         and u.login_id <> 'pl1' )
-          or ( p.name = 'project2'
-         and u.login_id <> 'pl2' ) )
+       where p.name in ( 'project1',
+                         'project2' )
    );
 end;
 /

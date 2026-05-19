@@ -14,6 +14,18 @@ import java.util.Optional;
 
 public final class JdbcIssueDependencyRepository implements IssueDependencyRepository {
 
+    private static final String BASE_SELECT =
+            "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_date from issue_dependencies";
+    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
+    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + """
+             where blocking_issue_id = ? or blocked_issue_id = ?
+             order by id
+            """;
+    private static final String FIND_BY_BLOCKING_ISSUE_ID_SQL =
+            BASE_SELECT + " where blocking_issue_id = ? order by id";
+    private static final String FIND_BY_BLOCKED_ISSUE_ID_SQL =
+            BASE_SELECT + " where blocked_issue_id = ? order by id";
+
     private final DatabaseConnectionProvider connectionProvider;
 
     public JdbcIssueDependencyRepository(DatabaseConnectionProvider connectionProvider) {
@@ -22,9 +34,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     @Override
     public Optional<IssueDependency> findById(long dependencyId) {
-        String sql = baseSelect() + " where id = ?";
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
             statement.setLong(1, dependencyId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -39,12 +50,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     @Override
     public List<IssueDependency> findByIssueId(long issueId) {
-        String sql = baseSelect() + """
-                 where blocking_issue_id = ? or blocked_issue_id = ?
-                 order by id
-                """;
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ISSUE_ID_SQL)) {
             statement.setLong(1, issueId);
             statement.setLong(2, issueId);
             return executeDependencyList(statement);
@@ -55,9 +62,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     @Override
     public List<IssueDependency> findByBlockingIssueId(long blockingIssueId) {
-        String sql = baseSelect() + " where blocking_issue_id = ? order by id";
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_BLOCKING_ISSUE_ID_SQL)) {
             statement.setLong(1, blockingIssueId);
             return executeDependencyList(statement);
         } catch (SQLException exception) {
@@ -67,9 +73,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     @Override
     public List<IssueDependency> findByBlockedIssueId(long blockedIssueId) {
-        String sql = baseSelect() + " where blocked_issue_id = ? order by id";
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_BLOCKED_ISSUE_ID_SQL)) {
             statement.setLong(1, blockedIssueId);
             return executeDependencyList(statement);
         } catch (SQLException exception) {
@@ -193,7 +198,4 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
         );
     }
 
-    private static String baseSelect() {
-        return "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_date from issue_dependencies";
-    }
 }

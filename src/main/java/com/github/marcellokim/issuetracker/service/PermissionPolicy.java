@@ -31,9 +31,11 @@ public final class PermissionPolicy {
     }
 
     public void assertCanRegisterIssue(User user, Project project) {
-        Objects.requireNonNull(user, USER_REQUIRED);
-        Objects.requireNonNull(project, "project");
-        throw pendingOtherTeam();
+        requireActiveUser(user, "Only active users can register issues.");
+        Project targetProject = Objects.requireNonNull(project, "project");
+        if (targetProject.id() <= 0) {
+            throw new SecurityException("Issue registration requires a persisted project.");
+        }
     }
 
     public void assertCanAssignIssue(User user, Issue issue) {
@@ -42,10 +44,39 @@ public final class PermissionPolicy {
     }
 
     public void assertCanChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
-        Objects.requireNonNull(user, USER_REQUIRED);
-        Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        Objects.requireNonNull(targetStatus, "targetStatus");
-        throw pendingOtherTeam();
+        Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        IssueStatus nextStatus = Objects.requireNonNull(targetStatus, "targetStatus");
+        switch (nextStatus) {
+            case FIXED -> requireAssignedActor(
+                    user,
+                    targetIssue.assigneeId(),
+                    Role.DEV,
+                    "Only the active DEV assignee can mark an issue as fixed."
+            );
+            case RESOLVED -> requireAssignedActor(
+                    user,
+                    targetIssue.verifierId(),
+                    Role.TESTER,
+                    "Only the active TESTER verifier can resolve an issue."
+            );
+            case ASSIGNED -> {
+                if (targetIssue.status() == IssueStatus.FIXED) {
+                    requireAssignedActor(
+                            user,
+                            targetIssue.verifierId(),
+                            Role.TESTER,
+                            "Only the active TESTER verifier can reject a fixed issue."
+                    );
+                } else {
+                    requirePlOrAdmin(user, "Only PL or ADMIN can assign issues.");
+                }
+            }
+            case CLOSED, REOPENED, DELETED -> requirePlOrAdmin(
+                    user,
+                    "Only PL or ADMIN can close, reopen, or delete issues."
+            );
+            case NEW -> throw new SecurityException("Issue status cannot be changed back to NEW.");
+        }
     }
 
     public void assertCanManageDeletedIssue(User user, Issue issue) {
@@ -56,15 +87,13 @@ public final class PermissionPolicy {
     }
 
     public void assertCanManageDependency(User user, Issue issue) {
-        Objects.requireNonNull(user, USER_REQUIRED);
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        throw pendingOtherTeam();
+        requirePlOrAdmin(user, "Only PL or ADMIN can manage dependencies.");
     }
 
     public void assertCanChangePriority(User user, Issue issue) {
-        Objects.requireNonNull(user, USER_REQUIRED);
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        throw pendingOtherTeam();
+        requirePlOrAdmin(user, "Only PL or ADMIN can change issue priority.");
     }
 
     public void assertCanChangePriority(User user, Issue issue, Priority newPriority) {
@@ -73,8 +102,7 @@ public final class PermissionPolicy {
     }
 
     public void assertCanManageAccount(User user) {
-        Objects.requireNonNull(user, USER_REQUIRED);
-        throw pendingOtherTeam();
+        requireAdmin(user, "Only ADMIN can manage accounts.");
     }
 
     public void assertCanManageProject(User user) {
@@ -95,6 +123,26 @@ public final class PermissionPolicy {
         }
     }
 
+    private static void requireAdmin(User user, String message) {
+        if (!isActiveUser(user) || user.role() != Role.ADMIN) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private static void requireActiveUser(User user, String message) {
+        Objects.requireNonNull(user, USER_REQUIRED);
+        if (!user.active()) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private static void requireAssignedActor(User user, String expectedLoginId, Role expectedRole, String message) {
+        requireActiveUser(user, message);
+        if (user.role() != expectedRole || expectedLoginId == null || !expectedLoginId.equals(user.loginId())) {
+            throw new SecurityException(message);
+        }
+    }
+
     private static boolean isPlOrAdmin(User user) {
         return user.role() == Role.PL || user.role() == Role.ADMIN;
     }
@@ -107,7 +155,4 @@ public final class PermissionPolicy {
         return resource instanceof Long projectId && projectId > 0;
     }
 
-    private static UnsupportedOperationException pendingOtherTeam() {
-        return new UnsupportedOperationException("Other team member should implement this part.");
-    }
 }

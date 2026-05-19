@@ -16,6 +16,19 @@ import java.util.Optional;
 public final class JdbcIssueHistoryRepository implements IssueHistoryRepository {
 
     private static final String INVALID_ACTION_TYPE = "Invalid issue history action type.";
+    private static final String BASE_SELECT = """
+            select id, issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+            from issue_history
+            """;
+    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
+    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by changed_date, id";
+    private static final String FIND_LATEST_STATUS_CHANGE_TO_DELETED_SQL = BASE_SELECT + """
+             where issue_id = ?
+               and action_type = 'STATUS_CHANGED'
+               and new_value = 'DELETED'
+             order by changed_date desc, id desc
+             fetch first 1 rows only
+            """;
 
     private final DatabaseConnectionProvider connectionProvider;
 
@@ -25,9 +38,8 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
 
     @Override
     public Optional<IssueHistory> findById(long historyId) {
-        String sql = baseSelect() + " where id = ?";
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
             statement.setLong(1, historyId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -42,9 +54,8 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
 
     @Override
     public List<IssueHistory> findByIssueId(long issueId) {
-        String sql = baseSelect() + " where issue_id = ? order by changed_date, id";
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_BY_ISSUE_ID_SQL)) {
             statement.setLong(1, issueId);
             return executeHistoryList(statement);
         } catch (SQLException exception) {
@@ -54,15 +65,8 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
 
     @Override
     public Optional<IssueHistory> findLatestStatusChangeToDeleted(long issueId) {
-        String sql = baseSelect() + """
-                 where issue_id = ?
-                   and action_type = 'STATUS_CHANGED'
-                   and new_value = 'DELETED'
-                 order by changed_date desc, id desc
-                 fetch first 1 rows only
-                """;
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_LATEST_STATUS_CHANGE_TO_DELETED_SQL)) {
             statement.setLong(1, issueId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -188,10 +192,4 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
         }
     }
 
-    private static String baseSelect() {
-        return """
-                select id, issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
-                from issue_history
-                """;
-    }
 }

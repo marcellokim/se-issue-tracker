@@ -89,6 +89,15 @@ tasks.register('oracleInitializeDatabase', JavaExec) {
     mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
 }
 
+def oracleIntegrationTestRequested = {
+    def environment = System.getenv()
+    'true'.equalsIgnoreCase(environment.get('ITS_DB_INTEGRATION_TESTS') ?: '') ||
+            ['ITS_TEST_DB_URL', 'ITS_TEST_DB_USER', 'ITS_TEST_DB_PASSWORD'].every {
+                def value = environment.get(it)
+                value != null && !value.isBlank()
+            }
+}
+
 tasks.register('oracleIntegrationTest', Test) {
     group = 'verification'
     description = 'Runs Oracle repository integration tests against an isolated test schema. Set ITS_TEST_DB_URL, ITS_TEST_DB_USER, and ITS_TEST_DB_PASSWORD.'
@@ -102,6 +111,13 @@ tasks.register('oracleIntegrationTest', Test) {
         events 'passed', 'skipped', 'failed'
         exceptionFormat = 'full'
     }
+    onlyIf {
+        oracleIntegrationTestRequested()
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('oracleIntegrationTest')
 }
 
 tasks.withType(JavaCompile).configureEach {

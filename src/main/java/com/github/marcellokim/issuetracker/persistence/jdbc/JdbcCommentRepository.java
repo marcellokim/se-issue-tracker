@@ -15,6 +15,8 @@ import java.util.Optional;
 public final class JdbcCommentRepository implements CommentRepository {
 
     private static final String BASE_SELECT = "select id, issue_id, writer_login_id, content, created_date from comments";
+    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
+    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by created_date, id";
 
     private final DatabaseConnectionProvider connectionProvider;
 
@@ -24,9 +26,8 @@ public final class JdbcCommentRepository implements CommentRepository {
 
     @Override
     public Optional<Comment> findById(long commentId) {
-        String sql = BASE_SELECT + " where id = ?";
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
             statement.setLong(1, commentId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -41,9 +42,8 @@ public final class JdbcCommentRepository implements CommentRepository {
 
     @Override
     public List<Comment> findByIssueId(long issueId) {
-        String sql = BASE_SELECT + " where issue_id = ? order by created_date, id";
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_BY_ISSUE_ID_SQL)) {
             statement.setLong(1, issueId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<Comment> comments = new ArrayList<>();

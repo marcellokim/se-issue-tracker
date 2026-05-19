@@ -16,6 +16,60 @@ import java.util.Optional;
 
 public final class JdbcUserRepository implements UserRepository {
 
+    private static final String BASE_SELECT = """
+            select u.login_id,
+                   c.password_salt || ':' || c.password_hash as password,
+                   u.role,
+                   u.active,
+                   u.created_at,
+                   u.updated_at
+            from users u
+            join user_credentials c on c.login_id = u.login_id
+            """;
+    private static final String FIND_BY_LOGIN_ID_SQL = BASE_SELECT + " where u.login_id = ?";
+    private static final String FIND_ALL_SQL = BASE_SELECT + " order by u.login_id";
+    private static final String FIND_ACTIVE_BY_ROLE_SQL = """
+            select u.login_id,
+                   c.password_salt || ':' || c.password_hash as password,
+                   u.role,
+                   u.active,
+                   u.created_at,
+                   u.updated_at
+            from users u
+            join user_credentials c on c.login_id = u.login_id
+            join project_members pm on pm.user_login_id = u.login_id
+            where pm.project_id = ?
+              and u.role = ?
+              and u.active = 1
+            order by u.login_id
+            """;
+    private static final String INSERT_USER_SQL = """
+            insert into users (login_id, role, active, created_at, updated_at)
+            values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
+            """;
+    private static final String UPDATE_USER_SQL = """
+            update users
+            set role = ?,
+                active = ?,
+                updated_at = coalesce(?, current_timestamp)
+            where login_id = ?
+            """;
+    private static final String UPSERT_CREDENTIAL_SQL = """
+            merge into user_credentials target
+            using (
+                select ? as login_id, ? as password_salt, ? as password_hash from dual
+            ) source on (target.login_id = source.login_id)
+            when matched then update
+            set target.password_salt = source.password_salt,
+                target.password_hash = source.password_hash,
+                target.updated_at = current_timestamp
+            when not matched then
+            insert (login_id, password_salt, password_hash)
+            values (source.login_id, source.password_salt, source.password_hash)
+            """;
+    private static final String DEACTIVATE_SQL =
+            "update users set active = 0, updated_at = current_timestamp where login_id = ?";
+
     private final DatabaseConnectionProvider connectionProvider;
     private final PasswordHasher passwordHasher;
 
@@ -35,9 +89,8 @@ public final class JdbcUserRepository implements UserRepository {
 
     @Override
     public Optional<User> findByLoginId(String loginId) {
-        String sql = baseSelect() + " where u.login_id = ?";
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_LOGIN_ID_SQL)) {
             statement.setString(1, loginId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -52,9 +105,8 @@ public final class JdbcUserRepository implements UserRepository {
 
     @Override
     public List<User> findAll() {
-        String sql = baseSelect() + " order by u.login_id";
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
              ResultSet resultSet = statement.executeQuery()) {
             List<User> users = new ArrayList<>();
             while (resultSet.next()) {
@@ -68,23 +120,8 @@ public final class JdbcUserRepository implements UserRepository {
 
     @Override
     public List<User> findActiveByRole(long projectId, Role role) {
-        String sql = """
-                select u.login_id,
-                       c.password_salt || ':' || c.password_hash as password,
-                       u.role,
-                       u.active,
-                       u.created_at,
-                       u.updated_at
-                from users u
-                join user_credentials c on c.login_id = u.login_id
-                join project_members pm on pm.user_login_id = u.login_id
-                where pm.project_id = ?
-                  and u.role = ?
-                  and u.active = 1
-                order by u.login_id
-                """;
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(FIND_ACTIVE_BY_ROLE_SQL)) {
             statement.setLong(1, projectId);
             statement.setString(2, role.name());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -109,9 +146,8 @@ public final class JdbcUserRepository implements UserRepository {
 
     @Override
     public void deactivate(String loginId) {
-        String sql = "update users set active = 0, updated_at = current_timestamp where login_id = ?";
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(DEACTIVATE_SQL)) {
             statement.setString(1, loginId);
             statement.executeUpdate();
         } catch (SQLException exception) {
@@ -121,61 +157,58 @@ public final class JdbcUserRepository implements UserRepository {
 
     private User insert(User user) {
         String credential = normalizedCredential(user.password());
-        String sql = """
-                insert into users (login_id, role, active, created_at, updated_at)
-                values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
-                """;
-        try (Connection connection = connectionProvider.getConnection()) {
-            boolean originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                bindUser(statement, user);
-                statement.executeUpdate();
-                upsertCredential(connection, user.loginId(), credential);
-                connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
-            } catch (SQLException | RuntimeException exception) {
-                rollback(connection);
-                connection.setAutoCommit(originalAutoCommit);
-                throw exception;
-            }
-            return findByLoginId(user.loginId())
-                    .orElseThrow(() -> new RepositoryException("Inserted user was not found.", null));
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to insert user.", exception);
-        }
+        return executeUserWrite(
+                user.loginId(),
+                connection -> {
+                    try (PreparedStatement statement = connection.prepareStatement(INSERT_USER_SQL)) {
+                        bindUser(statement, user);
+                        statement.executeUpdate();
+                        upsertCredential(connection, user.loginId(), credential);
+                    }
+                },
+                "Inserted user was not found.",
+                "Failed to insert user."
+        );
     }
 
     private User update(User user) {
         String credential = normalizedCredential(user.password());
-        String sql = """
-                update users
-                set role = ?,
-                    active = ?,
-                    updated_at = coalesce(?, current_timestamp)
-                where login_id = ?
-        """;
+        return executeUserWrite(
+                user.loginId(),
+                connection -> {
+                    try (PreparedStatement statement = connection.prepareStatement(UPDATE_USER_SQL)) {
+                        bindUserForUpdate(statement, user);
+                        statement.executeUpdate();
+                        upsertCredential(connection, user.loginId(), credential);
+                    }
+                },
+                "Updated user was not found.",
+                "Failed to update user."
+        );
+    }
+
+    private User executeUserWrite(
+            String loginId,
+            TransactionalUserWrite writeOperation,
+            String notFoundMessage,
+            String failureMessage
+    ) {
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, user.role().name());
-                statement.setInt(2, user.active() ? 1 : 0);
-                JdbcSupport.setNullableTimestamp(statement, 3, user.updatedAt());
-                statement.setString(4, user.loginId());
-                statement.executeUpdate();
-                upsertCredential(connection, user.loginId(), credential);
+            try {
+                writeOperation.execute(connection);
                 connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
             } catch (SQLException | RuntimeException exception) {
                 rollback(connection);
-                connection.setAutoCommit(originalAutoCommit);
                 throw exception;
+            } finally {
+                restoreAutoCommit(connection, originalAutoCommit);
             }
-            return findByLoginId(user.loginId())
-                    .orElseThrow(() -> new RepositoryException("Updated user was not found.", null));
+            return findByLoginId(loginId)
+                    .orElseThrow(() -> new RepositoryException(notFoundMessage, null));
         } catch (SQLException exception) {
-            throw new RepositoryException("Failed to update user.", exception);
+            throw new RepositoryException(failureMessage, exception);
         }
     }
 
@@ -187,25 +220,27 @@ public final class JdbcUserRepository implements UserRepository {
         JdbcSupport.setNullableTimestamp(statement, 5, user.updatedAt());
     }
 
+    private static void bindUserForUpdate(PreparedStatement statement, User user) throws SQLException {
+        statement.setString(1, user.role().name());
+        statement.setInt(2, user.active() ? 1 : 0);
+        JdbcSupport.setNullableTimestamp(statement, 3, user.updatedAt());
+        statement.setString(4, user.loginId());
+    }
+
     private void upsertCredential(Connection connection, String loginId, String credential) throws SQLException {
-        String sql = """
-                merge into user_credentials target
-                using (
-                    select ? as login_id, ? as password_salt, ? as password_hash from dual
-                ) source on (target.login_id = source.login_id)
-                when matched then update
-                set target.password_salt = source.password_salt,
-                    target.password_hash = source.password_hash,
-                    target.updated_at = current_timestamp
-                when not matched then
-                insert (login_id, password_salt, password_hash)
-                values (source.login_id, source.password_salt, source.password_hash)
-                """;
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(UPSERT_CREDENTIAL_SQL)) {
             statement.setString(1, loginId);
             statement.setString(2, passwordHasher.saltOf(credential));
             statement.setString(3, passwordHasher.hashOf(credential));
             statement.executeUpdate();
+        }
+    }
+
+    private static void restoreAutoCommit(Connection connection, boolean autoCommit) {
+        try {
+            connection.setAutoCommit(autoCommit);
+        } catch (SQLException ignored) {
+            // Keep the original repository failure.
         }
     }
 
@@ -235,16 +270,9 @@ public final class JdbcUserRepository implements UserRepository {
         );
     }
 
-    private static String baseSelect() {
-        return """
-                select u.login_id,
-                       c.password_salt || ':' || c.password_hash as password,
-                       u.role,
-                       u.active,
-                       u.created_at,
-                       u.updated_at
-                from users u
-                join user_credentials c on c.login_id = u.login_id
-                """;
+    @FunctionalInterface
+    private interface TransactionalUserWrite {
+
+        void execute(Connection connection) throws SQLException;
     }
 }
