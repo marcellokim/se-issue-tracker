@@ -162,6 +162,12 @@ class RepositoryConventionsSmokeTest {
                 """),
                 new ScriptExpectation(".coderabbit.yaml", "pre_merge_checks"),
                 new ScriptExpectation(".coderabbit.yaml", "mode: \"off\""),
+                new ScriptExpectation(".coderabbit.yaml", """
+                auto_review:
+                    enabled: false
+                    base_branches:
+                      - "dev"
+                """),
                 new ScriptExpectation(".coderabbit.yaml", "auto_reply: false"),
                 new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
