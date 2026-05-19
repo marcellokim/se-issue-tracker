@@ -115,12 +115,10 @@ git diff --check origin/dev
 
 ## 주의
 
-다음 명령은 Windows 로컬에서 `OpenPrScriptFailureTest`의 Git Bash fixture 문제로 실패할 수 있다.
+기본 검증 기준은 아래 명령이다.
 
 ```powershell
-.\gradlew.bat test
 .\gradlew.bat check
-.\gradlew.bat test jacocoTestReport
 ```
 
-이 실패는 PR #91의 DB/repository 코드나 Oracle 없는 팀원용 선별 테스트 실패를 의미하지 않는다. Oracle 없는 팀원은 위의 선별 테스트 명령어를 기준으로 검증하면 된다.
+위의 선별 테스트 명령어는 Oracle DB가 없는 환경에서 #18 DB/repository 변경 범위를 빠르게 확인하기 위한 보조 절차다. `check`가 실패하면 실패 로그를 기준으로 원인을 확인하고, 임시 우회가 필요한 경우에는 PR 본문에 실패 테스트와 사유를 따로 남긴다.

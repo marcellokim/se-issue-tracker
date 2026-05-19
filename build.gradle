@@ -48,9 +48,6 @@ sonar {
         ].join(',')
         def coverageExcludedSources = [
             'src/main/java/com/github/marcellokim/issuetracker/Main.java',
-            'src/main/java/com/github/marcellokim/issuetracker/config/**',
-            'src/main/java/com/github/marcellokim/issuetracker/controller/**',
-            'src/main/java/com/github/marcellokim/issuetracker/persistence/**',
             'src/main/java/com/github/marcellokim/issuetracker/ui/**'
         ].join(',')
         property 'sonar.host.url', 'https://sonarcloud.io'

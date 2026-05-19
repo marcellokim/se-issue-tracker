@@ -58,8 +58,11 @@ class PermissionPolicyTest {
         assertFalse(policy.verifyPermission(pl, " ", project.id()));
         assertFalse(policy.verifyPermission(pl, "UNKNOWN_OPERATION", project.id()));
         assertFalse(policy.verifyPermission(inactive("pl2", Role.PL), "ASSIGN_ISSUE", project.id()));
+        assertFalse(policy.verifyPermission(inactive("dev2", Role.DEV), "VIEW_STATISTICS", project.id()));
 
         assertTrue(policy.verifyPermission(pl, " view_statistics ", project.id()));
+        assertTrue(policy.verifyPermission(dev, "VIEW_STATISTICS", project.id()));
+        assertTrue(policy.verifyPermission(tester, "VIEW_STATISTICS", project.id()));
         assertFalse(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", null));
         assertFalse(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", 0L));
         assertTrue(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", project.id()));
@@ -83,6 +86,18 @@ class PermissionPolicyTest {
         assertTrue(policy.verifyPermission(pl, "ASSIGN_ISSUE", project.id()));
         assertTrue(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", project.id()));
         assertTrue(policy.verifyPermission(pl, "VIEW_STATISTICS", project.id()));
+    }
+
+    @Test
+    @DisplayName("allows active auth users except ADMIN to view statistics")
+    void activeIssueActorsCanViewStatistics() {
+        assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl, project.id()));
+        assertDoesNotThrow(() -> policy.assertCanViewStatistics(dev, project.id()));
+        assertDoesNotThrow(() -> policy.assertCanViewStatistics(tester, project.id()));
+
+        assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin, project.id()));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanViewStatistics(inactive("tester2", Role.TESTER), project.id()));
     }
 
     @Test

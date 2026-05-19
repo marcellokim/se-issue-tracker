@@ -25,7 +25,8 @@ public final class PermissionPolicy {
         return switch (operation.trim().toUpperCase(Locale.ROOT)) {
             case MANAGE_DELETED_ISSUE -> isPl(user) && isPersistedProjectResource(resource);
             case MANAGE_PROJECT -> isAdmin(user);
-            case "ASSIGN_ISSUE", VIEW_STATISTICS -> isPl(user);
+            case "ASSIGN_ISSUE" -> isPl(user);
+            case VIEW_STATISTICS -> isAuthUserRole(user);
             default -> false;
         };
     }
@@ -114,7 +115,7 @@ public final class PermissionPolicy {
 
     public void assertCanViewStatistics(User user, Object filters) {
         if (!verifyPermission(user, VIEW_STATISTICS, filters)) {
-            throw new SecurityException("Only PL can view statistics.");
+            throw new SecurityException("Only active PL, DEV, or TESTER users can view statistics.");
         }
     }
 

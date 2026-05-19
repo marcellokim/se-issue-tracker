@@ -31,8 +31,7 @@ public final class User {
             Role role,
             boolean active,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt
-    ) {
+            LocalDateTime updatedAt) {
         this(loginId, loginId, password, role, active, createdAt, updatedAt);
     }
 
@@ -43,8 +42,7 @@ public final class User {
             Role role,
             boolean active,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt
-    ) {
+            LocalDateTime updatedAt) {
         this.loginId = requireText(loginId, "loginId");
         this.userId = this.loginId;
         this.name = requireText(name, "name");
