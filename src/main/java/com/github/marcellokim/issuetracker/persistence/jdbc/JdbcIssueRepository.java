@@ -1,6 +1,8 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
+import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -330,12 +332,25 @@ public final class JdbcIssueRepository implements IssueRepository {
                 )
                 values (?, ?, ?, ?, coalesce(?, current_timestamp), ?, ?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
-            bindIssueForInsert(statement, issue);
-            statement.executeUpdate();
-            return findById(JdbcSupport.generatedId(statement))
-                    .orElseThrow(() -> new RepositoryException("Inserted issue was not found.", null));
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
+                bindIssueForInsert(statement, issue);
+                statement.executeUpdate();
+                long issueId = JdbcSupport.generatedId(statement);
+                insertTransientComments(connection, issueId, issue.getComments());
+                insertTransientHistories(connection, issueId, issue.getHistories());
+                Issue inserted = findById(connection, issueId)
+                        .orElseThrow(() -> new RepositoryException("Inserted issue was not found.", null));
+                connection.commit();
+                connection.setAutoCommit(originalAutoCommit);
+                return inserted;
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection);
+                connection.setAutoCommit(originalAutoCommit);
+                throw exception;
+            }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to insert issue.", exception);
         }
@@ -358,26 +373,85 @@ public final class JdbcIssueRepository implements IssueRepository {
                     updated_at = coalesce(?, current_timestamp)
                 where id = ?
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, issue.projectId());
-            statement.setString(2, issue.getIssueId());
-            statement.setString(3, issue.title());
-            statement.setString(4, issue.description());
-            statement.setString(5, issue.priority().name());
-            statement.setString(6, issue.status().name());
-            statement.setString(7, issue.reporterId());
-            JdbcSupport.setNullableString(statement, 8, issue.assigneeId());
-            JdbcSupport.setNullableString(statement, 9, issue.verifierId());
-            JdbcSupport.setNullableString(statement, 10, issue.fixerId());
-            JdbcSupport.setNullableString(statement, 11, issue.resolverId());
-            JdbcSupport.setNullableTimestamp(statement, 12, issue.updatedAt());
-            statement.setLong(13, issue.id());
-            statement.executeUpdate();
-            return findById(issue.id())
-                    .orElseThrow(() -> new RepositoryException("Updated issue was not found.", null));
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setLong(1, issue.projectId());
+                statement.setString(2, issue.getIssueId());
+                statement.setString(3, issue.title());
+                statement.setString(4, issue.description());
+                statement.setString(5, issue.priority().name());
+                statement.setString(6, issue.status().name());
+                statement.setString(7, issue.reporterId());
+                JdbcSupport.setNullableString(statement, 8, issue.assigneeId());
+                JdbcSupport.setNullableString(statement, 9, issue.verifierId());
+                JdbcSupport.setNullableString(statement, 10, issue.fixerId());
+                JdbcSupport.setNullableString(statement, 11, issue.resolverId());
+                JdbcSupport.setNullableTimestamp(statement, 12, issue.updatedAt());
+                statement.setLong(13, issue.id());
+                statement.executeUpdate();
+                insertTransientComments(connection, issue.id(), issue.getComments());
+                insertTransientHistories(connection, issue.id(), issue.getHistories());
+                Issue updated = findById(connection, issue.id())
+                        .orElseThrow(() -> new RepositoryException("Updated issue was not found.", null));
+                connection.commit();
+                connection.setAutoCommit(originalAutoCommit);
+                return updated;
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection);
+                connection.setAutoCommit(originalAutoCommit);
+                throw exception;
+            }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update issue.", exception);
+        }
+    }
+
+    private static void insertTransientComments(Connection connection, long issueId, List<Comment> comments)
+            throws SQLException {
+        String sql = """
+                insert into comments (issue_id, writer_login_id, content, created_date)
+                values (?, ?, ?, coalesce(?, current_timestamp))
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (Comment comment : comments) {
+                if (comment.id() != 0L) {
+                    continue;
+                }
+                statement.setLong(1, issueId);
+                statement.setString(2, comment.writerId());
+                statement.setString(3, comment.content());
+                JdbcSupport.setNullableTimestamp(statement, 4, comment.createdDate());
+                statement.addBatch();
+            }
+            statement.executeBatch();
+        }
+    }
+
+    private static void insertTransientHistories(Connection connection, long issueId, List<IssueHistory> histories)
+            throws SQLException {
+        String sql = """
+                insert into issue_history (
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+                )
+                values (?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (IssueHistory history : histories) {
+                if (history.id() != 0L) {
+                    continue;
+                }
+                statement.setLong(1, issueId);
+                statement.setString(2, history.changedById());
+                statement.setString(3, history.actionType().name());
+                JdbcSupport.setNullableString(statement, 4, history.previousValue());
+                JdbcSupport.setNullableString(statement, 5, history.newValue());
+                statement.setString(6, history.message());
+                JdbcSupport.setNullableTimestamp(statement, 7, history.changedDate());
+                statement.addBatch();
+            }
+            statement.executeBatch();
         }
     }
 

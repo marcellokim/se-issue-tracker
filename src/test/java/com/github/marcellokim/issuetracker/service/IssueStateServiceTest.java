@@ -40,8 +40,8 @@ class IssueStateServiceTest {
         assertSame(assignee, issue.getFixer());
         assertEquals(1, issue.getComments().size());
         assertEquals("Fix completed", issue.getComments().getFirst().getContent());
-        assertEquals(ActionType.STATUS_CHANGED, issue.getHistories().getLast().getAction());
-        assertCommentedThenStatusChanged(issue);
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertStatusChangedThenCommented(issue);
     }
 
     @Test
@@ -56,8 +56,8 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Verified", issue.getComments().getFirst().getContent());
-        assertEquals(ActionType.STATUS_CHANGED, issue.getHistories().getLast().getAction());
-        assertCommentedThenStatusChanged(issue);
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertStatusChangedThenCommented(issue);
     }
 
     @Test
@@ -75,8 +75,8 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Release completed", issue.getComments().getFirst().getContent());
-        assertEquals(ActionType.STATUS_CHANGED, issue.getHistories().getLast().getAction());
-        assertCommentedThenStatusChanged(issue);
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertStatusChangedThenCommented(issue);
     }
 
     @Test
@@ -109,6 +109,21 @@ class IssueStateServiceTest {
 
         assertThrows(UnsupportedOperationException.class,
                 () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.loginId()));
+    }
+
+    @Test
+    @DisplayName("도메인 전이가 실패하면 comment/history 부작용을 남기지 않는다")
+    void failedDomainTransitionLeavesNoCommentOrHistorySideEffect() {
+        var issue = fixedIssue();
+        int commentCount = issue.getComments().size();
+        int historyCount = issue.getHistories().size();
+        var service = service(issue);
+
+        assertThrows(IllegalStateException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Close too early", pl.loginId()));
+
+        assertEquals(commentCount, issue.getComments().size());
+        assertEquals(historyCount, issue.getHistories().size());
     }
 
     @Test
@@ -158,10 +173,10 @@ class IssueStateServiceTest {
         return issue;
     }
 
-    private static void assertCommentedThenStatusChanged(Issue issue) {
+    private static void assertStatusChangedThenCommented(Issue issue) {
         var histories = issue.getHistories();
-        assertEquals(ActionType.COMMENTED, histories.get(histories.size() - 2).getAction());
-        assertEquals(ActionType.STATUS_CHANGED, histories.getLast().getAction());
+        assertEquals(ActionType.STATUS_CHANGED, histories.get(histories.size() - 2).getAction());
+        assertEquals(ActionType.COMMENTED, histories.getLast().getAction());
     }
 
     private static LocalDateTime createdAt() {

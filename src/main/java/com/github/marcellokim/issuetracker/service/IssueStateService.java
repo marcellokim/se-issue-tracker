@@ -45,22 +45,22 @@ public final class IssueStateService {
     private void markFixed(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED);
         LocalDateTime changedAt = now();
-        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
         issue.markFixed(actor, comment, changedAt);
+        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
     }
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
         LocalDateTime changedAt = now();
-        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
         issue.resolve(actor, comment, changedAt);
+        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
     }
 
     private void close(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED);
         LocalDateTime changedAt = now();
-        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
         issue.close(actor, comment, changedAt);
+        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
     }
 
     private Issue findIssue(long issueId) {
