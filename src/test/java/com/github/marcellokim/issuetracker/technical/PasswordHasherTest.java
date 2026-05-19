@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.technical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -32,5 +33,43 @@ class PasswordHasherTest {
         assertFalse(hasher.isHashed("DemoLocalAdmin!"));
         assertFalse(hasher.matches("DemoLocalAdmin!", "DemoLocalAdmin!"));
         assertFalse(hasher.matches("wrong-password", "DemoLocalAdmin!"));
+    }
+
+    @Test
+    @DisplayName("rejects null and blank password inputs")
+    void rejectsNullAndBlankPasswordInputs() {
+        PasswordHasher hasher = new PasswordHasher();
+        String credential = hasher.hash("DemoLocalAdmin!");
+
+        assertThrows(NullPointerException.class, () -> hasher.hash(null));
+        assertThrows(IllegalArgumentException.class, () -> hasher.hash(" "));
+        assertFalse(hasher.matches(null, credential));
+        assertFalse(hasher.matches("DemoLocalAdmin!", null));
+    }
+
+    @Test
+    @DisplayName("rejects malformed hashed credentials")
+    void rejectsMalformedHashedCredentials() {
+        PasswordHasher hasher = new PasswordHasher();
+
+        assertFalse(hasher.isHashed(null));
+        assertFalse(hasher.isHashed("abc:def"));
+        assertFalse(hasher.isHashed("00112233445566778899aabbccddeeff:not-hex"));
+        assertThrows(IllegalArgumentException.class, () -> hasher.saltOf("abc:def"));
+        assertThrows(IllegalArgumentException.class, () -> hasher.hashOf("abc:def"));
+    }
+
+    @Test
+    @DisplayName("normalizes credential parts to lowercase")
+    void normalizesCredentialPartsToLowercase() {
+        PasswordHasher hasher = new PasswordHasher();
+        String uppercaseCredential = "00112233445566778899AABBCCDDEEFF:"
+                + "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF";
+
+        assertTrue(hasher.isHashed(uppercaseCredential));
+        assertEquals("00112233445566778899aabbccddeeff", hasher.saltOf(uppercaseCredential));
+        assertEquals(
+                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+                hasher.hashOf(uppercaseCredential));
     }
 }

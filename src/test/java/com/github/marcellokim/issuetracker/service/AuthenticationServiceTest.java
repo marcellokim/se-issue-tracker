@@ -64,6 +64,43 @@ class AuthenticationServiceTest {
         assertEquals("This account is inactive.", result.message());
     }
 
+    @Test
+    @DisplayName("rejects missing credentials before repository lookup")
+    void loginRejectsMissingCredentials() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of()));
+
+        assertEquals("ID and password are required.", service.login(null, ADMIN_PASSWORD).message());
+        assertEquals("ID and password are required.", service.login(" ", ADMIN_PASSWORD).message());
+        assertEquals("ID and password are required.", service.login("admin", null).message());
+        assertEquals("ID and password are required.", service.login("admin", " ").message());
+    }
+
+    @Test
+    @DisplayName("trims login id and stores authenticated current user")
+    void loginTrimsLoginIdAndStoresCurrentUser() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of(
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
+        )));
+
+        assertFalse(service.currentUser().isPresent());
+        AuthenticationResult result = service.logIn(" admin ", ADMIN_PASSWORD);
+
+        assertTrue(result.success());
+        assertTrue(service.currentUser().isPresent());
+        assertEquals("admin", service.currentUser().orElseThrow().loginId());
+    }
+
+    @Test
+    @DisplayName("rejects unknown account")
+    void loginRejectsUnknownAccount() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of()));
+
+        AuthenticationResult result = service.login("missing", ADMIN_PASSWORD);
+
+        assertFalse(result.success());
+        assertEquals("Invalid ID or password.", result.message());
+    }
+
     private static User user(String loginId, String password, Role role, boolean active) {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
         return new User(loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);

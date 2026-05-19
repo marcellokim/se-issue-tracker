@@ -51,6 +51,21 @@ class PermissionPolicyTest {
     }
 
     @Test
+    @DisplayName("rejects empty, unknown, inactive, and malformed generic permission checks")
+    void genericPermissionChecksRejectInvalidRequests() {
+        assertFalse(policy.verifyPermission(null, "MANAGE_PROJECT", null));
+        assertFalse(policy.verifyPermission(pl, null, project.id()));
+        assertFalse(policy.verifyPermission(pl, " ", project.id()));
+        assertFalse(policy.verifyPermission(pl, "UNKNOWN_OPERATION", project.id()));
+        assertFalse(policy.verifyPermission(inactive("pl2", Role.PL), "ASSIGN_ISSUE", project.id()));
+
+        assertTrue(policy.verifyPermission(pl, " view_statistics ", project.id()));
+        assertFalse(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", null));
+        assertFalse(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", 0L));
+        assertTrue(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", project.id()));
+    }
+
+    @Test
     @DisplayName("allows PL issue management permissions")
     void plCanManageIssueWorkflow() {
         assertDoesNotThrow(() -> policy.assertCanAssignIssue(pl, issue(IssueStatus.NEW)));
@@ -71,11 +86,69 @@ class PermissionPolicyTest {
     }
 
     @Test
+    @DisplayName("enforces assigned actor for fixed and resolved transitions")
+    void statusChangesRequireCurrentAssignedActor() {
+        assertDoesNotThrow(() -> policy.assertCanChangeStatus(dev, issue(IssueStatus.ASSIGNED), IssueStatus.FIXED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(tester, issue(IssueStatus.ASSIGNED), IssueStatus.FIXED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(inactive("dev1", Role.DEV), issue(IssueStatus.ASSIGNED),
+                        IssueStatus.FIXED));
+
+        assertDoesNotThrow(() -> policy.assertCanChangeStatus(tester, issue(IssueStatus.FIXED), IssueStatus.RESOLVED));
+        assertDoesNotThrow(() -> policy.assertCanChangeStatus(tester, issue(IssueStatus.FIXED), IssueStatus.ASSIGNED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(dev, issue(IssueStatus.FIXED), IssueStatus.RESOLVED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(user("tester2", Role.TESTER), issue(IssueStatus.FIXED),
+                        IssueStatus.RESOLVED));
+    }
+
+    @Test
+    @DisplayName("rejects disallowed status transitions and missing status arguments")
+    void rejectsDisallowedStatusChanges() {
+        assertThrows(NullPointerException.class,
+                () -> policy.assertCanChangeStatus(pl, issue(IssueStatus.NEW), null));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(pl, issue(IssueStatus.ASSIGNED), IssueStatus.NEW));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(dev, issue(IssueStatus.RESOLVED), IssueStatus.CLOSED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(dev, issue(IssueStatus.CLOSED), IssueStatus.REOPENED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(pl, issue(IssueStatus.REOPENED), IssueStatus.DELETED));
+    }
+
+    @Test
     @DisplayName("allows PL, DEV, and TESTER to register issues")
     void authenticatedIssueActorsCanRegisterIssues() {
         assertDoesNotThrow(() -> policy.assertCanRegisterIssue(pl, project));
         assertDoesNotThrow(() -> policy.assertCanRegisterIssue(dev, project));
         assertDoesNotThrow(() -> policy.assertCanRegisterIssue(tester, project));
+    }
+
+    @Test
+    @DisplayName("rejects issue registration without an active auth actor or persisted project")
+    void rejectsInvalidIssueRegistrationRequests() {
+        Project transientProject = new Project(0L, "draft", "Draft project", "admin", NOW, NOW);
+
+        assertThrows(SecurityException.class, () -> policy.assertCanRegisterIssue(inactive("dev2", Role.DEV), project));
+        assertThrows(SecurityException.class, () -> policy.assertCanRegisterIssue(admin, project));
+        assertThrows(SecurityException.class, () -> policy.assertCanRegisterIssue(dev, transientProject));
+        assertThrows(NullPointerException.class, () -> policy.assertCanRegisterIssue(dev, null));
+    }
+
+    @Test
+    @DisplayName("rejects non-PL issue management and non-ADMIN account management")
+    void rejectsWrongRoleForManagementOperations() {
+        assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(dev, issue(IssueStatus.NEW)));
+        assertThrows(SecurityException.class, () -> policy.assertCanManageDependency(dev, issue(IssueStatus.ASSIGNED)));
+        assertThrows(SecurityException.class, () -> policy.assertCanChangePriority(tester, issue(IssueStatus.ASSIGNED)));
+        assertThrows(NullPointerException.class,
+                () -> policy.assertCanChangePriority(pl, issue(IssueStatus.ASSIGNED), null));
+        assertThrows(SecurityException.class, () -> policy.assertCanManageDeletedIssue(dev, issue(IssueStatus.DELETED)));
+        assertThrows(SecurityException.class, () -> policy.assertCanManageAccount(pl));
+        assertThrows(SecurityException.class, () -> policy.assertCanManageProject(pl));
     }
 
     private Issue issue(IssueStatus status) {
@@ -92,5 +165,11 @@ class PermissionPolicyTest {
 
     private static User user(String loginId, Role role) {
         return new User(loginId, loginId, loginId, "hash", role);
+    }
+
+    private static User inactive(String loginId, Role role) {
+        User user = user(loginId, role);
+        user.deactivate();
+        return user;
     }
 }
