@@ -61,13 +61,50 @@ echo "[1/3] 로컬 검증 실행"
 echo "[2/3] 원격 브랜치 push"
 git push -u origin HEAD
 
-mark_issue_review() {
+current_status_labels() {
+    local labels
+    if ! labels="$(gh issue view "$issue_number" --json labels -q '.labels[].name')"; then
+        echo "[중단] 이슈 #$issue_number 상태 라벨 조회에 실패했습니다." >&2
+        return 1
+    fi
+    grep '^status:' <<< "$labels" || true
+}
+
+restore_issue_status_labels() {
+    local previous_status_labels="$1"
+    local current_labels
     local status_label
+
+    if ! current_labels="$(current_status_labels)"; then
+        return 1
+    fi
+
+    while IFS= read -r status_label; do
+        if [[ -n "$status_label" ]]; then
+            gh issue edit "$issue_number" --remove-label "$status_label" >/dev/null
+        fi
+    done <<< "$current_labels"
+
+    while IFS= read -r status_label; do
+        if [[ -n "$status_label" ]]; then
+            gh issue edit "$issue_number" --add-label "$status_label" >/dev/null
+        fi
+    done <<< "$previous_status_labels"
+}
+
+mark_issue_review() {
+    local current_labels
+    local status_label
+
+    if ! current_labels="$(current_status_labels)"; then
+        return 1
+    fi
+
     while IFS= read -r status_label; do
         if [[ "$status_label" != "status:review" ]]; then
             gh issue edit "$issue_number" --remove-label "$status_label" >/dev/null
         fi
-    done < <(gh issue view "$issue_number" --json labels -q '.labels[].name' | grep '^status:' || true)
+    done <<< "$current_labels"
     gh issue edit "$issue_number" --add-label status:review >/dev/null
 }
 
@@ -80,6 +117,21 @@ sync_project_board() {
 sync_pr_metadata() {
     local pr_number="$1"
     ./scripts/lib/project_maintenance.py sync-pr-metadata --pr "$pr_number" --owner @me --apply --skip-bots
+}
+
+rollback_precreate_status_on_exit() {
+    local exit_code=$?
+
+    if [[ "${precreate_status_needs_rollback:-false}" == "true" ]]; then
+        echo "[복구] PR 생성 전 단계 실패로 이슈 #$issue_number 상태 라벨을 이전 상태로 복구합니다." >&2
+        if ! restore_issue_status_labels "$previous_status_labels"; then
+            echo "[경고] 이슈 #$issue_number 상태 라벨 복구에 실패했습니다. 수동 확인이 필요합니다." >&2
+        fi
+        echo "[복구] GitHub 프로젝트 상태를 이전 이슈 라벨 기준으로 다시 정렬합니다." >&2
+        sync_project_board
+    fi
+
+    exit "$exit_code"
 }
 
 if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
@@ -105,16 +157,24 @@ body="## 요약
 ## 관련 이슈
 - Closes #$issue_number"
 
+previous_status_labels="$(current_status_labels)"
+precreate_status_needs_rollback=true
+trap rollback_precreate_status_on_exit EXIT
+
+echo "[준비] PR 생성 전 이슈 #$issue_number 상태 라벨을 review로 이동"
+mark_issue_review
+
+echo "[준비] PR 생성 전 GitHub 프로젝트 상태 정렬"
+sync_project_board
+
 echo "[3/3] GitHub PR 생성"
-pr_url="$(gh pr create --base dev --head "$branch" --title "$title" --body "$body")"
+if ! pr_url="$(gh pr create --base dev --head "$branch" --title "$title" --body "$body")"; then
+    exit 1
+fi
+precreate_status_needs_rollback=false
+trap - EXIT
 echo "$pr_url"
 pr_number="${pr_url##*/}"
 
 echo "[확인] PR 메타데이터 정렬"
 sync_pr_metadata "$pr_number"
-
-echo "[확인] 이슈 #$issue_number 상태 라벨을 review로 이동"
-mark_issue_review
-
-echo "[확인] GitHub 프로젝트 상태 정렬"
-sync_project_board
