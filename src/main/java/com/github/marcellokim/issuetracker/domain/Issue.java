@@ -39,12 +39,12 @@ public class Issue {
 
     private Issue(PersistedState state) {
         Objects.requireNonNull(state, "state must not be null");
-        this.id = state.id;
-        this.projectId = state.projectId;
+        this.id = requireNonNegative(state.id, "id");
+        this.projectId = requirePositive(state.projectId, "projectId");
         this.issueId = Long.toString(state.id);
         this.title = requireText(state.title, "title");
         this.description = requireText(state.description, "description");
-        this.reportedDate = state.reportedDate;
+        this.reportedDate = Objects.requireNonNull(state.reportedDate, "reportedDate must not be null");
         this.priority = Objects.requireNonNull(state.priority, "priority must not be null");
         this.status = Objects.requireNonNull(state.status, "status must not be null");
         this.reporter = Objects.requireNonNull(state.reporter, "reporter must not be null");
@@ -57,7 +57,7 @@ public class Issue {
         this.verifierId = loginIdOrNull(verifier);
         this.fixerId = loginIdOrNull(fixer);
         this.resolverId = loginIdOrNull(resolver);
-        this.updatedAt = state.updatedAt;
+        this.updatedAt = Objects.requireNonNull(state.updatedAt, "updatedAt must not be null");
     }
 
     private Issue(
@@ -419,6 +419,20 @@ public class Issue {
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value;
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
+        }
+        return value;
+    }
+
+    private static long requireNonNegative(long value, String fieldName) {
+        if (value < 0L) {
+            throw new IllegalArgumentException(fieldName + " must not be negative");
         }
         return value;
     }

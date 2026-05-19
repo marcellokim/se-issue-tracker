@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.User;
+import java.util.Objects;
 
 public record AuthenticationResult(
         boolean success,
@@ -9,7 +10,7 @@ public record AuthenticationResult(
 ) {
 
     public static AuthenticationResult success(User user) {
-        return new AuthenticationResult(true, user, "Login succeeded.");
+        return new AuthenticationResult(true, Objects.requireNonNull(user, "user"), "Login succeeded.");
     }
 
     public static AuthenticationResult failure(String message) {

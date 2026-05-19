@@ -14,6 +14,7 @@ public final class PermissionPolicy {
     private static final String USER_REQUIRED = "user";
     private static final String ISSUE_REQUIRED = "issue";
     private static final String MANAGE_DELETED_ISSUE = "MANAGE_DELETED_ISSUE";
+    private static final String MANAGE_PROJECT = "MANAGE_PROJECT";
     private static final String VIEW_STATISTICS = "VIEW_STATISTICS";
 
     public boolean verifyPermission(User user, String operation, Object resource) {
@@ -23,6 +24,7 @@ public final class PermissionPolicy {
 
         return switch (operation.trim().toUpperCase(Locale.ROOT)) {
             case MANAGE_DELETED_ISSUE -> isPlOrAdmin(user) && isPersistedProjectResource(resource);
+            case MANAGE_PROJECT -> user.role() == Role.ADMIN;
             case "ASSIGN_ISSUE", VIEW_STATISTICS -> isPlOrAdmin(user);
             default -> false;
         };
@@ -76,8 +78,9 @@ public final class PermissionPolicy {
     }
 
     public void assertCanManageProject(User user) {
-        Objects.requireNonNull(user, USER_REQUIRED);
-        throw pendingOtherTeam();
+        if (!verifyPermission(user, MANAGE_PROJECT, null)) {
+            throw new SecurityException("Only ADMIN can manage projects.");
+        }
     }
 
     public void assertCanViewStatistics(User user, Object filters) {

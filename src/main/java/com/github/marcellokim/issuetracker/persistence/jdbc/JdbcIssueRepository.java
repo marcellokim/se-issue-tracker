@@ -101,9 +101,10 @@ public final class JdbcIssueRepository implements IssueRepository {
             binders.add((statement, index) -> statement.setString(index, criteria.verifierId()));
         }
         if (criteria.keyword() != null && !criteria.keyword().isBlank()) {
-            sql.append(" and (lower(i.title) like ? or lower(i.description) like ?)");
-            String keyword = "%" + criteria.keyword().toLowerCase() + "%";
-            binders.add((statement, index) -> statement.setString(index, keyword));
+            sql.append(" and (lower(i.title) like ? or dbms_lob.instr(lower(i.description), ?) > 0)");
+            String keyword = criteria.keyword().toLowerCase();
+            String likeKeyword = "%" + keyword + "%";
+            binders.add((statement, index) -> statement.setString(index, likeKeyword));
             binders.add((statement, index) -> statement.setString(index, keyword));
         }
         if (criteria.reportedFrom() != null) {
@@ -531,37 +532,42 @@ public final class JdbcIssueRepository implements IssueRepository {
                 select i.id, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
                        i.reporter_login_id, i.assignee_login_id, i.verifier_login_id, i.fixer_login_id,
                        i.resolver_login_id, i.updated_at,
-                       reporter.password as reporter_password,
+                       reporter_credentials.password_salt || ':' || reporter_credentials.password_hash as reporter_password,
                        reporter.role as reporter_role,
                        reporter.active as reporter_active,
                        reporter.created_at as reporter_created_at,
                        reporter.updated_at as reporter_updated_at,
-                       assignee.password as assignee_password,
+                       assignee_credentials.password_salt || ':' || assignee_credentials.password_hash as assignee_password,
                        assignee.role as assignee_role,
                        assignee.active as assignee_active,
                        assignee.created_at as assignee_created_at,
                        assignee.updated_at as assignee_updated_at,
-                       verifier.password as verifier_password,
+                       verifier_credentials.password_salt || ':' || verifier_credentials.password_hash as verifier_password,
                        verifier.role as verifier_role,
                        verifier.active as verifier_active,
                        verifier.created_at as verifier_created_at,
                        verifier.updated_at as verifier_updated_at,
-                       fixer.password as fixer_password,
+                       fixer_credentials.password_salt || ':' || fixer_credentials.password_hash as fixer_password,
                        fixer.role as fixer_role,
                        fixer.active as fixer_active,
                        fixer.created_at as fixer_created_at,
                        fixer.updated_at as fixer_updated_at,
-                       resolver.password as resolver_password,
+                       resolver_credentials.password_salt || ':' || resolver_credentials.password_hash as resolver_password,
                        resolver.role as resolver_role,
                        resolver.active as resolver_active,
                        resolver.created_at as resolver_created_at,
                        resolver.updated_at as resolver_updated_at
                 from issues i
                 join users reporter on reporter.login_id = i.reporter_login_id
+                join user_credentials reporter_credentials on reporter_credentials.login_id = reporter.login_id
                 left join users assignee on assignee.login_id = i.assignee_login_id
+                left join user_credentials assignee_credentials on assignee_credentials.login_id = assignee.login_id
                 left join users verifier on verifier.login_id = i.verifier_login_id
+                left join user_credentials verifier_credentials on verifier_credentials.login_id = verifier.login_id
                 left join users fixer on fixer.login_id = i.fixer_login_id
+                left join user_credentials fixer_credentials on fixer_credentials.login_id = fixer.login_id
                 left join users resolver on resolver.login_id = i.resolver_login_id
+                left join user_credentials resolver_credentials on resolver_credentials.login_id = resolver.login_id
                 """;
     }
 

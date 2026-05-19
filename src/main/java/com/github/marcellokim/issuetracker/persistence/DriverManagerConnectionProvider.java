@@ -20,7 +20,7 @@ public final class DriverManagerConnectionProvider implements DatabaseConnection
     }
 
     public static DriverManagerConnectionProvider fromEnvironment() {
-        String url = readEnvironment("ITS_DB_URL", DEFAULT_ORACLE_URL);
+        String url = readRequiredEnvironment("ITS_DB_URL");
         String user = readRequiredEnvironment("ITS_DB_USER");
         String password = readRequiredEnvironment("ITS_DB_PASSWORD");
         return new DriverManagerConnectionProvider(url, user, password);

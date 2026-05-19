@@ -70,13 +70,13 @@ public final class JdbcUserRepository implements UserRepository {
     public List<User> findActiveByRole(long projectId, Role role) {
         String sql = """
                 select u.login_id,
-                       coalesce(c.password_salt || ':' || c.password_hash, u.password) as password,
+                       c.password_salt || ':' || c.password_hash as password,
                        u.role,
                        u.active,
                        u.created_at,
                        u.updated_at
                 from users u
-                left join user_credentials c on c.login_id = u.login_id
+                join user_credentials c on c.login_id = u.login_id
                 join project_members pm on pm.user_login_id = u.login_id
                 where pm.project_id = ?
                   and u.role = ?
@@ -122,14 +122,23 @@ public final class JdbcUserRepository implements UserRepository {
     private User insert(User user) {
         String credential = normalizedCredential(user.password());
         String sql = """
-                insert into users (login_id, password, role, active, created_at, updated_at)
-                values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
+                insert into users (login_id, role, active, created_at, updated_at)
+                values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            bindUser(statement, user, credential);
-            statement.executeUpdate();
-            upsertCredential(connection, user.loginId(), credential);
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                bindUser(statement, user);
+                statement.executeUpdate();
+                upsertCredential(connection, user.loginId(), credential);
+                connection.commit();
+                connection.setAutoCommit(originalAutoCommit);
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection);
+                connection.setAutoCommit(originalAutoCommit);
+                throw exception;
+            }
             return findByLoginId(user.loginId())
                     .orElseThrow(() -> new RepositoryException("Inserted user was not found.", null));
         } catch (SQLException exception) {
@@ -141,21 +150,28 @@ public final class JdbcUserRepository implements UserRepository {
         String credential = normalizedCredential(user.password());
         String sql = """
                 update users
-                set password = ?,
-                    role = ?,
+                set role = ?,
                     active = ?,
                     updated_at = coalesce(?, current_timestamp)
                 where login_id = ?
         """;
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, credential);
-            statement.setString(2, user.role().name());
-            statement.setInt(3, user.active() ? 1 : 0);
-            JdbcSupport.setNullableTimestamp(statement, 4, user.updatedAt());
-            statement.setString(5, user.loginId());
-            statement.executeUpdate();
-            upsertCredential(connection, user.loginId(), credential);
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, user.role().name());
+                statement.setInt(2, user.active() ? 1 : 0);
+                JdbcSupport.setNullableTimestamp(statement, 3, user.updatedAt());
+                statement.setString(4, user.loginId());
+                statement.executeUpdate();
+                upsertCredential(connection, user.loginId(), credential);
+                connection.commit();
+                connection.setAutoCommit(originalAutoCommit);
+            } catch (SQLException | RuntimeException exception) {
+                rollback(connection);
+                connection.setAutoCommit(originalAutoCommit);
+                throw exception;
+            }
             return findByLoginId(user.loginId())
                     .orElseThrow(() -> new RepositoryException("Updated user was not found.", null));
         } catch (SQLException exception) {
@@ -163,13 +179,12 @@ public final class JdbcUserRepository implements UserRepository {
         }
     }
 
-    private static void bindUser(PreparedStatement statement, User user, String credential) throws SQLException {
+    private static void bindUser(PreparedStatement statement, User user) throws SQLException {
         statement.setString(1, user.loginId());
-        statement.setString(2, credential);
-        statement.setString(3, user.role().name());
-        statement.setInt(4, user.active() ? 1 : 0);
-        JdbcSupport.setNullableTimestamp(statement, 5, user.createdAt());
-        JdbcSupport.setNullableTimestamp(statement, 6, user.updatedAt());
+        statement.setString(2, user.role().name());
+        statement.setInt(3, user.active() ? 1 : 0);
+        JdbcSupport.setNullableTimestamp(statement, 4, user.createdAt());
+        JdbcSupport.setNullableTimestamp(statement, 5, user.updatedAt());
     }
 
     private void upsertCredential(Connection connection, String loginId, String credential) throws SQLException {
@@ -194,6 +209,14 @@ public final class JdbcUserRepository implements UserRepository {
         }
     }
 
+    private static void rollback(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+            // Keep the original repository failure.
+        }
+    }
+
     private String normalizedCredential(String passwordOrCredential) {
         if (passwordHasher.isHashed(passwordOrCredential)) {
             return passwordOrCredential;
@@ -215,13 +238,13 @@ public final class JdbcUserRepository implements UserRepository {
     private static String baseSelect() {
         return """
                 select u.login_id,
-                       coalesce(c.password_salt || ':' || c.password_hash, u.password) as password,
+                       c.password_salt || ':' || c.password_hash as password,
                        u.role,
                        u.active,
                        u.created_at,
                        u.updated_at
                 from users u
-                left join user_credentials c on c.login_id = u.login_id
+                join user_credentials c on c.login_id = u.login_id
                 """;
     }
 }

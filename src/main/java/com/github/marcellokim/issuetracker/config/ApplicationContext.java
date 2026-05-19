@@ -14,7 +14,9 @@ public record ApplicationContext(
 ) {
 
     public static ApplicationContext fromEnvironment() throws IOException, SQLException {
-        if (!hasText(System.getenv("ITS_DB_USER")) || !hasText(System.getenv("ITS_DB_PASSWORD"))) {
+        if (!hasText(System.getenv("ITS_DB_URL"))
+                || !hasText(System.getenv("ITS_DB_USER"))
+                || !hasText(System.getenv("ITS_DB_PASSWORD"))) {
             throw new IllegalStateException(
                     "Oracle environment is missing. Set ITS_DB_URL, ITS_DB_USER, ITS_DB_PASSWORD."
             );

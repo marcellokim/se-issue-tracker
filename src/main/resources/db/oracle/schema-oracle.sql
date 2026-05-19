@@ -3,7 +3,7 @@ declare
 begin
     select count(*) into incompatible_count
     from user_tab_columns
-    where (table_name = 'USERS' and column_name in ('ID', 'PASSWORD_HASH', 'NAME'))
+    where (table_name = 'USERS' and column_name in ('ID', 'PASSWORD', 'PASSWORD_HASH', 'NAME'))
        or (table_name = 'PROJECTS' and column_name = 'MANAGED_BY_ID')
        or (table_name = 'PROJECT_MEMBERS' and column_name = 'USER_ID')
        or (table_name = 'ISSUES' and column_name in (
@@ -72,7 +72,6 @@ begin
         execute immediate q'[
             create table users (
                 login_id varchar2(50) primary key,
-                password varchar2(255) not null,
                 role varchar2(20) not null,
                 active number(1) default 1 not null,
                 created_at timestamp default current_timestamp not null,
@@ -162,7 +161,7 @@ begin
                 updated_at timestamp default current_timestamp not null,
                 constraint chk_issues_priority check (priority in ('BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'TRIVIAL')),
                 constraint chk_issues_status check (status in ('NEW', 'ASSIGNED', 'FIXED', 'RESOLVED', 'CLOSED', 'REOPENED', 'DELETED')),
-                constraint fk_issues_project foreign key (project_id) references projects(id),
+                constraint fk_issues_project foreign key (project_id) references projects(id) on delete cascade,
                 constraint fk_issues_reporter foreign key (reporter_login_id) references users(login_id),
                 constraint fk_issues_assignee foreign key (assignee_login_id) references users(login_id),
                 constraint fk_issues_verifier foreign key (verifier_login_id) references users(login_id),
@@ -170,6 +169,24 @@ begin
                 constraint fk_issues_resolver foreign key (resolver_login_id) references users(login_id)
             )
         ]';
+    end if;
+end;
+/
+declare
+    constraint_count number;
+    delete_rule varchar2(20);
+begin
+    select count(*), max(delete_rule)
+      into constraint_count, delete_rule
+      from user_constraints
+     where table_name = 'ISSUES'
+       and constraint_name = 'FK_ISSUES_PROJECT';
+
+    if constraint_count = 0 then
+        execute immediate 'alter table issues add constraint fk_issues_project foreign key (project_id) references projects(id) on delete cascade';
+    elsif delete_rule != 'CASCADE' then
+        execute immediate 'alter table issues drop constraint fk_issues_project';
+        execute immediate 'alter table issues add constraint fk_issues_project foreign key (project_id) references projects(id) on delete cascade';
     end if;
 end;
 /

@@ -54,7 +54,9 @@ public final class Main {
     }
 
     private static boolean hasDatabaseEnvironment() {
-        return hasText(System.getenv("ITS_DB_USER")) && hasText(System.getenv("ITS_DB_PASSWORD"));
+        return hasText(System.getenv("ITS_DB_URL"))
+                && hasText(System.getenv("ITS_DB_USER"))
+                && hasText(System.getenv("ITS_DB_PASSWORD"));
     }
 
     private static boolean hasText(String value) {
@@ -75,7 +77,7 @@ public final class Main {
         if (args.length < 3) {
             printLine("Login check skipped.");
             printLine("Usage:");
-            printLine("  .\\gradlew.bat run --args=\"--login-check dev8 DemoLocalDev8!\"");
+            printLine("  .\\gradlew.bat run --args=\"--login-check <loginId> <password>\"");
             return;
         }
 

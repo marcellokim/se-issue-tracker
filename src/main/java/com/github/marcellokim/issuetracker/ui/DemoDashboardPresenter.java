@@ -30,6 +30,7 @@ public final class DemoDashboardPresenter {
     }
 
     public String buildSummary(User user) {
+        Objects.requireNonNull(user, "user");
         StringBuilder summary = new StringBuilder();
         summary.append("Logged in as ")
                 .append(user.loginId())

@@ -33,4 +33,16 @@ public final class ProjectController {
      * 다른 팀원이 구현해야하는 부분:
      * 프로젝트 생성/수정, PL 1명 제한 검증, 프로젝트 멤버 추가/제거 UC를 구현한다.
      */
+    public void deleteProject(long projectId) {
+        if (projectId <= 0L) {
+            throw new IllegalArgumentException("projectId must be positive");
+        }
+
+        var user = authenticationService.currentUser()
+                .orElseThrow(() -> new SecurityException("Login is required."));
+        permissionPolicy.assertCanManageProject(user);
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project was not found."));
+        projectRepository.deleteById(projectId);
+    }
 }

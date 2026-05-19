@@ -1,127 +1,107 @@
 begin
    merge into users target
    using (
-      select 'admin' as login_id,
-             'DemoLocalAdmin!' as password,
-             'ADMIN' as role,
-             1 as active
-        from dual
-      union all
-      select 'pl1',
-             'DemoLocalPl1!',
-             'PL',
-             1
-        from dual
-      union all
-      select 'pl2',
-             'DemoLocalPl2!',
-             'PL',
-             1
-        from dual
-      union all
-      select 'dev1',
-             'DemoLocalDev1!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev2',
-             'DemoLocalDev2!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev3',
-             'DemoLocalDev3!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev4',
-             'DemoLocalDev4!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev5',
-             'DemoLocalDev5!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev6',
-             'DemoLocalDev6!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev7',
-             'DemoLocalDev7!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev8',
-             'DemoLocalDev8!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev9',
-             'DemoLocalDev9!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev10',
-             'DemoLocalDev10!',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'tester1',
-             'DemoLocalTester1!',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester2',
-             'DemoLocalTester2!',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester3',
-             'DemoLocalTester3!',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester4',
-             'DemoLocalTester4!',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester5',
-             'DemoLocalTester5!',
-             'TESTER',
-             1
-        from dual
+       select 'admin' as login_id,
+              'ADMIN' as role,
+              1 as active
+         from dual
+       union all
+       select 'pl1',
+              'PL',
+              1
+         from dual
+       union all
+       select 'pl2',
+              'PL',
+              1
+         from dual
+       union all
+       select 'dev1',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev2',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev3',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev4',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev5',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev6',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev7',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev8',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev9',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'dev10',
+              'DEV',
+              1
+         from dual
+       union all
+       select 'tester1',
+              'TESTER',
+              1
+         from dual
+       union all
+       select 'tester2',
+              'TESTER',
+              1
+         from dual
+       union all
+       select 'tester3',
+              'TESTER',
+              1
+         from dual
+       union all
+       select 'tester4',
+              'TESTER',
+              1
+         from dual
+       union all
+       select 'tester5',
+              'TESTER',
+              1
+         from dual
    ) source on ( target.login_id = source.login_id )
    when matched then update
    set target.role = source.role,
        target.active = source.active,
        target.updated_at = current_timestamp
-   when not matched then
-   insert (
-      login_id,
-      password,
-      role,
-      active )
-   values
-      ( source.login_id,
-        source.password,
+    when not matched then
+    insert (
+       login_id,
+       role,
+       active )
+    values
+       ( source.login_id,
         source.role,
         source.active );
 end;
