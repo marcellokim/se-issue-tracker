@@ -57,6 +57,24 @@ class OpenPrScriptFailureTest {
         assertTrue(!commandLog.contains("issue edit 86 --add-label status:review"), commandLog);
     }
 
+    @Test
+    @DisplayName("PR 생성 실패 시 review 상태 라벨을 이전 상태로 복구한다")
+    void restoresPreviousStatusWhenPullRequestCreationFails() throws IOException, InterruptedException {
+        var fixture = createFixture();
+
+        var result = fixture.run("pr-create-fails");
+        var commandLog = Files.readString(fixture.log());
+
+        assertNotEquals(0, result.exitCode(), result.output());
+        assertTrue(result.output().contains("이슈 #86 상태 라벨을 이전 상태로 복구"), result.output());
+        assertTrue(commandLog.contains("issue edit 86 --remove-label status:todo"), commandLog);
+        assertTrue(commandLog.contains("issue edit 86 --add-label status:review"), commandLog);
+        assertTrue(commandLog.contains("gh pr create --base dev"), commandLog);
+        assertTrue(commandLog.contains("issue edit 86 --remove-label status:review"), commandLog);
+        assertTrue(commandLog.contains("issue edit 86 --add-label status:todo"), commandLog);
+        assertTrue(commandLog.contains("sync-project-board"), commandLog);
+    }
+
     private Fixture createFixture() throws IOException {
         var repo = tempDir.resolve("repo");
         var bin = tempDir.resolve("bin");
@@ -66,7 +84,9 @@ class OpenPrScriptFailureTest {
         Files.createDirectories(bin);
         Files.createFile(log);
         var labelLookupCount = tempDir.resolve("label-lookups.count");
+        var labelState = tempDir.resolve("labels.txt");
         Files.writeString(labelLookupCount, "0");
+        Files.writeString(labelState, "status:todo\n");
 
         Files.copy(Path.of("scripts/open-pr.sh"), repo.resolve("scripts/open-pr.sh"));
         Files.copy(Path.of("scripts/lib/git-refs.sh"), repo.resolve("scripts/lib/git-refs.sh"));
@@ -117,7 +137,7 @@ class OpenPrScriptFailureTest {
                     echo "label lookup failed" >&2
                     exit 17
                   fi
-                  echo "status:todo"
+                  cat "$OPEN_PR_LABEL_STATE"
                   exit 0
                 fi
                 if [[ "$1 $2" == "issue edit" ]]; then
@@ -125,12 +145,23 @@ class OpenPrScriptFailureTest {
                     echo "add review failed" >&2
                     exit 18
                   fi
+                  if [[ "${4:-}" == "--remove-label" ]]; then
+                    grep -vxF "${5:-}" "$OPEN_PR_LABEL_STATE" > "$OPEN_PR_LABEL_STATE.tmp" || true
+                    mv "$OPEN_PR_LABEL_STATE.tmp" "$OPEN_PR_LABEL_STATE"
+                  fi
+                  if [[ "${4:-}" == "--add-label" ]] && ! grep -qxF "${5:-}" "$OPEN_PR_LABEL_STATE"; then
+                    echo "${5:-}" >> "$OPEN_PR_LABEL_STATE"
+                  fi
                   exit 0
                 fi
                 if [[ "$1 $2" == "pr view" ]]; then
                   exit 1
                 fi
                 if [[ "$1 $2" == "pr create" ]]; then
+                  if [[ "$OPEN_PR_GH_MODE" == "pr-create-fails" ]]; then
+                    echo "pr create failed" >&2
+                    exit 19
+                  fi
                   echo "https://github.com/marcellokim/se-issue-tracker/pull/90"
                   exit 0
                 fi
@@ -138,7 +169,7 @@ class OpenPrScriptFailureTest {
                 exit 21
                 """);
 
-        return new Fixture(repo, bin, log, labelLookupCount);
+        return new Fixture(repo, bin, log, labelLookupCount, labelState);
     }
 
     private void writeExecutable(Path path, String content) throws IOException {
@@ -146,7 +177,7 @@ class OpenPrScriptFailureTest {
         assertTrue(path.toFile().setExecutable(true), () -> "실행 권한 설정 실패: " + path);
     }
 
-    record Fixture(Path repo, Path bin, Path log, Path labelLookupCount) {
+    record Fixture(Path repo, Path bin, Path log, Path labelLookupCount, Path labelState) {
         ScriptResult run(String mode) throws IOException, InterruptedException {
             var processBuilder = new ProcessBuilder("bash", "scripts/open-pr.sh");
             processBuilder.directory(repo.toFile());
@@ -158,6 +189,7 @@ class OpenPrScriptFailureTest {
             environment.put("OPEN_PR_LOG", log.toString());
             environment.put("OPEN_PR_GH_MODE", mode);
             environment.put("OPEN_PR_LABEL_LOOKUP_COUNT", labelLookupCount.toString());
+            environment.put("OPEN_PR_LABEL_STATE", labelState.toString());
 
             var process = processBuilder.start();
             var output = new String(process.getInputStream().readAllBytes());
