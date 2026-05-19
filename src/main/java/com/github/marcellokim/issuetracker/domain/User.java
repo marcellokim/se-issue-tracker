@@ -20,6 +20,16 @@ public final class User {
         this.active = true;
     }
 
+    public boolean hasRole(Role role) {
+        return this.role == role;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    // --- getters ---
+
     public String getUserId() {
         return userId;
     }
@@ -42,14 +52,6 @@ public final class User {
 
     public boolean isActive() {
         return active;
-    }
-
-    public boolean hasRole(Role role) {
-        return this.role == role;
-    }
-
-    public void deactivate() {
-        this.active = false;
     }
 
     private static String requireText(String value, String fieldName) {

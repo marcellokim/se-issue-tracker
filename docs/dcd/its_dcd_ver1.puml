@@ -1,5 +1,4 @@
 @startuml its_dcd_ver1
-!include ../uml/_shared/its-uml-style.puml
 
 title Issue Tracking System - Design Class Diagram
 
@@ -31,9 +30,6 @@ package "Presentation Layer\n(concrete boundary)" #E3F2FD {
   class JavaFxIssueView <<boundary>> {
     +logIn(loginId, password)
     +registerIssue(title, description, priority)
-    +addComment(issueId, content)
-    +searchIssues(filters)
-    +viewIssueDetail(issueId)
     +assignIssue(issueId, assigneeId, verifierId)
     +changeIssueState(issueId, targetStatus, comment)
     +deleteIssue(issueId)
@@ -49,6 +45,7 @@ package "Presentation Layer\n(concrete boundary)" #E3F2FD {
     +updateAccount(userId, name, role)
     +deactivateAccount(userId)
     +createProject(name, description)
+    +deleteProject(projectId)
     +addProjectParticipant(projectId, userId)
     +removeProjectParticipant(projectId, userId)
     +viewStatistics(period, filters)
@@ -97,11 +94,10 @@ package "Application Layer\n(concrete controllers)" #FFF8E1 {
     +viewDeletedIssues(projectId): List<IssueDto>
     +deleteIssue(issueId): IssueDto
     +restoreIssue(issueId): IssueDto
-    -enforceDeletedLimit(max): void
+    +enforceDeletedLimit(max): void
   }
 
   class AccountController <<control>> {
-    +logIn(loginId, password): void
     +createAccount(loginId, name, password, role): UserDto
     +updateAccount(userId, name, role): UserDto
     +deactivateAccount(userId): UserDto
@@ -109,6 +105,7 @@ package "Application Layer\n(concrete controllers)" #FFF8E1 {
 
   class ProjectController <<control>> {
     +createProject(name, description): ProjectDto
+    +deleteProject(projectId): void
     +addProjectParticipant(projectId, userId): ProjectDto
     +removeProjectParticipant(projectId, userId): ProjectDto
   }
@@ -134,6 +131,7 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
     +assertCanChangePriority(user, issue): void
     +assertCanManageAccount(user): void
     +assertCanManageProject(user): void
+    +assertCanDeleteProject(user, project): void
     +assertCanViewStatistics(user, filters): void
   }
 
@@ -146,12 +144,22 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
   class Clock <<service>> {
     +now(): DateTime
   }
+
+  class IdGenerator <<service>> {
+    +newUserId(): UserId
+    +newProjectId(): ProjectId
+    +newIssueId(): IssueId
+    +newCommentId(): CommentId
+    +newHistoryId(): HistoryId
+    +newDependencyId(): DependencyId
+  }
 }
 
 package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
   interface ProjectRepository <<interface>> {
     +findById(projectId): Project
     +save(project): void
+    +delete(projectId): void
   }
 
   interface IssueRepository <<interface>> {
@@ -160,6 +168,7 @@ package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
     +findByCriteria(filters): List<Issue>
     +save(issue): void
     +deleteDependency(dependency): void
+    +deleteAllByProjectId(projectId): void
     +purge(issue): void
   }
 
@@ -205,8 +214,7 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     -name: Text
     -description: Text
     -createdDate: DateTime
-    +registerIssue(title, description, priority, reporter, now): Issue
-    +addIssue(issue): void
+    +registerIssue(issueId, title, description, priority, reporter, now): Issue
     +assignManager(admin): void
     +addParticipant(user): void
     +removeParticipant(user): void
@@ -226,7 +234,6 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     -resolver: User
     +createWithDefaultPriority(title, description, priority, reporter, now): Issue
     +recordCreation(changedBy, now): void
-    +updateTitleAndDescription(title, description, changedBy, now): void
     +addComment(content, writer, now): Comment
     +addHistory(history): void
     +verifyPriorityChange(newPriority): ValidationResult
@@ -333,15 +340,16 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
 }
 
 JavaFxIssueView --> IssueController
-JavaFxIssueView --> AccountController
 JavaFxIssueView --> AssignmentController
 JavaFxIssueView --> IssueStateController
 JavaFxIssueView --> DeletedIssueController
 JavaFxIssueView --> StatisticsController
+JavaFxIssueView ..> AuthenticationService
 
 SwingAdminView --> AccountController
 SwingAdminView --> ProjectController
 SwingAdminView --> StatisticsController
+SwingAdminView ..> AuthenticationService
 
 IssueController ..> AuthenticationService
 IssueController ..> PermissionPolicy
@@ -349,6 +357,7 @@ IssueController ..> ProjectRepository
 IssueController ..> IssueRepository
 IssueController ..> UserRepository
 IssueController ..> Clock
+IssueController ..> IdGenerator
 
 AssignmentController ..> AuthenticationService
 AssignmentController ..> PermissionPolicy
@@ -356,27 +365,33 @@ AssignmentController ..> AssignmentRecommendationService
 AssignmentController ..> IssueRepository
 AssignmentController ..> UserRepository
 AssignmentController ..> Clock
+AssignmentController ..> IdGenerator
 
 IssueStateController ..> AuthenticationService
 IssueStateController ..> PermissionPolicy
 IssueStateController ..> IssueRepository
 IssueStateController ..> Clock
+IssueStateController ..> IdGenerator
 
 DeletedIssueController ..> AuthenticationService
 DeletedIssueController ..> PermissionPolicy
 DeletedIssueController ..> IssueRepository
 DeletedIssueController ..> Clock
+DeletedIssueController ..> IdGenerator
 
 AccountController ..> AuthenticationService
 AccountController ..> PermissionPolicy
 AccountController ..> UserRepository
 AccountController ..> PasswordHasher
+AccountController ..> IdGenerator
 
 ProjectController ..> AuthenticationService
 ProjectController ..> PermissionPolicy
 ProjectController ..> ProjectRepository
+ProjectController ..> IssueRepository
 ProjectController ..> UserRepository
 ProjectController ..> Clock
+ProjectController ..> IdGenerator
 
 StatisticsController ..> AuthenticationService
 StatisticsController ..> PermissionPolicy
@@ -399,7 +414,7 @@ JdbcProjectRepository ..> DatabaseConnectionProvider
 JdbcIssueRepository ..> DatabaseConnectionProvider
 JdbcUserRepository ..> DatabaseConnectionProvider
 
-Project "1" -- "0..*" Issue : contains
+Project "1" *-- "0..*" Issue : contains
 User "*" -- "*" Project : participates in
 User "1" -- "0..*" Project : manages\n(Admin only)
 Issue "1" *-- "0..*" Comment : comments

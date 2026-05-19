@@ -29,8 +29,6 @@ legend left
   ver2 is a core workflow DCD.
   repository, authentication, and clock infrastructure
   dependencies are intentionally omitted.
-  Issue-to-User role associations are summarized:
-  reporter, assignee, verifier, fixer, resolver.
 endlegend
 
 class Project {
@@ -40,7 +38,6 @@ class Project {
   - createdDate : DateTime
   --
   + registerIssue(title, description, priority, reporter, now)
-  + addIssue(issue)
   + addParticipant(user)
   + removeParticipant(user)
 }
@@ -79,7 +76,7 @@ class DeletedIssueController {
   + viewDeletedIssues(projectId)
   + deleteIssue(issueId)
   + restoreIssue(issueId)
-  - enforceDeletedLimit(max)
+  + enforceDeletedLimit(max)
 }
 
 class PermissionPolicy {
@@ -230,8 +227,8 @@ User "1" -- "0..*" Project : manages\n(Admin only)
 Issue "1" *-- "0..*" Comment : comments {ordered}
 Issue "1" *-- "0..*" IssueHistory : histories {ordered}
 
-IssueDependency "0..*" --> "1" Issue : blockingIssue
-IssueDependency "0..*" --> "1" Issue : blockedIssue
+Issue "1" -- "0..*" IssueDependency : blockingIssue
+Issue "1" -- "0..*" IssueDependency : blockedIssue
 
 Issue --> User : reporter / assignee /\nverifier / fixer / resolver
 
