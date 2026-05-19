@@ -51,7 +51,7 @@ class OracleRepositoryIntegrationTest {
 
     private static void resetTestSchema() throws SQLException {
         try (var connection = connectionProvider.getConnection();
-             var statement = connection.createStatement()) {
+                var statement = connection.createStatement()) {
             connection.setAutoCommit(false);
             try {
                 for (String tableName : List.of(
@@ -513,7 +513,8 @@ class OracleRepositoryIntegrationTest {
                     blocked.id(),
                     LocalDateTime.now()));
 
-            assertEquals(dependency.id(), repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
+            assertEquals(dependency.id(),
+                    repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
             assertEquals(IssueDependency.dependencyIdFor(blocking.id(), blocked.id()), dependency.getDependencyId());
             assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
             assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
@@ -663,7 +664,7 @@ class OracleRepositoryIntegrationTest {
 
     private static void executeUpdate(String sql, SqlStatementBinder binder) {
         try (var connection = connectionProvider.getConnection();
-             var statement = connection.prepareStatement(sql)) {
+                var statement = connection.prepareStatement(sql)) {
             binder.bind(statement);
             statement.executeUpdate();
         } catch (SQLException exception) {

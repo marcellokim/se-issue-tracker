@@ -21,8 +21,7 @@ public final class DemoDashboardPresenter {
             ProjectRepository projects,
             IssueRepository issues,
             StatisticsRepository statistics,
-            UserRepository users
-    ) {
+            UserRepository users) {
         this.projects = Objects.requireNonNull(projects, "projects");
         this.issues = Objects.requireNonNull(issues, "issues");
         this.statistics = Objects.requireNonNull(statistics, "statistics");
