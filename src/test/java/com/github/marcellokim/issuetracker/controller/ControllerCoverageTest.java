@@ -221,13 +221,18 @@ class ControllerCoverageTest {
         FakeAssignmentRecommendationRepository recommendations = new FakeAssignmentRecommendationRepository();
         recommendations.devCandidates = List.of(new AssignmentCandidate(user("dev1", Role.DEV), 5));
         recommendations.testerCandidates = List.of(new AssignmentCandidate(user("tester1", Role.TESTER), 3));
+        PermissionPolicy policy = new PermissionPolicy();
+        FakeIssueRepository issues = new FakeIssueRepository(issue);
+        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(recommendations);
         AssignmentController controller = new AssignmentController(
                 auth.service(),
-                new PermissionPolicy(),
-                new AssignmentRecommendationService(recommendations),
-                new FakeIssueRepository(issue),
-                auth.users(),
-                new Clock()
+                new com.github.marcellokim.issuetracker.service.AssignmentService(
+                        issues,
+                        auth.users(),
+                        policy,
+                        recommendationService,
+                        new Clock()
+                )
         );
 
         AssignmentOptions options = controller.startAssignment(issue.id());
@@ -246,24 +251,29 @@ class ControllerCoverageTest {
         AssignmentRecommendationService recommendations = new AssignmentRecommendationService(
                 new FakeAssignmentRecommendationRepository()
         );
+        PermissionPolicy policy = new PermissionPolicy();
 
         AssignmentController anonymousController = new AssignmentController(
                 anonymousAuth(),
-                new PermissionPolicy(),
-                recommendations,
-                issues,
-                new FakeUserRepository(),
-                new Clock()
+                new com.github.marcellokim.issuetracker.service.AssignmentService(
+                        issues,
+                        new FakeUserRepository(),
+                        policy,
+                        recommendations,
+                        new Clock()
+                )
         );
         assertThrows(SecurityException.class, () -> anonymousController.startAssignment(issue.id()));
 
         AssignmentController plController = new AssignmentController(
                 authenticated(Role.PL).service(),
-                new PermissionPolicy(),
-                recommendations,
-                new FakeIssueRepository(),
-                new FakeUserRepository(),
-                new Clock()
+                new com.github.marcellokim.issuetracker.service.AssignmentService(
+                        new FakeIssueRepository(),
+                        new FakeUserRepository(),
+                        policy,
+                        recommendations,
+                        new Clock()
+                )
         );
         assertThrows(IllegalArgumentException.class, () -> plController.startAssignment(issue.id()));
     }
@@ -280,7 +290,10 @@ class ControllerCoverageTest {
 
         assertDoesNotThrow(() -> new AccountController(auth.service(), policy, users, new PasswordHasher()));
         assertDoesNotThrow(() -> new IssueController(auth.service(), policy, projects, issues, users, clock));
-        assertDoesNotThrow(() -> new IssueStateController(auth.service(), policy, issues, clock));
+        assertDoesNotThrow(() -> new IssueStateController(
+                auth.service(),
+                new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)
+        ));
     }
 
     private static AuthFixture authenticated(Role role) {

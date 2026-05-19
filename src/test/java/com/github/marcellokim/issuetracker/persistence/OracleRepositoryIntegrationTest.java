@@ -527,6 +527,47 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("Issue repository saves aggregate comments and histories atomically")
+    void issueRepositoryPersistsAggregateCommentsAndHistories() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        String title = uniqueId("crud_issue_aggregate_audit");
+        Issue issue = null;
+
+        try {
+            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+                    project.id(),
+                    title,
+                    "Aggregate root save should persist audit children.",
+                    user("dev1"))
+                    .reportedDate(LocalDateTime.now())
+                    .priority(Priority.MAJOR)
+                    .status(IssueStatus.NEW)
+                    .updatedAt(LocalDateTime.now())));
+
+            issue.assignFromNew(user("dev2"), user("tester1"), user("pl1"), LocalDateTime.now());
+            issue.addComment("aggregate-audit-comment", "Assignment audit comment.", user("pl1"), LocalDateTime.now());
+
+            repositories.issues().save(issue);
+
+            assertTrue(repositories.comments().findByIssueId(issue.id()).stream()
+                    .anyMatch(comment -> comment.content().equals("Assignment audit comment.")));
+            assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.ASSIGNMENT_CHANGED));
+            assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.STATUS_CHANGED
+                            && IssueStatus.NEW.name().equals(history.previousValue())
+                            && IssueStatus.ASSIGNED.name().equals(history.newValue())));
+            assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.COMMENTED));
+        } finally {
+            if (issue != null) {
+                repositories.issues().purge(issue.id());
+            }
+            purgeIssuesByTitle(project.id(), title);
+        }
+    }
+
+    @Test
     @DisplayName("Comment repository saves, updates, lists, and deletes comments")
     void commentRepositorySupportsCrud() {
         var project = repositories.projects().findByName("project1").orElseThrow();

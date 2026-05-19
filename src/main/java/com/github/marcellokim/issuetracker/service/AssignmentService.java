@@ -1,0 +1,102 @@
+package com.github.marcellokim.issuetracker.service;
+
+import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.IssueRepository;
+import com.github.marcellokim.issuetracker.repository.UserRepository;
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+public final class AssignmentService {
+
+    private final IssueRepository issueRepository;
+    private final UserRepository userRepository;
+    private final PermissionPolicy permissionPolicy;
+    private final AssignmentRecommendationService recommendationService;
+    private final Clock clock;
+
+    public AssignmentService(
+            IssueRepository issueRepository,
+            UserRepository userRepository,
+            PermissionPolicy permissionPolicy,
+            AssignmentRecommendationService recommendationService,
+            Clock clock
+    ) {
+        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
+        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
+        this.recommendationService = Objects.requireNonNull(recommendationService, "recommendationService");
+        this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    public AssignmentOptions startAssignment(long issueId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        assertCanStartAssignment(actor, issue);
+        return recommendationService.recommendAssignmentCandidates(issue);
+    }
+
+    public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        User assignee = findUser(assigneeId);
+        User verifier = findUser(verifierId);
+        permissionPolicy.assertCanAssignIssue(actor, issue);
+        if (issue.status() == IssueStatus.NEW) {
+            issue.assignFromNew(assignee, verifier, actor, now());
+        } else if (issue.status() == IssueStatus.REOPENED) {
+            issue.assignReopened(assignee, verifier, actor, now());
+        } else {
+            throw new IllegalStateException("Issue status does not allow assignment: " + issue.status());
+        }
+        issueRepository.save(issue);
+        return toResult(issue);
+    }
+
+    public AssignmentResult reassignIssue(long issueId, String assigneeId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        User assignee = findUser(assigneeId);
+        permissionPolicy.assertCanAssignIssue(actor, issue);
+        issue.reassignAssignee(assignee, actor, now());
+        issueRepository.save(issue);
+        return toResult(issue);
+    }
+
+    public AssignmentResult changeVerifier(long issueId, String verifierId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        User verifier = findUser(verifierId);
+        permissionPolicy.assertCanAssignIssue(actor, issue);
+        issue.changeVerifier(verifier, actor, now());
+        issueRepository.save(issue);
+        return toResult(issue);
+    }
+
+    private void assertCanStartAssignment(User actor, Issue issue) {
+        switch (issue.status()) {
+            case NEW, REOPENED, ASSIGNED, FIXED -> permissionPolicy.assertCanAssignIssue(actor, issue);
+            default -> throw new IllegalStateException("Issue status does not allow assignment updates");
+        }
+    }
+
+    private Issue findIssue(long issueId) {
+        return issueRepository.findById(issueId)
+                .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
+    }
+
+    private User findUser(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    private LocalDateTime now() {
+        return clock.now();
+    }
+
+    private static AssignmentResult toResult(Issue issue) {
+        return new AssignmentResult(issue.getIssueId(), issue.status(), issue.getAssignee(), issue.getVerifier());
+    }
+}
