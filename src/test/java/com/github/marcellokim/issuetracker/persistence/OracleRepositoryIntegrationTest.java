@@ -42,10 +42,35 @@ class OracleRepositoryIntegrationTest {
     static void initializeDatabase() throws SQLException, IOException {
         connectionProvider = DriverManagerConnectionProvider.fromIntegrationTestEnvironment();
 
+        resetTestSchema();
         DatabaseInitializer.initialize(connectionProvider);
         DatabaseInitializer.initialize(connectionProvider);
 
         repositories = new JdbcRepositoryFactory(connectionProvider);
+    }
+
+    private static void resetTestSchema() throws SQLException {
+        try (var connection = connectionProvider.getConnection();
+             var statement = connection.createStatement()) {
+            connection.setAutoCommit(false);
+            try {
+                for (String tableName : List.of(
+                        "issue_dependencies",
+                        "issue_history",
+                        "comments",
+                        "issues",
+                        "project_members",
+                        "projects",
+                        "user_credentials",
+                        "users")) {
+                    statement.executeUpdate("delete from " + tableName);
+                }
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        }
     }
 
     @Test

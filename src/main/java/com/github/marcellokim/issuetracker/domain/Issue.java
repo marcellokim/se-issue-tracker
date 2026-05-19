@@ -47,7 +47,7 @@ public class Issue {
         Objects.requireNonNull(state, "state must not be null");
         this.id = persisted ? requirePositive(state.id, "id") : requireZero(state.id, "id");
         this.projectId = requirePositive(state.projectId, "projectId");
-        this.issueId = requireText(state.issueId, "issueId");
+        this.issueId = persisted ? requireText(state.issueId, "issueId") : issueIdOrNew(state.issueId);
         this.title = requireText(state.title, "title");
         this.description = requireText(state.description, "description");
         this.reportedDate = Objects.requireNonNull(state.reportedDate, "reportedDate must not be null");
@@ -451,6 +451,13 @@ public class Issue {
         return ISSUE_ID_PREFIX + UUID.randomUUID().toString();
     }
 
+    private static String issueIdOrNew(String issueId) {
+        if (issueId == null || issueId.isBlank()) {
+            return newIssueId();
+        }
+        return requireText(issueId, "issueId");
+    }
+
     private static String loginIdOrNull(User user) {
         return user == null ? null : user.loginId();
     }
@@ -458,7 +465,7 @@ public class Issue {
     public static final class PersistedState {
 
         private long id;
-        private String issueId = newIssueId();
+        private String issueId;
         private final long projectId;
         private final String title;
         private final String description;

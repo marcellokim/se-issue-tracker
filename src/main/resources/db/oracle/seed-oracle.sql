@@ -265,6 +265,8 @@ begin
 end;
 /
 begin
+   -- Demo seed owns only project1/project2 membership.
+   -- User-created projects and their members are intentionally preserved.
    delete from project_members target
     where target.project_id in (
       select p.id

@@ -88,6 +88,7 @@ public final class Main {
 
         String loginId = args[1];
         String password = args[2];
+        String normalizedLoginId = loginId.trim();
 
         try {
             var connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
@@ -95,10 +96,10 @@ public final class Main {
             printConnectionContext(connectionProvider);
 
             var repositories = new JdbcRepositoryFactory(connectionProvider);
-            var user = repositories.users().findByLoginId(loginId.trim());
-            var result = new AuthenticationService(repositories.users()).login(loginId, password);
+            var user = repositories.users().findByLoginId(normalizedLoginId);
+            var result = new AuthenticationService(repositories.users()).login(normalizedLoginId, password);
 
-            printLine("Login ID: " + loginId.trim());
+            printLine("Login ID: " + normalizedLoginId);
             user.ifPresentOrElse(
                     value -> {
                         printLine("Account: found");
