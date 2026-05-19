@@ -2,6 +2,7 @@ import org.apache.tools.ant.taskdefs.condition.Os
 
 plugins {
     id 'java'
+    id 'jacoco'
     id 'application' // JavaFX 실행을 위한 플러그인
     id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'org.sonarqube' version '7.2.2.6593'
@@ -45,12 +46,21 @@ sonar {
             'src/main/resources/db/oracle/schema-oracle.sql',
             'src/main/resources/db/oracle/seed-oracle.sql'
         ].join(',')
+        def coverageExcludedSources = [
+            'src/main/java/com/github/marcellokim/issuetracker/Main.java',
+            'src/main/java/com/github/marcellokim/issuetracker/config/**',
+            'src/main/java/com/github/marcellokim/issuetracker/controller/**',
+            'src/main/java/com/github/marcellokim/issuetracker/persistence/**',
+            'src/main/java/com/github/marcellokim/issuetracker/ui/**'
+        ].join(',')
         property 'sonar.host.url', 'https://sonarcloud.io'
         property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
         property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
 
         property 'sonar.exclusions', oracleSqlResources
         property 'sonar.cpd.exclusions', oracleSqlResources
+        property 'sonar.coverage.exclusions', coverageExcludedSources
+        property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
 
         // property 'sonar.exclusions', [
         //     '.github/**',
@@ -81,6 +91,19 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:6.0.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
+}
+
+tasks.named('sonar') {
+    dependsOn tasks.named('jacocoTestReport')
 }
 
 // --- 인코딩 및 실행 설정 (윈도우 한글 깨짐 방지) ---
