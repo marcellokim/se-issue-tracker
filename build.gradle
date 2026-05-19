@@ -44,25 +44,6 @@ sonar {
         property 'sonar.host.url', 'https://sonarcloud.io'
         property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
         property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
-        property 'sonar.exclusions', [
-            '.github/**',
-            'bin/**',
-            'config/**',
-            'docs/**',
-            'scripts/**',
-            'src/main/resources/db/oracle/**'
-        ].join(',')
-        property 'sonar.test.exclusions', [
-            'src/test/**'
-        ].join(',')
-        property 'sonar.cpd.exclusions', [
-            '.github/**',
-            'config/**',
-            'docs/**',
-            'scripts/**',
-            'src/main/resources/db/oracle/**',
-            'src/test/**'
-        ].join(',')
     }
 }
 
