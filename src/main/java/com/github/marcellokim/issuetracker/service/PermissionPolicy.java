@@ -71,10 +71,11 @@ public final class PermissionPolicy {
                     requirePl(user, "Only PL can assign issues.");
                 }
             }
-            case CLOSED, REOPENED, DELETED -> requirePl(
-                    user,
-                    "Only PL can close, reopen, or delete issues."
-            );
+            case CLOSED, REOPENED -> requirePl(user, "Only PL can close or reopen issues.");
+            case DELETED -> {
+                requirePl(user, "Only PL can delete issues.");
+                requireDeletableStatus(targetIssue);
+            }
             case NEW -> throw new SecurityException("Issue status cannot be changed back to NEW.");
         }
     }
@@ -146,6 +147,12 @@ public final class PermissionPolicy {
         requireActiveUser(user, message);
         if (user.role() != expectedRole || expectedLoginId == null || !expectedLoginId.equals(user.loginId())) {
             throw new SecurityException(message);
+        }
+    }
+
+    private static void requireDeletableStatus(Issue issue) {
+        if (issue.status() != IssueStatus.NEW && issue.status() != IssueStatus.CLOSED) {
+            throw new SecurityException("Only NEW or CLOSED issues can be deleted.");
         }
     }
 

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -249,6 +250,99 @@ class OracleRepositoryIntegrationTest {
         var project = repositories.projects().findByName("project1").orElseThrow();
 
         assertNotNull(repositories.issueHistory().findDeletedTransitionsByProject(project.id()));
+    }
+
+    @Test
+    @DisplayName("Issue soft delete accepts only NEW or CLOSED status")
+    void issueSoftDeleteAcceptsOnlyNewOrClosedStatus() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue newIssue = null;
+        Issue closedIssue = null;
+        var rejectedIssues = new ArrayList<Issue>();
+
+        try {
+            newIssue = createIssue(project.id(), uniqueId("delete_new_issue"), IssueStatus.NEW);
+            closedIssue = createIssue(project.id(), uniqueId("delete_closed_issue"), IssueStatus.CLOSED);
+
+            assertEquals(IssueStatus.DELETED, repositories.issues()
+                    .softDelete(newIssue.id(), "pl1", "Delete NEW issue.", LocalDateTime.now())
+                    .status());
+            assertEquals(IssueStatus.DELETED, repositories.issues()
+                    .softDelete(closedIssue.id(), "pl1", "Delete CLOSED issue.", LocalDateTime.now())
+                    .status());
+
+            for (IssueStatus status : List.of(
+                    IssueStatus.ASSIGNED,
+                    IssueStatus.FIXED,
+                    IssueStatus.RESOLVED,
+                    IssueStatus.REOPENED,
+                    IssueStatus.DELETED)) {
+                Issue issue = createIssue(project.id(), uniqueId("delete_rejected_issue"), status);
+                rejectedIssues.add(issue);
+
+                assertThrows(RepositoryException.class,
+                        () -> repositories.issues().softDelete(
+                                issue.id(),
+                                "pl1",
+                                "Delete should be rejected.",
+                                LocalDateTime.now()));
+                assertEquals(status, repositories.issues().findById(issue.id()).orElseThrow().status());
+            }
+        } finally {
+            if (newIssue != null) {
+                repositories.issues().purge(newIssue.id());
+            }
+            if (closedIssue != null) {
+                repositories.issues().purge(closedIssue.id());
+            }
+            for (Issue issue : rejectedIssues) {
+                repositories.issues().purge(issue.id());
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Issue restore accepts only NEW or CLOSED pre-delete history")
+    void issueRestoreAcceptsOnlyNewOrClosedPreDeleteHistory() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue deletedFromNew = null;
+        Issue invalidDeleted = null;
+
+        try {
+            deletedFromNew = createIssue(project.id(), uniqueId("restore_new_issue"), IssueStatus.NEW);
+            repositories.issues().softDelete(deletedFromNew.id(), "pl1", "Delete before restore.", LocalDateTime.now());
+
+            assertEquals(IssueStatus.NEW, repositories.issues()
+                    .restore(deletedFromNew.id(), "pl1", "Restore NEW issue.", LocalDateTime.now())
+                    .status());
+
+            invalidDeleted = createIssue(project.id(), uniqueId("restore_invalid_issue"), IssueStatus.DELETED);
+            repositories.issueHistory().save(new IssueHistory(
+                    0L,
+                    invalidDeleted.id(),
+                    "pl1",
+                    ActionType.STATUS_CHANGED,
+                    IssueStatus.ASSIGNED.name(),
+                    IssueStatus.DELETED.name(),
+                    "Invalid delete history.",
+                    LocalDateTime.now()));
+
+            Issue target = invalidDeleted;
+            assertThrows(RepositoryException.class,
+                    () -> repositories.issues().restore(
+                            target.id(),
+                            "pl1",
+                            "Invalid restore should be rejected.",
+                            LocalDateTime.now()));
+            assertEquals(IssueStatus.DELETED, repositories.issues().findById(target.id()).orElseThrow().status());
+        } finally {
+            if (deletedFromNew != null) {
+                repositories.issues().purge(deletedFromNew.id());
+            }
+            if (invalidDeleted != null) {
+                repositories.issues().purge(invalidDeleted.id());
+            }
+        }
     }
 
     @Test
@@ -625,17 +719,33 @@ class OracleRepositoryIntegrationTest {
     }
 
     private static Issue createIssue(long projectId, String title) {
-        return repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+        return createIssue(projectId, title, IssueStatus.ASSIGNED);
+    }
+
+    private static Issue createIssue(long projectId, String title, IssueStatus status) {
+        var state = Issue.persistedState(
                 projectId,
                 title,
                 "Repository CRUD support issue.",
                 user("dev1"))
                 .reportedDate(LocalDateTime.now())
                 .priority(Priority.MINOR)
-                .status(IssueStatus.ASSIGNED)
-                .assignee(user("dev1"))
-                .verifier(user("tester1"))
-                .updatedAt(LocalDateTime.now())));
+                .status(status)
+                .updatedAt(LocalDateTime.now());
+
+        if (status == IssueStatus.ASSIGNED || status == IssueStatus.FIXED || status == IssueStatus.RESOLVED) {
+            state.assignee(user("dev1"));
+            state.verifier(user("tester1"));
+        }
+        if (status == IssueStatus.FIXED || status == IssueStatus.RESOLVED || status == IssueStatus.CLOSED
+                || status == IssueStatus.REOPENED) {
+            state.fixer(user("dev1"));
+        }
+        if (status == IssueStatus.RESOLVED || status == IssueStatus.CLOSED || status == IssueStatus.REOPENED) {
+            state.resolver(user("tester1"));
+        }
+
+        return repositories.issues().save(Issue.newForPersistence(state));
     }
 
     private static User user(String loginId) {

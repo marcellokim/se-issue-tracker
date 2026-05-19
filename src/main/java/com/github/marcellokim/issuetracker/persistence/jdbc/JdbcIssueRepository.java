@@ -201,6 +201,9 @@ public final class JdbcIssueRepository implements IssueRepository {
                 if (issue.status() == IssueStatus.DELETED) {
                     throw new RepositoryException("Issue is already deleted.", null);
                 }
+                if (!isDeletableStatus(issue.status())) {
+                    throw new RepositoryException("Only NEW or CLOSED issues can be deleted.", null);
+                }
 
                 LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
                 deleteDependencies(connection, issueId);
@@ -244,8 +247,8 @@ public final class JdbcIssueRepository implements IssueRepository {
 
                 IssueStatus restoreStatus = latestPreDeleteStatus(connection, issueId)
                         .orElseThrow(() -> new RepositoryException("Restore requires pre-delete status history.", null));
-                if (restoreStatus == IssueStatus.DELETED) {
-                    throw new RepositoryException("Pre-delete status history must not be DELETED.", null);
+                if (!isDeletableStatus(restoreStatus)) {
+                    throw new RepositoryException("Pre-delete status history must be NEW or CLOSED.", null);
                 }
                 LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
                 updateIssueStatus(connection, issueId, restoreStatus, effectiveChangedDate);
@@ -541,6 +544,10 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     private static LocalDateTime effectiveChangedDate(LocalDateTime changedDate) {
         return changedDate == null ? LocalDateTime.now() : changedDate;
+    }
+
+    private static boolean isDeletableStatus(IssueStatus status) {
+        return status == IssueStatus.NEW || status == IssueStatus.CLOSED;
     }
 
     private static Issue copyWithStatus(Issue issue, IssueStatus status, LocalDateTime updatedAt) {

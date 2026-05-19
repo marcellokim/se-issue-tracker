@@ -56,7 +56,10 @@ class PermissionPolicyTest {
         assertDoesNotThrow(() -> policy.assertCanAssignIssue(pl, issue(IssueStatus.NEW)));
         assertDoesNotThrow(() -> policy.assertCanChangeStatus(pl, issue(IssueStatus.RESOLVED), IssueStatus.CLOSED));
         assertDoesNotThrow(() -> policy.assertCanChangeStatus(pl, issue(IssueStatus.CLOSED), IssueStatus.REOPENED));
-        assertDoesNotThrow(() -> policy.assertCanChangeStatus(pl, issue(IssueStatus.ASSIGNED), IssueStatus.DELETED));
+        assertDoesNotThrow(() -> policy.assertCanChangeStatus(pl, issue(IssueStatus.NEW), IssueStatus.DELETED));
+        assertDoesNotThrow(() -> policy.assertCanChangeStatus(pl, issue(IssueStatus.CLOSED), IssueStatus.DELETED));
+        assertThrows(SecurityException.class,
+                () -> policy.assertCanChangeStatus(pl, issue(IssueStatus.ASSIGNED), IssueStatus.DELETED));
         assertDoesNotThrow(() -> policy.assertCanManageDeletedIssue(pl, issue(IssueStatus.DELETED)));
         assertDoesNotThrow(() -> policy.assertCanManageDependency(pl, issue(IssueStatus.ASSIGNED)));
         assertDoesNotThrow(() -> policy.assertCanChangePriority(pl, issue(IssueStatus.ASSIGNED)));

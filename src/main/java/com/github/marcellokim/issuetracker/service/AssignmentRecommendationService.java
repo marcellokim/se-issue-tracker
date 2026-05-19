@@ -20,11 +20,19 @@ public final class AssignmentRecommendationService {
     }
 
     public AssignmentOptions recommendAssignmentCandidates(Issue issue) {
-        Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        return new AssignmentOptions(
-                findDevAssigneeCandidateDetails(issue),
-                findTesterVerifierCandidateDetails(issue)
-        );
+        Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        return switch (targetIssue.status()) {
+            case NEW, REOPENED -> new AssignmentOptions(
+                    findDevAssigneeCandidateDetails(targetIssue),
+                    findTesterVerifierCandidateDetails(targetIssue));
+            case ASSIGNED -> new AssignmentOptions(
+                    findDevAssigneeCandidateDetails(targetIssue),
+                    List.of());
+            case FIXED -> new AssignmentOptions(
+                    List.of(),
+                    findTesterVerifierCandidateDetails(targetIssue));
+            case RESOLVED, CLOSED, DELETED -> new AssignmentOptions(List.of(), List.of());
+        };
     }
 
     public List<User> findDevAssigneeCandidates(Issue issue) {
