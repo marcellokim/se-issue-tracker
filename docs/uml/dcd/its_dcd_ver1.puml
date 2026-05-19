@@ -1,4 +1,5 @@
 @startuml its_dcd_ver1
+!include ../_shared/its-uml-style.puml
 
 title Issue Tracking System - Design Class Diagram
 
@@ -61,7 +62,6 @@ package "Presentation Layer\n(concrete boundary)" #E3F2FD {
   account/project 관리 UI를 대표한다.
   end note
 }
-
 package "Application Layer\n(concrete controllers)" #FFF8E1 {
   class IssueController <<control>> {
     +registerIssue(title, description, priority): IssueDto
@@ -159,7 +159,7 @@ package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
   interface ProjectRepository <<interface>> {
     +findById(projectId): Project
     +save(project): void
-    +delete(projectId): void
+    +deleteById(projectId): void
   }
 
   interface IssueRepository <<interface>> {
@@ -182,6 +182,7 @@ package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
 package "Technical Services\n(concrete adapters and security support)" #F3E5F5 {
   class JdbcProjectRepository <<repository>> {
     -connectionProvider: DatabaseConnectionProvider
+    +deleteById(projectId): void
   }
 
   class JdbcIssueRepository <<repository>> {
@@ -392,7 +393,6 @@ ProjectController ..> IssueRepository
 ProjectController ..> UserRepository
 ProjectController ..> Clock
 ProjectController ..> IdGenerator
-
 StatisticsController ..> AuthenticationService
 StatisticsController ..> PermissionPolicy
 StatisticsController ..> IssueRepository
@@ -414,7 +414,7 @@ JdbcProjectRepository ..> DatabaseConnectionProvider
 JdbcIssueRepository ..> DatabaseConnectionProvider
 JdbcUserRepository ..> DatabaseConnectionProvider
 
-Project "1" *-- "0..*" Issue : contains
+Project "1" *-- "0..*" Issue : owns\ncascade delete
 User "*" -- "*" Project : participates in
 User "1" -- "0..*" Project : manages\n(Admin only)
 Issue "1" *-- "0..*" Comment : comments
@@ -433,5 +433,11 @@ AssignmentRecommendationService ..> AssignmentOptions
 StatisticsController ..> StatisticsReport
 Issue ..> AssignmentContext
 Issue ..> ValidationResult
+
+note right of Project
+Project owns Issue by composition.
+Deleting a Project cascades deletion of its Issues.
+Issue-owned comments, histories, and dependencies are then removed by Issue FK cascade.
+end note
 
 @enduml

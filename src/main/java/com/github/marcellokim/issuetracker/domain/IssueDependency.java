@@ -1,22 +1,48 @@
 package com.github.marcellokim.issuetracker.domain;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.Objects;
 
 public final class IssueDependency {
 
+    private final long id;
+    private final long blockingIssueId;
+    private final long blockedIssueId;
     private final String dependencyId;
-    private final LocalDateTime discoveredDate;
     private final Issue blockingIssue;
     private final Issue blockedIssue;
+    private final LocalDateTime discoveredDate;
+
+    public IssueDependency(long id, long blockingIssueId, long blockedIssueId, LocalDateTime discoveredDate) {
+        this(id, dependencyIdFor(blockingIssueId, blockedIssueId), blockingIssueId, blockedIssueId, discoveredDate);
+    }
+
+    public IssueDependency(
+            long id,
+            String dependencyId,
+            long blockingIssueId,
+            long blockedIssueId,
+            LocalDateTime discoveredDate
+    ) {
+        this.id = id;
+        this.blockingIssueId = blockingIssueId;
+        this.blockedIssueId = blockedIssueId;
+        this.dependencyId = requireText(dependencyId, "dependencyId");
+        this.blockingIssue = null;
+        this.blockedIssue = null;
+        this.discoveredDate = discoveredDate;
+    }
 
     private IssueDependency(String dependencyId, Issue blockingIssue, Issue blockedIssue, LocalDateTime discoveredDate) {
-        this.dependencyId = requireText(dependencyId, "dependencyId");
+        this.id = 0L;
         this.blockingIssue = Objects.requireNonNull(blockingIssue, "blockingIssue must not be null");
         this.blockedIssue = Objects.requireNonNull(blockedIssue, "blockedIssue must not be null");
-        if (Objects.equals(blockingIssue.getIssueId(), blockedIssue.getIssueId())) {
-            throw new IllegalArgumentException("An issue cannot depend on itself");
-        }
+        this.blockingIssueId = blockingIssue.id();
+        this.blockedIssueId = blockedIssue.id();
+        this.dependencyId = requireText(dependencyId, "dependencyId");
         this.discoveredDate = Objects.requireNonNull(discoveredDate, "discoveredDate must not be null");
     }
 
@@ -29,12 +55,24 @@ public final class IssueDependency {
         return new IssueDependency(dependencyId, blockingIssue, blockedIssue, discoveredDate);
     }
 
-    public String getDependencyId() {
-        return dependencyId;
+    public long id() {
+        return id;
     }
 
-    public LocalDateTime getDiscoveredDate() {
+    public long blockingIssueId() {
+        return blockingIssueId;
+    }
+
+    public long blockedIssueId() {
+        return blockedIssueId;
+    }
+
+    public LocalDateTime discoveredDate() {
         return discoveredDate;
+    }
+
+    public String getDependencyId() {
+        return dependencyId;
     }
 
     public Issue getBlockingIssue() {
@@ -43,6 +81,20 @@ public final class IssueDependency {
 
     public Issue getBlockedIssue() {
         return blockedIssue;
+    }
+
+    public LocalDateTime getDiscoveredDate() {
+        return discoveredDate;
+    }
+
+    public static String dependencyIdFor(long blockingIssueId, long blockedIssueId) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String source = blockingIssueId + ":" + blockedIssueId;
+            return HexFormat.of().formatHex(digest.digest(source.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 digest is unavailable.", exception);
+        }
     }
 
     private static String requireText(String value, String fieldName) {

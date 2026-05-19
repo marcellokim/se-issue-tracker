@@ -1,6 +1,6 @@
 package com.github.marcellokim.issuetracker;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -20,14 +20,14 @@ class MainSmokeTest {
         try {
             System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8));
 
-            Main.main(new String[0]);
+            Main.main(new String[] {"--cli-demo"});
         } finally {
             System.setOut(originalOut);
         }
 
-        assertEquals(
-                "Issue Tracker application started." + System.lineSeparator(),
-                output.toString(StandardCharsets.UTF_8)
-        );
+        String text = output.toString(StandardCharsets.UTF_8);
+
+        assertTrue(text.contains("Issue Tracker application started."));
+        assertTrue(text.contains("Oracle repository demo"));
     }
 }

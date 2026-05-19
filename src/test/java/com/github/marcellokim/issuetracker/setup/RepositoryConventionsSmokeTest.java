@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -24,7 +25,6 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/pr-metadata.yml",
                 ".github/workflows/codeql.yml",
                 ".github/workflows/project-maintenance.yml",
-                ".coderabbit.yaml",
                 ".pr_agent.toml",
                 ".gemini/config.yaml",
                 ".gemini/styleguide.md",
@@ -148,21 +148,6 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),
-                new ScriptExpectation(".coderabbit.yaml", "language: \"ko-KR\""),
-                new ScriptExpectation(".coderabbit.yaml", "tone_instructions"),
-                new ScriptExpectation(".coderabbit.yaml", "auto_title_instructions"),
-                new ScriptExpectation(".coderabbit.yaml", "poem: false"),
-                new ScriptExpectation(".coderabbit.yaml", """
-                finishing_touches:
-                    unit_tests:
-                      enabled: false
-                    docstrings:
-                      enabled: false
-                """),
-                new ScriptExpectation(".coderabbit.yaml", "pre_merge_checks"),
-                new ScriptExpectation(".coderabbit.yaml", "mode: \"off\""),
-                new ScriptExpectation(".coderabbit.yaml", "auto_reply: false"),
-                new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
                 new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
                 new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
@@ -193,6 +178,56 @@ class RepositoryConventionsSmokeTest {
                 text.contains(expectation.expectedText()),
                 () -> expectation.relativePath() + "에 안내 문구가 없습니다: " + expectation.expectedText()
         );
+    }
+
+    @Test
+    @DisplayName("표준 PR 스크립트는 PR 생성 전 이슈 상태와 프로젝트 보드를 먼저 정렬한다")
+    void openPrPreparesIssueStatusBeforeCreatingPullRequest() throws IOException {
+        var text = Files.readString(Path.of("scripts/open-pr.sh"));
+
+        var newPullRequestBody = text.indexOf("body=\"## 요약");
+        var preCreateIssueStatus = text.indexOf("\nmark_issue_review\n", newPullRequestBody);
+        var preCreateProjectSync = text.indexOf("\nsync_project_board\n", preCreateIssueStatus);
+        var createPullRequest = text.indexOf("gh pr create --base dev", newPullRequestBody);
+
+        assertTrue(newPullRequestBody >= 0, "새 PR 생성 본문 정의가 없습니다.");
+        assertTrue(preCreateIssueStatus >= 0, "PR 생성 전 이슈 상태 라벨 정렬 단계가 없습니다.");
+        assertTrue(preCreateProjectSync >= 0, "PR 생성 전 프로젝트 상태 정렬 단계가 없습니다.");
+        assertTrue(createPullRequest >= 0, "PR 생성 단계가 없습니다.");
+        assertTrue(
+                preCreateIssueStatus < createPullRequest,
+                "이슈 상태 라벨 정렬은 pull_request 체크가 시작되기 전에 끝나야 합니다."
+        );
+        assertTrue(
+                preCreateProjectSync < createPullRequest,
+                "프로젝트 상태 정렬은 pull_request 체크가 시작되기 전에 끝나야 합니다."
+        );
+        assertTrue(
+                preCreateIssueStatus < preCreateProjectSync,
+                "이슈 상태 라벨 정렬 후 프로젝트 상태 정렬이 수행되어야 합니다."
+        );
+    }
+
+    @Test
+    @DisplayName("표준 PR 스크립트는 PR 생성 실패 시 사전 변경한 이슈 상태를 복구한다")
+    void openPrRestoresIssueStatusWhenPullRequestCreationFails() throws IOException {
+        var text = Files.readString(Path.of("scripts/open-pr.sh"));
+
+        var previousStatusCapture = text.indexOf("previous_status_labels=\"$(current_status_labels)\"");
+        var rollbackTrap = text.indexOf("trap rollback_precreate_status_on_exit EXIT", previousStatusCapture);
+        var preCreateIssueStatus = text.indexOf("\nmark_issue_review\n", rollbackTrap);
+        var createPullRequest = text.indexOf("gh pr create --base dev", preCreateIssueStatus);
+        var clearRollbackTrap = text.indexOf("trap - EXIT", createPullRequest);
+        var restoreIssueStatus = text.indexOf("restore_issue_status_labels \"$previous_status_labels\"");
+        var restoreProjectStatus = text.indexOf("sync_project_board", restoreIssueStatus);
+
+        assertTrue(previousStatusCapture >= 0, "PR 생성 전 기존 이슈 상태 라벨을 저장해야 합니다.");
+        assertTrue(rollbackTrap > previousStatusCapture, "PR 생성 전 상태 변경 전에 rollback trap을 등록해야 합니다.");
+        assertTrue(preCreateIssueStatus > rollbackTrap, "rollback trap 등록 후 이슈 상태 라벨을 변경해야 합니다.");
+        assertTrue(createPullRequest > preCreateIssueStatus, "이슈 상태 라벨 변경 후 gh pr create를 호출해야 합니다.");
+        assertTrue(clearRollbackTrap > createPullRequest, "PR 생성 성공 후 rollback trap을 해제해야 합니다.");
+        assertTrue(restoreIssueStatus >= 0, "PR 생성 전 단계 실패 시 이슈 상태 라벨을 복구해야 합니다.");
+        assertTrue(restoreProjectStatus > restoreIssueStatus, "이슈 상태 복구 후 프로젝트 상태를 다시 정렬해야 합니다.");
     }
 
     record ScriptExpectation(String relativePath, String expectedText) {

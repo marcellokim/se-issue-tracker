@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -52,5 +53,46 @@ class IssueCommentTest {
                 () -> issue.addComment("C-1", "content", null, createdAt));
         assertThrows(NullPointerException.class,
                 () -> issue.addComment("C-1", "content", developer, null));
+    }
+
+    @Test
+    @DisplayName("persisted comment keeps database fields")
+    void persistedCommentKeepsDatabaseFields() {
+        var comment = new Comment(11L, 100L, "dev1", "I fixed this.", createdAt);
+
+        assertEquals(11L, comment.id());
+        assertEquals(100L, comment.issueId());
+        assertEquals("11", comment.getCommentId());
+        assertEquals("dev1", comment.writerId());
+        assertEquals("I fixed this.", comment.content());
+        assertEquals("I fixed this.", comment.getContent());
+        assertEquals(createdAt, comment.createdDate());
+        assertEquals(createdAt, comment.getCreatedDate());
+        assertNull(comment.getWriter());
+    }
+
+    @Test
+    @DisplayName("domain-created comment keeps writer fields")
+    void domainCommentKeepsWriterFields() {
+        var comment = Comment.create("C-2", "Please verify again.", developer, createdAt.plusMinutes(15));
+
+        assertEquals(0L, comment.id());
+        assertEquals(0L, comment.issueId());
+        assertEquals("C-2", comment.getCommentId());
+        assertEquals("dev1", comment.writerId());
+        assertEquals("Please verify again.", comment.content());
+        assertSame(developer, comment.getWriter());
+        assertEquals(createdAt.plusMinutes(15), comment.createdDate());
+    }
+
+    @Test
+    @DisplayName("rejects invalid persisted comment arguments")
+    void rejectInvalidPersistedCommentArguments() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Comment(1L, 100L, "", "content", createdAt));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Comment(1L, 100L, "dev1", " ", createdAt));
+        assertThrows(NullPointerException.class,
+                () -> new Comment(1L, 100L, "dev1", "content", null));
     }
 }

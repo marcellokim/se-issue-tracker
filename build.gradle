@@ -1,6 +1,9 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 plugins {
     id 'java'
-    id 'application'
+    id 'jacoco'
+    id 'application' // JavaFX 실행을 위한 플러그인
     id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'org.sonarqube' version '7.2.2.6593'
 }
@@ -14,35 +17,154 @@ java {
     }
 }
 
-repositories {
-    mavenCentral()
-}
-
+// --- JavaFX 설정 ---
 javafx {
     version = '21.0.6'
-    modules = ['javafx.controls', 'javafx.fxml']
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']
 }
 
 application {
     mainClass = 'com.github.marcellokim.issuetracker.Main'
 }
 
+repositories {
+    mavenCentral()
+}
+
+// javafx {
+//     version = '21.0.6'
+//     modules = ['javafx.controls', 'javafx.fxml']
+// }
+
+// application {
+//     mainClass = 'com.github.marcellokim.issuetracker.Main'
+// }
+
 sonar {
     properties {
+        def oracleSqlResources = [
+            'src/main/resources/db/oracle/schema-oracle.sql',
+            'src/main/resources/db/oracle/seed-oracle.sql'
+        ].join(',')
+        // Oracle JDBC classes are covered by oracleIntegrationTest, which needs an Oracle test schema.
+        def coverageExcludedSources = [
+            'src/main/java/com/github/marcellokim/issuetracker/Main.java',
+            'src/main/java/com/github/marcellokim/issuetracker/config/ApplicationContext.java',
+            'src/main/java/com/github/marcellokim/issuetracker/ui/**',
+            'src/main/java/com/github/marcellokim/issuetracker/persistence/OracleConnectionCheck.java',
+            'src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/**'
+        ].join(',')
         property 'sonar.host.url', 'https://sonarcloud.io'
         property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
         property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
+
+        property 'sonar.exclusions', oracleSqlResources
+        property 'sonar.cpd.exclusions', oracleSqlResources
+        property 'sonar.coverage.exclusions', coverageExcludedSources
+        property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
+
+        // property 'sonar.exclusions', [
+        //     '.github/**',
+        //     'bin/**',
+        //     'config/**',
+        //     'docs/**',
+        //     'scripts/**',
+        //     'src/main/resources/db/oracle/**'
+        // ].join(',')
+        // property 'sonar.test.exclusions', [
+        //     'src/test/**'
+        // ].join(',')
+        // property 'sonar.cpd.exclusions', [
+        //     '.github/**',
+        //     'config/**',
+        //     'docs/**',
+        //     'scripts/**',
+        //     'src/main/resources/db/oracle/**',
+        //     'src/test/**'
+        // ].join(',')
+
     }
 }
 
 dependencies {
+    implementation 'com.oracle.database.jdbc:ojdbc17:23.26.1.0.0'
+
     testImplementation platform('org.junit:junit-bom:6.0.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+    }
+}
+
+tasks.named('sonar') {
+    dependsOn tasks.named('jacocoTestReport')
+}
+
+// --- 인코딩 및 실행 설정 (윈도우 한글 깨짐 방지) ---
+tasks.register('oracleConnectionCheck', JavaExec) {
+    group = 'application'
+    description = 'Checks Oracle Database connectivity using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.OracleConnectionCheck'
+}
+
+tasks.register('oracleInitializeDatabase', JavaExec) {
+    group = 'application'
+    description = 'Initializes Oracle schema and repeatable demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+}
+
+def oracleIntegrationTestRequested = {
+    def environment = System.getenv()
+    'true'.equalsIgnoreCase(environment.get('ITS_DB_INTEGRATION_TESTS') ?: '') ||
+            ['ITS_TEST_DB_URL', 'ITS_TEST_DB_USER', 'ITS_TEST_DB_PASSWORD'].every {
+                def value = environment.get(it)
+                value != null && !value.isBlank()
+            }
+}
+
+tasks.register('oracleIntegrationTest', Test) {
+    group = 'verification'
+    description = 'Runs Oracle repository integration tests against an isolated test schema. Set ITS_TEST_DB_URL, ITS_TEST_DB_USER, and ITS_TEST_DB_PASSWORD.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/OracleRepositoryIntegrationTest.class'
+    environment 'ITS_DB_INTEGRATION_TESTS', 'true'
+    shouldRunAfter tasks.named('test')
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+    onlyIf {
+        oracleIntegrationTestRequested()
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('oracleIntegrationTest')
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+tasks.withType(JavaExec).configureEach {
+    // JVM 실행 시 모든 입출력 인코딩을 UTF-8로 고정
+    jvmArgs += [
+        "-Dfile.encoding=UTF-8",
+        "-Dconsole.encoding=UTF-8",
+        "-Dsun.stdout.encoding=UTF-8",
+        "-Dsun.stderr.encoding=UTF-8"
+    ]
 }
 
 tasks.withType(Test).configureEach {
@@ -53,6 +175,8 @@ tasks.withType(Test).configureEach {
     }
 }
 
+// --- 팀장님의 자동화 및 검증 태스크 영역 ---
+
 def requiredAutomationPaths = [
     'SE_Term_Project_2026-1.pdf',
     '.editorconfig',
@@ -60,7 +184,6 @@ def requiredAutomationPaths = [
     '.java-version',
     '.gitmessage.txt',
     'gradle.properties',
-    '.coderabbit.yaml',
     '.pr_agent.toml',
     '.gemini/config.yaml',
     '.gemini/styleguide.md',
@@ -111,7 +234,6 @@ tasks.register('verifyRepositorySetup') {
         if (!missingPaths.isEmpty()) {
             throw new GradleException("필수 자동화 파일이 없습니다:\n - ${missingPaths.join('\n - ')}")
         }
-
         println "저장소 기본 구성을 확인했습니다 (${requiredAutomationPaths.size()}개 필수 경로 확인)."
     }
 }
@@ -119,6 +241,19 @@ tasks.register('verifyRepositorySetup') {
 tasks.register('auditAutomation', Exec) {
     group = '검증'
     description = '로컬 저장소 자동화 문서, 스크립트, DB 표준 문구 정합성을 점검합니다.'
+
+    // 윈도우 환경 대응: python3 대신 python 자동 선택
+    def pythonCmd = Os.isFamily(Os.FAMILY_WINDOWS) ? 'python' : 'python3'
+    executable pythonCmd
+
+    args 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
+
+    // 파이썬 인코딩 강제 설정 (UnicodeDecodeError 방지)
+    environment "PYTHONUTF8", "1"
+    environment "PYTHONIOENCODING", "UTF-8"
+
+    // 자동화 감사 실패 시 Gradle check도 실패하게 둔다.
+    ignoreExitValue = false
     commandLine pythonExecutable.get(), 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
 }
 
@@ -132,7 +267,6 @@ tasks.register('verifySubmissionMetadata') {
         if (!hits.isEmpty()) {
             throw new GradleException("README.md에 아직 제출 전 교체해야 할 문구가 남아 있습니다: ${hits.join(', ')}")
         }
-
         println 'README 제출 메타데이터를 확인했습니다.'
     }
 }
