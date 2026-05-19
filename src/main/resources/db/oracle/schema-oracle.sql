@@ -3,7 +3,7 @@ declare
 begin
     select count(*) into incompatible_count
     from user_tab_columns
-    where (table_name = 'USERS' and column_name in ('ID', 'PASSWORD', 'PASSWORD_HASH', 'NAME'))
+    where (table_name = 'USERS' and column_name in ('ID', 'PASSWORD', 'PASSWORD_HASH'))
        or (table_name = 'PROJECTS' and column_name = 'MANAGED_BY_ID')
        or (table_name = 'PROJECT_MEMBERS' and column_name = 'USER_ID')
        or (table_name = 'ISSUES' and column_name in (
@@ -72,6 +72,7 @@ begin
         execute immediate q'[
             create table users (
                 login_id varchar2(50) primary key,
+                name varchar2(100) not null,
                 role varchar2(20) not null,
                 active number(1) default 1 not null,
                 created_at timestamp default current_timestamp not null,
@@ -80,6 +81,26 @@ begin
                 constraint chk_users_active check (active in (0, 1))
             )
         ]';
+    end if;
+end;
+/
+declare
+    column_count number;
+    nullable_flag varchar2(1);
+begin
+    select count(*), max(nullable)
+      into column_count, nullable_flag
+      from user_tab_columns
+     where table_name = 'USERS'
+       and column_name = 'NAME';
+
+    if column_count = 0 then
+        execute immediate 'alter table users add name varchar2(100)';
+        execute immediate 'update users set name = login_id where name is null';
+        execute immediate 'alter table users modify name not null';
+    elsif nullable_flag = 'Y' then
+        execute immediate 'update users set name = login_id where name is null';
+        execute immediate 'alter table users modify name not null';
     end if;
 end;
 /

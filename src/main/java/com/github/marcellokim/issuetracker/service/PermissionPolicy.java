@@ -23,15 +23,15 @@ public final class PermissionPolicy {
         }
 
         return switch (operation.trim().toUpperCase(Locale.ROOT)) {
-            case MANAGE_DELETED_ISSUE -> isPlOrAdmin(user) && isPersistedProjectResource(resource);
-            case MANAGE_PROJECT -> user.role() == Role.ADMIN;
-            case "ASSIGN_ISSUE", VIEW_STATISTICS -> isPlOrAdmin(user);
+            case MANAGE_DELETED_ISSUE -> isPl(user) && isPersistedProjectResource(resource);
+            case MANAGE_PROJECT -> isAdmin(user);
+            case "ASSIGN_ISSUE", VIEW_STATISTICS -> isPl(user);
             default -> false;
         };
     }
 
     public void assertCanRegisterIssue(User user, Project project) {
-        requireActiveUser(user, "Only active users can register issues.");
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can register issues.");
         Project targetProject = Objects.requireNonNull(project, "project");
         if (targetProject.id() <= 0) {
             throw new SecurityException("Issue registration requires a persisted project.");
@@ -40,7 +40,7 @@ public final class PermissionPolicy {
 
     public void assertCanAssignIssue(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        requirePlOrAdmin(user, "Only PL or ADMIN can assign issue owners.");
+        requirePl(user, "Only PL can assign issue owners.");
     }
 
     public void assertCanChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
@@ -68,12 +68,12 @@ public final class PermissionPolicy {
                             "Only the active TESTER verifier can reject a fixed issue."
                     );
                 } else {
-                    requirePlOrAdmin(user, "Only PL or ADMIN can assign issues.");
+                    requirePl(user, "Only PL can assign issues.");
                 }
             }
-            case CLOSED, REOPENED, DELETED -> requirePlOrAdmin(
+            case CLOSED, REOPENED, DELETED -> requirePl(
                     user,
-                    "Only PL or ADMIN can close, reopen, or delete issues."
+                    "Only PL can close, reopen, or delete issues."
             );
             case NEW -> throw new SecurityException("Issue status cannot be changed back to NEW.");
         }
@@ -82,18 +82,18 @@ public final class PermissionPolicy {
     public void assertCanManageDeletedIssue(User user, Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
         if (!verifyPermission(user, MANAGE_DELETED_ISSUE, targetIssue.projectId())) {
-            throw new SecurityException("Only PL or ADMIN can manage deleted issues.");
+            throw new SecurityException("Only PL can manage deleted issues.");
         }
     }
 
     public void assertCanManageDependency(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        requirePlOrAdmin(user, "Only PL or ADMIN can manage dependencies.");
+        requirePl(user, "Only PL can manage dependencies.");
     }
 
     public void assertCanChangePriority(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        requirePlOrAdmin(user, "Only PL or ADMIN can change issue priority.");
+        requirePl(user, "Only PL can change issue priority.");
     }
 
     public void assertCanChangePriority(User user, Issue issue, Priority newPriority) {
@@ -113,18 +113,24 @@ public final class PermissionPolicy {
 
     public void assertCanViewStatistics(User user, Object filters) {
         if (!verifyPermission(user, VIEW_STATISTICS, filters)) {
-            throw new SecurityException("Only PL or ADMIN can view statistics.");
+            throw new SecurityException("Only PL can view statistics.");
         }
     }
 
-    private static void requirePlOrAdmin(User user, String message) {
-        if (!isActiveUser(user) || !isPlOrAdmin(user)) {
+    private static void requirePl(User user, String message) {
+        if (!isPl(user)) {
             throw new SecurityException(message);
         }
     }
 
     private static void requireAdmin(User user, String message) {
-        if (!isActiveUser(user) || user.role() != Role.ADMIN) {
+        if (!isAdmin(user)) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private static void requireAuthenticatedUserRole(User user, String message) {
+        if (!isActiveUser(user) || !isAuthUserRole(user)) {
             throw new SecurityException(message);
         }
     }
@@ -143,8 +149,16 @@ public final class PermissionPolicy {
         }
     }
 
-    private static boolean isPlOrAdmin(User user) {
-        return user.role() == Role.PL || user.role() == Role.ADMIN;
+    private static boolean isAdmin(User user) {
+        return isActiveUser(user) && user.role() == Role.ADMIN;
+    }
+
+    private static boolean isPl(User user) {
+        return isActiveUser(user) && user.role() == Role.PL;
+    }
+
+    private static boolean isAuthUserRole(User user) {
+        return user.role() == Role.PL || user.role() == Role.DEV || user.role() == Role.TESTER;
     }
 
     private static boolean isActiveUser(User user) {

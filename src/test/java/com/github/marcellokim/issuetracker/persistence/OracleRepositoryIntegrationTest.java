@@ -260,6 +260,7 @@ class OracleRepositoryIntegrationTest {
         try {
             User created = repositories.users().save(new User(
                     loginId,
+                    "Repository CRUD Dev",
                     "InitialPassword!",
                     Role.DEV,
                     true,
@@ -267,11 +268,13 @@ class OracleRepositoryIntegrationTest {
                     now));
 
             assertEquals(loginId, created.loginId());
+            assertEquals("Repository CRUD Dev", created.getName());
             assertEquals(Role.DEV, repositories.users().findByLoginId(loginId).orElseThrow().role());
             assertTrue(repositories.users().findAll().stream().anyMatch(user -> user.loginId().equals(loginId)));
 
             User updated = repositories.users().save(new User(
                     loginId,
+                    "Repository CRUD Tester",
                     "UpdatedPassword!",
                     Role.TESTER,
                     true,
@@ -279,6 +282,7 @@ class OracleRepositoryIntegrationTest {
                     LocalDateTime.now()));
 
             assertTrue(new PasswordHasher().matches("UpdatedPassword!", updated.password()));
+            assertEquals("Repository CRUD Tester", repositories.users().findById(loginId).orElseThrow().getName());
             assertEquals(Role.TESTER, updated.role());
 
             repositories.users().deactivate(loginId);

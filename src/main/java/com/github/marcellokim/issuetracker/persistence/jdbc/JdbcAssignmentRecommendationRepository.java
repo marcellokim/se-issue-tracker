@@ -17,6 +17,7 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
 
     private static final String DEV_CANDIDATES_SQL = """
             select u.login_id,
+                   u.name,
                    c.password_salt || ':' || c.password_hash as password,
                    u.role,
                    u.active,
@@ -34,6 +35,7 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
               and u.role = ?
               and u.active = 1
             group by u.login_id,
+                     u.name,
                      c.password_salt || ':' || c.password_hash,
                      u.role,
                      u.active,
@@ -43,6 +45,7 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
             """;
     private static final String TESTER_CANDIDATES_SQL = """
             select u.login_id,
+                   u.name,
                    c.password_salt || ':' || c.password_hash as password,
                    u.role,
                    u.active,
@@ -60,6 +63,7 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
               and u.role = ?
               and u.active = 1
             group by u.login_id,
+                     u.name,
                      c.password_salt || ':' || c.password_hash,
                      u.role,
                      u.active,

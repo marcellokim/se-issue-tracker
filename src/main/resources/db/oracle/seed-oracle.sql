@@ -2,106 +2,127 @@ begin
    merge into users target
    using (
        select 'admin' as login_id,
+              'Admin' as name,
               'ADMIN' as role,
               1 as active
          from dual
        union all
        select 'pl1',
+              'PL 1',
               'PL',
               1
          from dual
        union all
        select 'pl2',
+              'PL 2',
               'PL',
               1
          from dual
        union all
        select 'dev1',
+              'Dev 1',
               'DEV',
               1
          from dual
        union all
        select 'dev2',
+              'Dev 2',
               'DEV',
               1
          from dual
        union all
        select 'dev3',
+              'Dev 3',
               'DEV',
               1
          from dual
        union all
        select 'dev4',
+              'Dev 4',
               'DEV',
               1
          from dual
        union all
        select 'dev5',
+              'Dev 5',
               'DEV',
               1
          from dual
        union all
        select 'dev6',
+              'Dev 6',
               'DEV',
               1
          from dual
        union all
        select 'dev7',
+              'Dev 7',
               'DEV',
               1
          from dual
        union all
        select 'dev8',
+              'Dev 8',
               'DEV',
               1
          from dual
        union all
        select 'dev9',
+              'Dev 9',
               'DEV',
               1
          from dual
        union all
        select 'dev10',
+              'Dev 10',
               'DEV',
               1
          from dual
        union all
        select 'tester1',
+              'Tester 1',
               'TESTER',
               1
          from dual
        union all
        select 'tester2',
+              'Tester 2',
               'TESTER',
               1
          from dual
        union all
        select 'tester3',
+              'Tester 3',
               'TESTER',
               1
          from dual
        union all
        select 'tester4',
+              'Tester 4',
               'TESTER',
               1
          from dual
        union all
        select 'tester5',
+              'Tester 5',
               'TESTER',
               1
          from dual
    ) source on ( target.login_id = source.login_id )
    when matched then update
-   set target.role = source.role,
+   set target.name = source.name,
+       target.role = source.role,
        target.active = source.active,
        target.updated_at = current_timestamp
     when not matched then
     insert (
        login_id,
+       name,
        role,
        active )
     values
        ( source.login_id,
+        source.name,
         source.role,
         source.active );
 end;

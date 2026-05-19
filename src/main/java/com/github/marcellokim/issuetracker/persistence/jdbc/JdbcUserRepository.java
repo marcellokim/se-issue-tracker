@@ -18,6 +18,7 @@ public final class JdbcUserRepository implements UserRepository {
 
     private static final String BASE_SELECT = """
             select u.login_id,
+                   u.name,
                    c.password_salt || ':' || c.password_hash as password,
                    u.role,
                    u.active,
@@ -30,6 +31,7 @@ public final class JdbcUserRepository implements UserRepository {
     private static final String FIND_ALL_SQL = BASE_SELECT + " order by u.login_id";
     private static final String FIND_ACTIVE_BY_ROLE_SQL = """
             select u.login_id,
+                   u.name,
                    c.password_salt || ':' || c.password_hash as password,
                    u.role,
                    u.active,
@@ -44,12 +46,13 @@ public final class JdbcUserRepository implements UserRepository {
             order by u.login_id
             """;
     private static final String INSERT_USER_SQL = """
-            insert into users (login_id, role, active, created_at, updated_at)
-            values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
+            insert into users (login_id, name, role, active, created_at, updated_at)
+            values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
             """;
     private static final String UPDATE_USER_SQL = """
             update users
-            set role = ?,
+            set name = ?,
+                role = ?,
                 active = ?,
                 updated_at = coalesce(?, current_timestamp)
             where login_id = ?
@@ -214,17 +217,19 @@ public final class JdbcUserRepository implements UserRepository {
 
     private static void bindUser(PreparedStatement statement, User user) throws SQLException {
         statement.setString(1, user.loginId());
-        statement.setString(2, user.role().name());
-        statement.setInt(3, user.active() ? 1 : 0);
-        JdbcSupport.setNullableTimestamp(statement, 4, user.createdAt());
-        JdbcSupport.setNullableTimestamp(statement, 5, user.updatedAt());
+        statement.setString(2, user.getName());
+        statement.setString(3, user.role().name());
+        statement.setInt(4, user.active() ? 1 : 0);
+        JdbcSupport.setNullableTimestamp(statement, 5, user.createdAt());
+        JdbcSupport.setNullableTimestamp(statement, 6, user.updatedAt());
     }
 
     private static void bindUserForUpdate(PreparedStatement statement, User user) throws SQLException {
-        statement.setString(1, user.role().name());
-        statement.setInt(2, user.active() ? 1 : 0);
-        JdbcSupport.setNullableTimestamp(statement, 3, user.updatedAt());
-        statement.setString(4, user.loginId());
+        statement.setString(1, user.getName());
+        statement.setString(2, user.role().name());
+        statement.setInt(3, user.active() ? 1 : 0);
+        JdbcSupport.setNullableTimestamp(statement, 4, user.updatedAt());
+        statement.setString(5, user.loginId());
     }
 
     private void upsertCredential(Connection connection, String loginId, String credential) throws SQLException {
@@ -262,6 +267,7 @@ public final class JdbcUserRepository implements UserRepository {
     static User mapUser(ResultSet resultSet) throws SQLException {
         return new User(
                 resultSet.getString("login_id"),
+                resultSet.getString("name"),
                 resultSet.getString("password"),
                 Role.valueOf(resultSet.getString("role")),
                 resultSet.getInt("active") == 1,

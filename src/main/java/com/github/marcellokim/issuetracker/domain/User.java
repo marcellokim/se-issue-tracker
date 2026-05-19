@@ -33,9 +33,21 @@ public final class User {
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
+        this(loginId, loginId, password, role, active, createdAt, updatedAt);
+    }
+
+    public User(
+            String loginId,
+            String name,
+            String password,
+            Role role,
+            boolean active,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
         this.loginId = requireText(loginId, "loginId");
         this.userId = this.loginId;
-        this.name = this.loginId;
+        this.name = requireText(name, "name");
         this.password = requireText(password, "password");
         this.role = Objects.requireNonNull(role, "role must not be null");
         this.active = active;
