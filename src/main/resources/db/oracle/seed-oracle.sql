@@ -429,6 +429,7 @@ begin
    merge into issues target
    using (
       select p.id as project_id,
+             lower(standard_hash(s.project_name || ':' || s.title, 'SHA256')) as issue_id,
              s.title,
              s.description,
              s.reported_date,
@@ -546,7 +547,8 @@ begin
    ) source on ( target.project_id = source.project_id
       and target.title = source.title )
    when matched then update
-   set target.description = source.description,
+   set target.issue_id = source.issue_id,
+       target.description = source.description,
        target.reported_date = source.reported_date,
        target.priority = source.priority,
        target.status = source.status,
@@ -559,6 +561,7 @@ begin
    when not matched then
    insert (
       project_id,
+      issue_id,
       title,
       description,
       reported_date,
@@ -571,6 +574,7 @@ begin
       resolver_login_id )
    values
       ( source.project_id,
+        source.issue_id,
         source.title,
         source.description,
         source.reported_date,

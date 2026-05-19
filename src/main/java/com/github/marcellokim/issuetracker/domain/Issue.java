@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public class Issue {
 
@@ -12,6 +13,7 @@ public class Issue {
     private static final String COMMENT_FIELD = "comment";
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
+    private static final String ISSUE_ID_PREFIX = "ISSUE-";
 
     private final long id;
     private final long projectId;
@@ -38,10 +40,14 @@ public class Issue {
     private final List<IssueDependency> blockedByDependencies = new ArrayList<>();
 
     private Issue(PersistedState state) {
+        this(state, true);
+    }
+
+    private Issue(PersistedState state, boolean persisted) {
         Objects.requireNonNull(state, "state must not be null");
-        this.id = requireNonNegative(state.id, "id");
+        this.id = persisted ? requirePositive(state.id, "id") : requireZero(state.id, "id");
         this.projectId = requirePositive(state.projectId, "projectId");
-        this.issueId = Long.toString(state.id);
+        this.issueId = requireText(state.issueId, "issueId");
         this.title = requireText(state.title, "title");
         this.description = requireText(state.description, "description");
         this.reportedDate = Objects.requireNonNull(state.reportedDate, "reportedDate must not be null");
@@ -99,6 +105,10 @@ public class Issue {
 
     public static Issue fromPersistence(PersistedState state) {
         return new Issue(state);
+    }
+
+    public static Issue newForPersistence(PersistedState state) {
+        return new Issue(state, false);
     }
 
     public long id() {
@@ -430,11 +440,15 @@ public class Issue {
         return value;
     }
 
-    private static long requireNonNegative(long value, String fieldName) {
-        if (value < 0L) {
-            throw new IllegalArgumentException(fieldName + " must not be negative");
+    private static long requireZero(long value, String fieldName) {
+        if (value != 0L) {
+            throw new IllegalArgumentException(fieldName + " must be zero before persistence");
         }
         return value;
+    }
+
+    private static String newIssueId() {
+        return ISSUE_ID_PREFIX + UUID.randomUUID().toString();
     }
 
     private static String loginIdOrNull(User user) {
@@ -444,6 +458,7 @@ public class Issue {
     public static final class PersistedState {
 
         private long id;
+        private String issueId = newIssueId();
         private final long projectId;
         private final String title;
         private final String description;
@@ -466,6 +481,11 @@ public class Issue {
 
         public PersistedState id(long id) {
             this.id = id;
+            return this;
+        }
+
+        public PersistedState issueId(String issueId) {
+            this.issueId = requireText(issueId, "issueId");
             return this;
         }
 

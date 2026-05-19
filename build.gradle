@@ -116,7 +116,6 @@ def requiredAutomationPaths = [
     '.java-version',
     '.gitmessage.txt',
     'gradle.properties',
-    '.coderabbit.yaml',
     '.pr_agent.toml',
     '.gemini/config.yaml',
     '.gemini/styleguide.md',
@@ -174,13 +173,13 @@ tasks.register('verifyRepositorySetup') {
 tasks.register('auditAutomation', Exec) {
     group = '검증'
     description = '로컬 저장소 자동화 문서, 스크립트, DB 표준 문구 정합성을 점검합니다.'
-    
+
     // 윈도우 환경 대응: python3 대신 python 자동 선택
     def pythonCmd = Os.isFamily(Os.FAMILY_WINDOWS) ? 'python' : 'python3'
     executable pythonCmd
 
     args 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
-    
+
     // 파이썬 인코딩 강제 설정 (UnicodeDecodeError 방지)
     environment "PYTHONUTF8", "1"
     environment "PYTHONIOENCODING", "UTF-8"

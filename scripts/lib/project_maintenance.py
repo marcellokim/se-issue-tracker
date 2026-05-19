@@ -27,7 +27,6 @@ STATUS_LABELS = set(STATUS_BY_LABEL)
 REQUIRED_FILES = [
     "SE_Term_Project_2026-1.pdf",
     "README.md",
-    ".coderabbit.yaml",
     ".pr_agent.toml",
     ".gemini/config.yaml",
     ".gemini/styleguide.md",

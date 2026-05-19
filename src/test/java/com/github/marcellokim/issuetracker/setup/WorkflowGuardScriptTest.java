@@ -71,7 +71,7 @@ class WorkflowGuardScriptTest {
         Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
         Files.writeString(changedFiles, "scripts/start-task.sh\nREADME.md\n");
 
-        Map<String, String> environment = pullRequest("dev", "chore/60-dev-ahead-start-task", "coderabbitai[bot]");
+        Map<String, String> environment = pullRequest("dev", "chore/60-dev-ahead-start-task", "gemini-code-assist[bot]");
         environment.put("GITHUB_EVENT_NAME", "pull_request_target");
         environment.put("PR_AUTHOR", "marcellokim");
         environment.put("CHANGED_FILES_PATH", changedFiles.toString());

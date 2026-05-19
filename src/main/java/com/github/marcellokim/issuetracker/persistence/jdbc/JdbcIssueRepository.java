@@ -274,10 +274,10 @@ public final class JdbcIssueRepository implements IssueRepository {
     private Issue insert(Issue issue) {
         String sql = """
                 insert into issues (
-                    project_id, title, description, reported_date, priority, status,
+                    project_id, issue_id, title, description, reported_date, priority, status,
                     reporter_login_id, assignee_login_id, verifier_login_id, fixer_login_id, resolver_login_id, updated_at
                 )
-                values (?, ?, ?, coalesce(?, current_timestamp), ?, ?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
+                values (?, ?, ?, ?, coalesce(?, current_timestamp), ?, ?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
@@ -294,6 +294,7 @@ public final class JdbcIssueRepository implements IssueRepository {
         String sql = """
                 update issues
                 set project_id = ?,
+                    issue_id = ?,
                     title = ?,
                     description = ?,
                     priority = ?,
@@ -309,17 +310,18 @@ public final class JdbcIssueRepository implements IssueRepository {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, issue.projectId());
-            statement.setString(2, issue.title());
-            statement.setString(3, issue.description());
-            statement.setString(4, issue.priority().name());
-            statement.setString(5, issue.status().name());
-            statement.setString(6, issue.reporterId());
-            JdbcSupport.setNullableString(statement, 7, issue.assigneeId());
-            JdbcSupport.setNullableString(statement, 8, issue.verifierId());
-            JdbcSupport.setNullableString(statement, 9, issue.fixerId());
-            JdbcSupport.setNullableString(statement, 10, issue.resolverId());
-            JdbcSupport.setNullableTimestamp(statement, 11, issue.updatedAt());
-            statement.setLong(12, issue.id());
+            statement.setString(2, issue.getIssueId());
+            statement.setString(3, issue.title());
+            statement.setString(4, issue.description());
+            statement.setString(5, issue.priority().name());
+            statement.setString(6, issue.status().name());
+            statement.setString(7, issue.reporterId());
+            JdbcSupport.setNullableString(statement, 8, issue.assigneeId());
+            JdbcSupport.setNullableString(statement, 9, issue.verifierId());
+            JdbcSupport.setNullableString(statement, 10, issue.fixerId());
+            JdbcSupport.setNullableString(statement, 11, issue.resolverId());
+            JdbcSupport.setNullableTimestamp(statement, 12, issue.updatedAt());
+            statement.setLong(13, issue.id());
             statement.executeUpdate();
             return findById(issue.id())
                     .orElseThrow(() -> new RepositoryException("Updated issue was not found.", null));
@@ -330,17 +332,18 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     private static void bindIssueForInsert(PreparedStatement statement, Issue issue) throws SQLException {
         statement.setLong(1, issue.projectId());
-        statement.setString(2, issue.title());
-        statement.setString(3, issue.description());
-        JdbcSupport.setNullableTimestamp(statement, 4, issue.reportedDate());
-        statement.setString(5, issue.priority().name());
-        statement.setString(6, issue.status().name());
-        statement.setString(7, issue.reporterId());
-        JdbcSupport.setNullableString(statement, 8, issue.assigneeId());
-        JdbcSupport.setNullableString(statement, 9, issue.verifierId());
-        JdbcSupport.setNullableString(statement, 10, issue.fixerId());
-        JdbcSupport.setNullableString(statement, 11, issue.resolverId());
-        JdbcSupport.setNullableTimestamp(statement, 12, issue.updatedAt());
+        statement.setString(2, issue.getIssueId());
+        statement.setString(3, issue.title());
+        statement.setString(4, issue.description());
+        JdbcSupport.setNullableTimestamp(statement, 5, issue.reportedDate());
+        statement.setString(6, issue.priority().name());
+        statement.setString(7, issue.status().name());
+        statement.setString(8, issue.reporterId());
+        JdbcSupport.setNullableString(statement, 9, issue.assigneeId());
+        JdbcSupport.setNullableString(statement, 10, issue.verifierId());
+        JdbcSupport.setNullableString(statement, 11, issue.fixerId());
+        JdbcSupport.setNullableString(statement, 12, issue.resolverId());
+        JdbcSupport.setNullableTimestamp(statement, 13, issue.updatedAt());
     }
 
     private static List<Issue> executeIssueList(PreparedStatement statement) throws SQLException {
@@ -500,6 +503,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 issue.description(),
                 issue.getReporter())
                 .id(issue.id())
+                .issueId(issue.getIssueId())
                 .reportedDate(issue.reportedDate())
                 .priority(issue.priority())
                 .status(status)
@@ -517,6 +521,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 resultSet.getString("description"),
                 mapRequiredUser(resultSet, "reporter_login_id", "reporter"))
                 .id(resultSet.getLong("id"))
+                .issueId(resultSet.getString("issue_key"))
                 .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_date"))
                 .priority(Priority.valueOf(resultSet.getString("priority")))
                 .status(IssueStatus.valueOf(resultSet.getString("status")))
@@ -529,7 +534,7 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     private static String baseSelect() {
         return """
-                select i.id, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
+                select i.id, i.issue_id as issue_key, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
                        i.reporter_login_id, i.assignee_login_id, i.verifier_login_id, i.fixer_login_id,
                        i.resolver_login_id, i.updated_at,
                        reporter_credentials.password_salt || ':' || reporter_credentials.password_hash as reporter_password,

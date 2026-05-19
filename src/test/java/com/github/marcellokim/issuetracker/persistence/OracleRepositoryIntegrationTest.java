@@ -196,7 +196,7 @@ class OracleRepositoryIntegrationTest {
         var admin = repositories.users().findById("admin").orElseThrow();
         purgeIssuesByTitle(project.id(), "Temporary deleted issue for repository policy test");
 
-        Issue deletedIssue = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
+        Issue deletedIssue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
                 project.id(),
                 "Temporary deleted issue for repository policy test",
                 "Deleted issues should stay out of normal browse and statistics.",
@@ -300,7 +300,7 @@ class OracleRepositoryIntegrationTest {
             assertFalse(repositories.projects().findParticipants(project.id()).stream()
                     .anyMatch(member -> member.userId().equals("dev1")));
 
-            issue = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
                     project.id(),
                     uniqueId("crud_project_composition_issue"),
                     "Issue should be removed when its owning project is deleted.",
@@ -337,7 +337,7 @@ class OracleRepositoryIntegrationTest {
         Issue saved = null;
 
         try {
-            saved = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
+            saved = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
                     project.id(),
                     title,
                     "Issue repository CRUD test.",
@@ -359,6 +359,7 @@ class OracleRepositoryIntegrationTest {
                     "Issue repository CRUD test updated.",
                     saved.getReporter())
                     .id(saved.id())
+                    .issueId(saved.getIssueId())
                     .reportedDate(saved.reportedDate())
                     .priority(Priority.MAJOR)
                     .status(IssueStatus.ASSIGNED)
@@ -375,6 +376,7 @@ class OracleRepositoryIntegrationTest {
                     assigned.description(),
                     assigned.getReporter())
                     .id(assigned.id())
+                    .issueId(assigned.getIssueId())
                     .reportedDate(assigned.reportedDate())
                     .priority(assigned.priority())
                     .status(IssueStatus.DELETED)
@@ -531,7 +533,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            issue = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
                     project.id(),
                     uniqueId("crud_stats_issue"),
                     "Resolved issue for statistics and recommendation CRUD test.",
@@ -593,7 +595,7 @@ class OracleRepositoryIntegrationTest {
     }
 
     private static Issue createIssue(long projectId, String title) {
-        return repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
+        return repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
                 projectId,
                 title,
                 "Repository CRUD support issue.",
