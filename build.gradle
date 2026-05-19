@@ -46,9 +46,11 @@ sonar {
             'src/main/resources/db/oracle/schema-oracle.sql',
             'src/main/resources/db/oracle/seed-oracle.sql'
         ].join(',')
+        // Oracle JDBC classes are covered by oracleIntegrationTest, which needs an Oracle test schema.
         def coverageExcludedSources = [
             'src/main/java/com/github/marcellokim/issuetracker/Main.java',
-            'src/main/java/com/github/marcellokim/issuetracker/ui/**'
+            'src/main/java/com/github/marcellokim/issuetracker/ui/**',
+            'src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/**'
         ].join(',')
         property 'sonar.host.url', 'https://sonarcloud.io'
         property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
