@@ -44,6 +44,19 @@ class OpenPrScriptFailureTest {
         assertTrue(commandLog.contains("sync-project-board"), commandLog);
     }
 
+    @Test
+    @DisplayName("사전 저장 후 상태 라벨 재조회가 실패하면 review 라벨을 추가하지 않는다")
+    void stopsBeforeAddingReviewWhenPreCreateStatusRelookupFails() throws IOException, InterruptedException {
+        var fixture = createFixture();
+
+        var result = fixture.run("second-label-view-fails");
+        var commandLog = Files.readString(fixture.log());
+
+        assertNotEquals(0, result.exitCode(), result.output());
+        assertTrue(result.output().contains("상태 라벨 조회에 실패"), result.output());
+        assertTrue(!commandLog.contains("issue edit 86 --add-label status:review"), commandLog);
+    }
+
     private Fixture createFixture() throws IOException {
         var repo = tempDir.resolve("repo");
         var bin = tempDir.resolve("bin");
@@ -52,6 +65,8 @@ class OpenPrScriptFailureTest {
         Files.createDirectories(repo.resolve("scripts/lib"));
         Files.createDirectories(bin);
         Files.createFile(log);
+        var labelLookupCount = tempDir.resolve("label-lookups.count");
+        Files.writeString(labelLookupCount, "0");
 
         Files.copy(Path.of("scripts/open-pr.sh"), repo.resolve("scripts/open-pr.sh"));
         Files.copy(Path.of("scripts/lib/git-refs.sh"), repo.resolve("scripts/lib/git-refs.sh"));
@@ -91,6 +106,13 @@ class OpenPrScriptFailureTest {
                   exit 0
                 fi
                 if [[ "$1 $2" == "issue view" && "$*" == *"--json labels"* ]]; then
+                  count="$(cat "$OPEN_PR_LABEL_LOOKUP_COUNT")"
+                  count="$((count + 1))"
+                  echo "$count" > "$OPEN_PR_LABEL_LOOKUP_COUNT"
+                  if [[ "$OPEN_PR_GH_MODE" == "second-label-view-fails" && "$count" -ge 2 ]]; then
+                    echo "label lookup failed" >&2
+                    exit 17
+                  fi
                   if [[ "$OPEN_PR_GH_MODE" == "issue-view-fails" ]]; then
                     echo "label lookup failed" >&2
                     exit 17
@@ -116,7 +138,7 @@ class OpenPrScriptFailureTest {
                 exit 21
                 """);
 
-        return new Fixture(repo, bin, log);
+        return new Fixture(repo, bin, log, labelLookupCount);
     }
 
     private void writeExecutable(Path path, String content) throws IOException {
@@ -124,7 +146,7 @@ class OpenPrScriptFailureTest {
         assertTrue(path.toFile().setExecutable(true), () -> "실행 권한 설정 실패: " + path);
     }
 
-    record Fixture(Path repo, Path bin, Path log) {
+    record Fixture(Path repo, Path bin, Path log, Path labelLookupCount) {
         ScriptResult run(String mode) throws IOException, InterruptedException {
             var processBuilder = new ProcessBuilder("bash", "scripts/open-pr.sh");
             processBuilder.directory(repo.toFile());
@@ -135,6 +157,7 @@ class OpenPrScriptFailureTest {
             environment.put("OPEN_PR_REPO", repo.toString());
             environment.put("OPEN_PR_LOG", log.toString());
             environment.put("OPEN_PR_GH_MODE", mode);
+            environment.put("OPEN_PR_LABEL_LOOKUP_COUNT", labelLookupCount.toString());
 
             var process = processBuilder.start();
             var output = new String(process.getInputStream().readAllBytes());

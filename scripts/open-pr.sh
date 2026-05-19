@@ -72,13 +72,18 @@ current_status_labels() {
 
 restore_issue_status_labels() {
     local previous_status_labels="$1"
+    local current_labels
     local status_label
+
+    if ! current_labels="$(current_status_labels)"; then
+        return 1
+    fi
 
     while IFS= read -r status_label; do
         if [[ -n "$status_label" ]]; then
             gh issue edit "$issue_number" --remove-label "$status_label" >/dev/null
         fi
-    done < <(current_status_labels)
+    done <<< "$current_labels"
 
     while IFS= read -r status_label; do
         if [[ -n "$status_label" ]]; then
@@ -88,12 +93,18 @@ restore_issue_status_labels() {
 }
 
 mark_issue_review() {
+    local current_labels
     local status_label
+
+    if ! current_labels="$(current_status_labels)"; then
+        return 1
+    fi
+
     while IFS= read -r status_label; do
         if [[ "$status_label" != "status:review" ]]; then
             gh issue edit "$issue_number" --remove-label "$status_label" >/dev/null
         fi
-    done < <(current_status_labels)
+    done <<< "$current_labels"
     gh issue edit "$issue_number" --add-label status:review >/dev/null
 }
 
