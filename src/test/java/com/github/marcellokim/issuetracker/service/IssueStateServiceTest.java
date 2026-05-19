@@ -8,31 +8,25 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("상태 변경 서비스")
 class IssueStateServiceTest {
 
-    private static final Clock FIXED_CLOCK = Clock.fixed(
-            Instant.parse("2026-05-18T02:00:00Z"),
-            ZoneId.of("Asia/Seoul")
-    );
-
-    private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
-    private final User assignee = new User("U-2", "dev1", "Dev One", "hash", Role.DEV);
-    private final User verifier = new User("U-3", "tester2", "Tester Two", "hash", Role.TESTER);
-    private final User pl = new User("U-4", "pl1", "PL One", "hash", Role.PL);
-    private final User otherDev = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
-    private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
+    private static final long PROJECT_ID = 10L;
+    private static final long ISSUE_ID = 1L;
+    private final User reporter = new User("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User assignee = new User("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User verifier = new User("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User pl = new User("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
+    private final User otherDev = new User("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
 
     @Test
     @DisplayName("assignee DEV는 ASSIGNED 이슈를 FIXED로 변경한다")
@@ -40,7 +34,7 @@ class IssueStateServiceTest {
         var issue = assignedIssue();
         var service = service(issue);
 
-        var result = service.changeStatus("ISSUE-1", IssueStatus.FIXED, "Fix completed", assignee.getUserId());
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.loginId());
 
         assertEquals(IssueStatus.FIXED, result.status());
         assertSame(assignee, issue.getFixer());
@@ -56,7 +50,7 @@ class IssueStateServiceTest {
         var issue = fixedIssue();
         var service = service(issue);
 
-        var result = service.changeStatus("ISSUE-1", IssueStatus.RESOLVED, "Verified", verifier.getUserId());
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.loginId());
 
         assertEquals(IssueStatus.RESOLVED, result.status());
         assertSame(verifier, issue.getResolver());
@@ -72,7 +66,7 @@ class IssueStateServiceTest {
         var issue = resolvedIssue();
         var service = service(issue);
 
-        var result = service.changeStatus("ISSUE-1", IssueStatus.CLOSED, "Release completed", pl.getUserId());
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed", pl.loginId());
 
         assertEquals(IssueStatus.CLOSED, result.status());
         assertNull(issue.getAssignee());
@@ -92,9 +86,9 @@ class IssueStateServiceTest {
         var service = service(issue);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.changeStatus("ISSUE-1", IssueStatus.FIXED, "", assignee.getUserId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "", assignee.loginId()));
         assertThrows(SecurityException.class,
-                () -> service.changeStatus("ISSUE-1", IssueStatus.FIXED, "Fix completed", otherDev.getUserId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", otherDev.loginId()));
     }
 
     @Test
@@ -104,7 +98,7 @@ class IssueStateServiceTest {
         var service = service(issue);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.changeStatus("UNKNOWN", IssueStatus.FIXED, " ", "UNKNOWN"));
+                () -> service.changeStatus(999L, IssueStatus.FIXED, " ", "missing"));
     }
 
     @Test
@@ -114,7 +108,7 @@ class IssueStateServiceTest {
         var service = service(issue);
 
         assertThrows(UnsupportedOperationException.class,
-                () -> service.changeStatus("ISSUE-1", IssueStatus.REOPENED, "Needs more work", pl.getUserId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.loginId()));
     }
 
     @Test
@@ -124,7 +118,7 @@ class IssueStateServiceTest {
         var service = service(issue);
 
         assertThrows(NullPointerException.class,
-                () -> service.changeStatus("ISSUE-1", null, "Fix completed", assignee.getUserId()));
+                () -> service.changeStatus(ISSUE_ID, null, "Fix completed", assignee.loginId()));
     }
 
     private IssueStateService service(Issue issue) {
@@ -132,29 +126,35 @@ class IssueStateServiceTest {
                 new InMemoryIssueRepository(issue),
                 new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev),
                 new PermissionPolicy(),
-                FIXED_CLOCK
+                new Clock()
         );
     }
 
     private Issue newIssue() {
-        return Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(createdAt())
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.NEW)
+                .updatedAt(createdAt()));
     }
 
     private Issue assignedIssue() {
         var issue = newIssue();
-        issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
+        issue.assignFromNew(assignee, verifier, pl, createdAt().plusMinutes(10));
         return issue;
     }
 
     private Issue fixedIssue() {
         var issue = assignedIssue();
-        issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+        issue.markFixed(assignee, "Fix completed", createdAt().plusMinutes(20));
         return issue;
     }
 
     private Issue resolvedIssue() {
         var issue = fixedIssue();
-        issue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
+        issue.resolve(verifier, "Verified", createdAt().plusMinutes(30));
         return issue;
     }
 
@@ -162,5 +162,9 @@ class IssueStateServiceTest {
         var histories = issue.getHistories();
         assertEquals(ActionType.COMMENTED, histories.get(histories.size() - 2).getAction());
         assertEquals(ActionType.STATUS_CHANGED, histories.getLast().getAction());
+    }
+
+    private static LocalDateTime createdAt() {
+        return LocalDateTime.of(2026, 5, 18, 10, 0);
     }
 }

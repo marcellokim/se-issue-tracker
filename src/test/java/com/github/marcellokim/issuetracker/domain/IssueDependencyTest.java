@@ -1,6 +1,8 @@
 package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -64,6 +66,52 @@ class IssueDependencyTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> blockedIssue.addDependency("DUPLICATE", blockingIssue, pl, createdAt.plusMinutes(30)));
+    }
+
+    @Test
+    @DisplayName("persisted dependency derives deterministic id and keeps database fields")
+    void persistedDependencyDerivesDeterministicId() {
+        var dependency = new IssueDependency(7L, 10L, 20L, createdAt);
+
+        assertEquals(7L, dependency.id());
+        assertEquals(10L, dependency.blockingIssueId());
+        assertEquals(20L, dependency.blockedIssueId());
+        assertEquals(createdAt, dependency.discoveredDate());
+        assertEquals(createdAt, dependency.getDiscoveredDate());
+        assertEquals(IssueDependency.dependencyIdFor(10L, 20L), dependency.getDependencyId());
+        assertEquals(IssueDependency.dependencyIdFor(10L, 20L), IssueDependency.dependencyIdFor(10L, 20L));
+        assertNotEquals(IssueDependency.dependencyIdFor(10L, 20L), IssueDependency.dependencyIdFor(20L, 10L));
+        assertNull(dependency.getBlockingIssue());
+        assertNull(dependency.getBlockedIssue());
+    }
+
+    @Test
+    @DisplayName("persisted dependency preserves explicit dependency id")
+    void persistedDependencyKeepsExplicitDependencyId() {
+        var dependency = new IssueDependency(8L, "DEP-10-20", 10L, 20L, createdAt);
+
+        assertEquals(8L, dependency.id());
+        assertEquals("DEP-10-20", dependency.getDependencyId());
+        assertEquals(10L, dependency.blockingIssueId());
+        assertEquals(20L, dependency.blockedIssueId());
+    }
+
+    @Test
+    @DisplayName("rejects invalid dependency constructor arguments")
+    void rejectInvalidDependencyConstructorArguments() {
+        var blockingIssue = Issue.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = Issue.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new IssueDependency(1L, "", 10L, 20L, createdAt));
+        assertThrows(IllegalArgumentException.class,
+                () -> IssueDependency.create("", blockingIssue, blockedIssue, createdAt));
+        assertThrows(NullPointerException.class,
+                () -> IssueDependency.create("DEP", null, blockedIssue, createdAt));
+        assertThrows(NullPointerException.class,
+                () -> IssueDependency.create("DEP", blockingIssue, null, createdAt));
+        assertThrows(NullPointerException.class,
+                () -> IssueDependency.create("DEP", blockingIssue, blockedIssue, null));
     }
 
     private static IssueHistory findHistory(Issue issue, ActionType action) {

@@ -5,48 +5,42 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
+import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("배정 서비스")
 class AssignmentServiceTest {
 
-    private static final Clock FIXED_CLOCK = Clock.fixed(
-            Instant.parse("2026-05-18T01:00:00Z"),
-            ZoneId.of("Asia/Seoul")
-    );
-
-    private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
-    private final User assignee = new User("U-2", "dev1", "Dev One", "hash", Role.DEV);
-    private final User verifier = new User("U-3", "tester2", "Tester Two", "hash", Role.TESTER);
-    private final User pl = new User("U-4", "pl1", "PL One", "hash", Role.PL);
-    private final User anotherAssignee = new User("U-5", "dev2", "Dev Two", "hash", Role.DEV);
-    private final User anotherVerifier = new User("U-6", "tester3", "Tester Three", "hash", Role.TESTER);
-    private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
+    private static final long PROJECT_ID = 10L;
+    private static final long ISSUE_ID = 1L;
+    private final User reporter = new User("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User assignee = new User("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User verifier = new User("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User pl = new User("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
+    private final User anotherAssignee = new User("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User anotherVerifier = new User("tester3", "Tester Three", "hash", Role.TESTER, true, createdAt(), createdAt());
 
     @Test
-    @DisplayName("배정 시작은 dev/tester 목록과 추천 후보 구조를 반환한다")
+    @DisplayName("배정 시작은 이슈 상태에 맞는 추천 후보 구조를 반환한다")
     void startAssignmentReturnsOptions() {
         var issue = newIssue();
         var service = service(issue);
 
-        var options = service.startAssignment("ISSUE-1", pl.getUserId());
+        var options = service.startAssignment(ISSUE_ID, pl.loginId());
 
-        assertEquals(2, options.developers().size());
-        assertEquals(3, options.testers().size());
-        assertEquals(IssueStatus.NEW, options.issueStatus());
-        assertEquals(0, options.candidates().assigneeCandidates().size());
-        assertEquals(0, options.candidates().verifierCandidates().size());
+        assertEquals(1, options.devAssigneeCandidates().size());
+        assertEquals(1, options.testerVerifierCandidates().size());
     }
 
     @Test
@@ -55,7 +49,7 @@ class AssignmentServiceTest {
         var issue = newIssue();
         var service = service(issue);
 
-        var result = service.assignIssue("ISSUE-1", assignee.getUserId(), verifier.getUserId(), pl.getUserId());
+        var result = service.assignIssue(ISSUE_ID, assignee.loginId(), verifier.loginId(), pl.loginId());
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
         assertSame(assignee, issue.getAssignee());
@@ -70,8 +64,8 @@ class AssignmentServiceTest {
         var issueRepository = new InMemoryIssueRepository(issue);
         var service = service(issueRepository);
 
-        var result = service.assignIssue("ISSUE-1", anotherAssignee.getUserId(), anotherVerifier.getUserId(), pl.getUserId());
-        var savedIssue = issueRepository.findById("ISSUE-1").orElseThrow();
+        var result = service.assignIssue(ISSUE_ID, anotherAssignee.loginId(), anotherVerifier.loginId(), pl.loginId());
+        var savedIssue = issueRepository.findById(ISSUE_ID).orElseThrow();
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
         assertSame(anotherAssignee, savedIssue.getAssignee());
@@ -81,7 +75,7 @@ class AssignmentServiceTest {
 
         var assignmentHistory = savedIssue.getHistories().get(savedIssue.getHistories().size() - 2);
         assertEquals(ActionType.ASSIGNMENT_CHANGED, assignmentHistory.getAction());
-        assertEquals(anotherAssignee.getUserId() + "/" + anotherVerifier.getUserId(), assignmentHistory.getNewValue());
+        assertEquals(anotherAssignee.loginId() + "/" + anotherVerifier.loginId(), assignmentHistory.getNewValue());
 
         var statusHistory = savedIssue.getHistories().getLast();
         assertEquals(ActionType.STATUS_CHANGED, statusHistory.getAction());
@@ -95,7 +89,7 @@ class AssignmentServiceTest {
         var issue = assignedIssue();
         var service = service(issue);
 
-        var result = service.reassignIssue("ISSUE-1", anotherAssignee.getUserId(), pl.getUserId());
+        var result = service.reassignIssue(ISSUE_ID, anotherAssignee.loginId(), pl.loginId());
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
         assertSame(anotherAssignee, issue.getAssignee());
@@ -109,7 +103,7 @@ class AssignmentServiceTest {
         var issue = fixedIssue();
         var service = service(issue);
 
-        var result = service.changeVerifier("ISSUE-1", anotherVerifier.getUserId(), pl.getUserId());
+        var result = service.changeVerifier(ISSUE_ID, anotherVerifier.loginId(), pl.loginId());
 
         assertEquals(IssueStatus.FIXED, result.status());
         assertSame(anotherVerifier, issue.getVerifier());
@@ -123,7 +117,7 @@ class AssignmentServiceTest {
         var service = service(newIssue());
 
         assertThrows(SecurityException.class,
-                () -> service.assignIssue("ISSUE-1", assignee.getUserId(), verifier.getUserId(), assignee.getUserId()));
+                () -> service.assignIssue(ISSUE_ID, assignee.loginId(), verifier.loginId(), assignee.loginId()));
     }
 
     private AssignmentService service(Issue issue) {
@@ -135,32 +129,58 @@ class AssignmentServiceTest {
                 issueRepository,
                 new InMemoryUserRepository(reporter, assignee, verifier, pl, anotherAssignee, anotherVerifier),
                 new PermissionPolicy(),
-                AssignmentRecommendationService.noRecommendations(),
-                FIXED_CLOCK
+                new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository()),
+                new Clock()
         );
     }
 
     private Issue newIssue() {
-        return Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        return issue(IssueStatus.NEW);
     }
 
     private Issue assignedIssue() {
         var issue = newIssue();
-        issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
+        issue.assignFromNew(assignee, verifier, pl, createdAt().plusMinutes(10));
         return issue;
     }
 
     private Issue fixedIssue() {
         var issue = assignedIssue();
-        issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+        issue.markFixed(assignee, "Fix completed", createdAt().plusMinutes(20));
         return issue;
     }
 
     private Issue reopenedIssue() {
         var issue = fixedIssue();
-        issue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
-        issue.reopen(pl, "Needs more work", createdAt.plusMinutes(40));
+        issue.resolve(verifier, "Verified", createdAt().plusMinutes(30));
+        issue.reopen(pl, "Needs more work", createdAt().plusMinutes(40));
         return issue;
     }
 
+    private Issue issue(IssueStatus status) {
+        return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(createdAt())
+                .priority(Priority.MAJOR)
+                .status(status)
+                .updatedAt(createdAt()));
+    }
+
+    private static LocalDateTime createdAt() {
+        return LocalDateTime.of(2026, 5, 18, 10, 0);
+    }
+
+    private final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
+
+        @Override
+        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
+            return List.of(new AssignmentCandidate(assignee, 1));
+        }
+
+        @Override
+        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
+            return List.of(new AssignmentCandidate(verifier, 1));
+        }
+    }
 }

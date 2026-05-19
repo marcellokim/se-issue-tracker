@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,6 +44,46 @@ class IssueCreationTest {
         var issue = Issue.create("ISSUE-1", "Crash", "App crashes", Priority.CRITICAL, reporter, now);
 
         assertEquals(Priority.CRITICAL, issue.getPriority());
+    }
+
+    @Test
+    @DisplayName("Persisted issue uses DB issue_id as the stable domain issueId")
+    void persistedIssueRequiresStableIssueId() {
+        var persisted = Issue.fromPersistence(Issue.persistedState(
+                1L,
+                "Persisted issue",
+                "Loaded from DB.",
+                reporter)
+                .id(10L)
+                .issueId("ISSUE-STABLE-1")
+                .reportedDate(now)
+                .updatedAt(now));
+
+        assertEquals(10L, persisted.id());
+        assertEquals("ISSUE-STABLE-1", persisted.getIssueId());
+        assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(Issue.persistedState(
+                1L,
+                "Missing issue id",
+                "Persisted state must carry DB issue_id.",
+                reporter)
+                .id(11L)
+                .reportedDate(now)
+                .updatedAt(now)));
+    }
+
+    @Test
+    @DisplayName("New issue for persistence may generate issueId before save")
+    void newIssueForPersistenceCanGenerateIssueIdBeforeSave() {
+        var issue = Issue.newForPersistence(Issue.persistedState(
+                1L,
+                "New repository issue",
+                "Before DB identity is assigned.",
+                reporter)
+                .reportedDate(now)
+                .updatedAt(now));
+
+        assertEquals(0L, issue.id());
+        assertFalse(issue.getIssueId().isBlank());
     }
 
     @Test

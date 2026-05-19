@@ -66,8 +66,8 @@ class IssueAssignmentRoleTest {
 
         var history = issue.getHistories().getLast();
         assertEquals(ActionType.ASSIGNMENT_CHANGED, history.getAction());
-        assertEquals(assignee.getUserId(), history.getPreviousValue());
-        assertEquals(anotherAssignee.getUserId(), history.getNewValue());
+        assertEquals(assignee.loginId(), history.getPreviousValue());
+        assertEquals(anotherAssignee.loginId(), history.getNewValue());
         assertEquals(reassignedAt, history.getChangedDate());
     }
 
@@ -87,8 +87,8 @@ class IssueAssignmentRoleTest {
 
         var history = issue.getHistories().getLast();
         assertEquals(ActionType.ASSIGNMENT_CHANGED, history.getAction());
-        assertEquals(verifier.getUserId(), history.getPreviousValue());
-        assertEquals(anotherVerifier.getUserId(), history.getNewValue());
+        assertEquals(verifier.loginId(), history.getPreviousValue());
+        assertEquals(anotherVerifier.loginId(), history.getNewValue());
         assertEquals(changedAt, history.getChangedDate());
     }
 

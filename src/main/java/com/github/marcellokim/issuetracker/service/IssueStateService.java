@@ -5,11 +5,10 @@ import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-public class IssueStateService {
+public final class IssueStateService {
 
     private final IssueRepository issueRepository;
     private final UserRepository userRepository;
@@ -22,48 +21,49 @@ public class IssueStateService {
             PermissionPolicy permissionPolicy,
             Clock clock
     ) {
-        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository must not be null");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
-        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy must not be null");
-        this.clock = Objects.requireNonNull(clock, "clock must not be null");
+        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
+        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public IssueStateResult changeStatus(String issueId, IssueStatus targetStatus, String comment, String currentUserId) {
-        var requiredComment = requireComment(comment);
-        var issue = findIssue(issueId);
-        var actor = findUser(currentUserId);
-        switch (Objects.requireNonNull(targetStatus, "targetStatus must not be null")) {
+    public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment, String currentUserId) {
+        IssueStatus requiredTargetStatus = Objects.requireNonNull(targetStatus, "targetStatus");
+        String requiredComment = requireComment(comment);
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        switch (requiredTargetStatus) {
             case FIXED -> markFixed(issue, actor, requiredComment);
             case RESOLVED -> resolve(issue, actor, requiredComment);
             case CLOSED -> close(issue, actor, requiredComment);
-            default -> throw new UnsupportedOperationException("Unsupported target status: " + targetStatus);
+            default -> throw new UnsupportedOperationException("Unsupported target status: " + requiredTargetStatus);
         }
         issueRepository.save(issue);
         return toResult(issue);
     }
 
     private void markFixed(Issue issue, User actor, String comment) {
-        permissionPolicy.assertCanMarkFixed(actor, issue);
-        var changedAt = now();
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED);
+        LocalDateTime changedAt = now();
         issue.addComment(nextCommentId(issue), comment, actor, changedAt);
         issue.markFixed(actor, comment, changedAt);
     }
 
     private void resolve(Issue issue, User actor, String comment) {
-        permissionPolicy.assertCanResolve(actor, issue);
-        var changedAt = now();
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
+        LocalDateTime changedAt = now();
         issue.addComment(nextCommentId(issue), comment, actor, changedAt);
         issue.resolve(actor, comment, changedAt);
     }
 
     private void close(Issue issue, User actor, String comment) {
-        permissionPolicy.assertCanClose(actor, issue);
-        var changedAt = now();
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED);
+        LocalDateTime changedAt = now();
         issue.addComment(nextCommentId(issue), comment, actor, changedAt);
         issue.close(actor, comment, changedAt);
     }
 
-    private Issue findIssue(String issueId) {
+    private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
     }
@@ -74,7 +74,7 @@ public class IssueStateService {
     }
 
     private LocalDateTime now() {
-        return LocalDateTime.now(clock);
+        return clock.now();
     }
 
     private static String nextCommentId(Issue issue) {
@@ -91,7 +91,7 @@ public class IssueStateService {
     private static IssueStateResult toResult(Issue issue) {
         return new IssueStateResult(
                 issue.getIssueId(),
-                issue.getStatus(),
+                issue.status(),
                 issue.getAssignee(),
                 issue.getVerifier(),
                 issue.getFixer(),
