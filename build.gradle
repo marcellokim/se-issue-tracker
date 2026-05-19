@@ -60,7 +60,6 @@ def requiredAutomationPaths = [
     '.java-version',
     '.gitmessage.txt',
     'gradle.properties',
-    '.coderabbit.yaml',
     '.pr_agent.toml',
     '.gemini/config.yaml',
     '.gemini/styleguide.md',

@@ -25,7 +25,6 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/pr-metadata.yml",
                 ".github/workflows/codeql.yml",
                 ".github/workflows/project-maintenance.yml",
-                ".coderabbit.yaml",
                 ".pr_agent.toml",
                 ".gemini/config.yaml",
                 ".gemini/styleguide.md",
@@ -149,27 +148,6 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),
-                new ScriptExpectation(".coderabbit.yaml", "language: \"ko-KR\""),
-                new ScriptExpectation(".coderabbit.yaml", "tone_instructions"),
-                new ScriptExpectation(".coderabbit.yaml", "auto_title_instructions"),
-                new ScriptExpectation(".coderabbit.yaml", "poem: false"),
-                new ScriptExpectation(".coderabbit.yaml", """
-                finishing_touches:
-                    unit_tests:
-                      enabled: false
-                    docstrings:
-                      enabled: false
-                """),
-                new ScriptExpectation(".coderabbit.yaml", "pre_merge_checks"),
-                new ScriptExpectation(".coderabbit.yaml", "mode: \"off\""),
-                new ScriptExpectation(".coderabbit.yaml", """
-                auto_review:
-                    enabled: false
-                    base_branches:
-                      - "dev"
-                """),
-                new ScriptExpectation(".coderabbit.yaml", "auto_reply: false"),
-                new ScriptExpectation(".coderabbit.yaml", ".github/copilot-instructions.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
                 new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
                 new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
