@@ -17,10 +17,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     private static final String BASE_SELECT =
             "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_date from issue_dependencies";
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
-    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + """
-             where blocking_issue_id = ? or blocked_issue_id = ?
-             order by id
-            """;
+    private static final String FIND_BY_ISSUE_ID_SQL =
+            BASE_SELECT + " where blocking_issue_id = ? or blocked_issue_id = ? order by id";
     private static final String FIND_BY_BLOCKING_ISSUE_ID_SQL =
             BASE_SELECT + " where blocking_issue_id = ? order by id";
     private static final String FIND_BY_BLOCKED_ISSUE_ID_SQL =
