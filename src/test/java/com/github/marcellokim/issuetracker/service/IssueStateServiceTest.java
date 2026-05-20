@@ -22,11 +22,11 @@ class IssueStateServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
-    private final User reporter = new User("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(), createdAt());
-    private final User assignee = new User("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
-    private final User verifier = new User("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(), createdAt());
-    private final User pl = new User("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
-    private final User otherDev = new User("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
+    private final User otherDev = User.create("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
 
     @Test
     @DisplayName("assignee DEV는 ASSIGNED 이슈를 FIXED로 변경한다")

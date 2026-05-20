@@ -313,11 +313,11 @@ class ControllerCoverageTest {
     }
 
     private static User user(String loginId, Role role) {
-        return new User(loginId, loginId, "stored-password", role, true, NOW, NOW);
+        return User.create(loginId, loginId, "stored-password", role, true, NOW, NOW);
     }
 
     private static Project project(long projectId) {
-        return new Project(projectId, "project-" + projectId, "demo project", "admin", NOW, NOW);
+        return Project.create(projectId, "project-" + projectId, "demo project", "admin", NOW, NOW);
     }
 
     private static Issue issue(long id, long projectId, IssueStatus status) {

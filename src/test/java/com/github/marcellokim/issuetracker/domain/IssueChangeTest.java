@@ -12,10 +12,14 @@ import org.junit.jupiter.api.Test;
 @DisplayName("이슈 변경")
 class IssueChangeTest {
 
-    private final User reporter = new User("U-1", "tester1", "Tester One", "hash", Role.TESTER);
-    private final User pl = new User("U-2", "pl1", "PL One", "hash", Role.PL);
-    private final User assignee = new User("U-3", "dev1", "Dev One", "hash", Role.DEV);
-    private final User verifier = new User("U-4", "tester2", "Tester Two", "hash", Role.TESTER);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test

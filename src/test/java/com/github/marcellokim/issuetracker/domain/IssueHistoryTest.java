@@ -13,7 +13,8 @@ import org.junit.jupiter.api.Test;
 class IssueHistoryTest {
 
     private static final LocalDateTime CHANGED_AT = LocalDateTime.of(2026, 5, 19, 13, 0);
-    private final User pl = new User("pl1", "pl1", "PL One", "hash", Role.PL);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
 
     @Test
     @DisplayName("preserves persisted history fields")

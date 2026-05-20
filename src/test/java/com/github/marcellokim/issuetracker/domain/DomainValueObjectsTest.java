@@ -20,7 +20,8 @@ import org.junit.jupiter.api.Test;
 class DomainValueObjectsTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 14, 0);
-    private final User dev = new User("dev1", "dev1", "Developer One", "hash", Role.DEV);
+    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User dev = User.create("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
     @Test
     @DisplayName("assignment candidate builds default reasons")

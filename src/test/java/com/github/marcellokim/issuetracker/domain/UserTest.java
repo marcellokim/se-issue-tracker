@@ -14,9 +14,10 @@ class UserTest {
     @Test
     @DisplayName("사용자는 인증 식별자와 역할을 가진 활성 계정으로 생성된다")
     void createActiveUserWithLoginIdentifierAndRole() {
-        var user = new User("U-1", "dev1", "Dev One", "hash", Role.DEV);
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+        var user = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
 
-        assertEquals("U-1", user.getUserId());
+        assertEquals("dev1", user.getUserId());
         assertEquals("dev1", user.getLoginId());
         assertEquals("Dev One", user.getName());
         assertEquals("hash", user.getPasswordHash());
@@ -29,27 +30,28 @@ class UserTest {
     @Test
     @DisplayName("사용자 핵심 값은 비어 있을 수 없다")
     void rejectBlankUserFields() {
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         assertThrows(IllegalArgumentException.class,
-                () -> new User("", "dev1", "Dev One", "hash", Role.DEV));
+                () -> User.create("", "Dev One", "hash", Role.DEV, true, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> new User("U-1", " ", "Dev One", "hash", Role.DEV));
+                () -> User.create("dev1", " ", "hash", Role.DEV, true, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> new User("U-1", "dev1", "", "hash", Role.DEV));
-        assertThrows(IllegalArgumentException.class,
-                () -> new User("U-1", "dev1", "Dev One", "", Role.DEV));
+                () -> User.create("dev1", "Dev One", "", Role.DEV, true, null, null));
     }
 
     @Test
     @DisplayName("사용자 역할은 필수 값이다")
     void rejectMissingRole() {
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         assertThrows(NullPointerException.class,
-                () -> new User("U-1", "dev1", "Dev One", "hash", null));
+                () -> User.create("dev1", "Dev One", "hash", null, true, null, null));
     }
 
     @Test
     @DisplayName("사용자는 비활성화될 수 있다")
     void deactivateUser() {
-        var user = new User("U-1", "dev1", "Dev One", "hash", Role.DEV);
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+        var user = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
 
         user.deactivate();
 

@@ -86,7 +86,8 @@ class AssignmentRecommendationServiceTest {
     }
 
     private static User user(String loginId, Role role) {
-        return new User(loginId, loginId, loginId, "hash", role);
+        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+        return User.create(loginId, loginId, "hash", role, true, null, null);
     }
 
     private static final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {

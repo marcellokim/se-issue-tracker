@@ -3,9 +3,9 @@ package com.github.marcellokim.issuetracker.domain;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-public final class User {
+public class User {
 
-    private final String userId;
+    // loginId를 시스템 식별자로 겸용 (DCD: loginId가 유일 식별자)
     private final String loginId;
     private final String name;
     private final String password;
@@ -14,28 +14,12 @@ public final class User {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    public User(String userId, String loginId, String name, String passwordHash, Role role) {
-        this.userId = requireText(userId, "userId");
-        this.loginId = requireText(loginId, "loginId");
-        this.name = requireText(name, "name");
-        this.password = requireText(passwordHash, "passwordHash");
-        this.role = Objects.requireNonNull(role, "role must not be null");
-        this.active = true;
-        this.createdAt = null;
-        this.updatedAt = null;
+    public static User create(String loginId, String name, String password, Role role,
+                               boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        return new User(loginId, name, password, role, active, createdAt, updatedAt);
     }
 
-    public User(
-            String loginId,
-            String password,
-            Role role,
-            boolean active,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
-        this(loginId, loginId, password, role, active, createdAt, updatedAt);
-    }
-
-    public User(
+    private User(
             String loginId,
             String name,
             String password,
@@ -44,7 +28,6 @@ public final class User {
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
         this.loginId = requireText(loginId, "loginId");
-        this.userId = this.loginId;
         this.name = requireText(name, "name");
         this.password = requireText(password, "password");
         this.role = Objects.requireNonNull(role, "role must not be null");
@@ -53,8 +36,21 @@ public final class User {
         this.updatedAt = updatedAt;
     }
 
+    // --- domain methods ---
+
+    public boolean hasRole(Role expectedRole) {
+        return role == expectedRole;
+    }
+
+    public void deactivate() {
+        active = false;
+    }
+
+    // --- getters ---
+
+    // getUserId()는 loginId를 반환 (하위 호환)
     public String getUserId() {
-        return userId;
+        return loginId;
     }
 
     public String getLoginId() {
@@ -77,13 +73,7 @@ public final class User {
         return active;
     }
 
-    public boolean hasRole(Role expectedRole) {
-        return role == expectedRole;
-    }
-
-    public void deactivate() {
-        active = false;
-    }
+    // --- record-style accessors (기존 호환) ---
 
     public String loginId() {
         return loginId;

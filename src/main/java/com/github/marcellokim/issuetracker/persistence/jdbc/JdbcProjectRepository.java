@@ -248,7 +248,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
     }
 
     static Project mapProject(ResultSet resultSet) throws SQLException {
-        return new Project(
+        return Project.create(
                 resultSet.getLong("id"),
                 resultSet.getString("name"),
                 resultSet.getString("description"),
