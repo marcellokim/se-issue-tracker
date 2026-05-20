@@ -139,6 +139,17 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
     +assertCanViewStatistics(user, filters): void
   }
 
+  class AssignmentService <<service>> {
+    +startAssignment(issueId, currentUserId): AssignmentOptions
+    +assignIssue(issueId, assigneeId, verifierId, currentUserId): AssignmentResult
+    +reassignIssue(issueId, assigneeId, currentUserId): AssignmentResult
+    +changeVerifier(issueId, verifierId, currentUserId): AssignmentResult
+  }
+
+  class IssueStateService <<service>> {
+    +changeStatus(issueId, targetStatus, comment, currentUserId): IssueStateResult
+  }
+
   class AssignmentRecommendationService <<service>> {
     +recommendAssignmentCandidates(issue): AssignmentOptions
     +findDevAssigneeCandidates(issue): List<User>
@@ -354,16 +365,10 @@ IssueController ..> UserRepository
 IssueController ..> Clock
 
 AssignmentController ..> AuthenticationService
-AssignmentController ..> PermissionPolicy
-AssignmentController ..> AssignmentRecommendationService
-AssignmentController ..> IssueRepository
-AssignmentController ..> UserRepository
-AssignmentController ..> Clock
+AssignmentController ..> AssignmentService
 
 IssueStateController ..> AuthenticationService
-IssueStateController ..> PermissionPolicy
-IssueStateController ..> IssueRepository
-IssueStateController ..> Clock
+IssueStateController ..> IssueStateService
 
 DeletedIssueController ..> AuthenticationService
 DeletedIssueController ..> PermissionPolicy
@@ -384,6 +389,17 @@ ProjectController ..> Clock
 StatisticsController ..> AuthenticationService
 StatisticsController ..> PermissionPolicy
 StatisticsController ..> IssueRepository
+
+AssignmentService ..> PermissionPolicy
+AssignmentService ..> AssignmentRecommendationService
+AssignmentService ..> IssueRepository
+AssignmentService ..> UserRepository
+AssignmentService ..> Clock
+
+IssueStateService ..> PermissionPolicy
+IssueStateService ..> IssueRepository
+IssueStateService ..> UserRepository
+IssueStateService ..> Clock
 
 AssignmentRecommendationService ..> IssueRepository
 AssignmentRecommendationService ..> UserRepository
