@@ -11,6 +11,7 @@ public class Project {
     private final String managedById;
     private final LocalDateTime createdDate;
     private final LocalDateTime updatedAt;
+    
     public static Project create(long id, String name, String description, String managedById,
                                   LocalDateTime createdDate, LocalDateTime updatedAt) {
         return new Project(id, name, description, managedById, createdDate, updatedAt);

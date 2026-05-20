@@ -6,37 +6,52 @@
 - Operation Contract: postcondition의 객체 생성, association 형성/제거, 속성 변경을 domain class의 attribute와 operation에 반영했다.
 - Detailed SD: 실제 상호작용 파트너와 메시지를 DCD의 operation 및 dependency로 반영했다.
 - Domain Model: `Project`, `Issue`, `User`, `Comment`, `IssueHistory`, `IssueDependency`와 enum을 DCD의 핵심 domain class로 유지했다.
-- Logical Architecture: MVC 계층, Controller, Service/Policy, Repository 경계를 반영했다.
+- Logical Architecture: MVC 계층, Controller, Service/Policy, Repository, Technical Services 경계를 반영했다.
+
+## 최종 보고서 사용 위치
+
+| 산출물 | 사용 위치 | 목적 |
+|---|---|---|
+| DCD ver2 core workflow | 최종 보고서 본문 | 이슈 등록, 배정, 상태 전이, 코멘트/이력 생성으로 이어지는 핵심 workflow를 설명한다. |
+| DCD ver1 layered overview | appendix 또는 구현 설명 | JavaFX/Swing, controller, service/policy, repository, technical services, domain class의 계층 경계를 설명한다. |
+| Logical Architecture | 설계 개요 또는 구현 설명 | `Presentation -> Application -> Domain -> Persistence/Technical Services` 의존 방향을 설명한다. |
+
+최종 보고서 본문에서는 독자가 핵심 기능 흐름을 빠르게 이해할 수 있도록 `its_dcd_ver2`를 대표 DCD로 사용한다.  
+`its_dcd_ver1`은 layered DCD로, 구현자가 UI toolkit, controller, service/policy, repository, domain object의 책임 경계를 확인할 수 있도록 appendix 또는 구현 설명에 사용한다.
 
 ## MVC 적용
 
-- `IssueTrackingView`는 boundary class로 두고, 직접 domain object를 조작하지 않게 했다.
-- View의 요청은 `IssueController`, `AssignmentController`, `IssueStateController`, `DeletedIssueController`로 들어간다.
+- JavaFX와 Swing 화면은 Presentation layer의 boundary로 보고, domain object를 직접 조작하지 않는다.
+- View의 요청은 `IssueController`, `AssignmentController`, `IssueStateController`, `DeletedIssueController`, `AccountController`, `ProjectController`,
+`StatisticsController`로 들어간다.
 - Controller는 system operation의 첫 non-UI 수신 객체이며, 인증/권한/조회/저장/현재 시각 획득을 조정한다.
 - 실제 상태 변경, 이력 생성, 코멘트 생성, dependency 검증은 domain object가 수행한다.
-- Repository는 interface로 두어 application layer가 JDBC 같은 영속성 구현에 직접 의존하지 않도록 했다.
+- UI toolkit은 교체 가능한 presentation 기술로 취급한다. JavaFX와 Swing은 같은 application/domain/repository 계층을 사용해야 하며, toolkit별 widget이나 화면 component를 domain model이나 DCD의 핵심 class로 올리지 않는다.
 
 ## Class Type 표기 원칙
 
 - 일반 `class` 박스는 concrete class로 해석한다.
-- `interface` 키워드로 선언한 `ProjectRepository`, `IssueRepository`, `UserRepository`는 interface/contract이다.
+- `interface` 키워드로 선언한 repository는 interface/contract이다.
 - `enum`으로 선언한 `Role`, `IssueStatus`, `Priority`, `ActionType`은 enumeration value type이다.
-- 현재 DCD에는 abstract class를 의도적으로 두지 않았다. Controller나 domain entity 사이에 공통 상속 행위를 억지로 만들 근거가 부족하므로, abstract class를 추가하면 오히려 불필요한 상속 결합이 생길 수 있다.
+- 현재 DCD에는 abstract class를 두지 않았다. 강의자료 기준에서 abstract class는 직접 instance가 없어야 하는 superclass가 있고, 하위 class들이 공통 attribute/operation을 상속받는 generalization 구조가 명확할 때 유용하다. 현재 설계에서는 `User`의 역할을 subclass가 아니라 `Role` enum으로 표현하고, Controller도 use case별 책임으로 분리했으므로 공통 abstract superclass를 추가할 근거가 부족하다. 불필요한 abstract class는 오히려 상속 결합을 만들 수 있으므로, 변동 가능성이 큰 persistence 쪽은 abstract class가 아니라 repository interface로 분리한다.
 - `<<boundary>>`, `<<control>>`, `<<entity>>`, `<<service>>`, `<<policy>>`, `<<value object>>`는 UML class의 역할 stereotype이며, class/interface 여부를 대체하지 않는다.
+- DCD는 Java class diagram의 전체 소스 목록이 아니라 설계 책임을 설명하는 다이어그램이므로 DB table, DTO, UI widget을 과하게 포함하지 않는다.
 
 ## GRASP 적용 근거
 
 ### Controller
 
-SSD의 system operation을 use case 성격별 controller에 배치했다.
+SSD와 Operation Contract의 system operation을 use case 성격별 controller에 배치했다.
 
-- `IssueController`: UC1 등록, UC2 코멘트, UC3/UC4 조회, UC7 dependency, UC16 priority 변경
-- `AssignmentController`: UC5 배정/재배정/verifier 변경
-- `IssueStateController`: UC6 상태 전이
-- `DeletedIssueController`: UC9 삭제/복구/보관 한도 정리
-- `StatisticsController`: UC10 통계 조회
-- `AccountController`: UC12 계정 생성/수정/비활성화, 로그인
-- `ProjectController`: UC13 프로젝트 생성/참여자 관리
+- `IssueController`: `registerIssue`, `addComment`, 이슈 검색/조회, `addDependency`, `removeDependency`, `changePriority`
+- `AssignmentController`: `assignIssue`, `reassignIssue`, `changeVerifier`
+- `IssueStateController`: `changeStatus`
+- `DeletedIssueController`: `deleteIssue`, `restoreIssue`, 삭제 보관 한도 정리
+- `StatisticsController`: 일/월별 통계와 추이 조회
+- `AccountController`: 계정 생성/수정/비활성화, 로그인
+- `ProjectController`: 프로젝트 생성/참여자 관리
+
+Controller는 UI toolkit이나 DB 구현체의 세부사항을 직접 알지 않고, service/policy/domain/repository에 협력 요청을 보낸다.
 
 ### Information Expert
 
@@ -52,16 +67,47 @@ SSD의 system operation을 use case 성격별 controller에 배치했다.
 
 - `Project`는 `Issue`를 포함하므로 UC1에서 `registerIssue(...)`를 통해 새 `Issue`를 생성하고 `issues` association에 추가한다.
 - `Issue`는 `Comment`, `IssueHistory`, `IssueDependency`를 자신의 aggregate 내부 기록으로 관리하므로 해당 객체의 생성과 연결을 책임진다.
+- ID 생성, repository 저장, transaction 경계는 application/service 또는 technical service 책임이며, `Project.registerIssue(...)` 자체는 domain object 생성과 association 형성 책임으로 제한한다.
 
 ### Low Coupling / High Cohesion
 
 Controller가 domain field를 직접 set하지 않고 의도 중심 메시지를 보낸다. 예를 들어 `status = FIXED`를 직접 설정하지 않고 `Issue.markFixed(...)`를 호출한다. 이 때문에 상태 전이 규칙, 필수 comment, fixer/resolver 기록, history 기록이 `Issue` 주변으로 응집된다.
 
+Repository는 interface로 두고 JDBC 구현체는 persistence package에 둔다. 따라서 controller와 domain은 JDBC API, SQL, table 구조에 직접 의존하지 않는다.
+
 ### Pure Fabrication / Indirection
 
 - `PermissionPolicy`는 UC14 권한 검사를 여러 use case에서 반복하지 않기 위해 분리한 policy class이다.
 - `AssignmentRecommendationService`는 UC8 후보 추천 규칙을 `Issue`에 과도하게 넣지 않기 위해 분리했다.
+- `AuthenticationService`는 로그인과 현재 사용자 식별 책임을 domain entity에서 분리한다.
+- `Clock`은 현재 시각 획득을 technical service로 분리하여 상태 전이, comment, history 생성 시각을 테스트 가능하게 한다.
 - Repository interface는 저장소 구현 변경이 controller/domain 설계에 직접 전파되지 않도록 하는 indirection이다.
+
+## Repository Pattern 적용 근거
+
+Repository는 application/domain 계층이 영속성 세부 구현에 직접 의존하지 않도록 하는 경계이다.
+
+- Repository interface는 `repository` 계층의 contract로 둔다.
+- JDBC 기반 구현체는 `persistence/jdbc` 계층에 둔다.
+- Controller 또는 service는 interface에 의존하고, SQL과 connection handling은 JDBC 구현체가 담당한다.
+- DB table은 persistence 구현 상세이므로 DCD의 핵심 domain class로 표현하지 않는다.
+
+Persistence 테스트 근거는 repository interface와 JDBC 구현체가 분리되어 있다는 점을 확인하는 데 둔다. 예를 들어 repository convention smoke test, JDBC integration test, persistence resource smoke test는 다음을 확인해야 한다.
+
+- repository interface가 application/domain에서 사용할 수 있는 안정적인 contract를 제공하는가
+- JDBC implementation이 실제 schema/resource와 연결되는가
+- domain object의 상태 전이 결과가 저장/조회 시 보존되는가
+
+## Strategy Pattern 적용 근거
+
+UC8 담당자 추천은 이후 알고리즘 변경 가능성이 높으므로 `AssignmentRecommendationService`로 분리한다.
+
+- Controller는 추천 후보가 필요할 때 `AssignmentRecommendationService`에 요청한다.
+- 추천 service는 해결/종료 이력 기반 후보 산출 규칙을 캡슐화한다.
+- 추천 이력 조회는 repository를 통해 수행한다.
+- 향후 단순 빈도 기반, 최근 해결 이력 기반, priority/role 가중치 기반 알고리즘으로 바뀌어도 controller와 domain object의 변경을 줄일 수 있다.
+
+따라서 추천 알고리즘은 domain entity의 필수 책임이 아니라 교체 가능한 application policy/strategy로 취급한다.
 
 ## 주요 설계 결정
 
@@ -73,3 +119,47 @@ Controller가 domain field를 직접 set하지 않고 의도 중심 메시지를
 - UC1의 기본 priority 결정과 초기 `IssueHistory(CREATED)` 기록은 이슈 생성의 원자적 책임으로 보아 `Project.registerIssue(...)`와 `Issue.createWithDefaultPriority(...)` 주변에 배치했다.
 - UC16 priority 변경은 OC-16과 SD-27을 기준으로 `IssueHistory(PRIORITY_CHANGED)`만 생성한다. 요구사항 추적표의 comment 문구는 구현 확인 항목의 표현으로 보고, DCD에서는 현재 OC/SD 계약을 우선했다.
 - UC14 권한 검사는 공통 `verifyPermission(user, operation, resource)`와 use case별 `assertCan...` operation을 함께 둔다. 전자는 SSD-22 및 Logical Architecture의 공통 권한 검사를 반영하고, 후자는 controller에서 읽기 쉬운 application policy entry point로 사용한다.
+- 상세 SD와 DCD의 operation 이름이 충돌하면 SSD/OC/SD의 system operation 이름을 우선한다.
+
+## 구현 이슈별 클래스 책임 연결
+
+| 구현 이슈 | Controller | Service/Policy/Technical Service | Domain 책임 | Repository/Persistence 책임 |
+|---|---|---|---|---|
+| #16 계정, 역할, 프로젝트 기본 모델 구현 | `AccountController`, `ProjectController` | `AuthenticationService`, `PermissionPolicy` | `User`, `Role`, `Project` | `UserRepository`, `ProjectRepository`, JDBC 구현체 |
+| #17 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | `IssueController`, `IssueStateController` | `PermissionPolicy`, `Clock` | `Issue`, `Comment`, `IssueHistory`, `IssueStatus`, `Priority`, `ActionType` | `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
+| #18 DB 기반 영속 저장소와 데모 초기 데이터 준비 | 각 controller는 repository interface에 의존 | technical service/resource setup | domain object는 persistence 구현을 알지 않음 | repository interface와 JDBC implementation 분리, schema/seed data 준비 |
+| #19 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | `IssueController` | `PermissionPolicy`, `Clock` | `Project.registerIssue`, `Issue.createWithDefaultPriority`, `Issue.addComment` | `ProjectRepository`, `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
+| #20 이슈 배정과 상태 변경 흐름 구현 | `AssignmentController`, `IssueStateController` | `PermissionPolicy`, `AssignmentRecommendationService`, `Clock` | `Issue.assignFromNew`, `Issue.assignReopened`, `Issue.reassignAssignee`, `Issue.changeVerifier`, `Issue.markFixed`, `Issue.resolve`, `Issue.close`, `Issue.reopen` | `IssueRepository`, `IssueHistoryRepository`, `CommentRepository`, recommendation 조회용 repository |
+| #21 일/월별 이슈 통계와 추이 조회 구현 | `StatisticsController` | statistics query service | `IssueStatus`, `Priority` 등 집계 기준 | repository/query 구현체가 기간별 count/trend 조회 |
+| #22 해결 이력 기반 담당자 추천 기능 구현 | `AssignmentController` | `AssignmentRecommendationService` | `IssueHistory`, `IssueStatus`, `Role`은 추천 근거 데이터 제공 | `AssignmentRecommendationRepository` 또는 이력 조회 repository |
+| #23 JavaFX 메인 UI로 기본 사용자 흐름 구현 | JavaFX boundary가 controller 호출 | 기존 application service 재사용 | domain 직접 조작 금지 | repository 직접 접근 금지 |
+| #24 Swing 보조 UI로 모델 재사용 구조 입증 | Swing boundary가 controller 호출 | JavaFX와 동일한 application service 재사용 | domain 직접 조작 금지 | repository 직접 접근 금지 |
+| #25 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | controller/service 테스트 대상 | policy, service, clock test double 활용 | domain 상태 전이 단위 테스트 | repository convention, JDBC integration, persistence resource smoke test |
+| #26 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | DCD controller 책임 설명 | service/policy/repository pattern 설명 | domain model과 DCD의 책임 연결 설명 | persistence test와 repository 분리 근거 설명 |
+| #43 Tester 검증 실패 시 fixed 이슈를 assigned로 되돌리는 역전이 구현 | `IssueStateController` | `PermissionPolicy`, `Clock` | `Issue.rejectFix`, `Comment`, `IssueHistory` | `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
+| #44 deleted 상태와 삭제 후보 보관/FIFO 정리 정책 구현 | `DeletedIssueController` | `PermissionPolicy`, `Clock` | `Issue.softDelete`, `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueDependency` 제거 | `IssueRepository`, `IssueDependencyRepository`, `IssueHistoryRepository` |
+| #45 이슈 dependency 관계와 선행 이슈 해결 제약 구현 | `IssueController`, `IssueStateController` | `PermissionPolicy` | `IssueDependency`, `Issue.validateDependencyCandidate`, `Issue.addDependency`, `Issue.removeDependency`, `Issue.resolve` guard | `IssueDependencyRepository`, `IssueRepository`, `IssueHistoryRepository` |
+| #46 assigned 전까지만 reporter의 title/description 수정 허용 | `IssueController` | `PermissionPolicy`, `Clock` | `Issue`가 reporter와 status 기준으로 수정 가능 여부 검증 | `IssueRepository`, 필요 시 `IssueHistoryRepository` |
+| #47 PL 전용 reopen 및 재배정 시작 흐름 구현 | `IssueStateController`, `AssignmentController` | `PermissionPolicy`, `AssignmentRecommendationService`, `Clock` | `Issue.reopen`, `Issue.assignReopened` | `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
+
+## Operation 이름 정합성
+
+DCD 설명과 구현 이슈 연결에서 사용하는 system operation 이름은 Operation Contract와 SSD/SD 이름을 우선한다.
+
+- `registerIssue(title, description, priority)`
+- `addComment(issueId, content)`
+- `assignIssue(issueId, assigneeId, verifierId)`
+- `reassignIssue(issueId, assigneeId)`
+- `changeVerifier(issueId, verifierId)`
+- `changeStatus(issueId, targetStatus=FIXED, comment)`
+- `changeStatus(issueId, targetStatus=RESOLVED, comment)`
+- `changeStatus(issueId, targetStatus=CLOSED, comment)`
+- `changeStatus(issueId, targetStatus=REOPENED, comment)`
+- `changeStatus(issueId, targetStatus=ASSIGNED, comment)`
+- `deleteIssue(issueId)`
+- `restoreIssue(issueId)`
+- `addDependency(blockingIssueId, blockedIssueId)`
+- `removeDependency(dependencyId)`
+- `changePriority(issueId, newPriority)`
+
+따라서 #43의 Tester reject fix는 별도 새 operation 이름을 만들지 않고 `changeStatus(issueId, targetStatus=ASSIGNED, comment)`로 연결한다.
