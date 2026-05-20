@@ -24,15 +24,19 @@ class AssignmentServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(),
+            createdAt());
     private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
-    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
+            createdAt());
     private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
-    private final User anotherAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
-    private final User anotherVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User anotherAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(),
+            createdAt());
+    private final User anotherVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true,
+            createdAt(), createdAt());
 
     @Test
-    @DisplayName("諛곗젙 ?쒖옉? ?댁뒋 ?곹깭??留욌뒗 異붿쿇 ?꾨낫 援ъ“瑜?諛섑솚?쒕떎")
+    @DisplayName("start assignment returns status-aware recommendation options")
     void startAssignmentReturnsOptions() {
         var issue = newIssue();
         var service = service(issue);
@@ -44,7 +48,7 @@ class AssignmentServiceTest {
     }
 
     @Test
-    @DisplayName("NEW ?댁뒋瑜?assignee/verifier? ?④퍡 ASSIGNED濡?諛곗젙?쒕떎")
+    @DisplayName("assigns NEW issue with assignee and verifier")
     void assignNewIssue() {
         var issue = newIssue();
         var service = service(issue);
@@ -64,7 +68,8 @@ class AssignmentServiceTest {
         var issueRepository = new InMemoryIssueRepository(issue);
         var service = service(issueRepository);
 
-        var result = service.assignIssue(ISSUE_ID, anotherAssignee.getLoginId(), anotherVerifier.getLoginId(), pl.getLoginId());
+        var result = service.assignIssue(ISSUE_ID, anotherAssignee.getLoginId(), anotherVerifier.getLoginId(),
+                pl.getLoginId());
         var savedIssue = issueRepository.findById(ISSUE_ID).orElseThrow();
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
@@ -112,12 +117,13 @@ class AssignmentServiceTest {
     }
 
     @Test
-    @DisplayName("PL???꾨땲硫?諛곗젙 ?먮쫫???ㅽ뻾?????녿떎")
+    @DisplayName("non-PL users cannot assign issues")
     void rejectNonPlAssignment() {
         var service = service(newIssue());
 
         assertThrows(SecurityException.class,
-                () -> service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), assignee.getLoginId()));
+                () -> service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(),
+                        assignee.getLoginId()));
     }
 
     private AssignmentService service(Issue issue) {

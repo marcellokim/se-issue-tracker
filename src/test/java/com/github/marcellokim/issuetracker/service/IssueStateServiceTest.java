@@ -22,9 +22,11 @@ class IssueStateServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(),
+            createdAt());
     private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
-    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(), createdAt());
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
+            createdAt());
     private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
     private final User otherDev = User.create("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
 
@@ -80,7 +82,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("comment媛 ?녾굅???대떦?먭? ?꾨땲硫??곹깭 蹂寃쎌? ?ㅽ뙣?쒕떎")
+    @DisplayName("blank comment or wrong actor fails status change")
     void rejectBlankCommentAndWrongParticipant() {
         var issue = assignedIssue();
         var service = service(issue);
@@ -92,7 +94,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("?곹깭 蹂寃?comment媛 鍮꾩뼱 ?덉쑝硫?issue/user 議고쉶 ?꾩뿉 嫄곕??쒕떎")
+    @DisplayName("blank status change comment is rejected before lookup")
     void rejectBlankCommentBeforeLookup() {
         var issue = assignedIssue();
         var service = service(issue);
@@ -102,7 +104,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("#20 踰붿쐞 諛??곹깭 蹂寃?target? 嫄곕??쒕떎")
+    @DisplayName("unsupported status change target is rejected")
     void rejectUnsupportedTargetStatus() {
         var issue = resolvedIssue();
         var service = service(issue);

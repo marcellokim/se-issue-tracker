@@ -10,7 +10,6 @@ import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public final class ProjectService {
 
@@ -105,7 +104,7 @@ public final class ProjectService {
 
         List<ProjectMember> participants = projectRepository.findParticipants(projectId);
         rejectDuplicateParticipant(participants, participant.getLoginId());
-        rejectSecondProjectLeader(participants, participant);
+        rejectSecondProjectLeader(projectId, participant);
 
         projectRepository.addParticipant(projectId, participant.getLoginId());
     }
@@ -152,17 +151,12 @@ public final class ProjectService {
         }
     }
 
-    private void rejectSecondProjectLeader(List<ProjectMember> participants, User participant) {
+    private void rejectSecondProjectLeader(long projectId, User participant) {
         if (participant.getRole() != Role.PL) {
             return;
         }
 
-        boolean hasProjectLead = participants.stream()
-                .map(ProjectMember::userId)
-                .map(userRepository::findById)
-                .flatMap(Optional::stream)
-                .anyMatch(user -> user.getRole() == Role.PL);
-        if (hasProjectLead) {
+        if (!userRepository.findActiveByRole(projectId, Role.PL).isEmpty()) {
             throw new IllegalArgumentException("Only one PL can be assigned to a project.");
         }
     }

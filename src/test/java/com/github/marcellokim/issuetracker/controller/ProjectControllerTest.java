@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -201,6 +202,20 @@ class ProjectControllerTest {
     }
 
     @Test
+    @DisplayName("participant add allows first PL per project")
+    void participantAddAllowsFirstProjectLead() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User pl1 = active("pl1", Role.PL);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        FakeUserRepository users = new FakeUserRepository(auth.user(), pl1);
+        ProjectController controller = controller(auth, projects, users);
+
+        controller.addProjectParticipant(1L, "pl1");
+
+        assertEquals(List.of("pl1"), projects.participantIds(1L));
+    }
+
+    @Test
     @DisplayName("participant add allows only one PL per project")
     void participantAddRejectsSecondProjectLead() {
         AuthFixture auth = authenticated(Role.ADMIN);
@@ -261,6 +276,7 @@ class ProjectControllerTest {
             FakeProjectRepository projects,
             FakeUserRepository users,
             FakeIssueRepository issues) {
+        users.attachProjects(projects);
         return ProjectService.create(
                 projects,
                 issues,
@@ -390,11 +406,16 @@ class ProjectControllerTest {
     private static final class FakeUserRepository implements UserRepository {
 
         private final Map<String, User> usersByLoginId = new LinkedHashMap<>();
+        private FakeProjectRepository projects;
 
         private FakeUserRepository(User... users) {
             for (User user : users) {
                 usersByLoginId.put(user.getLoginId(), user);
             }
+        }
+
+        private void attachProjects(FakeProjectRepository projects) {
+            this.projects = Objects.requireNonNull(projects, "projects");
         }
 
         @Override
@@ -414,7 +435,17 @@ class ProjectControllerTest {
 
         @Override
         public List<User> findActiveByRole(long projectId, Role role) {
-            return usersByLoginId.values().stream()
+            if (projects == null) {
+                return usersByLoginId.values().stream()
+                        .filter(User::isActive)
+                        .filter(user -> user.getRole() == role)
+                        .toList();
+            }
+
+            return projects.findParticipants(projectId).stream()
+                    .map(ProjectMember::userId)
+                    .map(usersByLoginId::get)
+                    .filter(Objects::nonNull)
                     .filter(User::isActive)
                     .filter(user -> user.getRole() == role)
                     .toList();

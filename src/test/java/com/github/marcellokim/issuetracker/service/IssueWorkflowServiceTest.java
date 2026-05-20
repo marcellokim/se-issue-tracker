@@ -19,19 +19,21 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("?댁뒋 諛곗젙怨??곹깭 蹂寃??듯빀 ?먮쫫")
+@DisplayName("Issue assignment and status workflow")
 class IssueWorkflowServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
     private static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 5, 18, 10, 0);
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, CREATED_AT, CREATED_AT);
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, CREATED_AT,
+            CREATED_AT);
     private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, CREATED_AT, CREATED_AT);
-    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, CREATED_AT, CREATED_AT);
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, CREATED_AT,
+            CREATED_AT);
     private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, CREATED_AT, CREATED_AT);
 
     @Test
-    @DisplayName("tester -> PL -> dev -> tester -> PL 硫붿씤 ?곕え ?먮쫫???꾨즺?쒕떎")
+    @DisplayName("main demo workflow completes from assignment to close")
     void completeMainDemoWorkflow() {
         var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
                 .id(ISSUE_ID)
