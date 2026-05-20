@@ -40,9 +40,35 @@ class ProjectControllerTest {
         FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
         ProjectController controller = controller(auth, projects, users);
 
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProject(0L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.addProjectParticipant(0L, "dev1"));
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(0L, "dev1"));
+    }
+
+    @Test
+    @DisplayName("ADMIN views projects and project participants")
+    void adminViewsProjectsAndProjectParticipants() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository(
+                project(1L, "project-one"),
+                project(2L, "project-two"));
+        projects.addParticipant(1L, "pl1");
+        projects.addParticipant(1L, "dev1");
+        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
+
+        List<Project> viewedProjects = controller.viewProjects();
+        Project viewedProject = controller.viewProject(1L);
+        List<ProjectMember> viewedParticipants = controller.viewProjectParticipants(1L);
+
+        assertEquals(2, viewedProjects.size());
+        assertEquals("project-one", viewedProject.name());
+        assertEquals(List.of("pl1", "dev1"), viewedParticipants.stream()
+                .map(ProjectMember::userId)
+                .toList());
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProject(404L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(404L));
     }
 
     @Test
@@ -84,6 +110,9 @@ class ProjectControllerTest {
             FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
             ProjectController controller = controller(auth, projects, users);
 
+            assertThrows(SecurityException.class, controller::viewProjects);
+            assertThrows(SecurityException.class, () -> controller.viewProject(1L));
+            assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(1L));
             assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
             assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
             assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
@@ -103,6 +132,9 @@ class ProjectControllerTest {
                 users,
                 new Clock());
 
+        assertThrows(SecurityException.class, controller::viewProjects);
+        assertThrows(SecurityException.class, () -> controller.viewProject(1L));
+        assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(1L));
         assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
         assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
         assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
@@ -217,11 +249,11 @@ class ProjectControllerTest {
     }
 
     private static User user(String loginId, Role role, boolean active) {
-        return new User(loginId, loginId, "stored-password", role, active, NOW, NOW);
+        return User.create(loginId, loginId, "stored-password", role, active, NOW, NOW);
     }
 
     private static Project project(long projectId, String name) {
-        return new Project(projectId, name, "description", "admin", NOW, NOW);
+        return Project.create(projectId, name, "description", "admin", NOW, NOW);
     }
 
     private record AuthFixture(AuthenticationService service, User user) {
@@ -259,7 +291,7 @@ class ProjectControllerTest {
         @Override
         public Project save(Project project) {
             Project persistedProject = project.id() == 0L
-                    ? new Project(nextProjectId++, project.name(), project.description(), project.managedById(),
+                    ? Project.create(nextProjectId++, project.name(), project.description(), project.managedById(),
                             project.createdDate(), project.updatedAt())
                     : project;
             projectsById.put(persistedProject.id(), persistedProject);

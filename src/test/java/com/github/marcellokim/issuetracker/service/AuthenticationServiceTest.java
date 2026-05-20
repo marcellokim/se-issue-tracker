@@ -103,12 +103,7 @@ class AuthenticationServiceTest {
 
     private static User user(String loginId, String password, Role role, boolean active) {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
-<<<<<<< HEAD
-        // userId 제거: 6-param → 7-param 통합 (DCD ver1 기준)
         return User.create(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);
-=======
-        return new User(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);
->>>>>>> 88350b0 (ProjectController 테스트 보강)
     }
 
     private static final class FakeUserRepository implements UserRepository {
@@ -152,11 +147,9 @@ class AuthenticationServiceTest {
 
         @Override
         public void deactivate(String loginId) {
-            // userId 제거: 6-param → 7-param 통합 (DCD ver1 기준)
             findById(loginId).ifPresent(user -> usersByLoginId.put(
                     user.loginId(),
                     User.create(
-                            user.loginId(),
                             user.loginId(),
                             user.getName(),
                             user.password(),

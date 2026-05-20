@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+// userID->loginId로 변경 바람
+
 public final class ProjectController {
 
     private final AuthenticationService authenticationService;
@@ -35,13 +37,31 @@ public final class ProjectController {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    public List<Project> viewProjects() {
+        requireProjectAdmin();
+        return projectRepository.findAll();
+    }
+
+    public Project viewProject(long projectId) {
+        requireProjectId(projectId);
+        requireProjectAdmin();
+        return requireProject(projectId);
+    }
+
+    public List<ProjectMember> viewProjectParticipants(long projectId) {
+        requireProjectId(projectId);
+        requireProjectAdmin();
+        requireProject(projectId);
+        return projectRepository.findParticipants(projectId);
+    }
+
     public Project createProject(String name, String description) {
         User admin = requireProjectAdmin();
         String projectName = requireProjectName(name);
         rejectDuplicateProjectName(projectName, null);
 
         LocalDateTime now = clock.now();
-        return projectRepository.save(new Project(
+        return projectRepository.save(Project.create(
                 0L,
                 projectName,
                 description,
@@ -58,11 +78,11 @@ public final class ProjectController {
         projectRepository.deleteById(projectId);
     }
 
-    public void addProjectParticipant(long projectId, String userId) {
+    public void addProjectParticipant(long projectId, String loginId) {
         requireProjectId(projectId);
         requireProjectAdmin();
         requireProject(projectId);
-        User participant = requireUser(userId);
+        User participant = requireUser(loginId);
         if (!participant.active()) {
             throw new IllegalArgumentException("Only active users can be added to a project.");
         }
