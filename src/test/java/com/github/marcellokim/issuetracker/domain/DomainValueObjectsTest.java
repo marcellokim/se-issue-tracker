@@ -83,11 +83,19 @@ class DomainValueObjectsTest {
         assertEquals(NOW.minusDays(1), criteria.reportedFrom());
         assertEquals(NOW, criteria.reportedTo());
         assertTrue(criteria.includeDeleted());
-        assertEquals(DailyIssueCount.create(date, 2), DailyIssueCount.create(date, 2));
-        assertEquals(MonthlyIssueCount.create(month, 5), MonthlyIssueCount.create(month, 5));
-        assertEquals(ProjectMember.create(1L, "dev1", NOW), ProjectMember.create(1L, "dev1", NOW));
-        assertEquals(AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1"),
-                AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1"));
+        DailyIssueCount dailyCount = DailyIssueCount.create(date, 2);
+        DailyIssueCount sameDailyCount = DailyIssueCount.create(date, 2);
+        MonthlyIssueCount monthlyCount = MonthlyIssueCount.create(month, 5);
+        MonthlyIssueCount sameMonthlyCount = MonthlyIssueCount.create(month, 5);
+        ProjectMember projectMember = ProjectMember.create(1L, "dev1", NOW);
+        ProjectMember sameProjectMember = ProjectMember.create(1L, "dev1", NOW);
+        AssignmentContext assignmentContext = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1");
+        AssignmentContext sameAssignmentContext = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1");
+
+        assertEquals(dailyCount, sameDailyCount);
+        assertEquals(monthlyCount, sameMonthlyCount);
+        assertEquals(projectMember, sameProjectMember);
+        assertEquals(assignmentContext, sameAssignmentContext);
     }
 
     @Test
@@ -225,8 +233,9 @@ class DomainValueObjectsTest {
                 sameFailure,
                 differentFailure,
                 "ValidationResult[valid=false");
-        assertEquals(ValidationResult.ok(), ValidationResult.ok());
-        assertNotEquals(ValidationResult.ok(), failure);
+        ValidationResult ok = ValidationResult.ok();
+        assertEquals(ok, ValidationResult.ok());
+        assertNotEquals(ok, failure);
     }
 
     @Test
@@ -323,7 +332,9 @@ class DomainValueObjectsTest {
             Object equalValue,
             Object differentValue,
             String expectedToStringPrefix) {
-        assertEquals(value, value);
+        Object sameReference = value;
+
+        assertTrue(value.equals(sameReference));
         assertEquals(value, equalValue);
         assertEquals(value.hashCode(), equalValue.hashCode());
         assertNotEquals(value, differentValue);
