@@ -16,6 +16,7 @@ import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
@@ -127,10 +128,7 @@ class ProjectControllerTest {
         FakeUserRepository users = new FakeUserRepository(active("dev1", Role.DEV));
         ProjectController controller = new ProjectController(
                 anonymousAuth(),
-                new PermissionPolicy(),
-                projects,
-                users,
-                new Clock());
+                service(projects, users));
 
         assertThrows(SecurityException.class, controller::viewProjects);
         assertThrows(SecurityException.class, () -> controller.viewProject(1L));
@@ -219,9 +217,16 @@ class ProjectControllerTest {
             FakeUserRepository users) {
         return new ProjectController(
                 auth.service(),
-                new PermissionPolicy(),
+                service(projects, users));
+    }
+
+    private static ProjectService service(
+            FakeProjectRepository projects,
+            FakeUserRepository users) {
+        return new ProjectService(
                 projects,
                 users,
+                new PermissionPolicy(),
                 new Clock());
     }
 

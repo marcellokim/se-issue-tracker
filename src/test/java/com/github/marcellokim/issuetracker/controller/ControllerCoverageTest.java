@@ -28,6 +28,7 @@ import com.github.marcellokim.issuetracker.service.AssignmentRecommendationServi
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDate;
@@ -174,13 +175,11 @@ class ControllerCoverageTest {
     @Test
     @DisplayName("project controller deletes an existing project only for ADMIN")
     void projectControllerDeletesProjectForAdmin() {
+        AuthFixture auth = authenticated(Role.ADMIN);
         FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
         ProjectController controller = new ProjectController(
-                authenticated(Role.ADMIN).service(),
-                new PermissionPolicy(),
-                projects,
-                new FakeUserRepository(),
-                new Clock()
+                auth.service(),
+                new ProjectService(projects, auth.users(), new PermissionPolicy(), new Clock())
         );
 
         controller.deleteProject(PROJECT_ID);
@@ -192,23 +191,24 @@ class ControllerCoverageTest {
     @Test
     @DisplayName("project controller rejects invalid id, missing project, and non-admin users")
     void projectControllerRejectsInvalidDeleteRequests() {
+        AuthFixture admin = authenticated(Role.ADMIN);
         FakeProjectRepository projects = new FakeProjectRepository();
         ProjectController adminController = new ProjectController(
-                authenticated(Role.ADMIN).service(),
-                new PermissionPolicy(),
-                projects,
-                new FakeUserRepository(),
-                new Clock()
+                admin.service(),
+                new ProjectService(projects, admin.users(), new PermissionPolicy(), new Clock())
         );
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(PROJECT_ID));
 
+        AuthFixture pl = authenticated(Role.PL);
         ProjectController plController = new ProjectController(
-                authenticated(Role.PL).service(),
-                new PermissionPolicy(),
-                new FakeProjectRepository(project(PROJECT_ID)),
-                new FakeUserRepository(),
-                new Clock()
+                pl.service(),
+                new ProjectService(
+                        new FakeProjectRepository(project(PROJECT_ID)),
+                        pl.users(),
+                        new PermissionPolicy(),
+                        new Clock()
+                )
         );
         assertThrows(SecurityException.class, () -> plController.deleteProject(PROJECT_ID));
     }
