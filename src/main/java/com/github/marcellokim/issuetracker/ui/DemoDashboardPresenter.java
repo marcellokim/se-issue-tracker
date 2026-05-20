@@ -32,27 +32,27 @@ public final class DemoDashboardPresenter {
         Objects.requireNonNull(user, "user");
         StringBuilder summary = new StringBuilder();
         summary.append("Logged in as ")
-                .append(user.loginId())
+                .append(user.getLoginId())
                 .append(" / ")
-                .append(user.role())
+                .append(user.getRole())
                 .append(System.lineSeparator())
                 .append(System.lineSeparator());
 
         for (var project : projects.findAll()) {
-            var statusCounts = statistics.countByStatus(project.id());
+            var statusCounts = statistics.countByStatus(project.getId());
             String statusText = statusCounts.entrySet().stream()
                     .sorted(java.util.Map.Entry.comparingByKey())
                     .map(entry -> entry.getKey() + "=" + entry.getValue())
                     .collect(Collectors.joining(", "));
 
-            summary.append(project.name()).append(System.lineSeparator())
-                    .append("  members=").append(projects.findParticipants(project.id()).size())
-                    .append(", PL=").append(users.findActiveByRole(project.id(), Role.PL).size())
-                    .append(", DEV=").append(users.findActiveByRole(project.id(), Role.DEV).size())
-                    .append(", TESTER=").append(users.findActiveByRole(project.id(), Role.TESTER).size())
+            summary.append(project.getName()).append(System.lineSeparator())
+                    .append("  members=").append(projects.findParticipants(project.getId()).size())
+                    .append(", PL=").append(users.findActiveByRole(project.getId(), Role.PL).size())
+                    .append(", DEV=").append(users.findActiveByRole(project.getId(), Role.DEV).size())
+                    .append(", TESTER=").append(users.findActiveByRole(project.getId(), Role.TESTER).size())
                     .append(System.lineSeparator())
-                    .append("  visible issues=").append(issues.findByProject(project.id()).size())
-                    .append(", deleted bin=").append(issues.findDeletedByProject(project.id()).size())
+                    .append("  visible issues=").append(issues.findByProject(project.getId()).size())
+                    .append(", deleted bin=").append(issues.findDeletedByProject(project.getId()).size())
                     .append(System.lineSeparator())
                     .append("  status=").append(statusText.isBlank() ? IssueStatus.NEW + "=0" : statusText)
                     .append(System.lineSeparator())

@@ -73,7 +73,7 @@ class IssueDependencyTest {
     @Test
     @DisplayName("persisted dependency derives deterministic id and keeps database fields")
     void persistedDependencyDerivesDeterministicId() {
-        var dependency = new IssueDependency(7L, 10L, 20L, createdAt);
+        var dependency = IssueDependency.fromPersistence(7L, 10L, 20L, createdAt);
 
         assertEquals(7L, dependency.id());
         assertEquals(10L, dependency.blockingIssueId());
@@ -90,7 +90,7 @@ class IssueDependencyTest {
     @Test
     @DisplayName("persisted dependency preserves explicit dependency id")
     void persistedDependencyKeepsExplicitDependencyId() {
-        var dependency = new IssueDependency(8L, "DEP-10-20", 10L, 20L, createdAt);
+        var dependency = IssueDependency.fromPersistence(8L, "DEP-10-20", 10L, 20L, createdAt);
 
         assertEquals(8L, dependency.id());
         assertEquals("DEP-10-20", dependency.getDependencyId());
@@ -105,7 +105,7 @@ class IssueDependencyTest {
         var blockedIssue = Issue.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
-                () -> new IssueDependency(1L, "", 10L, 20L, createdAt));
+                () -> IssueDependency.fromPersistence(1L, "", 10L, 20L, createdAt));
         assertThrows(IllegalArgumentException.class,
                 () -> IssueDependency.create("", blockingIssue, blockedIssue, createdAt));
         assertThrows(NullPointerException.class,

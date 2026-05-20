@@ -173,7 +173,7 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
     }
 
     static IssueHistory mapHistory(ResultSet resultSet) throws SQLException {
-        return new IssueHistory(
+        return IssueHistory.fromPersistence(
                 resultSet.getLong("id"),
                 resultSet.getLong("issue_id"),
                 resultSet.getString("changed_by_login_id"),

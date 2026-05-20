@@ -121,7 +121,7 @@ public final class JdbcCommentRepository implements CommentRepository {
     }
 
     static Comment mapComment(ResultSet resultSet) throws SQLException {
-        return new Comment(
+        return Comment.fromPersistence(
                 resultSet.getLong("id"),
                 resultSet.getLong("issue_id"),
                 resultSet.getString("writer_login_id"),

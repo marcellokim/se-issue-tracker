@@ -58,7 +58,7 @@ public class Issue {
         this.verifier = state.verifier;
         this.fixer = state.fixer;
         this.resolver = state.resolver;
-        this.reporterId = reporter.loginId();
+        this.reporterId = reporter.getLoginId();
         this.assigneeId = loginIdOrNull(assignee);
         this.verifierId = loginIdOrNull(verifier);
         this.fixerId = loginIdOrNull(fixer);
@@ -82,7 +82,7 @@ public class Issue {
         this.priority = priority == null ? Priority.MAJOR : priority;
         this.status = IssueStatus.NEW;
         this.reporter = Objects.requireNonNull(reporter, "reporter must not be null");
-        this.reporterId = reporter.loginId();
+        this.reporterId = reporter.getLoginId();
         this.reportedDate = Objects.requireNonNull(reportedDate, "reportedDate must not be null");
         this.updatedAt = reportedDate;
         recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter, reportedDate);
@@ -244,12 +244,12 @@ public class Issue {
 
         var previousAssignee = this.assignee;
         this.assignee = assignee;
-        this.assigneeId = assignee.loginId();
+        this.assigneeId = assignee.getLoginId();
         updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
-                previousAssignee == null ? null : previousAssignee.loginId(),
-                assignee.loginId(),
+                previousAssignee == null ? null : previousAssignee.getLoginId(),
+                assignee.getLoginId(),
                 "Assignee changed",
                 changedBy,
                 changedDate
@@ -267,12 +267,12 @@ public class Issue {
 
         var previousVerifier = this.verifier;
         this.verifier = verifier;
-        this.verifierId = verifier.loginId();
+        this.verifierId = verifier.getLoginId();
         updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
-                previousVerifier == null ? null : previousVerifier.loginId(),
-                verifier.loginId(),
+                previousVerifier == null ? null : previousVerifier.getLoginId(),
+                verifier.getLoginId(),
                 "Verifier changed",
                 changedBy,
                 changedDate
@@ -286,7 +286,7 @@ public class Issue {
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.fixer = fixer;
-        this.fixerId = fixer.loginId();
+        this.fixerId = fixer.getLoginId();
         changeStatusTo(IssueStatus.FIXED, requiredComment, fixer, changedDate);
     }
 
@@ -297,7 +297,7 @@ public class Issue {
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.resolver = resolver;
-        this.resolverId = resolver.loginId();
+        this.resolverId = resolver.getLoginId();
         changeStatusTo(IssueStatus.RESOLVED, requiredComment, resolver, changedDate);
     }
 
@@ -431,13 +431,13 @@ public class Issue {
 
         this.assignee = assignee;
         this.verifier = verifier;
-        this.assigneeId = assignee.loginId();
-        this.verifierId = verifier.loginId();
+        this.assigneeId = assignee.getLoginId();
+        this.verifierId = verifier.getLoginId();
         updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
                 null,
-                assignee.loginId() + "/" + verifier.loginId(),
+                assignee.getLoginId() + "/" + verifier.getLoginId(),
                 message,
                 changedBy,
                 changedDate
@@ -478,7 +478,7 @@ public class Issue {
     }
 
     private static boolean sameUser(User first, User second) {
-        return first != null && second != null && Objects.equals(first.loginId(), second.loginId());
+        return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
     }
 
     private void rejectSelfDependency(Issue blockingIssue) {
@@ -529,7 +529,7 @@ public class Issue {
     }
 
     private static String loginIdOrNull(User user) {
-        return user == null ? null : user.loginId();
+        return user == null ? null : user.getLoginId();
     }
 
     public static final class PersistedState {

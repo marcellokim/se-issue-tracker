@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,9 +27,9 @@ class DomainValueObjectsTest {
     @Test
     @DisplayName("assignment candidate builds default reasons")
     void assignmentCandidateBuildsDefaultReasons() {
-        AssignmentCandidate experienced = new AssignmentCandidate(dev, 3);
-        AssignmentCandidate fallback = new AssignmentCandidate(dev, 0);
-        AssignmentCandidate explicit = new AssignmentCandidate(dev, 1, "manual reason");
+        AssignmentCandidate experienced = AssignmentCandidate.create(dev, 3);
+        AssignmentCandidate fallback = AssignmentCandidate.create(dev, 0);
+        AssignmentCandidate explicit = AssignmentCandidate.create(dev, 1, "manual reason");
 
         assertEquals(dev, experienced.user());
         assertEquals(3, experienced.completedIssueCount());
@@ -38,11 +39,29 @@ class DomainValueObjectsTest {
     }
 
     @Test
+    @DisplayName("assignment candidate has value semantics")
+    void assignmentCandidateHasValueSemantics() {
+        AssignmentCandidate candidate = AssignmentCandidate.create(dev, 3, "strong history");
+        AssignmentCandidate sameCandidate = AssignmentCandidate.create(dev, 3, "strong history");
+        AssignmentCandidate differentCandidate = AssignmentCandidate.create(dev, 4, "strong history");
+
+        assertValueSemantics(
+                candidate,
+                sameCandidate,
+                differentCandidate,
+                "AssignmentCandidate[user=");
+        assertTrue(candidate.toString().contains("completedIssueCount=3"));
+        assertTrue(candidate.toString().contains("reason=strong history"));
+        assertThrows(NullPointerException.class, () -> AssignmentCandidate.create(null, 1));
+        assertThrows(NullPointerException.class, () -> AssignmentCandidate.create(dev, 1, null));
+    }
+
+    @Test
     @DisplayName("simple query and count records preserve values")
     void simpleRecordsPreserveValues() {
         LocalDate date = LocalDate.of(2026, 5, 19);
         YearMonth month = YearMonth.of(2026, 5);
-        IssueSearchCriteria criteria = new IssueSearchCriteria(
+        IssueSearchCriteria criteria = IssueSearchCriteria.create(
                 1L,
                 IssueStatus.ASSIGNED,
                 Priority.MAJOR,
@@ -52,8 +71,7 @@ class DomainValueObjectsTest {
                 "login",
                 NOW.minusDays(1),
                 NOW,
-                true
-        );
+                true);
 
         assertEquals(1L, criteria.projectId());
         assertEquals(IssueStatus.ASSIGNED, criteria.status());
@@ -62,12 +80,68 @@ class DomainValueObjectsTest {
         assertEquals("dev1", criteria.assigneeId());
         assertEquals("tester2", criteria.verifierId());
         assertEquals("login", criteria.keyword());
+        assertEquals(NOW.minusDays(1), criteria.reportedFrom());
+        assertEquals(NOW, criteria.reportedTo());
         assertTrue(criteria.includeDeleted());
-        assertEquals(new DailyIssueCount(date, 2), new DailyIssueCount(date, 2));
-        assertEquals(new MonthlyIssueCount(month, 5), new MonthlyIssueCount(month, 5));
-        assertEquals(new ProjectMember(1L, "dev1", NOW), new ProjectMember(1L, "dev1", NOW));
-        assertEquals(new AssignmentContext(7L, IssueStatus.FIXED, "dev1", "tester1"),
-                new AssignmentContext(7L, IssueStatus.FIXED, "dev1", "tester1"));
+        DailyIssueCount dailyCount = DailyIssueCount.create(date, 2);
+        DailyIssueCount sameDailyCount = DailyIssueCount.create(date, 2);
+        MonthlyIssueCount monthlyCount = MonthlyIssueCount.create(month, 5);
+        MonthlyIssueCount sameMonthlyCount = MonthlyIssueCount.create(month, 5);
+        ProjectMember projectMember = ProjectMember.create(1L, "dev1", NOW);
+        ProjectMember sameProjectMember = ProjectMember.create(1L, "dev1", NOW);
+        AssignmentContext assignmentContext = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1");
+        AssignmentContext sameAssignmentContext = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1");
+
+        assertEquals(dailyCount, sameDailyCount);
+        assertEquals(monthlyCount, sameMonthlyCount);
+        assertEquals(projectMember, sameProjectMember);
+        assertEquals(assignmentContext, sameAssignmentContext);
+    }
+
+    @Test
+    @DisplayName("issue search criteria has value semantics")
+    void issueSearchCriteriaHasValueSemantics() {
+        IssueSearchCriteria criteria = IssueSearchCriteria.create(
+                1L,
+                IssueStatus.ASSIGNED,
+                Priority.MAJOR,
+                "tester1",
+                "dev1",
+                "tester2",
+                "login",
+                NOW.minusDays(1),
+                NOW,
+                true);
+        IssueSearchCriteria sameCriteria = IssueSearchCriteria.create(
+                1L,
+                IssueStatus.ASSIGNED,
+                Priority.MAJOR,
+                "tester1",
+                "dev1",
+                "tester2",
+                "login",
+                NOW.minusDays(1),
+                NOW,
+                true);
+        IssueSearchCriteria differentCriteria = IssueSearchCriteria.create(
+                2L,
+                IssueStatus.NEW,
+                Priority.MINOR,
+                "tester3",
+                "dev4",
+                "tester5",
+                "logout",
+                NOW.minusDays(2),
+                NOW.plusDays(1),
+                false);
+
+        assertValueSemantics(
+                criteria,
+                sameCriteria,
+                differentCriteria,
+                "IssueSearchCriteria[projectId=1");
+        assertTrue(criteria.toString().contains("status=ASSIGNED"));
+        assertTrue(criteria.toString().contains("includeDeleted=true"));
     }
 
     @Test
@@ -94,20 +168,45 @@ class DomainValueObjectsTest {
         statusCounts.put(IssueStatus.NEW, 1);
         Map<Priority, Integer> priorityCounts = new EnumMap<>(Priority.class);
         priorityCounts.put(Priority.MAJOR, 2);
-        List<DailyIssueCount> dailyCounts = new ArrayList<>(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)));
-        List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)));
+        List<DailyIssueCount> dailyCounts = new ArrayList<>(
+                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)));
+        List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(
+                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)));
 
-        StatisticsReport report = new StatisticsReport(statusCounts, priorityCounts, dailyCounts, monthlyCounts);
+        StatisticsReport report = StatisticsReport.create(statusCounts, priorityCounts, dailyCounts, monthlyCounts);
         statusCounts.put(IssueStatus.CLOSED, 99);
         priorityCounts.put(Priority.CRITICAL, 99);
-        dailyCounts.add(new DailyIssueCount(LocalDate.of(2026, 5, 20), 99));
-        monthlyCounts.add(new MonthlyIssueCount(YearMonth.of(2026, 6), 99));
+        dailyCounts.add(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 99));
+        monthlyCounts.add(MonthlyIssueCount.create(YearMonth.of(2026, 6), 99));
 
         assertEquals(Map.of(IssueStatus.NEW, 1), report.statusCounts());
         assertEquals(Map.of(Priority.MAJOR, 2), report.priorityCounts());
-        assertEquals(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
-        assertEquals(List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
-        assertThrows(UnsupportedOperationException.class, () -> report.dailyCounts().add(new DailyIssueCount(LocalDate.now(), 1)));
+        assertEquals(List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
+        assertEquals(List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
+        assertThrows(UnsupportedOperationException.class,
+                () -> report.dailyCounts().add(DailyIssueCount.create(LocalDate.now(), 1)));
+    }
+
+    @Test
+    @DisplayName("statistics report has value semantics")
+    void statisticsReportHasValueSemantics() {
+        StatisticsReport report = report();
+        StatisticsReport sameReport = report();
+        StatisticsReport differentReport = StatisticsReport.create(
+                Map.of(IssueStatus.CLOSED, 2),
+                Map.of(Priority.CRITICAL, 3),
+                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 4)),
+                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 6), 5)));
+
+        assertValueSemantics(
+                report,
+                sameReport,
+                differentReport,
+                "StatisticsReport[statusCounts=");
+        assertTrue(report.toString().contains("priorityCounts="));
+        assertTrue(report.toString().contains("monthlyCounts="));
+        assertThrows(NullPointerException.class,
+                () -> StatisticsReport.create(null, Map.of(), List.of(), List.of()));
     }
 
     @Test
@@ -120,5 +219,127 @@ class DomainValueObjectsTest {
         assertEquals("", ok.message());
         assertFalse(failure.valid());
         assertEquals("blocked by dependency", failure.message());
+    }
+
+    @Test
+    @DisplayName("validation result has value semantics")
+    void validationResultHasValueSemantics() {
+        ValidationResult failure = ValidationResult.failure("blocked by dependency");
+        ValidationResult sameFailure = ValidationResult.failure("blocked by dependency");
+        ValidationResult differentFailure = ValidationResult.failure("different reason");
+
+        assertValueSemantics(
+                failure,
+                sameFailure,
+                differentFailure,
+                "ValidationResult[valid=false");
+        ValidationResult ok = ValidationResult.ok();
+        assertEquals(ok, ValidationResult.ok());
+        assertNotEquals(ok, failure);
+    }
+
+    @Test
+    @DisplayName("assignment options copy inputs and expose value semantics")
+    void assignmentOptionsCopyInputsAndExposeValueSemantics() {
+        AssignmentCandidate devCandidate = AssignmentCandidate.create(dev, 2);
+        AssignmentCandidate testerCandidate = AssignmentCandidate.create(
+                User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null),
+                1);
+        List<AssignmentCandidate> devCandidates = new ArrayList<>(List.of(devCandidate));
+        List<AssignmentCandidate> testerCandidates = new ArrayList<>(List.of(testerCandidate));
+
+        AssignmentOptions options = AssignmentOptions.create(devCandidates, testerCandidates);
+        AssignmentOptions sameOptions = AssignmentOptions.create(List.of(devCandidate), List.of(testerCandidate));
+        AssignmentOptions differentOptions = AssignmentOptions.create(List.of(), List.of(testerCandidate));
+        devCandidates.clear();
+        testerCandidates.clear();
+
+        assertEquals(List.of(devCandidate), options.devAssigneeCandidates());
+        assertEquals(List.of(testerCandidate), options.testerVerifierCandidates());
+        assertThrows(UnsupportedOperationException.class,
+                () -> options.devAssigneeCandidates().add(devCandidate));
+        assertValueSemantics(
+                options,
+                sameOptions,
+                differentOptions,
+                "AssignmentOptions[devAssigneeCandidates=");
+    }
+
+    @Test
+    @DisplayName("assignment context has value semantics")
+    void assignmentContextHasValueSemantics() {
+        AssignmentContext context = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1");
+        AssignmentContext sameContext = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1");
+        AssignmentContext differentContext = AssignmentContext.create(8L, IssueStatus.ASSIGNED, "dev2", "tester2");
+
+        assertEquals(7L, context.issueId());
+        assertEquals(IssueStatus.FIXED, context.status());
+        assertEquals("dev1", context.assigneeId());
+        assertEquals("tester1", context.verifierId());
+        assertValueSemantics(
+                context,
+                sameContext,
+                differentContext,
+                "AssignmentContext[issueId=7");
+    }
+
+    @Test
+    @DisplayName("project member has value semantics")
+    void projectMemberHasValueSemantics() {
+        ProjectMember member = ProjectMember.create(1L, "dev1", NOW);
+        ProjectMember sameMember = ProjectMember.create(1L, "dev1", NOW);
+        ProjectMember differentMember = ProjectMember.create(2L, "dev2", NOW.plusDays(1));
+
+        assertEquals(1L, member.projectId());
+        assertEquals("dev1", member.userId());
+        assertEquals(NOW, member.joinedAt());
+        assertValueSemantics(
+                member,
+                sameMember,
+                differentMember,
+                "ProjectMember[projectId=1");
+    }
+
+    @Test
+    @DisplayName("daily and monthly issue counts have value semantics")
+    void issueCountsHaveValueSemantics() {
+        DailyIssueCount daily = DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3);
+        DailyIssueCount sameDaily = DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3);
+        DailyIssueCount differentDaily = DailyIssueCount.create(LocalDate.of(2026, 5, 20), 4);
+        MonthlyIssueCount monthly = MonthlyIssueCount.create(YearMonth.of(2026, 5), 5);
+        MonthlyIssueCount sameMonthly = MonthlyIssueCount.create(YearMonth.of(2026, 5), 5);
+        MonthlyIssueCount differentMonthly = MonthlyIssueCount.create(YearMonth.of(2026, 6), 6);
+
+        assertEquals(LocalDate.of(2026, 5, 19), daily.date());
+        assertEquals(3, daily.count());
+        assertValueSemantics(daily, sameDaily, differentDaily, "DailyIssueCount[date=2026-05-19");
+
+        assertEquals(YearMonth.of(2026, 5), monthly.month());
+        assertEquals(5, monthly.count());
+        assertValueSemantics(monthly, sameMonthly, differentMonthly, "MonthlyIssueCount[month=2026-05");
+    }
+
+    private static StatisticsReport report() {
+        return StatisticsReport.create(
+                Map.of(IssueStatus.NEW, 1),
+                Map.of(Priority.MAJOR, 2),
+                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)),
+                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)));
+    }
+
+    private static void assertValueSemantics(
+            Object value,
+            Object equalValue,
+            Object differentValue,
+            String expectedToStringPrefix) {
+        Object sameReference = value;
+
+        assertTrue(value.equals(sameReference));
+        assertEquals(value, equalValue);
+        assertEquals(value.hashCode(), equalValue.hashCode());
+        assertNotEquals(value, differentValue);
+        assertNotEquals(value, null);
+        assertNotEquals(value, "different type");
+        assertTrue(value.toString().startsWith(expectedToStringPrefix));
     }
 }

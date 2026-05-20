@@ -141,7 +141,7 @@ public final class JdbcUserRepository implements UserRepository {
 
     @Override
     public User save(User user) {
-        if (findByLoginId(user.loginId()).isPresent()) {
+        if (findByLoginId(user.getLoginId()).isPresent()) {
             return update(user);
         }
         return insert(user);
@@ -159,14 +159,14 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     private User insert(User user) {
-        String credential = normalizedCredential(user.password());
+        String credential = normalizedCredential(user.getPasswordHash());
         return executeUserWrite(
-                user.loginId(),
+                user.getLoginId(),
                 connection -> {
                     try (PreparedStatement statement = connection.prepareStatement(INSERT_USER_SQL)) {
                         bindUser(statement, user);
                         statement.executeUpdate();
-                        upsertCredential(connection, user.loginId(), credential);
+                        upsertCredential(connection, user.getLoginId(), credential);
                     }
                 },
                 "Inserted user was not found.",
@@ -175,14 +175,14 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     private User update(User user) {
-        String credential = normalizedCredential(user.password());
+        String credential = normalizedCredential(user.getPasswordHash());
         return executeUserWrite(
-                user.loginId(),
+                user.getLoginId(),
                 connection -> {
                     try (PreparedStatement statement = connection.prepareStatement(UPDATE_USER_SQL)) {
                         bindUserForUpdate(statement, user);
                         statement.executeUpdate();
-                        upsertCredential(connection, user.loginId(), credential);
+                        upsertCredential(connection, user.getLoginId(), credential);
                     }
                 },
                 "Updated user was not found.",
@@ -216,20 +216,20 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     private static void bindUser(PreparedStatement statement, User user) throws SQLException {
-        statement.setString(1, user.loginId());
+        statement.setString(1, user.getLoginId());
         statement.setString(2, user.getName());
-        statement.setString(3, user.role().name());
-        statement.setInt(4, user.active() ? 1 : 0);
-        JdbcSupport.setNullableTimestamp(statement, 5, user.createdAt());
-        JdbcSupport.setNullableTimestamp(statement, 6, user.updatedAt());
+        statement.setString(3, user.getRole().name());
+        statement.setInt(4, user.isActive() ? 1 : 0);
+        JdbcSupport.setNullableTimestamp(statement, 5, user.getCreatedAt());
+        JdbcSupport.setNullableTimestamp(statement, 6, user.getUpdatedAt());
     }
 
     private static void bindUserForUpdate(PreparedStatement statement, User user) throws SQLException {
         statement.setString(1, user.getName());
-        statement.setString(2, user.role().name());
-        statement.setInt(3, user.active() ? 1 : 0);
-        JdbcSupport.setNullableTimestamp(statement, 4, user.updatedAt());
-        statement.setString(5, user.loginId());
+        statement.setString(2, user.getRole().name());
+        statement.setInt(3, user.isActive() ? 1 : 0);
+        JdbcSupport.setNullableTimestamp(statement, 4, user.getUpdatedAt());
+        statement.setString(5, user.getLoginId());
     }
 
     private void upsertCredential(Connection connection, String loginId, String credential) throws SQLException {

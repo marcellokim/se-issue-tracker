@@ -60,7 +60,7 @@ class IssueCommentTest {
     @Test
     @DisplayName("persisted comment keeps database fields")
     void persistedCommentKeepsDatabaseFields() {
-        var comment = new Comment(11L, 100L, "dev1", "I fixed this.", createdAt);
+        var comment = Comment.fromPersistence(11L, 100L, "dev1", "I fixed this.", createdAt);
 
         assertEquals(11L, comment.id());
         assertEquals(100L, comment.issueId());
@@ -91,10 +91,10 @@ class IssueCommentTest {
     @DisplayName("rejects invalid persisted comment arguments")
     void rejectInvalidPersistedCommentArguments() {
         assertThrows(IllegalArgumentException.class,
-                () -> new Comment(1L, 100L, "", "content", createdAt));
+                () -> Comment.fromPersistence(1L, 100L, "", "content", createdAt));
         assertThrows(IllegalArgumentException.class,
-                () -> new Comment(1L, 100L, "dev1", " ", createdAt));
+                () -> Comment.fromPersistence(1L, 100L, "dev1", " ", createdAt));
         assertThrows(NullPointerException.class,
-                () -> new Comment(1L, 100L, "dev1", "content", null));
+                () -> Comment.fromPersistence(1L, 100L, "dev1", "content", null));
     }
 }

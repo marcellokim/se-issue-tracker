@@ -22,22 +22,22 @@ public final class AssignmentController {
 
     public AssignmentOptions startAssignment(long issueId) {
         User user = requireCurrentUser();
-        return assignmentService.startAssignment(issueId, user.loginId());
+        return assignmentService.startAssignment(issueId, user.getLoginId());
     }
 
     public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId) {
         User user = requireCurrentUser();
-        return assignmentService.assignIssue(issueId, assigneeId, verifierId, user.loginId());
+        return assignmentService.assignIssue(issueId, assigneeId, verifierId, user.getLoginId());
     }
 
     public AssignmentResult reassignIssue(long issueId, String assigneeId) {
         User user = requireCurrentUser();
-        return assignmentService.reassignIssue(issueId, assigneeId, user.loginId());
+        return assignmentService.reassignIssue(issueId, assigneeId, user.getLoginId());
     }
 
     public AssignmentResult changeVerifier(long issueId, String verifierId) {
         User user = requireCurrentUser();
-        return assignmentService.changeVerifier(issueId, verifierId, user.loginId());
+        return assignmentService.changeVerifier(issueId, verifierId, user.getLoginId());
     }
 
     private User requireCurrentUser() {

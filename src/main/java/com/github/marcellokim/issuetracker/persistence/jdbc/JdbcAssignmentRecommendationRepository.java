@@ -97,7 +97,7 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
                 List<AssignmentCandidate> candidates = new ArrayList<>();
                 while (resultSet.next()) {
                     User user = JdbcUserRepository.mapUser(resultSet);
-                    candidates.add(new AssignmentCandidate(user, resultSet.getInt("completed_issue_count")));
+                    candidates.add(AssignmentCandidate.create(user, resultSet.getInt("completed_issue_count")));
                 }
                 return candidates;
             }

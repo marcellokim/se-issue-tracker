@@ -1,48 +1,75 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
-import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.domain.Project;
+import com.github.marcellokim.issuetracker.domain.ProjectMember;
+import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.Clock;
-import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectDetail;
+import com.github.marcellokim.issuetracker.service.ProjectService;
+import java.util.List;
 import java.util.Objects;
 
 public final class ProjectController {
 
     private final AuthenticationService authenticationService;
-    private final PermissionPolicy permissionPolicy;
-    private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
-    private final Clock clock;
+    private final ProjectService projectService;
 
-    public ProjectController(
+    // factory
+    public static ProjectController create(
             AuthenticationService authenticationService,
-            PermissionPolicy permissionPolicy,
-            ProjectRepository projectRepository,
-            UserRepository userRepository,
-            Clock clock
-    ) {
-        this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
-        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
-        this.clock = Objects.requireNonNull(clock, "clock");
+            ProjectService projectService) {
+        return new ProjectController(authenticationService, projectService);
     }
 
-    /*
-     * 다른 팀원이 구현해야하는 부분:
-     * 프로젝트 생성/수정, PL 1명 제한 검증, 프로젝트 멤버 추가/제거 UC를 구현한다.
-     */
-    public void deleteProject(long projectId) {
-        if (projectId <= 0L) {
-            throw new IllegalArgumentException("projectId must be positive");
-        }
+    private ProjectController(
+            AuthenticationService authenticationService,
+            ProjectService projectService) {
+        this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
+        this.projectService = Objects.requireNonNull(projectService, "projectService");
+    }
 
-        var user = authenticationService.currentUser()
+    public List<Project> viewProjects() {
+        User user = requireCurrentUser();
+        return projectService.viewProjects(user.getLoginId());
+    }
+
+    public Project viewProject(long projectId) {
+        User user = requireCurrentUser();
+        return projectService.viewProject(projectId, user.getLoginId());
+    }
+
+    public List<ProjectMember> viewProjectParticipants(long projectId) {
+        User user = requireCurrentUser();
+        return projectService.viewProjectParticipants(projectId, user.getLoginId());
+    }
+
+    public ProjectDetail viewProjectDetail(long projectId) {
+        User user = requireCurrentUser();
+        return projectService.viewProjectDetail(projectId, user.getLoginId());
+    }
+
+    public Project createProject(String name, String description) {
+        User user = requireCurrentUser();
+        return projectService.createProject(name, description, user.getLoginId());
+    }
+
+    public void deleteProject(long projectId) {
+        User user = requireCurrentUser();
+        projectService.deleteProject(projectId, user.getLoginId());
+    }
+
+    public void addProjectParticipant(long projectId, String loginId) {
+        User user = requireCurrentUser();
+        projectService.addProjectParticipant(projectId, loginId, user.getLoginId());
+    }
+
+    public void removeProjectParticipant(long projectId, String loginId) {
+        User user = requireCurrentUser();
+        projectService.removeProjectParticipant(projectId, loginId, user.getLoginId());
+    }
+
+    private User requireCurrentUser() {
+        return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));
-        permissionPolicy.assertCanManageProject(user);
-        projectRepository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("Project was not found."));
-        projectRepository.deleteById(projectId);
     }
 }

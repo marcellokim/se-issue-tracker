@@ -8,25 +8,20 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("이슈 배정 역할")
+@DisplayName("Issue assignment roles")
 class IssueAssignmentRoleTest {
 
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User anotherAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, null, null);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-    private final User anotherVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
+    private final User anotherVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null,
+            null);
     private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
-    @DisplayName("NEW 이슈를 배정하면 assignee/verifier가 설정되고 ASSIGNED 상태가 된다")
+    @DisplayName("NEW issue assignment sets assignee and verifier")
     void assignFromNewIssue() {
         var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var assignedAt = createdAt.plusMinutes(10);
@@ -47,7 +42,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("REOPENED 이슈도 재배정하면 ASSIGNED 상태가 된다")
+    @DisplayName("REOPENED issue assignment moves to ASSIGNED")
     void assignReopenedIssue() {
         var issue = reopenedIssue();
 
@@ -59,7 +54,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("ASSIGNED 이슈는 assignee만 바꾸고 상태 변경 이력은 남기지 않는다")
+    @DisplayName("assigned issue changes assignee only")
     void reassignAssigneeOnly() {
         var issue = assignedIssue();
         var reassignedAt = createdAt.plusMinutes(20);
@@ -72,13 +67,13 @@ class IssueAssignmentRoleTest {
 
         var history = issue.getHistories().getLast();
         assertEquals(ActionType.ASSIGNMENT_CHANGED, history.getAction());
-        assertEquals(assignee.loginId(), history.getPreviousValue());
-        assertEquals(anotherAssignee.loginId(), history.getNewValue());
+        assertEquals(assignee.getLoginId(), history.getPreviousValue());
+        assertEquals(anotherAssignee.getLoginId(), history.getNewValue());
         assertEquals(reassignedAt, history.getChangedDate());
     }
 
     @Test
-    @DisplayName("FIXED 이슈는 verifier만 바꾸고 상태 변경 이력은 남기지 않는다")
+    @DisplayName("fixed issue changes verifier only")
     void changeVerifierOnly() {
         var issue = assignedIssue();
         issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -93,16 +88,18 @@ class IssueAssignmentRoleTest {
 
         var history = issue.getHistories().getLast();
         assertEquals(ActionType.ASSIGNMENT_CHANGED, history.getAction());
-        assertEquals(verifier.loginId(), history.getPreviousValue());
-        assertEquals(anotherVerifier.loginId(), history.getNewValue());
+        assertEquals(verifier.getLoginId(), history.getPreviousValue());
+        assertEquals(anotherVerifier.getLoginId(), history.getNewValue());
         assertEquals(changedAt, history.getChangedDate());
     }
 
     @Test
-    @DisplayName("assignee는 DEV, verifier는 TESTER여야 한다")
+    @DisplayName("assignee must be DEV and verifier must be TESTER")
     void rejectInvalidAssignmentRoles() {
-        var invalidAssigneeIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
-        var invalidVerifierIssue = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter, createdAt);
+        var invalidAssigneeIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
+                createdAt);
+        var invalidVerifierIssue = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter,
+                createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> invalidAssigneeIssue.assignFromNew(verifier, verifier, pl, createdAt));
@@ -111,26 +108,28 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("비활성 사용자는 assignee 또는 verifier가 될 수 없다")
+    @DisplayName("inactive users cannot be assignee or verifier")
     void rejectInactiveAssignmentParticipants() {
-        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         var inactiveAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
-        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         var inactiveVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
         inactiveAssignee.deactivate();
         inactiveVerifier.deactivate();
 
-        var issueForAssignee = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issueForAssignee = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
+                createdAt);
         assertThrows(IllegalArgumentException.class,
-                () -> issueForAssignee.assignFromNew(inactiveAssignee, verifier, pl, createdAt.plusMinutes(10)));
+                () -> issueForAssignee.assignFromNew(inactiveAssignee, verifier, pl,
+                        createdAt.plusMinutes(10)));
 
-        var issueForVerifier = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter, createdAt);
+        var issueForVerifier = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter,
+                createdAt);
         assertThrows(IllegalArgumentException.class,
-                () -> issueForVerifier.assignFromNew(assignee, inactiveVerifier, pl, createdAt.plusMinutes(10)));
+                () -> issueForVerifier.assignFromNew(assignee, inactiveVerifier, pl,
+                        createdAt.plusMinutes(10)));
     }
 
     @Test
-    @DisplayName("NEW가 아닌 이슈는 assignFromNew로 배정할 수 없다")
+    @DisplayName("assignFromNew requires NEW status")
     void rejectAssignFromNewWhenStatusIsNotNew() {
         var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
@@ -140,7 +139,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("배정 변경은 상태별 허용 branch에서만 가능하다")
+    @DisplayName("assignment changes require matching status branch")
     void rejectAssignmentChangesForInvalidStatus() {
         var newIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var assignedIssue = assignedIssue();
@@ -152,12 +151,11 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("배정 변경 대상도 올바른 역할과 활성 상태여야 한다")
+    @DisplayName("assignment changes require valid active participants")
     void rejectInvalidReassignmentParticipants() {
         var assignedIssue = assignedIssue();
         var fixedIssue = assignedIssue();
         fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
-        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         var inactiveDev = User.create("dev3", "Dev Three", "hash", Role.DEV, true, null, null);
         inactiveDev.deactivate();
 

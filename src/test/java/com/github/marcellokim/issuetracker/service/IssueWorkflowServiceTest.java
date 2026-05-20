@@ -19,19 +19,21 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("이슈 배정과 상태 변경 통합 흐름")
+@DisplayName("Issue assignment and status workflow")
 class IssueWorkflowServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
     private static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 5, 18, 10, 0);
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, CREATED_AT, CREATED_AT);
+    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, CREATED_AT,
+            CREATED_AT);
     private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, CREATED_AT, CREATED_AT);
-    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, CREATED_AT, CREATED_AT);
+    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, CREATED_AT,
+            CREATED_AT);
     private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, CREATED_AT, CREATED_AT);
 
     @Test
-    @DisplayName("tester -> PL -> dev -> tester -> PL 메인 데모 흐름이 완료된다")
+    @DisplayName("main demo workflow completes from assignment to close")
     void completeMainDemoWorkflow() {
         var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
                 .id(ISSUE_ID)
@@ -52,10 +54,10 @@ class IssueWorkflowServiceTest {
         );
         var stateService = new IssueStateService(issueRepository, userRepository, policy, new Clock());
 
-        assignmentService.assignIssue(ISSUE_ID, assignee.loginId(), verifier.loginId(), pl.loginId());
-        stateService.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.loginId());
-        stateService.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.loginId());
-        stateService.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed", pl.loginId());
+        assignmentService.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId());
+        stateService.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());
+        stateService.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId());
+        stateService.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed", pl.getLoginId());
 
         var completedIssue = issueRepository.findById(ISSUE_ID).orElseThrow();
         assertEquals(IssueStatus.CLOSED, completedIssue.getStatus());

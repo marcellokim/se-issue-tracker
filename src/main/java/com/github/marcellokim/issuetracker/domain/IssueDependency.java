@@ -16,11 +16,32 @@ public final class IssueDependency {
     private final Issue blockedIssue;
     private final LocalDateTime discoveredDate;
 
-    public IssueDependency(long id, long blockingIssueId, long blockedIssueId, LocalDateTime discoveredDate) {
-        this(id, dependencyIdFor(blockingIssueId, blockedIssueId), blockingIssueId, blockedIssueId, discoveredDate);
+    public static IssueDependency fromPersistence(
+            long id,
+            long blockingIssueId,
+            long blockedIssueId,
+            LocalDateTime discoveredDate
+    ) {
+        return fromPersistence(
+                id,
+                dependencyIdFor(blockingIssueId, blockedIssueId),
+                blockingIssueId,
+                blockedIssueId,
+                discoveredDate
+        );
     }
 
-    public IssueDependency(
+    public static IssueDependency fromPersistence(
+            long id,
+            String dependencyId,
+            long blockingIssueId,
+            long blockedIssueId,
+            LocalDateTime discoveredDate
+    ) {
+        return new IssueDependency(id, dependencyId, blockingIssueId, blockedIssueId, discoveredDate);
+    }
+
+    private IssueDependency(
             long id,
             String dependencyId,
             long blockingIssueId,

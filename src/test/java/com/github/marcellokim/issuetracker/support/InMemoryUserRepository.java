@@ -14,7 +14,7 @@ public final class InMemoryUserRepository implements UserRepository {
     private final Map<String, User> users = new LinkedHashMap<>();
 
     public InMemoryUserRepository(User... users) {
-        Arrays.stream(users).forEach(user -> this.users.put(user.loginId(), user));
+        Arrays.stream(users).forEach(user -> this.users.put(user.getLoginId(), user));
     }
 
     @Override
@@ -35,14 +35,14 @@ public final class InMemoryUserRepository implements UserRepository {
     @Override
     public List<User> findActiveByRole(long projectId, Role role) {
         return users.values().stream()
-                .filter(User::active)
-                .filter(user -> user.role() == role)
+                .filter(User::isActive)
+                .filter(user -> user.getRole() == role)
                 .toList();
     }
 
     @Override
     public User save(User user) {
-        users.put(user.loginId(), user);
+        users.put(user.getLoginId(), user);
         return user;
     }
 

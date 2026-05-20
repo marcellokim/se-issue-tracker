@@ -11,14 +11,16 @@ public class Project {
     private final String managedById;
     private final LocalDateTime createdDate;
     private final LocalDateTime updatedAt;
-    
+
+    // factory
     public static Project create(long id, String name, String description, String managedById,
-                                  LocalDateTime createdDate, LocalDateTime updatedAt) {
+            LocalDateTime createdDate, LocalDateTime updatedAt) {
         return new Project(id, name, description, managedById, createdDate, updatedAt);
     }
 
+    // private 생성자
     private Project(long id, String name, String description, String managedById,
-                    LocalDateTime createdDate, LocalDateTime updatedAt) {
+            LocalDateTime createdDate, LocalDateTime updatedAt) {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(managedById, "managedById");
         this.id = id;
@@ -31,40 +33,29 @@ public class Project {
 
     // --- domain methods ---
 
-    public Issue registerIssue(
-            String issueId,
-            String title,
-            String description,
-            Priority priority,
-            User reporter,
-            LocalDateTime now
-    ) {
-        return Issue.create(issueId, title, description, priority, reporter, now);
-    }
-
     // --- getters ---
 
-    public long id() {
+    public long getId() {
         return id;
     }
 
-    public String name() {
+    public String getName() {
         return name;
     }
 
-    public String description() {
+    public String getDescription() {
         return description;
     }
 
-    public String managedById() {
+    public String getManagedById() {
         return managedById;
     }
 
-    public LocalDateTime createdDate() {
+    public LocalDateTime getCreatedDate() {
         return createdDate;
     }
 
-    public LocalDateTime updatedAt() {
+    public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 

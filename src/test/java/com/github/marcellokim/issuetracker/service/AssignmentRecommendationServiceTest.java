@@ -86,7 +86,6 @@ class AssignmentRecommendationServiceTest {
     }
 
     private static User user(String loginId, Role role) {
-        // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         return User.create(loginId, loginId, "hash", role, true, null, null);
     }
 
@@ -94,12 +93,12 @@ class AssignmentRecommendationServiceTest {
 
         @Override
         public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of(new AssignmentCandidate(user("dev1", Role.DEV), 2));
+            return List.of(AssignmentCandidate.create(user("dev1", Role.DEV), 2));
         }
 
         @Override
         public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of(new AssignmentCandidate(user("tester1", Role.TESTER), 3));
+            return List.of(AssignmentCandidate.create(user("tester1", Role.TESTER), 3));
         }
     }
 }
