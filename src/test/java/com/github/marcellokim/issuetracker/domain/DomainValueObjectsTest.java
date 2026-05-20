@@ -52,8 +52,7 @@ class DomainValueObjectsTest {
                 "login",
                 NOW.minusDays(1),
                 NOW,
-                true
-        );
+                true);
 
         assertEquals(1L, criteria.projectId());
         assertEquals(IssueStatus.ASSIGNED, criteria.status());
@@ -95,7 +94,8 @@ class DomainValueObjectsTest {
         Map<Priority, Integer> priorityCounts = new EnumMap<>(Priority.class);
         priorityCounts.put(Priority.MAJOR, 2);
         List<DailyIssueCount> dailyCounts = new ArrayList<>(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)));
-        List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)));
+        List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)));
 
         StatisticsReport report = new StatisticsReport(statusCounts, priorityCounts, dailyCounts, monthlyCounts);
         statusCounts.put(IssueStatus.CLOSED, 99);
@@ -107,7 +107,8 @@ class DomainValueObjectsTest {
         assertEquals(Map.of(Priority.MAJOR, 2), report.priorityCounts());
         assertEquals(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
         assertEquals(List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
-        assertThrows(UnsupportedOperationException.class, () -> report.dailyCounts().add(new DailyIssueCount(LocalDate.now(), 1)));
+        assertThrows(UnsupportedOperationException.class,
+                () -> report.dailyCounts().add(new DailyIssueCount(LocalDate.now(), 1)));
     }
 
     @Test

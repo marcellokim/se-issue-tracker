@@ -179,8 +179,12 @@ class PermissionPolicyTest {
     }
 
     private static User user(String loginId, Role role) {
+<<<<<<< HEAD
         // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
         return User.create(loginId, loginId, "hash", role, true, null, null);
+=======
+        return new User(loginId, loginId, "hash", role, true, null, null);
+>>>>>>> 88350b0 (ProjectController 테스트 보강)
     }
 
     private static User inactive(String loginId, Role role) {

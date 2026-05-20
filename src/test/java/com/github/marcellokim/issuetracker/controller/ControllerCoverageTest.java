@@ -60,14 +60,16 @@ class ControllerCoverageTest {
         StatisticsController controller = new StatisticsController(
                 auth.service(),
                 new PermissionPolicy(),
-                statistics);
+                statistics
+        );
 
         StatisticsReport actualReport = controller.viewStatistics(
                 PROJECT_ID,
                 LocalDate.of(2026, 5, 1),
                 LocalDate.of(2026, 5, 31),
                 YearMonth.of(2026, 5),
-                YearMonth.of(2026, 6));
+                YearMonth.of(2026, 6)
+        );
 
         assertSame(expectedReport, actualReport);
         assertEquals(PROJECT_ID, statistics.reportProjectId);
@@ -81,13 +83,15 @@ class ControllerCoverageTest {
         StatisticsController anonymousController = new StatisticsController(
                 anonymousAuth(),
                 new PermissionPolicy(),
-                new FakeStatisticsRepository());
+                new FakeStatisticsRepository()
+        );
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
         StatisticsController controller = new StatisticsController(
                 authenticated(Role.PL).service(),
                 new PermissionPolicy(),
-                new FakeStatisticsRepository());
+                new FakeStatisticsRepository()
+        );
         assertThrows(
                 IllegalArgumentException.class,
                 () -> controller.viewStatistics(
@@ -95,7 +99,9 @@ class ControllerCoverageTest {
                         LocalDate.of(2026, 5, 2),
                         LocalDate.of(2026, 5, 1),
                         null,
-                        null));
+                        null
+                )
+        );
         assertThrows(
                 IllegalArgumentException.class,
                 () -> controller.viewStatistics(
@@ -103,7 +109,9 @@ class ControllerCoverageTest {
                         null,
                         null,
                         YearMonth.of(2026, 6),
-                        YearMonth.of(2026, 5)));
+                        YearMonth.of(2026, 5)
+                )
+        );
     }
 
     @Test
@@ -117,7 +125,8 @@ class ControllerCoverageTest {
                 auth.service(),
                 new PermissionPolicy(),
                 issues,
-                new Clock());
+                new Clock()
+        );
 
         List<Issue> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
         Issue softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
@@ -141,21 +150,24 @@ class ControllerCoverageTest {
                 anonymousAuth(),
                 new PermissionPolicy(),
                 issues,
-                new Clock());
+                new Clock()
+        );
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
                 new PermissionPolicy(),
                 issues,
-                new Clock());
+                new Clock()
+        );
         assertThrows(SecurityException.class, () -> adminController.deleteIssue(101L, "admin cannot delete"));
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
                 new PermissionPolicy(),
                 issues,
-                new Clock());
+                new Clock()
+        );
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
 
@@ -168,7 +180,8 @@ class ControllerCoverageTest {
                 new PermissionPolicy(),
                 projects,
                 new FakeUserRepository(),
-                new Clock());
+                new Clock()
+        );
 
         controller.deleteProject(PROJECT_ID);
 
@@ -185,7 +198,8 @@ class ControllerCoverageTest {
                 new PermissionPolicy(),
                 projects,
                 new FakeUserRepository(),
-                new Clock());
+                new Clock()
+        );
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(PROJECT_ID));
 
@@ -194,7 +208,8 @@ class ControllerCoverageTest {
                 new PermissionPolicy(),
                 new FakeProjectRepository(project(PROJECT_ID)),
                 new FakeUserRepository(),
-                new Clock());
+                new Clock()
+        );
         assertThrows(SecurityException.class, () -> plController.deleteProject(PROJECT_ID));
     }
 
@@ -216,7 +231,9 @@ class ControllerCoverageTest {
                         auth.users(),
                         policy,
                         recommendationService,
-                        new Clock()));
+                        new Clock()
+                )
+        );
 
         AssignmentOptions options = controller.startAssignment(issue.id());
 
@@ -232,7 +249,8 @@ class ControllerCoverageTest {
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         FakeIssueRepository issues = new FakeIssueRepository(issue);
         AssignmentRecommendationService recommendations = new AssignmentRecommendationService(
-                new FakeAssignmentRecommendationRepository());
+                new FakeAssignmentRecommendationRepository()
+        );
         PermissionPolicy policy = new PermissionPolicy();
 
         AssignmentController anonymousController = new AssignmentController(
@@ -242,7 +260,9 @@ class ControllerCoverageTest {
                         new FakeUserRepository(),
                         policy,
                         recommendations,
-                        new Clock()));
+                        new Clock()
+                )
+        );
         assertThrows(SecurityException.class, () -> anonymousController.startAssignment(issue.id()));
 
         AssignmentController plController = new AssignmentController(
@@ -252,7 +272,9 @@ class ControllerCoverageTest {
                         new FakeUserRepository(),
                         policy,
                         recommendations,
-                        new Clock()));
+                        new Clock()
+                )
+        );
         assertThrows(IllegalArgumentException.class, () -> plController.startAssignment(issue.id()));
     }
 
@@ -270,7 +292,8 @@ class ControllerCoverageTest {
         assertDoesNotThrow(() -> new IssueController(auth.service(), policy, projects, issues, users, clock));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
-                new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)));
+                new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)
+        ));
     }
 
     private static AuthFixture authenticated(Role role) {
@@ -281,7 +304,8 @@ class ControllerCoverageTest {
         return new AuthFixture(
                 new AuthenticationService(users, new PasswordHasher(), sessionStore),
                 users,
-                user);
+                user
+        );
     }
 
     private static AuthenticationService anonymousAuth() {
@@ -298,10 +322,11 @@ class ControllerCoverageTest {
 
     private static Issue issue(long id, long projectId, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                projectId,
-                "Issue " + id,
-                "Controller test issue",
-                user("reporter", Role.DEV))
+                        projectId,
+                        "Issue " + id,
+                        "Controller test issue",
+                        user("reporter", Role.DEV)
+                )
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
@@ -312,10 +337,11 @@ class ControllerCoverageTest {
 
     private static Issue copyWithStatus(Issue issue, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                issue.projectId(),
-                issue.title(),
-                issue.description(),
-                user(issue.reporterId(), Role.DEV))
+                        issue.projectId(),
+                        issue.title(),
+                        issue.description(),
+                        user(issue.reporterId(), Role.DEV)
+                )
                 .id(issue.id())
                 .issueId(issue.getIssueId())
                 .reportedDate(issue.reportedDate())
@@ -333,7 +359,8 @@ class ControllerCoverageTest {
                 statusCounts,
                 priorityCounts,
                 List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 1)),
-                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 1)));
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 1))
+        );
     }
 
     private record AuthFixture(AuthenticationService service, FakeUserRepository users, User user) {
@@ -537,7 +564,8 @@ class ControllerCoverageTest {
         public List<DailyIssueCount> countReportedIssuesByDay(
                 long projectId,
                 LocalDate fromInclusive,
-                LocalDate toInclusive) {
+                LocalDate toInclusive
+        ) {
             return report.dailyCounts();
         }
 
@@ -550,7 +578,8 @@ class ControllerCoverageTest {
         public List<MonthlyIssueCount> countReportedIssuesByMonth(
                 long projectId,
                 YearMonth fromInclusive,
-                YearMonth toInclusive) {
+                YearMonth toInclusive
+        ) {
             return report.monthlyCounts();
         }
 
@@ -560,7 +589,8 @@ class ControllerCoverageTest {
                 LocalDate dailyFromInclusive,
                 LocalDate dailyToInclusive,
                 YearMonth monthlyFromInclusive,
-                YearMonth monthlyToInclusive) {
+                YearMonth monthlyToInclusive
+        ) {
             reportProjectId = projectId;
             dailyFrom = dailyFromInclusive;
             monthlyTo = monthlyToInclusive;

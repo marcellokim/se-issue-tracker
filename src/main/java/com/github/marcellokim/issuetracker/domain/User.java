@@ -15,7 +15,7 @@ public class User {
     private final LocalDateTime updatedAt;
 
     public static User create(String loginId, String name, String password, Role role,
-                               boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
         return new User(loginId, name, password, role, active, createdAt, updatedAt);
     }
 

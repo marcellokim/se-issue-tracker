@@ -66,10 +66,13 @@ public final class ProjectController {
         if (!participant.active()) {
             throw new IllegalArgumentException("Only active users can be added to a project.");
         }
+        if (participant.role() == Role.ADMIN) {
+            throw new IllegalArgumentException("ADMIN cannot be added as a project participant.");
+        }
 
         List<ProjectMember> participants = projectRepository.findParticipants(projectId);
         rejectDuplicateParticipant(participants, participant.loginId());
-        rejectSecondProjectLead(participants, participant);
+        rejectSecondProjectLeader(participants, participant);
 
         projectRepository.addParticipant(projectId, participant.loginId());
     }
@@ -119,7 +122,7 @@ public final class ProjectController {
         }
     }
 
-    private void rejectSecondProjectLead(List<ProjectMember> participants, User participant) {
+    private void rejectSecondProjectLeader(List<ProjectMember> participants, User participant) {
         if (participant.role() != Role.PL) {
             return;
         }
