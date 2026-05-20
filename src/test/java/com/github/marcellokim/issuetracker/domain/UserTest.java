@@ -17,7 +17,6 @@ class UserTest {
                 // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
                 var user = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
 
-                assertEquals("dev1", user.getUserId());
                 assertEquals("dev1", user.getLoginId());
                 assertEquals("Dev One", user.getName());
                 assertEquals("hash", user.getPasswordHash());

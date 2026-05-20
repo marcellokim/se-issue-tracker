@@ -35,7 +35,7 @@ class AuthenticationServiceTest {
 
         assertTrue(result.success());
         assertNotNull(result.user());
-        assertEquals(Role.ADMIN, result.user().role());
+        assertEquals(Role.ADMIN, result.user().getRole());
     }
 
     @Test
@@ -87,7 +87,7 @@ class AuthenticationServiceTest {
 
         assertTrue(result.success());
         assertTrue(service.currentUser().isPresent());
-        assertEquals("admin", service.currentUser().orElseThrow().loginId());
+        assertEquals("admin", service.currentUser().orElseThrow().getLoginId());
     }
 
     @Test
@@ -112,7 +112,7 @@ class AuthenticationServiceTest {
 
         private FakeUserRepository(List<User> users) {
             for (User user : users) {
-                usersByLoginId.put(user.loginId(), user);
+                usersByLoginId.put(user.getLoginId(), user);
             }
         }
 
@@ -134,29 +134,29 @@ class AuthenticationServiceTest {
         @Override
         public List<User> findActiveByRole(long projectId, Role role) {
             return usersByLoginId.values().stream()
-                    .filter(User::active)
-                    .filter(user -> user.role() == role)
+                    .filter(User::isActive)
+                    .filter(user -> user.getRole() == role)
                     .toList();
         }
 
         @Override
         public User save(User user) {
-            usersByLoginId.put(user.loginId(), user);
+            usersByLoginId.put(user.getLoginId(), user);
             return user;
         }
 
         @Override
         public void deactivate(String loginId) {
             findById(loginId).ifPresent(user -> usersByLoginId.put(
-                    user.loginId(),
+                    user.getLoginId(),
                     User.create(
-                            user.loginId(),
+                            user.getLoginId(),
                             user.getName(),
-                            user.password(),
-                            user.role(),
+                            user.getPasswordHash(),
+                            user.getRole(),
                             false,
-                            user.createdAt(),
-                            user.updatedAt()
+                            user.getCreatedAt(),
+                            user.getUpdatedAt()
                     )
             ));
         }

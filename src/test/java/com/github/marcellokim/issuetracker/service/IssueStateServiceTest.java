@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("상태 변경 서비스")
+@DisplayName("Issue state service")
 class IssueStateServiceTest {
 
     private static final long PROJECT_ID = 10L;
@@ -29,12 +29,12 @@ class IssueStateServiceTest {
     private final User otherDev = User.create("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
 
     @Test
-    @DisplayName("assignee DEV는 ASSIGNED 이슈를 FIXED로 변경한다")
+    @DisplayName("assignee marks assigned issue fixed")
     void markAssignedIssueFixed() {
         var issue = assignedIssue();
         var service = service(issue);
 
-        var result = service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.loginId());
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());
 
         assertEquals(IssueStatus.FIXED, result.status());
         assertSame(assignee, issue.getFixer());
@@ -45,12 +45,12 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("verifier TESTER는 FIXED 이슈를 RESOLVED로 변경한다")
+    @DisplayName("verifier resolves fixed issue")
     void resolveFixedIssue() {
         var issue = fixedIssue();
         var service = service(issue);
 
-        var result = service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.loginId());
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId());
 
         assertEquals(IssueStatus.RESOLVED, result.status());
         assertSame(verifier, issue.getResolver());
@@ -61,12 +61,12 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("PL은 RESOLVED 이슈를 CLOSED로 변경하고 active assignment를 비운다")
+    @DisplayName("PL closes resolved issue and clears active assignment")
     void closeResolvedIssue() {
         var issue = resolvedIssue();
         var service = service(issue);
 
-        var result = service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed", pl.loginId());
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed", pl.getLoginId());
 
         assertEquals(IssueStatus.CLOSED, result.status());
         assertNull(issue.getAssignee());
@@ -80,19 +80,19 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("comment가 없거나 담당자가 아니면 상태 변경은 실패한다")
+    @DisplayName("comment媛 ?녾굅???대떦?먭? ?꾨땲硫??곹깭 蹂寃쎌? ?ㅽ뙣?쒕떎")
     void rejectBlankCommentAndWrongParticipant() {
         var issue = assignedIssue();
         var service = service(issue);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "", assignee.loginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "", assignee.getLoginId()));
         assertThrows(SecurityException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", otherDev.loginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", otherDev.getLoginId()));
     }
 
     @Test
-    @DisplayName("상태 변경 comment가 비어 있으면 issue/user 조회 전에 거부한다")
+    @DisplayName("?곹깭 蹂寃?comment媛 鍮꾩뼱 ?덉쑝硫?issue/user 議고쉶 ?꾩뿉 嫄곕??쒕떎")
     void rejectBlankCommentBeforeLookup() {
         var issue = assignedIssue();
         var service = service(issue);
@@ -102,17 +102,17 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("#20 범위 밖 상태 변경 target은 거부한다")
+    @DisplayName("#20 踰붿쐞 諛??곹깭 蹂寃?target? 嫄곕??쒕떎")
     void rejectUnsupportedTargetStatus() {
         var issue = resolvedIssue();
         var service = service(issue);
 
         assertThrows(UnsupportedOperationException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.loginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
     }
 
     @Test
-    @DisplayName("도메인 전이가 실패하면 comment/history 부작용을 남기지 않는다")
+    @DisplayName("failed domain transition leaves no comment or history side effects")
     void failedDomainTransitionLeavesNoCommentOrHistorySideEffect() {
         var issue = fixedIssue();
         int commentCount = issue.getComments().size();
@@ -120,20 +120,20 @@ class IssueStateServiceTest {
         var service = service(issue);
 
         assertThrows(IllegalStateException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Close too early", pl.loginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Close too early", pl.getLoginId()));
 
         assertEquals(commentCount, issue.getComments().size());
         assertEquals(historyCount, issue.getHistories().size());
     }
 
     @Test
-    @DisplayName("target status는 필수 값이다")
+    @DisplayName("target status is required")
     void rejectNullTargetStatus() {
         var issue = assignedIssue();
         var service = service(issue);
 
         assertThrows(NullPointerException.class,
-                () -> service.changeStatus(ISSUE_ID, null, "Fix completed", assignee.loginId()));
+                () -> service.changeStatus(ISSUE_ID, null, "Fix completed", assignee.getLoginId()));
     }
 
     private IssueStateService service(Issue issue) {

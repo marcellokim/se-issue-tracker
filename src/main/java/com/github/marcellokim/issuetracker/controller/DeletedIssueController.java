@@ -41,7 +41,7 @@ public final class DeletedIssueController {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(user, issue);
 
-        Issue deletedIssue = issueRepository.softDelete(issueId, user.loginId(), comment, clock.now());
+        Issue deletedIssue = issueRepository.softDelete(issueId, user.getLoginId(), comment, clock.now());
         issueRepository.purgeDeletedBeyondLimit(deletedIssue.projectId(), MAX_DELETED_ISSUES_PER_PROJECT);
         return deletedIssue;
     }
@@ -50,7 +50,7 @@ public final class DeletedIssueController {
         User user = requireCurrentUser();
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(user, issue);
-        return issueRepository.restore(issueId, user.loginId(), comment, clock.now());
+        return issueRepository.restore(issueId, user.getLoginId(), comment, clock.now());
     }
 
     public int purgeOverflow(long projectId) {

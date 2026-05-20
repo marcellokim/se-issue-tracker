@@ -26,9 +26,9 @@ class DomainValueObjectsTest {
     @Test
     @DisplayName("assignment candidate builds default reasons")
     void assignmentCandidateBuildsDefaultReasons() {
-        AssignmentCandidate experienced = new AssignmentCandidate(dev, 3);
-        AssignmentCandidate fallback = new AssignmentCandidate(dev, 0);
-        AssignmentCandidate explicit = new AssignmentCandidate(dev, 1, "manual reason");
+        AssignmentCandidate experienced = AssignmentCandidate.create(dev, 3);
+        AssignmentCandidate fallback = AssignmentCandidate.create(dev, 0);
+        AssignmentCandidate explicit = AssignmentCandidate.create(dev, 1, "manual reason");
 
         assertEquals(dev, experienced.user());
         assertEquals(3, experienced.completedIssueCount());
@@ -42,7 +42,7 @@ class DomainValueObjectsTest {
     void simpleRecordsPreserveValues() {
         LocalDate date = LocalDate.of(2026, 5, 19);
         YearMonth month = YearMonth.of(2026, 5);
-        IssueSearchCriteria criteria = new IssueSearchCriteria(
+        IssueSearchCriteria criteria = IssueSearchCriteria.create(
                 1L,
                 IssueStatus.ASSIGNED,
                 Priority.MAJOR,
@@ -62,11 +62,11 @@ class DomainValueObjectsTest {
         assertEquals("tester2", criteria.verifierId());
         assertEquals("login", criteria.keyword());
         assertTrue(criteria.includeDeleted());
-        assertEquals(new DailyIssueCount(date, 2), new DailyIssueCount(date, 2));
-        assertEquals(new MonthlyIssueCount(month, 5), new MonthlyIssueCount(month, 5));
-        assertEquals(new ProjectMember(1L, "dev1", NOW), new ProjectMember(1L, "dev1", NOW));
-        assertEquals(new AssignmentContext(7L, IssueStatus.FIXED, "dev1", "tester1"),
-                new AssignmentContext(7L, IssueStatus.FIXED, "dev1", "tester1"));
+        assertEquals(DailyIssueCount.create(date, 2), DailyIssueCount.create(date, 2));
+        assertEquals(MonthlyIssueCount.create(month, 5), MonthlyIssueCount.create(month, 5));
+        assertEquals(ProjectMember.create(1L, "dev1", NOW), ProjectMember.create(1L, "dev1", NOW));
+        assertEquals(AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1"),
+                AssignmentContext.create(7L, IssueStatus.FIXED, "dev1", "tester1"));
     }
 
     @Test
@@ -93,22 +93,23 @@ class DomainValueObjectsTest {
         statusCounts.put(IssueStatus.NEW, 1);
         Map<Priority, Integer> priorityCounts = new EnumMap<>(Priority.class);
         priorityCounts.put(Priority.MAJOR, 2);
-        List<DailyIssueCount> dailyCounts = new ArrayList<>(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)));
+        List<DailyIssueCount> dailyCounts = new ArrayList<>(
+                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)));
         List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(
-                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)));
+                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)));
 
-        StatisticsReport report = new StatisticsReport(statusCounts, priorityCounts, dailyCounts, monthlyCounts);
+        StatisticsReport report = StatisticsReport.create(statusCounts, priorityCounts, dailyCounts, monthlyCounts);
         statusCounts.put(IssueStatus.CLOSED, 99);
         priorityCounts.put(Priority.CRITICAL, 99);
-        dailyCounts.add(new DailyIssueCount(LocalDate.of(2026, 5, 20), 99));
-        monthlyCounts.add(new MonthlyIssueCount(YearMonth.of(2026, 6), 99));
+        dailyCounts.add(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 99));
+        monthlyCounts.add(MonthlyIssueCount.create(YearMonth.of(2026, 6), 99));
 
         assertEquals(Map.of(IssueStatus.NEW, 1), report.statusCounts());
         assertEquals(Map.of(Priority.MAJOR, 2), report.priorityCounts());
-        assertEquals(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
-        assertEquals(List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
+        assertEquals(List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
+        assertEquals(List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
         assertThrows(UnsupportedOperationException.class,
-                () -> report.dailyCounts().add(new DailyIssueCount(LocalDate.now(), 1)));
+                () -> report.dailyCounts().add(DailyIssueCount.create(LocalDate.now(), 1)));
     }
 
     @Test

@@ -176,7 +176,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             YearMonth monthlyFromInclusive,
             YearMonth monthlyToInclusive
     ) {
-        return new StatisticsReport(
+        return StatisticsReport.create(
                 countByStatus(projectId),
                 countByPriority(projectId),
                 countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
@@ -192,13 +192,13 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         if (fromInclusive == null || toInclusive == null) {
             return countByDate.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
-                    .map(entry -> new DailyIssueCount(entry.getKey(), entry.getValue()))
+                    .map(entry -> DailyIssueCount.create(entry.getKey(), entry.getValue()))
                     .toList();
         }
 
         List<DailyIssueCount> counts = new ArrayList<>();
         for (LocalDate date = fromInclusive; !date.isAfter(toInclusive); date = date.plusDays(1)) {
-            counts.add(new DailyIssueCount(date, countByDate.getOrDefault(date, 0)));
+            counts.add(DailyIssueCount.create(date, countByDate.getOrDefault(date, 0)));
         }
         return counts;
     }
@@ -211,13 +211,13 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         if (fromInclusive == null || toInclusive == null) {
             return countByMonth.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
-                    .map(entry -> new MonthlyIssueCount(entry.getKey(), entry.getValue()))
+                    .map(entry -> MonthlyIssueCount.create(entry.getKey(), entry.getValue()))
                     .toList();
         }
 
         List<MonthlyIssueCount> counts = new ArrayList<>();
         for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
-            counts.add(new MonthlyIssueCount(month, countByMonth.getOrDefault(month, 0)));
+            counts.add(MonthlyIssueCount.create(month, countByMonth.getOrDefault(month, 0)));
         }
         return counts;
     }

@@ -22,7 +22,7 @@ public final class IssueStateController {
 
     public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment) {
         User user = requireCurrentUser();
-        return issueStateService.changeStatus(issueId, targetStatus, comment, user.loginId());
+        return issueStateService.changeStatus(issueId, targetStatus, comment, user.getLoginId());
     }
 
     private User requireCurrentUser() {

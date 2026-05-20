@@ -34,7 +34,7 @@ public final class PermissionPolicy {
     public void assertCanRegisterIssue(User user, Project project) {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can register issues.");
         Project targetProject = Objects.requireNonNull(project, "project");
-        if (targetProject.id() <= 0) {
+        if (targetProject.getId() <= 0) {
             throw new SecurityException("Issue registration requires a persisted project.");
         }
     }
@@ -52,22 +52,19 @@ public final class PermissionPolicy {
                     user,
                     targetIssue.assigneeId(),
                     Role.DEV,
-                    "Only the active DEV assignee can mark an issue as fixed."
-            );
+                    "Only the active DEV assignee can mark an issue as fixed.");
             case RESOLVED -> requireAssignedActor(
                     user,
                     targetIssue.verifierId(),
                     Role.TESTER,
-                    "Only the active TESTER verifier can resolve an issue."
-            );
+                    "Only the active TESTER verifier can resolve an issue.");
             case ASSIGNED -> {
                 if (targetIssue.status() == IssueStatus.FIXED) {
                     requireAssignedActor(
                             user,
                             targetIssue.verifierId(),
                             Role.TESTER,
-                            "Only the active TESTER verifier can reject a fixed issue."
-                    );
+                            "Only the active TESTER verifier can reject a fixed issue.");
                 } else {
                     requirePl(user, "Only PL can assign issues.");
                 }
@@ -139,14 +136,14 @@ public final class PermissionPolicy {
 
     private static void requireActiveUser(User user, String message) {
         Objects.requireNonNull(user, USER_REQUIRED);
-        if (!user.active()) {
+        if (!user.isActive()) {
             throw new SecurityException(message);
         }
     }
 
     private static void requireAssignedActor(User user, String expectedLoginId, Role expectedRole, String message) {
         requireActiveUser(user, message);
-        if (user.role() != expectedRole || expectedLoginId == null || !expectedLoginId.equals(user.loginId())) {
+        if (user.getRole() != expectedRole || expectedLoginId == null || !expectedLoginId.equals(user.getLoginId())) {
             throw new SecurityException(message);
         }
     }
@@ -158,19 +155,19 @@ public final class PermissionPolicy {
     }
 
     private static boolean isAdmin(User user) {
-        return isActiveUser(user) && user.role() == Role.ADMIN;
+        return isActiveUser(user) && user.getRole() == Role.ADMIN;
     }
 
     private static boolean isPl(User user) {
-        return isActiveUser(user) && user.role() == Role.PL;
+        return isActiveUser(user) && user.getRole() == Role.PL;
     }
 
     private static boolean isAuthUserRole(User user) {
-        return user.role() == Role.PL || user.role() == Role.DEV || user.role() == Role.TESTER;
+        return user.getRole() == Role.PL || user.getRole() == Role.DEV || user.getRole() == Role.TESTER;
     }
 
     private static boolean isActiveUser(User user) {
-        return user != null && user.active();
+        return user != null && user.isActive();
     }
 
     private static boolean isPersistedProjectResource(Object resource) {

@@ -19,7 +19,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("배정 서비스")
+@DisplayName("Assignment service")
 class AssignmentServiceTest {
 
     private static final long PROJECT_ID = 10L;
@@ -32,24 +32,24 @@ class AssignmentServiceTest {
     private final User anotherVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, createdAt(), createdAt());
 
     @Test
-    @DisplayName("배정 시작은 이슈 상태에 맞는 추천 후보 구조를 반환한다")
+    @DisplayName("諛곗젙 ?쒖옉? ?댁뒋 ?곹깭??留욌뒗 異붿쿇 ?꾨낫 援ъ“瑜?諛섑솚?쒕떎")
     void startAssignmentReturnsOptions() {
         var issue = newIssue();
         var service = service(issue);
 
-        var options = service.startAssignment(ISSUE_ID, pl.loginId());
+        var options = service.startAssignment(ISSUE_ID, pl.getLoginId());
 
         assertEquals(1, options.devAssigneeCandidates().size());
         assertEquals(1, options.testerVerifierCandidates().size());
     }
 
     @Test
-    @DisplayName("NEW 이슈를 assignee/verifier와 함께 ASSIGNED로 배정한다")
+    @DisplayName("NEW ?댁뒋瑜?assignee/verifier? ?④퍡 ASSIGNED濡?諛곗젙?쒕떎")
     void assignNewIssue() {
         var issue = newIssue();
         var service = service(issue);
 
-        var result = service.assignIssue(ISSUE_ID, assignee.loginId(), verifier.loginId(), pl.loginId());
+        var result = service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId());
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
         assertSame(assignee, issue.getAssignee());
@@ -58,13 +58,13 @@ class AssignmentServiceTest {
     }
 
     @Test
-    @DisplayName("REOPENED 이슈도 assignee/verifier와 함께 ASSIGNED로 재배정한다")
+    @DisplayName("assigns reopened issue with new assignee and verifier")
     void assignReopenedIssue() {
         var issue = reopenedIssue();
         var issueRepository = new InMemoryIssueRepository(issue);
         var service = service(issueRepository);
 
-        var result = service.assignIssue(ISSUE_ID, anotherAssignee.loginId(), anotherVerifier.loginId(), pl.loginId());
+        var result = service.assignIssue(ISSUE_ID, anotherAssignee.getLoginId(), anotherVerifier.getLoginId(), pl.getLoginId());
         var savedIssue = issueRepository.findById(ISSUE_ID).orElseThrow();
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
@@ -75,7 +75,7 @@ class AssignmentServiceTest {
 
         var assignmentHistory = savedIssue.getHistories().get(savedIssue.getHistories().size() - 2);
         assertEquals(ActionType.ASSIGNMENT_CHANGED, assignmentHistory.getAction());
-        assertEquals(anotherAssignee.loginId() + "/" + anotherVerifier.loginId(), assignmentHistory.getNewValue());
+        assertEquals(anotherAssignee.getLoginId() + "/" + anotherVerifier.getLoginId(), assignmentHistory.getNewValue());
 
         var statusHistory = savedIssue.getHistories().getLast();
         assertEquals(ActionType.STATUS_CHANGED, statusHistory.getAction());
@@ -84,12 +84,12 @@ class AssignmentServiceTest {
     }
 
     @Test
-    @DisplayName("ASSIGNED 이슈의 assignee만 변경한다")
+    @DisplayName("reassigns assignee for assigned issue")
     void reassignAssignedIssue() {
         var issue = assignedIssue();
         var service = service(issue);
 
-        var result = service.reassignIssue(ISSUE_ID, anotherAssignee.loginId(), pl.loginId());
+        var result = service.reassignIssue(ISSUE_ID, anotherAssignee.getLoginId(), pl.getLoginId());
 
         assertEquals(IssueStatus.ASSIGNED, result.status());
         assertSame(anotherAssignee, issue.getAssignee());
@@ -98,12 +98,12 @@ class AssignmentServiceTest {
     }
 
     @Test
-    @DisplayName("FIXED 이슈의 verifier만 변경한다")
+    @DisplayName("changes verifier for fixed issue")
     void changeFixedIssueVerifier() {
         var issue = fixedIssue();
         var service = service(issue);
 
-        var result = service.changeVerifier(ISSUE_ID, anotherVerifier.loginId(), pl.loginId());
+        var result = service.changeVerifier(ISSUE_ID, anotherVerifier.getLoginId(), pl.getLoginId());
 
         assertEquals(IssueStatus.FIXED, result.status());
         assertSame(anotherVerifier, issue.getVerifier());
@@ -112,12 +112,12 @@ class AssignmentServiceTest {
     }
 
     @Test
-    @DisplayName("PL이 아니면 배정 흐름을 실행할 수 없다")
+    @DisplayName("PL???꾨땲硫?諛곗젙 ?먮쫫???ㅽ뻾?????녿떎")
     void rejectNonPlAssignment() {
         var service = service(newIssue());
 
         assertThrows(SecurityException.class,
-                () -> service.assignIssue(ISSUE_ID, assignee.loginId(), verifier.loginId(), assignee.loginId()));
+                () -> service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), assignee.getLoginId()));
     }
 
     private AssignmentService service(Issue issue) {
@@ -175,12 +175,12 @@ class AssignmentServiceTest {
 
         @Override
         public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of(new AssignmentCandidate(assignee, 1));
+            return List.of(AssignmentCandidate.create(assignee, 1));
         }
 
         @Override
         public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of(new AssignmentCandidate(verifier, 1));
+            return List.of(AssignmentCandidate.create(verifier, 1));
         }
     }
 }

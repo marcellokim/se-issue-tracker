@@ -85,7 +85,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
 
     @Override
     public Project save(Project project) {
-        if (project.id() == 0L) {
+        if (project.getId() == 0L) {
             return insert(project);
         }
         return update(project);
@@ -159,7 +159,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<ProjectMember> members = new ArrayList<>();
                 while (resultSet.next()) {
-                    members.add(new ProjectMember(
+                    members.add(ProjectMember.create(
                             resultSet.getLong("project_id"),
                             resultSet.getString("user_login_id"),
                             JdbcSupport.nullableDateTime(resultSet, "joined_at")));
@@ -178,11 +178,11 @@ public final class JdbcProjectRepository implements ProjectRepository {
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
-            statement.setString(1, project.name());
-            JdbcSupport.setNullableString(statement, 2, project.description());
-            statement.setString(3, project.managedById());
-            JdbcSupport.setNullableTimestamp(statement, 4, project.createdDate());
-            JdbcSupport.setNullableTimestamp(statement, 5, project.updatedAt());
+            statement.setString(1, project.getName());
+            JdbcSupport.setNullableString(statement, 2, project.getDescription());
+            statement.setString(3, project.getManagedById());
+            JdbcSupport.setNullableTimestamp(statement, 4, project.getCreatedDate());
+            JdbcSupport.setNullableTimestamp(statement, 5, project.getUpdatedAt());
             statement.executeUpdate();
             return findById(JdbcSupport.generatedId(statement))
                     .orElseThrow(() -> new RepositoryException("Inserted project was not found.", null));
@@ -202,13 +202,13 @@ public final class JdbcProjectRepository implements ProjectRepository {
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, project.name());
-            JdbcSupport.setNullableString(statement, 2, project.description());
-            statement.setString(3, project.managedById());
-            JdbcSupport.setNullableTimestamp(statement, 4, project.updatedAt());
-            statement.setLong(5, project.id());
+            statement.setString(1, project.getName());
+            JdbcSupport.setNullableString(statement, 2, project.getDescription());
+            statement.setString(3, project.getManagedById());
+            JdbcSupport.setNullableTimestamp(statement, 4, project.getUpdatedAt());
+            statement.setLong(5, project.getId());
             statement.executeUpdate();
-            return findById(project.id())
+            return findById(project.getId())
                     .orElseThrow(() -> new RepositoryException("Updated project was not found.", null));
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update project.", exception);

@@ -7,15 +7,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectDetail;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
@@ -43,13 +49,14 @@ class ProjectControllerTest {
 
         assertThrows(IllegalArgumentException.class, () -> controller.viewProject(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(0L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectDetail(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.addProjectParticipant(0L, "dev1"));
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(0L, "dev1"));
     }
 
     @Test
-    @DisplayName("ADMIN views projects and project participants")
+    @DisplayName("ADMIN views projects, participants, and project detail")
     void adminViewsProjectsAndProjectParticipants() {
         AuthFixture auth = authenticated(Role.ADMIN);
         FakeProjectRepository projects = new FakeProjectRepository(
@@ -57,19 +64,31 @@ class ProjectControllerTest {
                 project(2L, "project-two"));
         projects.addParticipant(1L, "pl1");
         projects.addParticipant(1L, "dev1");
-        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issue(101L, 1L, IssueStatus.NEW),
+                issue(102L, 2L, IssueStatus.ASSIGNED));
+        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()), issues);
 
         List<Project> viewedProjects = controller.viewProjects();
         Project viewedProject = controller.viewProject(1L);
         List<ProjectMember> viewedParticipants = controller.viewProjectParticipants(1L);
+        ProjectDetail viewedDetail = controller.viewProjectDetail(1L);
 
         assertEquals(2, viewedProjects.size());
-        assertEquals("project-one", viewedProject.name());
+        assertEquals("project-one", viewedProject.getName());
         assertEquals(List.of("pl1", "dev1"), viewedParticipants.stream()
                 .map(ProjectMember::userId)
                 .toList());
+        assertEquals("project-one", viewedDetail.project().getName());
+        assertEquals(List.of("pl1", "dev1"), viewedDetail.participants().stream()
+                .map(ProjectMember::userId)
+                .toList());
+        assertEquals(List.of(101L), viewedDetail.issues().stream()
+                .map(Issue::id)
+                .toList());
         assertThrows(IllegalArgumentException.class, () -> controller.viewProject(404L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(404L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectDetail(404L));
     }
 
     @Test
@@ -81,13 +100,13 @@ class ProjectControllerTest {
 
         Project created = controller.createProject(" project-alpha ", "first project");
 
-        assertTrue(created.id() > 0L);
-        assertEquals("project-alpha", created.name());
-        assertEquals("first project", created.description());
-        assertEquals("admin", created.managedById());
-        assertNotNull(created.createdDate());
-        assertNotNull(created.updatedAt());
-        assertTrue(projects.findById(created.id()).isPresent());
+        assertTrue(created.getId() > 0L);
+        assertEquals("project-alpha", created.getName());
+        assertEquals("first project", created.getDescription());
+        assertEquals("admin", created.getManagedById());
+        assertNotNull(created.getCreatedDate());
+        assertNotNull(created.getUpdatedAt());
+        assertTrue(projects.findById(created.getId()).isPresent());
     }
 
     @Test
@@ -114,6 +133,7 @@ class ProjectControllerTest {
             assertThrows(SecurityException.class, controller::viewProjects);
             assertThrows(SecurityException.class, () -> controller.viewProject(1L));
             assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(1L));
+            assertThrows(SecurityException.class, () -> controller.viewProjectDetail(1L));
             assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
             assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
             assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
@@ -126,13 +146,14 @@ class ProjectControllerTest {
     void anonymousUsersCannotManageProjects() {
         FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
         FakeUserRepository users = new FakeUserRepository(active("dev1", Role.DEV));
-        ProjectController controller = new ProjectController(
+        ProjectController controller = ProjectController.create(
                 anonymousAuth(),
                 service(projects, users));
 
         assertThrows(SecurityException.class, controller::viewProjects);
         assertThrows(SecurityException.class, () -> controller.viewProject(1L));
         assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(1L));
+        assertThrows(SecurityException.class, () -> controller.viewProjectDetail(1L));
         assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
         assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
         assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
@@ -215,16 +236,34 @@ class ProjectControllerTest {
             AuthFixture auth,
             FakeProjectRepository projects,
             FakeUserRepository users) {
-        return new ProjectController(
+        return ProjectController.create(
                 auth.service(),
                 service(projects, users));
+    }
+
+    private static ProjectController controller(
+            AuthFixture auth,
+            FakeProjectRepository projects,
+            FakeUserRepository users,
+            FakeIssueRepository issues) {
+        return ProjectController.create(
+                auth.service(),
+                service(projects, users, issues));
     }
 
     private static ProjectService service(
             FakeProjectRepository projects,
             FakeUserRepository users) {
-        return new ProjectService(
+        return service(projects, users, new FakeIssueRepository());
+    }
+
+    private static ProjectService service(
+            FakeProjectRepository projects,
+            FakeUserRepository users,
+            FakeIssueRepository issues) {
+        return ProjectService.create(
                 projects,
+                issues,
                 users,
                 new PermissionPolicy(),
                 new Clock());
@@ -261,6 +300,20 @@ class ProjectControllerTest {
         return Project.create(projectId, name, "description", "admin", NOW, NOW);
     }
 
+    private static Issue issue(long id, long projectId, IssueStatus status) {
+        return Issue.fromPersistence(Issue.persistedState(
+                projectId,
+                "Issue " + id,
+                "Project controller test issue",
+                user("reporter", Role.DEV, true))
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(NOW)
+                .updatedAt(NOW)
+                .priority(Priority.MAJOR)
+                .status(status));
+    }
+
     private record AuthFixture(AuthenticationService service, User user) {
     }
 
@@ -272,7 +325,7 @@ class ProjectControllerTest {
 
         private FakeProjectRepository(Project... projects) {
             for (Project project : projects) {
-                projectsById.put(project.id(), project);
+                projectsById.put(project.getId(), project);
             }
         }
 
@@ -284,7 +337,7 @@ class ProjectControllerTest {
         @Override
         public Optional<Project> findByName(String name) {
             return projectsById.values().stream()
-                    .filter(project -> project.name().equals(name))
+                    .filter(project -> project.getName().equals(name))
                     .findFirst();
         }
 
@@ -295,11 +348,12 @@ class ProjectControllerTest {
 
         @Override
         public Project save(Project project) {
-            Project persistedProject = project.id() == 0L
-                    ? Project.create(nextProjectId++, project.name(), project.description(), project.managedById(),
-                            project.createdDate(), project.updatedAt())
+            Project persistedProject = project.getId() == 0L
+                    ? Project.create(nextProjectId++, project.getName(), project.getDescription(),
+                            project.getManagedById(),
+                            project.getCreatedDate(), project.getUpdatedAt())
                     : project;
-            projectsById.put(persistedProject.id(), persistedProject);
+            projectsById.put(persistedProject.getId(), persistedProject);
             return persistedProject;
         }
 
@@ -312,7 +366,7 @@ class ProjectControllerTest {
         @Override
         public void addParticipant(long projectId, String userLoginId) {
             membersByProjectId.computeIfAbsent(projectId, ignored -> new ArrayList<>())
-                    .add(new ProjectMember(projectId, userLoginId, NOW));
+                    .add(ProjectMember.create(projectId, userLoginId, NOW));
         }
 
         @Override
@@ -339,7 +393,7 @@ class ProjectControllerTest {
 
         private FakeUserRepository(User... users) {
             for (User user : users) {
-                usersByLoginId.put(user.loginId(), user);
+                usersByLoginId.put(user.getLoginId(), user);
             }
         }
 
@@ -361,20 +415,79 @@ class ProjectControllerTest {
         @Override
         public List<User> findActiveByRole(long projectId, Role role) {
             return usersByLoginId.values().stream()
-                    .filter(User::active)
-                    .filter(user -> user.role() == role)
+                    .filter(User::isActive)
+                    .filter(user -> user.getRole() == role)
                     .toList();
         }
 
         @Override
         public User save(User user) {
-            usersByLoginId.put(user.loginId(), user);
+            usersByLoginId.put(user.getLoginId(), user);
             return user;
         }
 
         @Override
         public void deactivate(String loginId) {
             findByLoginId(loginId).ifPresent(User::deactivate);
+        }
+    }
+
+    private static final class FakeIssueRepository implements IssueRepository {
+
+        private final Map<Long, Issue> issuesById = new LinkedHashMap<>();
+
+        private FakeIssueRepository(Issue... issues) {
+            for (Issue issue : issues) {
+                issuesById.put(issue.id(), issue);
+            }
+        }
+
+        @Override
+        public Optional<Issue> findById(long issueId) {
+            return Optional.ofNullable(issuesById.get(issueId));
+        }
+
+        @Override
+        public List<Issue> findByProject(long projectId) {
+            return issuesById.values().stream()
+                    .filter(issue -> issue.projectId() == projectId)
+                    .toList();
+        }
+
+        @Override
+        public List<Issue> findDeletedByProject(long projectId) {
+            return List.of();
+        }
+
+        @Override
+        public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
+            return new ArrayList<>(issuesById.values());
+        }
+
+        @Override
+        public Issue save(Issue issue) {
+            issuesById.put(issue.id(), issue);
+            return issue;
+        }
+
+        @Override
+        public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
+            throw new UnsupportedOperationException("softDelete is not needed by ProjectControllerTest.");
+        }
+
+        @Override
+        public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
+            throw new UnsupportedOperationException("restore is not needed by ProjectControllerTest.");
+        }
+
+        @Override
+        public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
+            return 0;
+        }
+
+        @Override
+        public void purge(long issueId) {
+            issuesById.remove(issueId);
         }
     }
 }

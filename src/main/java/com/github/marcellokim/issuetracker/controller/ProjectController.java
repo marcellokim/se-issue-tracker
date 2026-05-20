@@ -4,6 +4,7 @@ import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.ProjectDetail;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import java.util.List;
 import java.util.Objects;
@@ -13,7 +14,14 @@ public final class ProjectController {
     private final AuthenticationService authenticationService;
     private final ProjectService projectService;
 
-    public ProjectController(
+    // factory
+    public static ProjectController create(
+            AuthenticationService authenticationService,
+            ProjectService projectService) {
+        return new ProjectController(authenticationService, projectService);
+    }
+
+    private ProjectController(
             AuthenticationService authenticationService,
             ProjectService projectService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
@@ -22,37 +30,42 @@ public final class ProjectController {
 
     public List<Project> viewProjects() {
         User user = requireCurrentUser();
-        return projectService.viewProjects(user.loginId());
+        return projectService.viewProjects(user.getLoginId());
     }
 
     public Project viewProject(long projectId) {
         User user = requireCurrentUser();
-        return projectService.viewProject(projectId, user.loginId());
+        return projectService.viewProject(projectId, user.getLoginId());
     }
 
     public List<ProjectMember> viewProjectParticipants(long projectId) {
         User user = requireCurrentUser();
-        return projectService.viewProjectParticipants(projectId, user.loginId());
+        return projectService.viewProjectParticipants(projectId, user.getLoginId());
+    }
+
+    public ProjectDetail viewProjectDetail(long projectId) {
+        User user = requireCurrentUser();
+        return projectService.viewProjectDetail(projectId, user.getLoginId());
     }
 
     public Project createProject(String name, String description) {
         User user = requireCurrentUser();
-        return projectService.createProject(name, description, user.loginId());
+        return projectService.createProject(name, description, user.getLoginId());
     }
 
     public void deleteProject(long projectId) {
         User user = requireCurrentUser();
-        projectService.deleteProject(projectId, user.loginId());
+        projectService.deleteProject(projectId, user.getLoginId());
     }
 
     public void addProjectParticipant(long projectId, String loginId) {
         User user = requireCurrentUser();
-        projectService.addProjectParticipant(projectId, loginId, user.loginId());
+        projectService.addProjectParticipant(projectId, loginId, user.getLoginId());
     }
 
     public void removeProjectParticipant(long projectId, String loginId) {
         User user = requireCurrentUser();
-        projectService.removeProjectParticipant(projectId, loginId, user.loginId());
+        projectService.removeProjectParticipant(projectId, loginId, user.getLoginId());
     }
 
     private User requireCurrentUser() {

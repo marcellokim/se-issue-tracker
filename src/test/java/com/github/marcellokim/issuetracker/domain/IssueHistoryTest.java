@@ -19,7 +19,7 @@ class IssueHistoryTest {
         @Test
         @DisplayName("preserves persisted history fields")
         void persistedHistoryKeepsDatabaseFields() {
-                IssueHistory history = new IssueHistory(
+                IssueHistory history = IssueHistory.fromPersistence(
                                 15L,
                                 100L,
                                 "pl1",
@@ -74,12 +74,14 @@ class IssueHistoryTest {
         @DisplayName("rejects invalid persisted history arguments")
         void rejectsInvalidPersistedHistoryArguments() {
                 assertThrows(IllegalArgumentException.class,
-                                () -> new IssueHistory(1L, 100L, " ", ActionType.CREATED, null, "NEW", null,
+                                () -> IssueHistory.fromPersistence(1L, 100L, " ", ActionType.CREATED, null, "NEW", null,
                                                 CHANGED_AT));
                 assertThrows(NullPointerException.class,
-                                () -> new IssueHistory(1L, 100L, "pl1", null, null, "NEW", null, CHANGED_AT));
+                                () -> IssueHistory.fromPersistence(1L, 100L, "pl1", null, null, "NEW", null,
+                                                CHANGED_AT));
                 assertThrows(NullPointerException.class,
-                                () -> new IssueHistory(1L, 100L, "pl1", ActionType.CREATED, null, "NEW", null, null));
+                                () -> IssueHistory.fromPersistence(1L, 100L, "pl1", ActionType.CREATED, null, "NEW",
+                                                null, null));
         }
 
         @Test

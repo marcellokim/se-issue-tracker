@@ -4,6 +4,7 @@ import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -14,20 +15,31 @@ import java.util.Optional;
 public final class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final IssueRepository issueRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
 
-    public ProjectService(
+    private ProjectService(
             ProjectRepository projectRepository,
+            IssueRepository issueRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock
-    ) {
+            Clock clock) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
+        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    public static ProjectService create(
+            ProjectRepository projectRepository,
+            IssueRepository issueRepository,
+            UserRepository userRepository,
+            PermissionPolicy permissionPolicy,
+            Clock clock) {
+        return new ProjectService(projectRepository, issueRepository, userRepository, permissionPolicy, clock);
     }
 
     public List<Project> viewProjects(String currentUserId) {
@@ -48,6 +60,14 @@ public final class ProjectService {
         return projectRepository.findParticipants(projectId);
     }
 
+    public ProjectDetail viewProjectDetail(long projectId, String currentUserId) {
+        requireProjectId(projectId);
+        requireProjectAdmin(currentUserId);
+        Project project = findProject(projectId);
+        List<ProjectMember> participants = projectRepository.findParticipants(projectId);
+        return ProjectDetail.create(project, participants, issueRepository.findByProject(projectId));
+    }
+
     public Project createProject(String name, String description, String currentUserId) {
         User admin = requireProjectAdmin(currentUserId);
         String projectName = requireProjectName(name);
@@ -58,7 +78,7 @@ public final class ProjectService {
                 0L,
                 projectName,
                 description,
-                admin.loginId(),
+                admin.getLoginId(),
                 now,
                 now));
     }
@@ -76,18 +96,18 @@ public final class ProjectService {
         requireProjectAdmin(currentUserId);
         findProject(projectId);
         User participant = findUser(requireText(loginId, "loginId"));
-        if (!participant.active()) {
+        if (!participant.isActive()) {
             throw new IllegalArgumentException("Only active users can be added to a project.");
         }
-        if (participant.role() == Role.ADMIN) {
+        if (participant.getRole() == Role.ADMIN) {
             throw new IllegalArgumentException("ADMIN cannot be added as a project participant.");
         }
 
         List<ProjectMember> participants = projectRepository.findParticipants(projectId);
-        rejectDuplicateParticipant(participants, participant.loginId());
+        rejectDuplicateParticipant(participants, participant.getLoginId());
         rejectSecondProjectLeader(participants, participant);
 
-        projectRepository.addParticipant(projectId, participant.loginId());
+        projectRepository.addParticipant(projectId, participant.getLoginId());
     }
 
     public void removeProjectParticipant(long projectId, String loginId, String currentUserId) {
@@ -133,7 +153,7 @@ public final class ProjectService {
     }
 
     private void rejectSecondProjectLeader(List<ProjectMember> participants, User participant) {
-        if (participant.role() != Role.PL) {
+        if (participant.getRole() != Role.PL) {
             return;
         }
 
@@ -141,7 +161,7 @@ public final class ProjectService {
                 .map(ProjectMember::userId)
                 .map(userRepository::findById)
                 .flatMap(Optional::stream)
-                .anyMatch(user -> user.role() == Role.PL);
+                .anyMatch(user -> user.getRole() == Role.PL);
         if (hasProjectLead) {
             throw new IllegalArgumentException("Only one PL can be assigned to a project.");
         }

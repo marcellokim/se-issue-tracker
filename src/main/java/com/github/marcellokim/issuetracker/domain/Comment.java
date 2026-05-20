@@ -13,7 +13,17 @@ public final class Comment {
     private final LocalDateTime createdDate;
     private final User writer;
 
-    public Comment(long id, long issueId, String writerId, String content, LocalDateTime createdDate) {
+    public static Comment fromPersistence(
+            long id,
+            long issueId,
+            String writerId,
+            String content,
+            LocalDateTime createdDate
+    ) {
+        return new Comment(id, issueId, writerId, content, createdDate);
+    }
+
+    private Comment(long id, long issueId, String writerId, String content, LocalDateTime createdDate) {
         this.id = id;
         this.issueId = issueId;
         this.commentId = Long.toString(id);
@@ -28,7 +38,7 @@ public final class Comment {
         this.issueId = 0L;
         this.commentId = requireText(commentId, "commentId");
         this.writer = Objects.requireNonNull(writer, "writer must not be null");
-        this.writerId = writer.loginId();
+        this.writerId = writer.getLoginId();
         this.content = requireText(content, "content");
         this.createdDate = Objects.requireNonNull(createdDate, "createdDate must not be null");
     }

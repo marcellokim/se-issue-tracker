@@ -22,16 +22,16 @@ public final class AssignmentRecommendationService {
     public AssignmentOptions recommendAssignmentCandidates(Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
         return switch (targetIssue.status()) {
-            case NEW, REOPENED -> new AssignmentOptions(
+            case NEW, REOPENED -> AssignmentOptions.create(
                     findDevAssigneeCandidateDetails(targetIssue),
                     findTesterVerifierCandidateDetails(targetIssue));
-            case ASSIGNED -> new AssignmentOptions(
+            case ASSIGNED -> AssignmentOptions.create(
                     findDevAssigneeCandidateDetails(targetIssue),
                     List.of());
-            case FIXED -> new AssignmentOptions(
+            case FIXED -> AssignmentOptions.create(
                     List.of(),
                     findTesterVerifierCandidateDetails(targetIssue));
-            case RESOLVED, CLOSED, DELETED -> new AssignmentOptions(List.of(), List.of());
+            case RESOLVED, CLOSED, DELETED -> AssignmentOptions.create(List.of(), List.of());
         };
     }
 

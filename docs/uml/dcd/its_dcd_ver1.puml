@@ -109,6 +109,10 @@ package "Application Layer\n(concrete controllers)" #FFF8E1 {
   }
 
   class ProjectController <<control>> {
+    +viewProjects(): List<ProjectDto>
+    +viewProject(projectId): ProjectDto
+    +viewProjectParticipants(projectId): List<ProjectMemberDto>
+    +viewProjectDetail(projectId): ProjectDetail
     +createProject(name, description): ProjectDto
     +deleteProject(projectId): void
     +addProjectParticipant(projectId, loginId): ProjectDto
@@ -150,6 +154,17 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
     +changeStatus(issueId, targetStatus, comment, currentUserId): IssueStateResult
   }
 
+  class ProjectService <<service>> {
+    +viewProjects(currentUserId): List<Project>
+    +viewProject(projectId, currentUserId): Project
+    +viewProjectParticipants(projectId, currentUserId): List<ProjectMember>
+    +viewProjectDetail(projectId, currentUserId): ProjectDetail
+    +createProject(name, description, currentUserId): Project
+    +deleteProject(projectId, currentUserId): void
+    +addProjectParticipant(projectId, loginId, currentUserId): void
+    +removeProjectParticipant(projectId, loginId, currentUserId): void
+  }
+
   class AssignmentRecommendationService <<service>> {
     +recommendAssignmentCandidates(issue): AssignmentOptions
     +findDevAssigneeCandidates(issue): List<User>
@@ -164,12 +179,18 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
 package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
   interface ProjectRepository <<interface>> {
     +findById(projectId): Project
+    +findByName(name): Project
+    +findAll(): List<Project>
+    +findParticipants(projectId): List<ProjectMember>
     +save(project): void
     +deleteById(projectId): void
+    +addParticipant(projectId, loginId): void
+    +removeParticipant(projectId, loginId): void
   }
 
   interface IssueRepository <<interface>> {
     +findById(issueId): Issue
+    +findByProject(projectId): List<Issue>
     +findDeletedByProject(projectId): List<Issue>
     +findByCriteria(filters): List<Issue>
     +save(issue): void
@@ -342,6 +363,7 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
 
   class AssignmentOptions <<value object>>
   class AssignmentContext <<value object>>
+  class ProjectDetail <<value object>>
   class ValidationResult <<value object>>
   class StatisticsReport <<value object>>
 }
@@ -381,10 +403,7 @@ AccountController ..> UserRepository
 AccountController ..> PasswordHasher
 
 ProjectController ..> AuthenticationService
-ProjectController ..> PermissionPolicy
-ProjectController ..> ProjectRepository
-ProjectController ..> UserRepository
-ProjectController ..> Clock
+ProjectController ..> ProjectService
 
 StatisticsController ..> AuthenticationService
 StatisticsController ..> PermissionPolicy
@@ -400,6 +419,13 @@ IssueStateService ..> PermissionPolicy
 IssueStateService ..> IssueRepository
 IssueStateService ..> UserRepository
 IssueStateService ..> Clock
+
+ProjectService ..> PermissionPolicy
+ProjectService ..> ProjectRepository
+ProjectService ..> IssueRepository
+ProjectService ..> UserRepository
+ProjectService ..> Clock
+ProjectService ..> ProjectDetail
 
 AssignmentRecommendationService ..> IssueRepository
 AssignmentRecommendationService ..> UserRepository

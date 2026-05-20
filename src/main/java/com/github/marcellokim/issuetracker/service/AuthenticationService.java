@@ -42,10 +42,10 @@ public final class AuthenticationService {
 
         return users.findByLoginId(loginId.trim())
                 .map(user -> {
-                    if (!user.active()) {
+                    if (!user.isActive()) {
                         return AuthenticationResult.failure("This account is inactive.");
                     }
-                    if (!passwordHasher.matches(password, user.password())) {
+                    if (!passwordHasher.matches(password, user.getPasswordHash())) {
                         return AuthenticationResult.failure("Invalid ID or password.");
                     }
                     sessionStore.startSession(user);

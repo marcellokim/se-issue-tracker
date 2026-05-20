@@ -16,7 +16,29 @@ public final class IssueHistory {
     private final LocalDateTime changedDate;
     private final User changedBy;
 
-    public IssueHistory(
+    public static IssueHistory fromPersistence(
+            long id,
+            long issueId,
+            String changedById,
+            ActionType actionType,
+            String previousValue,
+            String newValue,
+            String message,
+            LocalDateTime changedDate
+    ) {
+        return new IssueHistory(
+                id,
+                issueId,
+                changedById,
+                actionType,
+                previousValue,
+                newValue,
+                message,
+                changedDate
+        );
+    }
+
+    private IssueHistory(
             long id,
             long issueId,
             String changedById,
@@ -51,7 +73,7 @@ public final class IssueHistory {
         this.issueId = 0L;
         this.historyId = requireText(historyId, "historyId");
         this.changedBy = Objects.requireNonNull(changedBy, "changedBy must not be null");
-        this.changedById = changedBy.loginId();
+        this.changedById = changedBy.getLoginId();
         this.actionType = Objects.requireNonNull(action, "action must not be null");
         this.previousValue = previousValue;
         this.newValue = newValue;

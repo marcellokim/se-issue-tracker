@@ -187,7 +187,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     static IssueDependency mapDependency(ResultSet resultSet) throws SQLException {
-        return new IssueDependency(
+        return IssueDependency.fromPersistence(
                 resultSet.getLong("id"),
                 resultSet.getString("dependency_id"),
                 resultSet.getLong("blocking_issue_id"),

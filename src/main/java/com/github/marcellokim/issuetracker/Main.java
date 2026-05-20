@@ -103,11 +103,10 @@ public final class Main {
             user.ifPresentOrElse(
                     value -> {
                         printLine("Account: found");
-                        printLine("Role: " + value.role());
-                        printLine("Active: " + value.active());
+                        printLine("Role: " + value.getRole());
+                        printLine("Active: " + value.isActive());
                     },
-                    () -> printLine("Account: missing")
-            );
+                    () -> printLine("Account: missing"));
             printLine("Login result: " + (result.success() ? "SUCCESS" : "FAILURE"));
             printLine("Message: " + result.message());
         } catch (IOException | SQLException | RuntimeException exception) {
@@ -126,8 +125,8 @@ public final class Main {
                 from dual
                 """;
         try (var connection = connectionProvider.getConnection();
-             var statement = connection.prepareStatement(sql);
-             var resultSet = statement.executeQuery()) {
+                var statement = connection.prepareStatement(sql);
+                var resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
                 printLine("Current schema: " + resultSet.getString("current_schema"));
                 printLine("Oracle container: " + resultSet.getString("container_name"));
@@ -141,14 +140,13 @@ public final class Main {
 
         printLine("Oracle repository demo ready.");
         admin.ifPresentOrElse(
-                user -> printLine("Admin: " + user.loginId() + " / " + user.role() + " / active=" + user.active()),
-                () -> printLine("Admin: missing")
-        );
+                user -> printLine(
+                        "Admin: " + user.getLoginId() + " / " + user.getRole() + " / active=" + user.isActive()),
+                () -> printLine("Admin: missing"));
 
         project.ifPresentOrElse(
-                value -> printProjectSummary(repositories, value.id(), value.name()),
-                () -> printLine("Project: project1 missing")
-        );
+                value -> printProjectSummary(repositories, value.getId(), value.getName()),
+                () -> printLine("Project: project1 missing"));
     }
 
     private static void printProjectSummary(JdbcRepositoryFactory repositories, long projectId, String projectName) {

@@ -93,12 +93,12 @@ class AssignmentRecommendationServiceTest {
 
         @Override
         public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of(new AssignmentCandidate(user("dev1", Role.DEV), 2));
+            return List.of(AssignmentCandidate.create(user("dev1", Role.DEV), 2));
         }
 
         @Override
         public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of(new AssignmentCandidate(user("tester1", Role.TESTER), 3));
+            return List.of(AssignmentCandidate.create(user("tester1", Role.TESTER), 3));
         }
     }
 }
