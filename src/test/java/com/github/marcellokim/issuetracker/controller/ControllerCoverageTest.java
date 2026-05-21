@@ -144,7 +144,9 @@ class ControllerCoverageTest {
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
                 new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
-        assertThrows(SecurityException.class, () -> adminController.deleteIssue(101L, "admin cannot delete"));
+        SecurityException adminFailure =
+                assertThrows(SecurityException.class, () -> adminController.deleteIssue(101L, "admin cannot delete"));
+        assertEquals("Only PL can manage deleted issues.", adminFailure.getMessage());
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),

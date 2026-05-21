@@ -20,6 +20,11 @@ public class User {
         return new User(loginId, name, passwordHash, role, active, createdAt, updatedAt);
     }
 
+    public static User fromPersistence(String loginId, String name, String passwordHash, Role role,
+            boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        return new User(loginId, name, passwordHash, role, active, createdAt, updatedAt);
+    }
+
     // private 생성자
     private User(
             String loginId,

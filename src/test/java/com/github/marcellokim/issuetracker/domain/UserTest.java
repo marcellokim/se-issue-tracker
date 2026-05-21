@@ -27,6 +27,18 @@ class UserTest {
         }
 
         @Test
+        @DisplayName("저장소에서 복원한 사용자는 저장된 계정 상태를 보존한다")
+        void fromPersistencePreservesStoredUserState() {
+                var user = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, false, null, null);
+
+                assertEquals("dev1", user.getLoginId());
+                assertEquals("Dev One", user.getName());
+                assertEquals("hash", user.getPasswordHash());
+                assertEquals(Role.DEV, user.getRole());
+                assertFalse(user.isActive());
+        }
+
+        @Test
         @DisplayName("사용자 핵심 값은 비어 있을 수 없다")
         void rejectBlankUserFields() {
                 // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)

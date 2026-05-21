@@ -41,7 +41,7 @@ final class JdbcIssueRowMapper {
         if (loginId == null || loginId.isBlank()) {
             return null;
         }
-        return User.create(
+        return User.fromPersistence(
                 loginId,
                 resultSet.getString(prefix + "_name"),
                 resultSet.getString(prefix + "_password"),
