@@ -124,4 +124,16 @@ final class JdbcIssueWriteSupport {
             // 실패 경로 cleanup 실패가 원래 repository 실패 원인을 가리면 호출자가 실제 원인 잃음.
         }
     }
+
+    void restoreAutoCommitAfterTransaction(
+            Connection connection,
+            boolean autoCommit,
+            boolean transactionSucceeded
+    ) throws SQLException {
+        if (transactionSucceeded) {
+            connection.setAutoCommit(autoCommit);
+            return;
+        }
+        restoreAutoCommitPreservingOriginalFailure(connection, autoCommit);
+    }
 }

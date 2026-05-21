@@ -12,8 +12,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 
 final class JdbcIssueDeleteOperations {
+
+    private static final int PURGE_BATCH_SIZE = 500;
 
     private final DatabaseConnectionProvider connectionProvider;
     private final JdbcIssueRowMapper rowMapper;
@@ -36,6 +39,7 @@ final class JdbcIssueDeleteOperations {
 
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
                 Issue issue = findById(connection, issueId)
@@ -60,12 +64,13 @@ final class JdbcIssueDeleteOperations {
                         effectiveChangedDate
                 );
                 connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
+                transactionSucceeded = true;
                 return copyWithStatus(issue, IssueStatus.DELETED, effectiveChangedDate);
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to soft-delete issue.", exception);
@@ -78,6 +83,7 @@ final class JdbcIssueDeleteOperations {
 
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
                 Issue issue = findById(connection, issueId)
@@ -103,12 +109,13 @@ final class JdbcIssueDeleteOperations {
                         effectiveChangedDate
                 );
                 connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
+                transactionSucceeded = true;
                 return copyWithStatus(issue, restoreStatus, effectiveChangedDate);
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to restore issue.", exception);
@@ -122,20 +129,20 @@ final class JdbcIssueDeleteOperations {
 
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
                 List<Long> deletedIssueIds = currentDeletedIssueIdsByFifo(connection, projectId);
                 int overflowCount = Math.max(0, deletedIssueIds.size() - maxDeletedIssues);
-                for (int index = 0; index < overflowCount; index++) {
-                    purge(connection, deletedIssueIds.get(index));
-                }
+                purgeAll(connection, deletedIssueIds.subList(0, overflowCount));
                 connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
+                transactionSucceeded = true;
                 return overflowCount;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to purge FIFO deleted issues.", exception);
@@ -159,6 +166,35 @@ final class JdbcIssueDeleteOperations {
             statement.setLong(1, issueId);
             statement.executeUpdate();
         }
+    }
+
+    private void purgeAll(Connection connection, List<Long> issueIds) throws SQLException {
+        for (int start = 0; start < issueIds.size(); start += PURGE_BATCH_SIZE) {
+            List<Long> batch = issueIds.subList(start, Math.min(start + PURGE_BATCH_SIZE, issueIds.size()));
+            purgeBatch(connection, batch);
+        }
+    }
+
+    private void purgeBatch(Connection connection, List<Long> issueIds) throws SQLException {
+        if (issueIds.isEmpty()) {
+            return;
+        }
+        // Oracle IN 목록 제한을 피하면서 기존 FIFO purge 대상 집합은 그대로 유지함.
+        String sql = "delete from issues where id in (" + placeholders(issueIds.size()) + ")";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int index = 0; index < issueIds.size(); index++) {
+                statement.setLong(index + 1, issueIds.get(index));
+            }
+            statement.executeUpdate();
+        }
+    }
+
+    private static String placeholders(int count) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (int index = 0; index < count; index++) {
+            joiner.add("?");
+        }
+        return joiner.toString();
     }
 
     private Optional<Issue> findById(Connection connection, long issueId) throws SQLException {

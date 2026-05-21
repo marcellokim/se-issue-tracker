@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -19,6 +20,8 @@ class JdbcIssueWriteSupportTest {
 
         assertDoesNotThrow(() -> writes.rollbackPreservingOriginalFailure(connection));
         assertDoesNotThrow(() -> writes.restoreAutoCommitPreservingOriginalFailure(connection, true));
+        assertDoesNotThrow(() -> writes.restoreAutoCommitAfterTransaction(connection, true, false));
+        assertThrows(SQLException.class, () -> writes.restoreAutoCommitAfterTransaction(connection, true, true));
     }
 
     private static Connection failingCleanupConnection() {

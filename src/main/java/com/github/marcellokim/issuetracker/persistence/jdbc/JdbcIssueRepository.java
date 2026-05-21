@@ -116,6 +116,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 """;
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try (PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
                 bindIssueForInsert(statement, issue);
@@ -126,12 +127,13 @@ public final class JdbcIssueRepository implements IssueRepository {
                 Issue inserted = findById(connection, issueId)
                         .orElseThrow(() -> new RepositoryException("Inserted issue was not found.", null));
                 connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
+                transactionSucceeded = true;
                 return inserted;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to insert issue.", exception);
@@ -157,6 +159,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 """;
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setLong(1, issue.projectId());
@@ -178,12 +181,13 @@ public final class JdbcIssueRepository implements IssueRepository {
                 Issue updated = findById(connection, issue.id())
                         .orElseThrow(() -> new RepositoryException("Updated issue was not found.", null));
                 connection.commit();
-                connection.setAutoCommit(originalAutoCommit);
+                transactionSucceeded = true;
                 return updated;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update issue.", exception);
