@@ -29,29 +29,29 @@ class ProjectMaintenanceScriptTest {
                         assert "body" in fields, args
                         assert "closingIssuesReferences" in fields, args
                         return [{
-                            "number": 122,
+                            "number": 9001,
                             "title": "comment contract",
-                            "body": "## 관련 이슈\\n- Closes #102\\n",
+                            "body": "## 관련 이슈\\n- Closes #9102\\n",
                             "closingIssuesReferences": []
                         }, {
-                            "number": 124,
+                            "number": 9002,
                             "title": "reference only",
-                            "body": "## 참고\\n- Refs #103\\n",
+                            "body": "## 참고\\n- Refs #9103\\n",
                             "closingIssuesReferences": []
                         }, {
-                            "number": 125,
+                            "number": 9003,
                             "title": "invalid closing reference",
-                            "body": "## 관련 이슈\\n- Closes: #999\\n",
+                            "body": "## 관련 이슈\\n- Closes: #9999\\n",
                             "closingIssuesReferences": []
                         }]
-                    if args[:3] == ["issue", "view", "102"]:
+                    if args[:3] == ["issue", "view", "9102"]:
                         return {
-                            "number": 102,
+                            "number": 9102,
                             "title": "IssueController 등록과 코멘트 API 구현",
                             "state": "OPEN",
                             "labels": [{"name": "status:review"}]
                         }
-                    if args[:3] == ["issue", "view", "999"]:
+                    if args[:3] == ["issue", "view", "9999"]:
                         raise SystemExit("issue not found")
                     raise AssertionError(args)
 
@@ -66,7 +66,7 @@ class ProjectMaintenanceScriptTest {
                 )
 
                 assert changes == [
-                    "DRY-RUN merged dev PR #122 linked issue 완료 처리: #102 IssueController 등록과 코멘트 API 구현"
+                    "DRY-RUN merged dev PR #9001 linked issue 완료 처리: #9102 IssueController 등록과 코멘트 API 구현"
                 ], changes
                 """;
 
