@@ -170,16 +170,11 @@ Controller가 repository, policy, clock, recommendation service를 직접 들고
 - `controller`는 `repository`, `persistence`, `ui`를 import하지 않는다.
 - `ui`는 `repository`, `persistence`를 import하지 않는다.
 
-현재 dev 구현에는 다음 임시 예외가 있다.
-
-- `ui/DemoDashboardPresenter.java` -> `IssueRepository`
-- `ui/DemoDashboardPresenter.java` -> `ProjectRepository`
-- `ui/DemoDashboardPresenter.java` -> `StatisticsRepository`
-- `ui/DemoDashboardPresenter.java` -> `UserRepository`
-
-이 예외는 영구 설계가 아니라 debt marker이다. 이후 clean-code slice에서 해당 흐름이 service 또는 presenter boundary 뒤로 이동하면 예외 항목을 하나씩 제거해야 한다.
+현재 dev 구현에는 임시 예외가 없다. 예외는 영구 설계가 아니라 debt marker로만 허용하며, 새 예외를 추가해야 할 때는 해당 clean-code slice에서 제거 계획을 같이 남긴다.
 
 Controller layer의 repository 직접 의존 예외는 clean-code slice에서 `AccountService`, `DeletedIssueService`, `StatisticsService`로 이동했다. 이 상태를 유지하기 위해 신규 controller는 repository interface를 직접 import하지 않는다.
+
+UI layer의 repository 직접 의존 예외는 clean-code slice에서 `DashboardSummaryService` 뒤로 이동했다. 이 상태를 유지하기 위해 신규 JavaFX presenter/view는 repository interface를 직접 import하지 않는다.
 
 Review comment 정책은 다음 기준을 따른다.
 
