@@ -15,6 +15,7 @@ public final class IssueStateService {
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
+    private final IssueResolutionGuard resolutionGuard;
 
     public IssueStateService(
             IssueRepository issueRepository,
@@ -22,10 +23,21 @@ public final class IssueStateService {
             PermissionPolicy permissionPolicy,
             Clock clock
     ) {
+        this(issueRepository, userRepository, permissionPolicy, clock, IssueResolutionGuard.none());
+    }
+
+    public IssueStateService(
+            IssueRepository issueRepository,
+            UserRepository userRepository,
+            PermissionPolicy permissionPolicy,
+            Clock clock,
+            IssueResolutionGuard resolutionGuard
+    ) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.resolutionGuard = Objects.requireNonNull(resolutionGuard, "resolutionGuard");
     }
 
     public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment, String currentUserId) {
@@ -54,6 +66,7 @@ public final class IssueStateService {
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
+        resolutionGuard.assertCanResolve(issue);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
         recordStatusChangeReason(issue, actor, comment, changedAt);

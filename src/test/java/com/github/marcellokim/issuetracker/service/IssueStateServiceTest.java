@@ -12,10 +12,12 @@ import org.junit.jupiter.api.Test;
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 
@@ -195,6 +197,43 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("unresolved blocker prevents resolve before status comment or history side effects")
+    void unresolvedBlockerPreventsResolveWithoutSideEffects() {
+        var blocked = fixedIssue();
+        var blocking = fixedIssue(2L);
+        int commentCount = blocked.getComments().size();
+        int historyCount = blocked.getHistories().size();
+        var dependencyRepository = new InMemoryIssueDependencyRepository(
+                IssueDependency.fromPersistence(1L, blocking.id(), blocked.id(), createdAt()));
+        var guard = new DependencyResolutionGuard(
+                new InMemoryIssueRepository(blocked, blocking),
+                dependencyRepository);
+        var service = service(blocked, guard);
+
+        assertThrows(IllegalStateException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId()));
+
+        assertEquals(IssueStatus.FIXED, blocked.status());
+        assertNull(blocked.getResolver());
+        assertEquals(commentCount, blocked.getComments().size());
+        assertEquals(historyCount, blocked.getHistories().size());
+    }
+
+    @Test
+    @DisplayName("resolution guard does not run for non-resolved transitions")
+    void resolutionGuardDoesNotRunForNonResolvedTransition() {
+        var issue = assignedIssue();
+        IssueResolutionGuard failingGuard = ignored -> {
+            throw new AssertionError("guard should only run for RESOLVED target");
+        };
+        var service = service(issue, failingGuard);
+
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());
+
+        assertEquals(IssueStatus.FIXED, result.status());
+    }
+
+    @Test
     @DisplayName("target status is required")
     void rejectNullTargetStatus() {
         var issue = assignedIssue();
@@ -205,11 +244,16 @@ class IssueStateServiceTest {
     }
 
     private IssueStateService service(Issue issue) {
+        return service(issue, IssueResolutionGuard.none());
+    }
+
+    private IssueStateService service(Issue issue, IssueResolutionGuard resolutionGuard) {
         return new IssueStateService(
                 new InMemoryIssueRepository(issue),
                 new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev),
                 new PermissionPolicy(),
-                new Clock()
+                new Clock(),
+                resolutionGuard
         );
     }
 
@@ -230,7 +274,21 @@ class IssueStateServiceTest {
     }
 
     private Issue fixedIssue() {
+        return fixedIssue(ISSUE_ID);
+    }
+
+    private Issue fixedIssue(long id) {
         var issue = assignedIssue();
+        if (id != ISSUE_ID) {
+            issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails " + id, "Cannot log in", reporter)
+                    .id(id)
+                    .issueId("ISSUE-" + id)
+                    .reportedDate(createdAt())
+                    .priority(Priority.MAJOR)
+                    .status(IssueStatus.NEW)
+                    .updatedAt(createdAt()));
+            issue.assignFromNew(assignee, verifier, pl, createdAt().plusMinutes(10));
+        }
         issue.markFixed(assignee, "Fix completed", createdAt().plusMinutes(20));
         return issue;
     }
