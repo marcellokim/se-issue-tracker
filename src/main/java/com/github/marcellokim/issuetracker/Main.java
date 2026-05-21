@@ -3,7 +3,8 @@ package com.github.marcellokim.issuetracker;
 import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
-import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.LoginCheckResult;
+import com.github.marcellokim.issuetracker.service.LoginCheckService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummary;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.technical.ConsoleOutput;
@@ -103,15 +104,14 @@ public final class Main {
             printConnectionContext(connectionProvider);
 
             var repositories = new JdbcRepositoryFactory(connectionProvider);
-            var user = repositories.users().findByLoginId(normalizedLoginId);
-            var result = new AuthenticationService(repositories.users()).login(normalizedLoginId, password);
+            LoginCheckResult result = new LoginCheckService(repositories.users()).checkLogin(normalizedLoginId, password);
 
-            printLine("Login ID: " + normalizedLoginId);
-            user.ifPresentOrElse(
+            printLine("Login ID: " + result.loginId());
+            result.account().ifPresentOrElse(
                     value -> {
                         printLine("Account: found");
-                        printLine("Role: " + value.getRole());
-                        printLine("Active: " + value.isActive());
+                        printLine("Role: " + value.role());
+                        printLine("Active: " + value.active());
                     },
                     () -> printLine("Account: missing"));
             printLine("Login result: " + (result.success() ? "SUCCESS" : "FAILURE"));
