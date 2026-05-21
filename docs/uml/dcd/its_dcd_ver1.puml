@@ -179,6 +179,12 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
     +removeProjectParticipant(projectId, loginId, currentUserId): void
   }
 
+  class ProjectDetail <<read model>> {
+    +project(): Project
+    +participants(): List<ProjectMember>
+    +issues(): List<Issue>
+  }
+
   class AssignmentRecommendationService <<service>> {
     +recommendAssignmentCandidates(issue): AssignmentOptions
     +findDevAssigneeCandidates(issue): List<User>
@@ -381,7 +387,6 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
 
   class AssignmentOptions <<value object>>
   class AssignmentContext <<value object>>
-  class ProjectDetail <<value object>>
   class ValidationResult <<value object>>
   class StatisticsReport <<value object>>
 }
