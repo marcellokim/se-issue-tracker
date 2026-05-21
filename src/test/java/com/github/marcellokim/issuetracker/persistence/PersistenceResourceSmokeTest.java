@@ -36,8 +36,7 @@ class PersistenceResourceSmokeTest {
         int usersTableStart = schema.indexOf("create table users");
         String usersTable = schema.substring(
                 usersTableStart,
-                schema.indexOf("create table user_credentials", usersTableStart)
-        );
+                schema.indexOf("create table user_credentials", usersTableStart));
 
         assertTrue(schema.contains("login_id varchar2(50) primary key"));
         assertTrue(schema.contains("name varchar2(100) not null"));
@@ -53,7 +52,8 @@ class PersistenceResourceSmokeTest {
         assertFalse(seed.contains("demolocaladmin!"));
         assertTrue(seed.contains("merge into user_credentials"));
         assertTrue(seed.contains("'4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt"));
-        assertTrue(seed.contains("'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash"));
+        assertTrue(
+                seed.contains("'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash"));
         assertFalse(usersTable.contains("password_hash"));
         assertFalse(seed.contains("target.password = source.password"));
     }
@@ -84,6 +84,7 @@ class PersistenceResourceSmokeTest {
     void seedIncludesRequiredDemoAccountsAndHistorySamples() throws IOException {
         String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
         String seed = readResource("db/oracle/seed-oracle.sql").toLowerCase();
+        String compactSeed = seed.replaceAll("\\s+", "");
 
         assertTrue(seed.contains("'admin'"));
         assertTrue(seed.contains("'pl1'"));
@@ -103,7 +104,8 @@ class PersistenceResourceSmokeTest {
         assertTrue(seed.contains("merge into comments"));
         assertTrue(seed.contains("merge into issue_dependencies"));
         assertTrue(schema.contains("dependency_id varchar2(128) not null"));
-        assertTrue(seed.contains("standard_hash(to_char(blocking_issue.id) || ':' || to_char(blocked_issue.id), 'sha256')"));
+        assertTrue(compactSeed.contains(
+                "standard_hash(to_char(blocking_issue.id)||':'||to_char(blocked_issue.id),'sha256')"));
     }
 
     private static java.net.URL resource(String path) {
