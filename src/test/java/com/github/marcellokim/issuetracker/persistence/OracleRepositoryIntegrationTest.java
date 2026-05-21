@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
@@ -576,6 +577,7 @@ class OracleRepositoryIntegrationTest {
                     issue.id(),
                     "tester1",
                     "Initial repository comment.",
+                    CommentPurpose.GENERAL,
                     LocalDateTime.now()));
 
             assertEquals("Initial repository comment.", repositories.comments().findById(comment.id())
@@ -589,6 +591,7 @@ class OracleRepositoryIntegrationTest {
                     issue.id(),
                     "tester1",
                     "Updated repository comment.",
+                    CommentPurpose.GENERAL,
                     comment.createdDate()));
 
             assertEquals("Updated repository comment.", updated.content());

@@ -161,7 +161,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<ProjectMember> members = new ArrayList<>();
                 while (resultSet.next()) {
-                    members.add(ProjectMember.create(
+                    members.add(ProjectMember.fromPersistence(
                             resultSet.getLong("project_id"),
                             resultSet.getString("user_login_id"),
                             JdbcSupport.nullableDateTime(resultSet, "joined_at")));

@@ -19,19 +19,8 @@ public final class Comment {
             long issueId,
             String writerId,
             String content,
-            LocalDateTime createdDate
-    ) {
-        return fromPersistence(id, issueId, writerId, content, CommentPurpose.GENERAL, createdDate);
-    }
-
-    public static Comment fromPersistence(
-            long id,
-            long issueId,
-            String writerId,
-            String content,
             CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
+            LocalDateTime createdDate) {
         return new Comment(id, issueId, writerId, content, purpose, createdDate);
     }
 
@@ -41,8 +30,7 @@ public final class Comment {
             String writerId,
             String content,
             CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
+            LocalDateTime createdDate) {
         this.id = id;
         this.issueId = issueId;
         this.commentId = Long.toString(id);
@@ -64,17 +52,12 @@ public final class Comment {
         this.createdDate = Objects.requireNonNull(createdDate, "createdDate must not be null");
     }
 
-    public static Comment create(String commentId, String content, User writer, LocalDateTime createdDate) {
-        return create(commentId, content, writer, CommentPurpose.GENERAL, createdDate);
-    }
-
     public static Comment create(
             String commentId,
             String content,
             User writer,
             CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
+            LocalDateTime createdDate) {
         return new Comment(commentId, content, writer, purpose, createdDate);
     }
 

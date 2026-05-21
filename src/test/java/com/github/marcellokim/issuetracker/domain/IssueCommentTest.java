@@ -80,7 +80,13 @@ class IssueCommentTest {
     @Test
     @DisplayName("persisted comment keeps database fields")
     void persistedCommentKeepsDatabaseFields() {
-        var comment = Comment.fromPersistence(11L, 100L, "dev1", "I fixed this.", createdAt);
+        var comment = Comment.fromPersistence(
+                11L,
+                100L,
+                "dev1",
+                "I fixed this.",
+                CommentPurpose.GENERAL,
+                createdAt);
 
         assertEquals(11L, comment.id());
         assertEquals(100L, comment.issueId());
@@ -97,7 +103,12 @@ class IssueCommentTest {
     @Test
     @DisplayName("domain-created comment keeps writer fields")
     void domainCommentKeepsWriterFields() {
-        var comment = Comment.create("C-2", "Please verify again.", developer, createdAt.plusMinutes(15));
+        var comment = Comment.create(
+                "C-2",
+                "Please verify again.",
+                developer,
+                CommentPurpose.GENERAL,
+                createdAt.plusMinutes(15));
 
         assertEquals(0L, comment.id());
         assertEquals(0L, comment.issueId());
@@ -113,10 +124,10 @@ class IssueCommentTest {
     @DisplayName("rejects invalid persisted comment arguments")
     void rejectInvalidPersistedCommentArguments() {
         assertThrows(IllegalArgumentException.class,
-                () -> Comment.fromPersistence(1L, 100L, "", "content", createdAt));
+                () -> Comment.fromPersistence(1L, 100L, "", "content", CommentPurpose.GENERAL, createdAt));
         assertThrows(IllegalArgumentException.class,
-                () -> Comment.fromPersistence(1L, 100L, "dev1", " ", createdAt));
+                () -> Comment.fromPersistence(1L, 100L, "dev1", " ", CommentPurpose.GENERAL, createdAt));
         assertThrows(NullPointerException.class,
-                () -> Comment.fromPersistence(1L, 100L, "dev1", "content", null));
+                () -> Comment.fromPersistence(1L, 100L, "dev1", "content", CommentPurpose.GENERAL, null));
     }
 }
