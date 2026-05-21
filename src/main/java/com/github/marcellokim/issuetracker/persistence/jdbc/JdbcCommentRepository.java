@@ -131,7 +131,14 @@ public final class JdbcCommentRepository implements CommentRepository {
                 resultSet.getLong("issue_id"),
                 resultSet.getString("writer_login_id"),
                 resultSet.getString("content"),
-                CommentPurpose.valueOf(resultSet.getString("purpose")),
+                commentPurposeOf(resultSet.getString("purpose")),
                 JdbcSupport.nullableDateTime(resultSet, "created_date"));
+    }
+
+    private static CommentPurpose commentPurposeOf(String value) {
+        if (value == null || value.isBlank()) {
+            return CommentPurpose.GENERAL;
+        }
+        return CommentPurpose.valueOf(value);
     }
 }
