@@ -113,7 +113,7 @@ final class JdbcIssueWriteSupport {
         try {
             connection.rollback();
         } catch (SQLException ignored) {
-            // 롤백 실패가 원래 repository 실패 원인을 가리면 호출자가 실제 원인을 잃는다.
+            // 롤백 실패가 원래 repository 실패 원인을 가리면 호출자가 실제 원인 잃음.
         }
     }
 }

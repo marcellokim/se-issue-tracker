@@ -17,8 +17,8 @@ public final class RepositoryDemoCommand {
     }
 
     /*
-     * CLI command는 출력 포맷 책임만 별도로 검증할 수 있어야 한다.
-     * 기본 runtime 경로는 그대로 두고, 테스트에서는 summary 조회 source만 바꾼다.
+     * CLI command 출력 포맷 책임만 별도 검증 가능해야 함.
+     * 기본 runtime 경로 유지, 테스트에서는 summary 조회 source만 교체.
      */
     RepositoryDemoCommand(
             ApplicationRuntime runtime,

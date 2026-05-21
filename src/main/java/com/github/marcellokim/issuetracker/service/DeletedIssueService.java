@@ -56,8 +56,8 @@ public final class DeletedIssueService {
 
     private void requireDeletedIssuePermission(User actor, long projectId) {
         /*
-         * 삭제 이슈 권한 확인을 repository 작업과 같은 service 경계에 두어
-         * 이후 리뷰에서 삭제 부수효과를 controller까지 추적하지 않게 한다.
+         * 삭제 이슈 권한 확인을 repository 작업과 같은 service 경계에 배치.
+         * 이후 리뷰에서 삭제 부수효과를 controller까지 추적하지 않아도 됨.
          */
         if (!permissionPolicy.verifyPermission(actor, "MANAGE_DELETED_ISSUE", projectId)) {
             throw new SecurityException("Only PL or ADMIN can manage deleted issues.");

@@ -29,8 +29,8 @@ public final class StatisticsService {
             User actor
     ) {
         /*
-         * 기간 검증은 statistics use-case 경계의 책임이다. repository query input은
-         * service 한 곳에서 보호한다.
+         * 기간 검증은 statistics use-case 경계 책임.
+         * repository query input은 service 한 곳에서 보호.
          */
         permissionPolicy.assertCanViewStatistics(actor, projectId);
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");

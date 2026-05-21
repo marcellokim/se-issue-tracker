@@ -23,8 +23,8 @@ class ArchitectureBoundaryTest {
     private static final Pattern IMPORT_PATTERN = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+)(?:\\.\\*)?;");
 
     /*
-     * 임시 아키텍처 부채 표시자: 이후 clean-code slice에서 각 흐름이
-     * 의도한 service/presenter 경계로 이동하면 예외를 제거한다.
+     * 임시 아키텍처 부채 표시자.
+     * 각 흐름이 의도한 service/presenter 경계로 이동하면 예외 제거 필요.
      */
     private static final Set<AllowedImport> TEMPORARY_ALLOWED_IMPORTS = Set.of();
 
@@ -129,7 +129,7 @@ class ArchitectureBoundaryTest {
                 .resolve(ROOT_PACKAGE.replace('.', '/'))
                 .resolve(packageSegment);
         if (!Files.exists(packagePath)) {
-            // Task 1에서 guard를 먼저 설치하고 Task 2에서 cli 패키지를 만들기 전까지만 빈 검사 대상으로 둔다.
+            // Task 1 guard 선설치 후 Task 2 cli 패키지 생성 전까지만 빈 검사 대상 허용.
             if ("cli".equals(packageSegment)) {
                 return List.of();
             }

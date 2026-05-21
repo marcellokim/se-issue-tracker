@@ -28,8 +28,8 @@ public final class DashboardSummaryService {
 
     public List<DashboardProjectSummary> projectSummaries() {
         /*
-         * 대시보드는 여러 repository를 합친 read model이다. 이 조회 조합을 service에 두어
-         * JavaFX presenter가 persistence port를 몰라도 화면 데이터를 포맷하게 한다.
+         * 대시보드는 여러 repository를 합친 read model.
+         * 조회 조합을 service에 두어 JavaFX presenter가 persistence port 없이 화면 데이터 포맷 가능.
          */
         return projectRepository.findAll().stream()
                 .map(project -> new DashboardProjectSummary(

@@ -29,7 +29,7 @@ final class JdbcIssueDeleteOperations {
         this.writes = writes;
     }
 
-    // 삭제와 복구는 상태 전이와 의존성 제거를 함께 묶어야 하므로 repository facade에서 분리한다.
+    // 삭제와 복구는 상태 전이와 의존성 제거를 함께 묶어야 하므로 repository facade에서 분리.
     Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
         requireText(changedById, "changedById");
         requireText(message, "message");

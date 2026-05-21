@@ -20,8 +20,8 @@ public final class LoginCheckService {
 
     public LoginCheckResult checkLogin(String loginId, String password) {
         /*
-         * Main은 CLI 진입 흐름과 콘솔 출력을 담당한다. 계정 조회와 인증 판정은 service에 두어
-         * CLI 경로도 service 규칙을 따르게 한다.
+         * Main은 CLI 진입 흐름과 콘솔 출력 담당.
+         * 계정 조회와 인증 판정은 service에 두어 CLI 경로도 service 규칙 준수.
          */
         String normalizedLoginId = loginId == null ? "" : loginId.trim();
         AuthenticationResult authenticationResult = authenticationService.login(normalizedLoginId, password);

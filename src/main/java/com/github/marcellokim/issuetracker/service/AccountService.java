@@ -20,7 +20,7 @@ public final class AccountService {
     }
 
     /*
-     * Admin account UC 조율은 service에 둔다. 이후 계정 관리 메서드가 추가되어도
-     * controller는 system operation adapter 역할만 유지한다.
+     * Admin account UC 조율은 service 책임.
+     * 이후 계정 관리 메서드가 추가되어도 controller는 system operation adapter 역할만 유지.
      */
 }

@@ -88,7 +88,7 @@ public class Issue {
         recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter, reportedDate);
     }
 
-    public static Issue create( // 테스트용 생성 메서드, 실제로는 Persistence 계층에서 PersistedState를 통해 생성
+    public static Issue create( // 테스트용 생성 메서드. 실제 생성은 Persistence 계층의 PersistedState 경유.
             String issueId,
             String title,
             String description,
@@ -466,8 +466,8 @@ public class Issue {
     }
 
     /*
-     * User reference와 loginId snapshot을 함께 갱신한다.
-     * 도메인 전이 메서드가 association 변경 규칙에 집중하도록 중복 field/id 동기화를 한 곳에 둔다.
+     * User reference와 loginId snapshot 함께 갱신.
+     * 도메인 전이 메서드가 association 변경 규칙에 집중하도록 field/id 동기화 한 곳에 모음.
      */
     private void setAssignee(User assignee) {
         this.assignee = assignee;

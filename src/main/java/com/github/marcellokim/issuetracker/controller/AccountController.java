@@ -17,7 +17,7 @@ public final class AccountController {
     }
 
     /*
-     * 다른 팀원이 구현해야하는 부분:
-     * Admin 계정 생성/수정/비활성화 UC의 입력 검증, DTO 변환, 감사 이력 처리를 구현한다.
+     * 다른 팀원 구현 범위:
+     * Admin 계정 생성/수정/비활성화 UC 입력 검증, DTO 변환, 감사 이력 처리 필요.
      */
 }

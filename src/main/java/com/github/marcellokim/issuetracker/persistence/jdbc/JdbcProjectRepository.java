@@ -243,7 +243,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
         try {
             connection.rollback();
         } catch (SQLException ignored) {
-            // 원래 repository 실패 원인을 유지한다.
+            // 원래 repository 실패 원인 유지.
         }
     }
 
