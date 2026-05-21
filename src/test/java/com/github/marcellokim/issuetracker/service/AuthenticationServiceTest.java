@@ -103,7 +103,7 @@ class AuthenticationServiceTest {
 
     private static User user(String loginId, String password, Role role, boolean active) {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
-        return User.create(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);
+        return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);
     }
 
     private static final class FakeUserRepository implements UserRepository {
@@ -149,7 +149,7 @@ class AuthenticationServiceTest {
         public void deactivate(String loginId) {
             findById(loginId).ifPresent(user -> usersByLoginId.put(
                     user.getLoginId(),
-                    User.create(
+                    User.fromPersistence(
                             user.getLoginId(),
                             user.getName(),
                             user.getPasswordHash(),

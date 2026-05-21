@@ -14,7 +14,7 @@ class IssueHistoryTest {
 
         private static final LocalDateTime CHANGED_AT = LocalDateTime.of(2026, 5, 19, 13, 0);
         // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-        private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
+        private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, null, null);
 
         @Test
         @DisplayName("preserves persisted history fields")

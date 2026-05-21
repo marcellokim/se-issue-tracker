@@ -128,7 +128,7 @@ class CliCommandTest {
     }
 
     private static User user(String loginId, Role role, boolean active) {
-        return User.create(loginId, loginId, PASSWORD_HASHER.hash(PASSWORD), role, active, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(PASSWORD), role, active, NOW, NOW);
     }
 
     private static final class RecordingOutput implements CliOutput {

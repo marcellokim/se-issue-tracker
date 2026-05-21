@@ -289,7 +289,7 @@ class ControllerCoverageTest {
     }
 
     private static User user(String loginId, Role role) {
-        return User.create(loginId, loginId, "stored-password", role, true, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "stored-password", role, true, NOW, NOW);
     }
 
     private static Project project(long projectId) {

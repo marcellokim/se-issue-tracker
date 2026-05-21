@@ -56,7 +56,7 @@ class ProjectTest {
     @DisplayName("registerIssue creates issue via Creator pattern")
     void registerIssueCreatesIssue() {
         var project = Project.create(1L, "ITS", "desc", "admin", now, now);
-        var reporter = User.create("dev1", "Dev One", "hash", Role.DEV, true, now, now);
+        var reporter = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, now, now);
 
         var issue = project.registerIssue("ISSUE-1", "Bug", "Login fails", Priority.MAJOR, reporter, now);
 

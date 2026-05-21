@@ -22,7 +22,7 @@ class DomainValueObjectsTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 14, 0);
     // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-    private final User dev = User.create("dev1", "Developer One", "hash", Role.DEV, true, null, null);
+    private final User dev = User.fromPersistence("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
     @Test
     @DisplayName("assignment candidate builds default reasons")
@@ -243,7 +243,7 @@ class DomainValueObjectsTest {
     void assignmentOptionsCopyInputsAndExposeValueSemantics() {
         AssignmentCandidate devCandidate = AssignmentCandidate.create(dev, 2);
         AssignmentCandidate testerCandidate = AssignmentCandidate.create(
-                User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null),
+                User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null),
                 1);
         List<AssignmentCandidate> devCandidates = new ArrayList<>(List.of(devCandidate));
         List<AssignmentCandidate> testerCandidates = new ArrayList<>(List.of(testerCandidate));

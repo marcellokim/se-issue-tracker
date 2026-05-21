@@ -17,7 +17,7 @@ class SessionStoreTest {
     @DisplayName("starts, reads, and clears a user session")
     void startsReadsAndClearsSession() {
         SessionStore store = new SessionStore();
-        User user = User.create("dev1", "Developer One", "hash", Role.DEV, true, null, null);
+        User user = User.fromPersistence("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
         assertFalse(store.currentUser().isPresent());
 

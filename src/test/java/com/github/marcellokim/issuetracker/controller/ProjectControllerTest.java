@@ -309,7 +309,7 @@ class ProjectControllerTest {
     }
 
     private static User user(String loginId, Role role, boolean active) {
-        return User.create(loginId, loginId, "stored-password", role, active, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "stored-password", role, active, NOW, NOW);
     }
 
     private static Project project(long projectId, String name) {

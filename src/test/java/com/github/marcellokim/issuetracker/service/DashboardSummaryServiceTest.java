@@ -68,7 +68,7 @@ class DashboardSummaryServiceTest {
     }
 
     private static User user(String loginId, Role role) {
-        return User.create(loginId, loginId, "hash", role, true, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "hash", role, true, NOW, NOW);
     }
 
     private static Issue issue(long id, IssueStatus status) {

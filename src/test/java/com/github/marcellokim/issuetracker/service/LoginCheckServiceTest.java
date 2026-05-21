@@ -49,6 +49,6 @@ class LoginCheckServiceTest {
     }
 
     private static User user(String loginId, String password, Role role, boolean active) {
-        return User.create(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, NOW, NOW);
     }
 }

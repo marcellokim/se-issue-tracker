@@ -352,7 +352,7 @@ class OracleRepositoryIntegrationTest {
         LocalDateTime now = LocalDateTime.now();
 
         try {
-            User created = repositories.users().save(User.create(
+            User created = repositories.users().save(User.fromPersistence(
                     loginId,
                     "Repository CRUD Dev",
                     "InitialPassword!",
@@ -366,7 +366,7 @@ class OracleRepositoryIntegrationTest {
             assertEquals(Role.DEV, repositories.users().findByLoginId(loginId).orElseThrow().getRole());
             assertTrue(repositories.users().findAll().stream().anyMatch(user -> user.getLoginId().equals(loginId)));
 
-            User updated = repositories.users().save(User.create(
+            User updated = repositories.users().save(User.fromPersistence(
                     loginId,
                     "Repository CRUD Tester",
                     "UpdatedPassword!",

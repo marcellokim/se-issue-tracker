@@ -30,11 +30,11 @@ class IssueServiceTest {
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 21, 10, 0);
-    private final User dev = User.create("dev1", "Dev One", "hash", Role.DEV, true, now, now);
-    private final User tester = User.create("tester1", "Tester One", "hash", Role.TESTER, true, now, now);
-    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, now, now);
-    private final User admin = User.create("admin", "Admin", "hash", Role.ADMIN, true, now, now);
-    private final User inactiveDev = User.create("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
+    private final User dev = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, now, now);
+    private final User tester = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, now, now);
+    private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, now, now);
+    private final User admin = User.fromPersistence("admin", "Admin", "hash", Role.ADMIN, true, now, now);
+    private final User inactiveDev = User.fromPersistence("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
     private final Project project = Project.create(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
 
     @Test

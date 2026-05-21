@@ -183,7 +183,7 @@ class PermissionPolicyTest {
     }
 
     private static User user(String loginId, Role role) {
-        return User.create(loginId, loginId, "hash", role, true, null, null);
+        return User.fromPersistence(loginId, loginId, "hash", role, true, null, null);
     }
 
     private static User inactive(String loginId, Role role) {

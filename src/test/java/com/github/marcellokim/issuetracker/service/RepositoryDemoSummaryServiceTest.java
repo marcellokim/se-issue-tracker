@@ -100,7 +100,7 @@ class RepositoryDemoSummaryServiceTest {
     }
 
     private static User user(String loginId, Role role, boolean active) {
-        return User.create(loginId, loginId, "hash", role, active, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "hash", role, active, NOW, NOW);
     }
 
     private static Issue issue(long id, IssueStatus status) {
