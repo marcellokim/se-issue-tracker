@@ -84,6 +84,18 @@ class ArchitectureBoundaryTest {
         );
     }
 
+    @Test
+    @DisplayName("cli package avoids repository and persistence imports once it exists")
+    void cliPackageAvoidsRepositoriesOrPersistenceOncePresent() throws IOException {
+        assertNoForbiddenImports(
+                "cli",
+                Set.of(
+                        ROOT_PACKAGE + ".repository",
+                        ROOT_PACKAGE + ".persistence"
+                )
+        );
+    }
+
     private static void assertNoForbiddenImports(String packageSegment, Set<String> forbiddenPrefixes)
             throws IOException {
         List<Violation> violations = new ArrayList<>();
@@ -113,7 +125,16 @@ class ArchitectureBoundaryTest {
     }
 
     private static List<JavaSource> productionSources(String packageSegment) throws IOException {
-        Path packagePath = ROOT_PACKAGE_PATH.resolve(packageSegment);
+        Path packagePath = MAIN_SOURCE_ROOT
+                .resolve(ROOT_PACKAGE.replace('.', '/'))
+                .resolve(packageSegment);
+        if (!Files.exists(packagePath)) {
+            // Task 1에서 guard를 먼저 설치하고 Task 2에서 cli 패키지를 만들기 전까지만 빈 검사 대상으로 둔다.
+            if ("cli".equals(packageSegment)) {
+                return List.of();
+            }
+            throw new AssertionError("Production package is missing: " + packageSegment);
+        }
         try (Stream<Path> paths = Files.walk(packagePath)) {
             return paths
                     .filter(path -> path.toString().endsWith(".java"))

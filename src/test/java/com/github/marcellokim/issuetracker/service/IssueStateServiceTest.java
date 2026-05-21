@@ -110,13 +110,17 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unsupported status change target is rejected")
+    @DisplayName("unsupported status change targets remain feature gaps")
     void rejectUnsupportedTargetStatus() {
-        var issue = resolvedIssue();
-        var service = service(issue);
-
+        var fixed = fixedIssue();
+        var fixedService = service(fixed);
         assertThrows(UnsupportedOperationException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
+                () -> fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId()));
+
+        var resolved = resolvedIssue();
+        var resolvedService = service(resolved);
+        assertThrows(UnsupportedOperationException.class,
+                () -> resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
     }
 
     @Test
