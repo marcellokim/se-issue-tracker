@@ -1,10 +1,11 @@
 package com.github.marcellokim.issuetracker;
 
-import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.RepositoryDemoSummary;
+import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.technical.ConsoleOutput;
 import com.github.marcellokim.issuetracker.ui.IssueTrackerApplication;
 import java.io.IOException;
@@ -37,7 +38,13 @@ public final class Main {
         try {
             var connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
             DatabaseInitializer.initialize(connectionProvider);
-            printRepositorySummary(new JdbcRepositoryFactory(connectionProvider));
+            var repositories = new JdbcRepositoryFactory(connectionProvider);
+            printRepositorySummary(new RepositoryDemoSummaryService(
+                    repositories.users(),
+                    repositories.projects(),
+                    repositories.issues(),
+                    repositories.statistics(),
+                    repositories.assignmentRecommendations()).summarizeSeedDemo());
         } catch (IOException | SQLException | RuntimeException exception) {
             printLine("Oracle repository demo failed.");
             printLine("Cause: " + exception.getMessage());
@@ -134,37 +141,28 @@ public final class Main {
         }
     }
 
-    private static void printRepositorySummary(JdbcRepositoryFactory repositories) {
-        var admin = repositories.users().findByLoginId("admin");
-        var project = repositories.projects().findByName("project1");
-
+    private static void printRepositorySummary(RepositoryDemoSummary summary) {
         printLine("Oracle repository demo ready.");
-        admin.ifPresentOrElse(
+        summary.admin().ifPresentOrElse(
                 user -> printLine(
-                        "Admin: " + user.getLoginId() + " / " + user.getRole() + " / active=" + user.isActive()),
+                        "Admin: " + user.loginId() + " / " + user.role() + " / active=" + user.active()),
                 () -> printLine("Admin: missing"));
 
-        project.ifPresentOrElse(
-                value -> printProjectSummary(repositories, value.getId(), value.getName()),
+        summary.project().ifPresentOrElse(
+                Main::printProjectSummary,
                 () -> printLine("Project: project1 missing"));
     }
 
-    private static void printProjectSummary(JdbcRepositoryFactory repositories, long projectId, String projectName) {
-        var issues = repositories.issues().findByProject(projectId);
-        var statusCounts = repositories.statistics().countByStatus(projectId);
-        var priorityCounts = repositories.statistics().countByPriority(projectId);
-        var devCandidates = repositories.assignmentRecommendations().findDevAssigneeCandidates(projectId);
-        var testerCandidates = repositories.assignmentRecommendations().findTesterVerifierCandidates(projectId);
-
-        printLine("Project: " + projectName);
-        printLine("Members: " + repositories.projects().findParticipants(projectId).size());
-        printLine("Active devs: " + repositories.users().findActiveByRole(projectId, Role.DEV).size());
-        printLine("Active testers: " + repositories.users().findActiveByRole(projectId, Role.TESTER).size());
-        printLine("Issues: " + issues.size());
-        printLine("Status counts: " + statusCounts);
-        printLine("Priority counts: " + priorityCounts);
-        printLine("Dev recommendation candidates: " + devCandidates.size());
-        printLine("Tester recommendation candidates: " + testerCandidates.size());
+    private static void printProjectSummary(RepositoryDemoSummary.ProjectSummary summary) {
+        printLine("Project: " + summary.projectName());
+        printLine("Members: " + summary.memberCount());
+        printLine("Active devs: " + summary.activeDevCount());
+        printLine("Active testers: " + summary.activeTesterCount());
+        printLine("Issues: " + summary.issueCount());
+        printLine("Status counts: " + summary.statusCounts());
+        printLine("Priority counts: " + summary.priorityCounts());
+        printLine("Dev recommendation candidates: " + summary.devRecommendationCandidateCount());
+        printLine("Tester recommendation candidates: " + summary.testerRecommendationCandidateCount());
     }
 
     private static void printLine(String message) {
