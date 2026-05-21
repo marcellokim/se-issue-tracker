@@ -1,0 +1,302 @@
+package com.github.marcellokim.issuetracker.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
+import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.Project;
+import com.github.marcellokim.issuetracker.domain.ProjectMember;
+import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.domain.StatisticsReport;
+import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.IssueRepository;
+import com.github.marcellokim.issuetracker.repository.ProjectRepository;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
+import com.github.marcellokim.issuetracker.repository.UserRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("Dashboard summary service")
+class DashboardSummaryServiceTest {
+
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 21, 20, 20);
+    private static final long PROJECT_ID = 10L;
+
+    @Test
+    @DisplayName("builds dashboard read model without exposing repositories to the presenter")
+    void buildsDashboardProjectSummaries() {
+        Project project = Project.create(PROJECT_ID, "project1", "Demo project", "admin", NOW, NOW);
+        User pl = user("pl", Role.PL);
+        User dev = user("dev", Role.DEV);
+        User tester = user("tester", Role.TESTER);
+        Issue activeIssue = issue(101L, IssueStatus.NEW);
+        Issue deletedIssue = issue(102L, IssueStatus.DELETED);
+        Map<IssueStatus, Integer> statusCounts = new EnumMap<>(IssueStatus.class);
+        statusCounts.put(IssueStatus.NEW, 1);
+        statusCounts.put(IssueStatus.DELETED, 1);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(project, List.of(
+                        ProjectMember.create(PROJECT_ID, pl.getLoginId(), NOW),
+                        ProjectMember.create(PROJECT_ID, dev.getLoginId(), NOW),
+                        ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(activeIssue), List.of(deletedIssue)),
+                new FakeStatisticsRepository(statusCounts),
+                new FakeUserRepository(List.of(pl, dev, tester)));
+
+        DashboardProjectSummary summary = service.projectSummaries().getFirst();
+
+        assertEquals("project1", summary.projectName());
+        assertEquals(3, summary.memberCount());
+        assertEquals(1, summary.projectLeaderCount());
+        assertEquals(1, summary.developerCount());
+        assertEquals(1, summary.testerCount());
+        assertEquals(1, summary.visibleIssueCount());
+        assertEquals(1, summary.deletedIssueCount());
+        assertEquals(statusCounts, summary.statusCounts());
+    }
+
+    private static User user(String loginId, Role role) {
+        return User.create(loginId, loginId, "hash", role, true, NOW, NOW);
+    }
+
+    private static Issue issue(long id, IssueStatus status) {
+        return Issue.fromPersistence(Issue.persistedState(
+                        PROJECT_ID,
+                        "Issue " + id,
+                        "Demo issue",
+                        user("reporter", Role.DEV))
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(NOW)
+                .priority(Priority.MAJOR)
+                .status(status)
+                .updatedAt(NOW));
+    }
+
+    private static final class FakeProjectRepository implements ProjectRepository {
+
+        private final Project project;
+        private final List<ProjectMember> members;
+
+        private FakeProjectRepository(Project project, List<ProjectMember> members) {
+            this.project = project;
+            this.members = List.copyOf(members);
+        }
+
+        @Override
+        public Optional<Project> findById(long projectId) {
+            return project.getId() == projectId ? Optional.of(project) : Optional.empty();
+        }
+
+        @Override
+        public Optional<Project> findByName(String name) {
+            return project.getName().equals(name) ? Optional.of(project) : Optional.empty();
+        }
+
+        @Override
+        public List<Project> findAll() {
+            return List.of(project);
+        }
+
+        @Override
+        public Project save(Project project) {
+            throw new UnsupportedOperationException("save is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public void deleteById(long projectId) {
+            throw new UnsupportedOperationException("deleteById is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public void addParticipant(long projectId, String userLoginId) {
+            throw new UnsupportedOperationException("addParticipant is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public void removeParticipant(long projectId, String userLoginId) {
+            throw new UnsupportedOperationException("removeParticipant is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public List<ProjectMember> findParticipants(long projectId) {
+            return project.getId() == projectId ? members : List.of();
+        }
+    }
+
+    private static final class FakeIssueRepository implements IssueRepository {
+
+        private final List<Issue> activeIssues;
+        private final List<Issue> deletedIssues;
+
+        private FakeIssueRepository(List<Issue> activeIssues, List<Issue> deletedIssues) {
+            this.activeIssues = List.copyOf(activeIssues);
+            this.deletedIssues = List.copyOf(deletedIssues);
+        }
+
+        @Override
+        public Optional<Issue> findById(long issueId) {
+            return activeIssues.stream()
+                    .filter(issue -> issue.id() == issueId)
+                    .findFirst();
+        }
+
+        @Override
+        public List<Issue> findByProject(long projectId) {
+            return activeIssues;
+        }
+
+        @Override
+        public List<Issue> findDeletedByProject(long projectId) {
+            return deletedIssues;
+        }
+
+        @Override
+        public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
+            throw new UnsupportedOperationException("findByCriteria is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public Issue save(Issue issue) {
+            throw new UnsupportedOperationException("save is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
+            throw new UnsupportedOperationException("softDelete is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
+            throw new UnsupportedOperationException("restore is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
+            throw new UnsupportedOperationException(
+                    "purgeDeletedBeyondLimit is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public void purge(long issueId) {
+            throw new UnsupportedOperationException("purge is not needed by DashboardSummaryServiceTest.");
+        }
+    }
+
+    private static final class FakeStatisticsRepository implements StatisticsRepository {
+
+        private final Map<IssueStatus, Integer> statusCounts;
+
+        private FakeStatisticsRepository(Map<IssueStatus, Integer> statusCounts) {
+            this.statusCounts = Map.copyOf(statusCounts);
+        }
+
+        @Override
+        public Map<IssueStatus, Integer> countByStatus(long projectId) {
+            return statusCounts;
+        }
+
+        @Override
+        public Map<Priority, Integer> countByPriority(long projectId) {
+            return Map.of();
+        }
+
+        @Override
+        public List<DailyIssueCount> countReportedIssuesByDay(long projectId) {
+            return List.of();
+        }
+
+        @Override
+        public List<DailyIssueCount> countReportedIssuesByDay(
+                long projectId,
+                LocalDate fromInclusive,
+                LocalDate toInclusive
+        ) {
+            return List.of();
+        }
+
+        @Override
+        public List<MonthlyIssueCount> countReportedIssuesByMonth(long projectId) {
+            return List.of();
+        }
+
+        @Override
+        public List<MonthlyIssueCount> countReportedIssuesByMonth(
+                long projectId,
+                YearMonth fromInclusive,
+                YearMonth toInclusive
+        ) {
+            return List.of();
+        }
+
+        @Override
+        public StatisticsReport buildReport(
+                long projectId,
+                LocalDate dailyFromInclusive,
+                LocalDate dailyToInclusive,
+                YearMonth monthlyFromInclusive,
+                YearMonth monthlyToInclusive
+        ) {
+            return StatisticsReport.create(
+                    countByStatus(projectId),
+                    countByPriority(projectId),
+                    List.of(),
+                    List.of());
+        }
+    }
+
+    private static final class FakeUserRepository implements UserRepository {
+
+        private final List<User> users;
+
+        private FakeUserRepository(List<User> users) {
+            this.users = List.copyOf(users);
+        }
+
+        @Override
+        public Optional<User> findById(String userId) {
+            return findByLoginId(userId);
+        }
+
+        @Override
+        public Optional<User> findByLoginId(String loginId) {
+            return users.stream()
+                    .filter(user -> user.getLoginId().equals(loginId))
+                    .findFirst();
+        }
+
+        @Override
+        public List<User> findAll() {
+            return users;
+        }
+
+        @Override
+        public List<User> findActiveByRole(long projectId, Role role) {
+            return users.stream()
+                    .filter(user -> user.getRole() == role)
+                    .toList();
+        }
+
+        @Override
+        public User save(User user) {
+            throw new UnsupportedOperationException("save is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public void deactivate(String loginId) {
+            throw new UnsupportedOperationException("deactivate is not needed by DashboardSummaryServiceTest.");
+        }
+    }
+}

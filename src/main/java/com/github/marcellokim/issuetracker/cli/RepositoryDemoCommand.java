@@ -10,10 +10,24 @@ public final class RepositoryDemoCommand {
 
     private final ApplicationRuntime runtime;
     private final CliOutput output;
+    private final RepositoryDemoSummarySource summarySource;
 
     public RepositoryDemoCommand(ApplicationRuntime runtime, CliOutput output) {
+        this(runtime, output, () -> runtime.repositoryDemoSummaryService().summarizeSeedDemo());
+    }
+
+    /*
+     * CLI command는 출력 포맷 책임만 별도로 검증할 수 있어야 한다.
+     * 기본 runtime 경로는 그대로 두고, 테스트에서는 summary 조회 source만 바꾼다.
+     */
+    RepositoryDemoCommand(
+            ApplicationRuntime runtime,
+            CliOutput output,
+            RepositoryDemoSummarySource summarySource
+    ) {
         this.runtime = Objects.requireNonNull(runtime, "runtime");
         this.output = Objects.requireNonNull(output, "output");
+        this.summarySource = Objects.requireNonNull(summarySource, "summarySource");
     }
 
     public void run() {
@@ -23,7 +37,7 @@ public final class RepositoryDemoCommand {
         }
 
         try {
-            printRepositorySummary(runtime.repositoryDemoSummaryService().summarizeSeedDemo());
+            printRepositorySummary(summarySource.summarizeSeedDemo());
         } catch (IOException | SQLException | RuntimeException exception) {
             output.println("Oracle repository demo failed.");
             output.println("Cause: " + exception.getMessage());
@@ -63,5 +77,11 @@ public final class RepositoryDemoCommand {
         output.println("Priority counts: " + summary.priorityCounts());
         output.println("Dev recommendation candidates: " + summary.devRecommendationCandidateCount());
         output.println("Tester recommendation candidates: " + summary.testerRecommendationCandidateCount());
+    }
+
+    @FunctionalInterface
+    interface RepositoryDemoSummarySource {
+
+        RepositoryDemoSummary summarizeSeedDemo() throws IOException, SQLException;
     }
 }
