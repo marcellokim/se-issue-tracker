@@ -116,4 +116,12 @@ final class JdbcIssueWriteSupport {
             // 롤백 실패가 원래 repository 실패 원인을 가리면 호출자가 실제 원인 잃음.
         }
     }
+
+    void restoreAutoCommitPreservingOriginalFailure(Connection connection, boolean autoCommit) {
+        try {
+            connection.setAutoCommit(autoCommit);
+        } catch (SQLException ignored) {
+            // 실패 경로 cleanup 실패가 원래 repository 실패 원인을 가리면 호출자가 실제 원인 잃음.
+        }
+    }
 }

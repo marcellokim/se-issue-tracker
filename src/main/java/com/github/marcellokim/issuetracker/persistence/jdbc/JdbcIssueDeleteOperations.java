@@ -64,7 +64,7 @@ final class JdbcIssueDeleteOperations {
                 return copyWithStatus(issue, IssueStatus.DELETED, effectiveChangedDate);
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                connection.setAutoCommit(originalAutoCommit);
+                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
             }
         } catch (SQLException exception) {
@@ -107,7 +107,7 @@ final class JdbcIssueDeleteOperations {
                 return copyWithStatus(issue, restoreStatus, effectiveChangedDate);
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                connection.setAutoCommit(originalAutoCommit);
+                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
             }
         } catch (SQLException exception) {
@@ -134,7 +134,7 @@ final class JdbcIssueDeleteOperations {
                 return overflowCount;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                connection.setAutoCommit(originalAutoCommit);
+                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
             }
         } catch (SQLException exception) {

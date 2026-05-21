@@ -130,7 +130,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 return inserted;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                connection.setAutoCommit(originalAutoCommit);
+                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
             }
         } catch (SQLException exception) {
@@ -182,7 +182,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 return updated;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
-                connection.setAutoCommit(originalAutoCommit);
+                writes.restoreAutoCommitPreservingOriginalFailure(connection, originalAutoCommit);
                 throw exception;
             }
         } catch (SQLException exception) {
