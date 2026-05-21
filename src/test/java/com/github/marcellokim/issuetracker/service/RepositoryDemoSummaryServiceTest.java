@@ -74,6 +74,31 @@ class RepositoryDemoSummaryServiceTest {
         assertEquals(1, projectSummary.testerRecommendationCandidateCount());
     }
 
+    @Test
+    @DisplayName("uses explicit demo identifiers without hardcoding them in the service path")
+    void summarizesExplicitDemoRequest() {
+        User admin = user("root", Role.ADMIN, true);
+        User dev = user("dev1", Role.DEV, true);
+        User tester = user("tester1", Role.TESTER, true);
+        Project project = Project.create(PROJECT_ID, "custom-project", "Demo", "root", NOW, NOW);
+        Issue issue = issue(101L, IssueStatus.NEW);
+
+        RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(
+                new FakeUserRepository(List.of(admin, dev, tester)),
+                new FakeProjectRepository(project, List.of(
+                        ProjectMember.create(PROJECT_ID, admin.getLoginId(), NOW),
+                        ProjectMember.create(PROJECT_ID, dev.getLoginId(), NOW),
+                        ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(issue)),
+                new FakeStatisticsRepository(),
+                new FakeAssignmentRecommendationRepository(dev, tester));
+
+        RepositoryDemoSummary summary = service.summarize(new RepositoryDemoRequest(" root ", " custom-project "));
+
+        assertEquals("root", summary.admin().orElseThrow().loginId());
+        assertEquals("custom-project", summary.project().orElseThrow().projectName());
+    }
+
     private static User user(String loginId, Role role, boolean active) {
         return User.create(loginId, loginId, "hash", role, active, NOW, NOW);
     }
