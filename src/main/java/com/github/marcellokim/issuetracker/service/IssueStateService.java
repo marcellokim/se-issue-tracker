@@ -36,6 +36,7 @@ public final class IssueStateService {
         switch (requiredTargetStatus) {
             case FIXED -> markFixed(issue, actor, requiredComment);
             case RESOLVED -> resolve(issue, actor, requiredComment);
+            case ASSIGNED -> rejectFix(issue, actor, requiredComment);
             case CLOSED -> close(issue, actor, requiredComment);
             default -> throw new UnsupportedOperationException("Unsupported target status: " + requiredTargetStatus);
         }
@@ -47,30 +48,32 @@ public final class IssueStateService {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED);
         LocalDateTime changedAt = now();
         issue.markFixed(actor, comment, changedAt);
-        issue.addComment(
-                CommentIdGenerator.nextCommentId(),
-                comment,
-                actor,
-                changedAt,
-                CommentPurpose.STATUS_CHANGE_REASON);
+        recordStatusChangeReason(issue, actor, comment, changedAt);
     }
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
-        issue.addComment(
-                CommentIdGenerator.nextCommentId(),
-                comment,
-                actor,
-                changedAt,
-                CommentPurpose.STATUS_CHANGE_REASON);
+        recordStatusChangeReason(issue, actor, comment, changedAt);
+    }
+
+    private void rejectFix(Issue issue, User actor, String comment) {
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED);
+        LocalDateTime changedAt = now();
+        issue.rejectFix(actor, comment, changedAt);
+        recordStatusChangeReason(issue, actor, comment, changedAt);
     }
 
     private void close(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED);
         LocalDateTime changedAt = now();
         issue.close(actor, comment, changedAt);
+        recordStatusChangeReason(issue, actor, comment, changedAt);
+    }
+
+    private void recordStatusChangeReason(Issue issue, User actor, String comment, LocalDateTime changedAt) {
+        // 도메인 전이가 성공한 뒤에만 사유 댓글을 남겨 실패 전이의 부수효과를 막는다.
         issue.addComment(
                 CommentIdGenerator.nextCommentId(),
                 comment,

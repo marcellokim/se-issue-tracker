@@ -125,7 +125,7 @@ IssueStateService
 - comment 기록
 - 변경된 issue 저장
 
-#43 Tester reject fix도 같은 구조로 확장하는 것이 자연스럽다. 단, operation 이름은 새로 만들지 않고 `changeStatus(issueId, targetStatus=ASSIGNED, comment)` branch로 유지한다.
+#43 Tester reject fix는 같은 구조로 구현한다. 별도 operation 이름을 만들지 않고 `changeStatus(issueId, targetStatus=ASSIGNED, comment)` branch에서 `Issue.rejectFix`를 호출한다.
 
 ## 구현 가이드라인
 

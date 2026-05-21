@@ -68,6 +68,26 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("verifier rejects fixed issue back to assigned")
+    void rejectFixedIssueBackToAssigned() {
+        var issue = fixedIssue();
+        var service = service(issue);
+
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Fix is incomplete", verifier.getLoginId());
+
+        assertEquals(IssueStatus.ASSIGNED, result.status());
+        assertSame(assignee, issue.getAssignee());
+        assertSame(verifier, issue.getVerifier());
+        assertSame(assignee, issue.getFixer());
+        assertNull(issue.getResolver());
+        assertEquals(1, issue.getComments().size());
+        assertEquals("Fix is incomplete", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertStatusChangedThenCommented(issue);
+    }
+
+    @Test
     @DisplayName("PL closes resolved issue and clears active assignment")
     void closeResolvedIssue() {
         var issue = resolvedIssue();
@@ -116,7 +136,7 @@ class IssueStateServiceTest {
         var service = service(issue);
 
         assertThrows(UnsupportedOperationException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.DELETED, "Delete through deleted service", pl.getLoginId()));
     }
 
     @Test
