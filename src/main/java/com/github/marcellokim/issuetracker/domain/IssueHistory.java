@@ -45,8 +45,8 @@ public final class IssueHistory {
             String newValue,
             String message,
             LocalDateTime changedDate) {
-        this.id = id;
-        this.issueId = issueId;
+        this.id = requirePositive(id, "id");
+        this.issueId = requirePositive(issueId, "issueId");
         this.historyId = Long.toString(id);
         this.changedById = requireText(changedById, "changedById");
         this.actionType = Objects.requireNonNull(actionType, "actionType must not be null");
@@ -151,6 +151,13 @@ public final class IssueHistory {
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value;
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
         }
         return value;
     }

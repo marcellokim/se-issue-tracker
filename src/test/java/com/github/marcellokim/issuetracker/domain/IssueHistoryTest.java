@@ -74,6 +74,12 @@ class IssueHistoryTest {
         @DisplayName("rejects invalid persisted history arguments")
         void rejectsInvalidPersistedHistoryArguments() {
                 assertThrows(IllegalArgumentException.class,
+                                () -> IssueHistory.fromPersistence(0L, 100L, "pl1", ActionType.CREATED, null, "NEW",
+                                                null, CHANGED_AT));
+                assertThrows(IllegalArgumentException.class,
+                                () -> IssueHistory.fromPersistence(1L, 0L, "pl1", ActionType.CREATED, null, "NEW",
+                                                null, CHANGED_AT));
+                assertThrows(IllegalArgumentException.class,
                                 () -> IssueHistory.fromPersistence(1L, 100L, " ", ActionType.CREATED, null, "NEW", null,
                                                 CHANGED_AT));
                 assertThrows(NullPointerException.class,
