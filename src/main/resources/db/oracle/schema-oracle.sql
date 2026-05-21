@@ -393,6 +393,45 @@ begin
    end if;
 end;
 /
+begin
+   execute immediate q'[
+      update comments c
+         set purpose = 'GENERAL'
+       where not exists (
+         select 1
+           from issue_history h
+          where h.issue_id = c.issue_id
+            and h.action_type = 'STATUS_CHANGED'
+            and dbms_lob.substr(h.message, 4000, 1) = dbms_lob.substr(c.content, 4000, 1)
+            and (
+               (h.previous_value = 'ASSIGNED' and h.new_value = 'FIXED')
+               or (h.previous_value = 'FIXED' and h.new_value = 'ASSIGNED')
+               or (h.previous_value = 'FIXED' and h.new_value = 'RESOLVED')
+               or (h.previous_value = 'RESOLVED' and h.new_value = 'CLOSED')
+               or (h.previous_value in ('RESOLVED', 'CLOSED') and h.new_value = 'REOPENED')
+            )
+      )
+   ]';
+   execute immediate q'[
+      update comments c
+         set purpose = 'STATUS_CHANGE_REASON'
+       where exists (
+         select 1
+           from issue_history h
+          where h.issue_id = c.issue_id
+            and h.action_type = 'STATUS_CHANGED'
+            and dbms_lob.substr(h.message, 4000, 1) = dbms_lob.substr(c.content, 4000, 1)
+            and (
+               (h.previous_value = 'ASSIGNED' and h.new_value = 'FIXED')
+               or (h.previous_value = 'FIXED' and h.new_value = 'ASSIGNED')
+               or (h.previous_value = 'FIXED' and h.new_value = 'RESOLVED')
+               or (h.previous_value = 'RESOLVED' and h.new_value = 'CLOSED')
+               or (h.previous_value in ('RESOLVED', 'CLOSED') and h.new_value = 'REOPENED')
+            )
+      )
+   ]';
+end;
+/
 declare
    table_count number;
 begin

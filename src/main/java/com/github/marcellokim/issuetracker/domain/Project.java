@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Project {
-
     private final long id;
     private String name;
     private String description;

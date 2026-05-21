@@ -49,8 +49,7 @@ final class JdbcSupport {
     static void setNullableTimestamp(
             PreparedStatement statement,
             int parameterIndex,
-            LocalDateTime value
-    ) throws SQLException {
+            LocalDateTime value) throws SQLException {
         if (value == null) {
             statement.setNull(parameterIndex, Types.TIMESTAMP);
         } else {
@@ -68,6 +67,6 @@ final class JdbcSupport {
     }
 
     static PreparedStatement prepareInsertReturningId(Connection connection, String sql) throws SQLException {
-        return connection.prepareStatement(sql, new String[] {"ID"});
+        return connection.prepareStatement(sql, new String[] { "ID" });
     }
 }

@@ -19,7 +19,8 @@ public class User {
             String passwordHash,
             Role role,
             LocalDateTime now) {
-        // New domain users are active by default and start with matching lifecycle timestamps.
+        // New domain users are active by default and start with matching lifecycle
+        // timestamps.
         LocalDateTime timestamp = requireTime(now, "now");
         return new User(loginId, name, passwordHash, role, true, timestamp, timestamp);
     }
@@ -32,7 +33,8 @@ public class User {
             boolean active,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
-        // Persistence reconstruction keeps stored active state and timestamps exactly as read.
+        // Persistence reconstruction keeps stored active state and timestamps exactly
+        // as read.
         return new User(loginId, name, passwordHash, role, active, createdAt, updatedAt);
     }
 
