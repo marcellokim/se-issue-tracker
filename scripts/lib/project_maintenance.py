@@ -658,7 +658,7 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
         "--state", "merged",
         "--base", "dev",
         "--limit", "100",
-        "--json", "number,title,closingIssuesReferences",
+        "--json", "number,title,body,closingIssuesReferences",
     ])
     completed_issue_numbers: dict[int, int] = {}
     repo_owner, repo_name = repo.split("/", 1)
@@ -669,6 +669,8 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
             if issue_repo.get("name") != repo_name or issue_owner.get("login") != repo_owner:
                 continue
             completed_issue_numbers.setdefault(int(issue["number"]), int(pr["number"]))
+        for issue_number in parse_issue_numbers_from_body(str(pr.get("body") or "")):
+            completed_issue_numbers.setdefault(issue_number, int(pr["number"]))
 
     for issue_number, pr_number in sorted(completed_issue_numbers.items()):
         issue = gh_json([
