@@ -16,6 +16,30 @@ public final class IssueHistory {
     private final LocalDateTime changedDate;
     private final User changedBy;
 
+    private IssueHistory(
+            long id,
+            long issueId,
+            String historyId,
+            String changedById,
+            User changedBy,
+            ActionType actionType,
+            String previousValue,
+            String newValue,
+            String message,
+            LocalDateTime changedDate
+    ) {
+        this.id = id;
+        this.issueId = issueId;
+        this.historyId = requireText(historyId, "historyId");
+        this.changedById = requireText(changedById, "changedById");
+        this.changedBy = changedBy;
+        this.actionType = Objects.requireNonNull(actionType, "actionType must not be null");
+        this.previousValue = previousValue;
+        this.newValue = newValue;
+        this.message = message;
+        this.changedDate = Objects.requireNonNull(changedDate, "changedDate must not be null");
+    }
+
     public static IssueHistory fromPersistence(
             long id,
             long issueId,
@@ -26,59 +50,8 @@ public final class IssueHistory {
             String message,
             LocalDateTime changedDate
     ) {
-        return new IssueHistory(
-                id,
-                issueId,
-                changedById,
-                actionType,
-                previousValue,
-                newValue,
-                message,
-                changedDate
-        );
-    }
-
-    private IssueHistory(
-            long id,
-            long issueId,
-            String changedById,
-            ActionType actionType,
-            String previousValue,
-            String newValue,
-            String message,
-            LocalDateTime changedDate
-    ) {
-        this.id = id;
-        this.issueId = issueId;
-        this.historyId = Long.toString(id);
-        this.changedById = requireText(changedById, "changedById");
-        this.actionType = Objects.requireNonNull(actionType, "actionType must not be null");
-        this.previousValue = previousValue;
-        this.newValue = newValue;
-        this.message = message;
-        this.changedDate = Objects.requireNonNull(changedDate, "changedDate must not be null");
-        this.changedBy = null;
-    }
-
-    private IssueHistory(
-            String historyId,
-            ActionType action,
-            String previousValue,
-            String newValue,
-            String message,
-            User changedBy,
-            LocalDateTime changedDate
-    ) {
-        this.id = 0L;
-        this.issueId = 0L;
-        this.historyId = requireText(historyId, "historyId");
-        this.changedBy = Objects.requireNonNull(changedBy, "changedBy must not be null");
-        this.changedById = changedBy.getLoginId();
-        this.actionType = Objects.requireNonNull(action, "action must not be null");
-        this.previousValue = previousValue;
-        this.newValue = newValue;
-        this.message = message;
-        this.changedDate = Objects.requireNonNull(changedDate, "changedDate must not be null");
+        return new IssueHistory(id, issueId, Long.toString(id), changedById,
+                null, actionType, previousValue, newValue, message, changedDate);
     }
 
     public static IssueHistory create(
@@ -90,7 +63,9 @@ public final class IssueHistory {
             User changedBy,
             LocalDateTime changedDate
     ) {
-        return new IssueHistory(historyId, action, previousValue, newValue, message, changedBy, changedDate);
+        Objects.requireNonNull(changedBy, "changedBy must not be null");
+        return new IssueHistory(0L, 0L, historyId, changedBy.getLoginId(),
+                changedBy, action, previousValue, newValue, message, changedDate);
     }
 
     public long id() {

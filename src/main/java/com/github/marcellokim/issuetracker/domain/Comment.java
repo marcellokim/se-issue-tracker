@@ -14,58 +14,36 @@ public final class Comment {
     private final LocalDateTime createdDate;
     private final User writer;
 
-    public static Comment fromPersistence(
-            long id,
-            long issueId,
-            String writerId,
-            String content,
-            LocalDateTime createdDate
-    ) {
-        return fromPersistence(id, issueId, writerId, content, CommentPurpose.GENERAL, createdDate);
-    }
-
-    public static Comment fromPersistence(
-            long id,
-            long issueId,
-            String writerId,
-            String content,
-            CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
-        return new Comment(id, issueId, writerId, content, purpose, createdDate);
-    }
-
     private Comment(
             long id,
             long issueId,
+            String commentId,
             String writerId,
+            User writer,
             String content,
             CommentPurpose purpose,
             LocalDateTime createdDate
     ) {
         this.id = id;
         this.issueId = issueId;
-        this.commentId = Long.toString(id);
-        this.writerId = requireText(writerId, "writerId");
-        this.content = requireText(content, "content");
-        this.purpose = Objects.requireNonNull(purpose, "purpose must not be null");
-        this.createdDate = Objects.requireNonNull(createdDate, "createdDate must not be null");
-        this.writer = null;
-    }
-
-    private Comment(String commentId, String content, User writer, CommentPurpose purpose, LocalDateTime createdDate) {
-        this.id = 0L;
-        this.issueId = 0L;
         this.commentId = requireText(commentId, "commentId");
-        this.writer = Objects.requireNonNull(writer, "writer must not be null");
-        this.writerId = writer.getLoginId();
+        this.writerId = requireText(writerId, "writerId");
+        this.writer = writer;
         this.content = requireText(content, "content");
         this.purpose = Objects.requireNonNull(purpose, "purpose must not be null");
         this.createdDate = Objects.requireNonNull(createdDate, "createdDate must not be null");
     }
 
-    public static Comment create(String commentId, String content, User writer, LocalDateTime createdDate) {
-        return create(commentId, content, writer, CommentPurpose.GENERAL, createdDate);
+    public static Comment fromPersistence(
+            long id,
+            long issueId,
+            String writerId,
+            String content,
+            CommentPurpose purpose,
+            LocalDateTime createdDate
+    ) {
+        return new Comment(id, issueId, Long.toString(id), writerId,
+                null, content, purpose, createdDate);
     }
 
     public static Comment create(
@@ -75,7 +53,9 @@ public final class Comment {
             CommentPurpose purpose,
             LocalDateTime createdDate
     ) {
-        return new Comment(commentId, content, writer, purpose, createdDate);
+        Objects.requireNonNull(writer, "writer must not be null");
+        return new Comment(0L, 0L, commentId, writer.getLoginId(),
+                writer, content, purpose, createdDate);
     }
 
     // --- getters ---
