@@ -136,8 +136,16 @@ def parse_issue_number_from_branch(branch: str) -> int | None:
 
 
 def parse_issue_numbers_from_body(body: str) -> list[int]:
+    return parse_issue_numbers_with_keywords(body, r"close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?")
+
+
+def parse_closing_issue_numbers_from_body(body: str) -> list[int]:
+    return parse_issue_numbers_with_keywords(body, r"close[sd]?|fix(?:e[sd])?|resolve[sd]?")
+
+
+def parse_issue_numbers_with_keywords(body: str, keywords: str) -> list[int]:
     numbers: list[int] = []
-    pattern = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?):?\s+#([0-9]+)", re.IGNORECASE)
+    pattern = re.compile(rf"\b(?:{keywords}):?\s+#([0-9]+)", re.IGNORECASE)
     for match in pattern.finditer(body):
         number = int(match.group(1))
         if number not in numbers:
@@ -669,7 +677,7 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
             if issue_repo.get("name") != repo_name or issue_owner.get("login") != repo_owner:
                 continue
             completed_issue_numbers.setdefault(int(issue["number"]), int(pr["number"]))
-        for issue_number in parse_issue_numbers_from_body(str(pr.get("body") or "")):
+        for issue_number in parse_closing_issue_numbers_from_body(str(pr.get("body") or "")):
             completed_issue_numbers.setdefault(issue_number, int(pr["number"]))
 
     for issue_number, pr_number in sorted(completed_issue_numbers.items()):

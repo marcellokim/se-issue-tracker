@@ -25,10 +25,18 @@ class ProjectMaintenanceScriptTest {
 
                 def fake_gh_json(args):
                     if args[:2] == ["pr", "list"]:
+                        fields = set(args[args.index("--json") + 1].split(","))
+                        assert "body" in fields, args
+                        assert "closingIssuesReferences" in fields, args
                         return [{
                             "number": 122,
                             "title": "comment contract",
                             "body": "## 관련 이슈\\n- Closes #102\\n",
+                            "closingIssuesReferences": []
+                        }, {
+                            "number": 124,
+                            "title": "reference only",
+                            "body": "## 참고\\n- Refs #103\\n",
                             "closingIssuesReferences": []
                         }]
                     if args[:3] == ["issue", "view", "102"]:
