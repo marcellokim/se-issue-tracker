@@ -13,12 +13,24 @@ public class Project {
     private LocalDateTime updatedAt;
 
     public static Project create(
+            String name,
+            String description,
+            String managedByLoginId,
+            LocalDateTime now) {
+        // New projects are transient; the repository assigns the database id on save.
+        LocalDateTime timestamp = Objects.requireNonNull(now, "now");
+        return new Project(0L, name, description, managedByLoginId, timestamp, timestamp);
+    }
+
+    public static Project fromPersistence(
             long id,
             String name,
             String description,
             String managedByLoginId,
             LocalDateTime createdDate,
             LocalDateTime updatedAt) {
+        // Persistence reconstruction keeps stored id and timestamps exactly as read.
+        requirePositive(id, "id");
         return new Project(id, name, description, managedByLoginId, createdDate, updatedAt);
     }
 
@@ -88,5 +100,12 @@ public class Project {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return text;
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
+        }
+        return value;
     }
 }

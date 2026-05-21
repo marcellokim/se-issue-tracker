@@ -25,7 +25,7 @@ class PermissionPolicyTest {
         private final User pl = user("pl1", Role.PL);
         private final User dev = user("dev1", Role.DEV);
         private final User tester = user("tester1", Role.TESTER);
-        private final Project project = Project.create(1L, "project1", "Demo project", "admin", NOW, NOW);
+        private final Project project = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
 
         @Test
         @DisplayName("allows ADMIN account and project management only")
@@ -163,7 +163,7 @@ class PermissionPolicyTest {
         @Test
         @DisplayName("rejects issue registration without an active auth actor or persisted project")
         void rejectsInvalidIssueRegistrationRequests() {
-                Project transientProject = Project.create(0L, "draft", "Draft project", "admin", NOW, NOW);
+                Project transientProject = Project.create("draft", "Draft project", "admin", NOW);
 
                 assertThrows(SecurityException.class,
                                 () -> policy.assertCanRegisterIssue(inactive("dev2", Role.DEV), project));
@@ -201,7 +201,7 @@ class PermissionPolicyTest {
         }
 
         private static User user(String loginId, Role role) {
-                return User.create(loginId, loginId, "hash", role, true, null, null);
+                return User.fromPersistence(loginId, loginId, "hash", role, true, null, null);
         }
 
         private static User inactive(String loginId, Role role) {

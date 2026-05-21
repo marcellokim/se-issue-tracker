@@ -265,7 +265,8 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     static User mapUser(ResultSet resultSet) throws SQLException {
-        return User.create(
+        // JDBC mappers reconstruct persisted rows rather than creating new domain users.
+        return User.fromPersistence(
                 resultSet.getString("login_id"),
                 resultSet.getString("name"),
                 resultSet.getString("password"),

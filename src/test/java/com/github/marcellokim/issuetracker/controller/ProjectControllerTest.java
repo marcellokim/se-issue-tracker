@@ -309,11 +309,11 @@ class ProjectControllerTest {
     }
 
     private static User user(String loginId, Role role, boolean active) {
-        return User.create(loginId, loginId, "stored-password", role, active, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "stored-password", role, active, NOW, NOW);
     }
 
     private static Project project(long projectId, String name) {
-        return Project.create(projectId, name, "description", "admin", NOW, NOW);
+        return Project.fromPersistence(projectId, name, "description", "admin", NOW, NOW);
     }
 
     private static Issue issue(long id, long projectId, IssueStatus status) {
@@ -365,7 +365,7 @@ class ProjectControllerTest {
         @Override
         public Project save(Project project) {
             Project persistedProject = project.getId() == 0L
-                    ? Project.create(nextProjectId++, project.getName(), project.getDescription(),
+                    ? Project.fromPersistence(nextProjectId++, project.getName(), project.getDescription(),
                             project.getManagedByLoginId(),
                             project.getCreatedDate(), project.getUpdatedAt())
                     : project;

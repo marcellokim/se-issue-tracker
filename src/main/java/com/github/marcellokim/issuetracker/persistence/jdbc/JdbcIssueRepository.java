@@ -672,7 +672,8 @@ public final class JdbcIssueRepository implements IssueRepository {
         if (loginId == null || loginId.isBlank()) {
             return null;
         }
-        return User.create(
+        // Issue joins reconstruct persisted users embedded in the issue snapshot.
+        return User.fromPersistence(
                 loginId,
                 resultSet.getString(prefix + "_name"),
                 resultSet.getString(prefix + "_password"),

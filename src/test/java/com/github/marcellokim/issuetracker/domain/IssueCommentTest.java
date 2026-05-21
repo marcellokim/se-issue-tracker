@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 class IssueCommentTest {
 
     // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+    private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
     // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-    private final User developer = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
+    private final User developer = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
