@@ -28,6 +28,7 @@ class IssueCommentTest {
 
         assertEquals("C-1", comment.getCommentId());
         assertEquals("I will check it.", comment.getContent());
+        assertEquals(CommentPurpose.GENERAL, comment.getPurpose());
         assertSame(developer, comment.getWriter());
         assertEquals(commentedAt, comment.getCreatedDate());
         assertEquals(1, issue.getComments().size());
@@ -40,6 +41,25 @@ class IssueCommentTest {
         assertEquals("I will check it.", history.getMessage());
         assertSame(developer, history.getChangedBy());
         assertEquals(commentedAt, history.getChangedDate());
+    }
+
+    @Test
+    @DisplayName("상태 변경 사유 댓글은 일반 댓글과 목적이 구분된다")
+    void addStatusChangeReasonComment() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var commentedAt = createdAt.plusMinutes(5);
+
+        var comment = issue.addComment(
+                "C-1",
+                "Fixed with regression tests.",
+                developer,
+                commentedAt,
+                CommentPurpose.STATUS_CHANGE_REASON
+        );
+
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, comment.getPurpose());
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertEquals("C-1", issue.getHistories().getLast().getNewValue());
     }
 
     @Test
@@ -68,6 +88,7 @@ class IssueCommentTest {
         assertEquals("dev1", comment.writerId());
         assertEquals("I fixed this.", comment.content());
         assertEquals("I fixed this.", comment.getContent());
+        assertEquals(CommentPurpose.GENERAL, comment.getPurpose());
         assertEquals(createdAt, comment.createdDate());
         assertEquals(createdAt, comment.getCreatedDate());
         assertNull(comment.getWriter());
@@ -83,6 +104,7 @@ class IssueCommentTest {
         assertEquals("C-2", comment.getCommentId());
         assertEquals("dev1", comment.writerId());
         assertEquals("Please verify again.", comment.content());
+        assertEquals(CommentPurpose.GENERAL, comment.getPurpose());
         assertSame(developer, comment.getWriter());
         assertEquals(createdAt.plusMinutes(15), comment.createdDate());
     }

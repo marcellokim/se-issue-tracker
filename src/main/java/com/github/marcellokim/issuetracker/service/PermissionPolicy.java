@@ -44,6 +44,11 @@ public final class PermissionPolicy {
         requirePl(user, "Only PL can assign issue owners.");
     }
 
+    public void assertCanAddComment(User user, Issue issue) {
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can add issue comments.");
+    }
+
     public void assertCanChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
         IssueStatus nextStatus = Objects.requireNonNull(targetStatus, "targetStatus");

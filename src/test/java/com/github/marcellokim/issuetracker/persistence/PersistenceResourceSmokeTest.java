@@ -70,6 +70,16 @@ class PersistenceResourceSmokeTest {
     }
 
     @Test
+    @DisplayName("Comments schema upgrades existing tables with purpose column")
+    void commentsSchemaUpgradesExistingPurposeColumn() throws IOException {
+        String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
+
+        assertTrue(schema.contains("alter table comments add purpose varchar2(32) default 'general' not null"));
+        assertTrue(schema.contains("chk_comments_purpose"));
+        assertTrue(schema.contains("'status_change_reason'"));
+    }
+
+    @Test
     @DisplayName("Seed SQL includes required demo accounts and status history samples")
     void seedIncludesRequiredDemoAccountsAndHistorySamples() throws IOException {
         String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();

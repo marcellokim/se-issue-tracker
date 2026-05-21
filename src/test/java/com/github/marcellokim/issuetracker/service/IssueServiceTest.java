@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -32,6 +33,8 @@ class IssueServiceTest {
     private final User dev = User.create("dev1", "Dev One", "hash", Role.DEV, true, now, now);
     private final User tester = User.create("tester1", "Tester One", "hash", Role.TESTER, true, now, now);
     private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, now, now);
+    private final User admin = User.create("admin", "Admin", "hash", Role.ADMIN, true, now, now);
+    private final User inactiveDev = User.create("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
     private final Project project = Project.create(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
 
     @Test
@@ -85,9 +88,37 @@ class IssueServiceTest {
         CommentResult result = service.addComment(ISSUE_ID, "Looks like a real bug", dev.getLoginId());
 
         assertNotNull(result.commentId());
+        assertEquals(CommentPurpose.GENERAL, result.purpose());
         assertEquals("Looks like a real bug", result.content());
         assertEquals(dev, result.writer());
         assertNotNull(result.createdDate());
+    }
+
+    @Test
+    @DisplayName("general comment id is generated independently from hydrated comment count")
+    void addCommentUsesGeneratedCommentId() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        CommentResult result = service.addComment(ISSUE_ID, "Looks like a real bug", dev.getLoginId());
+
+        assertEquals(CommentPurpose.GENERAL, result.purpose());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                result.commentId().startsWith("COMMENT-"),
+                "commentId should use the shared generated comment id contract"
+        );
+    }
+
+    @Test
+    @DisplayName("ADMIN과 비활성 사용자는 이슈 댓글을 추가할 수 없다")
+    void addCommentRejectsAdminAndInactiveUser() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        assertThrows(SecurityException.class,
+                () -> service.addComment(ISSUE_ID, "admin comment", admin.getLoginId()));
+        assertThrows(SecurityException.class,
+                () -> service.addComment(ISSUE_ID, "inactive comment", inactiveDev.getLoginId()));
     }
 
     @Test
@@ -123,7 +154,7 @@ class IssueServiceTest {
         return new IssueService(
                 new FakeProjectRepository(project),
                 issues,
-                new InMemoryUserRepository(dev, tester, pl),
+                new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev),
                 new PermissionPolicy(),
                 new Clock()
         );

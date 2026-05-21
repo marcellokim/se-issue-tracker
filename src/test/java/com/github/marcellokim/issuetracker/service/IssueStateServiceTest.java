@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -43,6 +44,8 @@ class IssueStateServiceTest {
         assertSame(assignee, issue.getFixer());
         assertEquals(1, issue.getComments().size());
         assertEquals("Fix completed", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        org.junit.jupiter.api.Assertions.assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -59,6 +62,7 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Verified", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -78,6 +82,7 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Release completed", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }

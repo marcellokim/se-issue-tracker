@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -46,21 +47,36 @@ public final class IssueStateService {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED);
         LocalDateTime changedAt = now();
         issue.markFixed(actor, comment, changedAt);
-        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
+        issue.addComment(
+                CommentIdGenerator.nextCommentId(),
+                comment,
+                actor,
+                changedAt,
+                CommentPurpose.STATUS_CHANGE_REASON);
     }
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
-        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
+        issue.addComment(
+                CommentIdGenerator.nextCommentId(),
+                comment,
+                actor,
+                changedAt,
+                CommentPurpose.STATUS_CHANGE_REASON);
     }
 
     private void close(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED);
         LocalDateTime changedAt = now();
         issue.close(actor, comment, changedAt);
-        issue.addComment(nextCommentId(issue), comment, actor, changedAt);
+        issue.addComment(
+                CommentIdGenerator.nextCommentId(),
+                comment,
+                actor,
+                changedAt,
+                CommentPurpose.STATUS_CHANGE_REASON);
     }
 
     private Issue findIssue(long issueId) {
@@ -75,10 +91,6 @@ public final class IssueStateService {
 
     private LocalDateTime now() {
         return clock.now();
-    }
-
-    private static String nextCommentId(Issue issue) {
-        return issue.getIssueId() + "-C" + (issue.getComments().size() + 1);
     }
 
     private static String requireComment(String comment) {
