@@ -313,11 +313,49 @@ begin
                 issue_id number not null,
                 writer_login_id varchar2(50) not null,
                 content clob not null,
+                purpose varchar2(32) default 'GENERAL' not null,
                 created_date timestamp default current_timestamp not null,
+                constraint chk_comments_purpose check (purpose in ('GENERAL', 'STATUS_CHANGE_REASON')),
                 constraint fk_comments_issue foreign key (issue_id) references issues(id) on delete cascade,
                 constraint fk_comments_writer foreign key (writer_login_id) references users(login_id)
             )
         ]';
+   end if;
+end;
+/
+declare
+   column_count  number;
+   nullable_flag varchar2(1);
+begin
+   select count(*),
+          max(nullable)
+     into
+      column_count,
+      nullable_flag
+     from user_tab_columns
+    where table_name = 'COMMENTS'
+      and column_name = 'PURPOSE';
+
+   if column_count = 0 then
+      execute immediate q'[alter table comments add purpose varchar2(32) default 'GENERAL' not null]';
+   elsif nullable_flag = 'Y' then
+      execute immediate q'[update comments set purpose = 'GENERAL' where purpose is null]';
+      execute immediate q'[alter table comments modify purpose varchar2(32) default 'GENERAL' not null]';
+   end if;
+end;
+/
+declare
+   constraint_count number;
+begin
+   select count(*)
+     into constraint_count
+     from user_constraints
+    where table_name = 'COMMENTS'
+      and constraint_name = 'CHK_COMMENTS_PURPOSE';
+
+   if constraint_count = 0 then
+      execute immediate q'[update comments set purpose = 'GENERAL' where purpose not in ('GENERAL', 'STATUS_CHANGE_REASON')]';
+      execute immediate q'[alter table comments add constraint chk_comments_purpose check (purpose in ('GENERAL', 'STATUS_CHANGE_REASON'))]';
    end if;
 end;
 /

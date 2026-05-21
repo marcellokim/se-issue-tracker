@@ -363,7 +363,17 @@ public class Issue {
     }
 
     public Comment addComment(String commentId, String content, User writer, LocalDateTime createdDate) {
-        var comment = Comment.create(commentId, content, writer, createdDate);
+        return addComment(commentId, content, writer, createdDate, CommentPurpose.GENERAL);
+    }
+
+    public Comment addComment(
+            String commentId,
+            String content,
+            User writer,
+            LocalDateTime createdDate,
+            CommentPurpose purpose
+    ) {
+        var comment = Comment.create(commentId, content, writer, purpose, createdDate);
         comments.add(comment);
         recordHistory(ActionType.COMMENTED, null, commentId, content, writer, createdDate);
         return comment;
