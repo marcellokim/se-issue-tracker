@@ -144,7 +144,7 @@ IssueStateService
 | JDBC 구현체 생성 | JdbcRepositoryFactory |
 | 실행 환경별 객체 조립 | ApplicationContext |
 
-Controller가 너무 많은 repository, policy, clock, recommendation service를 직접 들기 시작하면 service 분리를 우선 검토한다. 반대로 흐름이 단순하고 branch가 적으면 controller가 repository interface를 직접 받아 조정할 수 있다.
+Controller가 repository, policy, clock, recommendation service를 직접 들고 조정하는 구조는 legacy 예외로만 남긴다. 신규 구현과 clean-code slice에서는 controller가 system operation 수신과 service 위임을 담당하고, repository interface 조정은 service 뒤로 이동한다.
 
 ## DCD 반영 기준
 
@@ -158,6 +158,35 @@ Controller가 너무 많은 repository, policy, clock, recommendation service를
 - `IssueStateController`의 repository/policy/clock 직접 dependency를 `IssueStateService`로 이동
 
 `dcd-ver2`는 core workflow DCD이므로 수정하지 않는다. ver2는 repository/authentication/clock infrastructure를 의도적으로 생략한 보고서 본문용 요약 DCD로 유지한다.
+
+## Executable Architecture Boundary Guard
+
+`ArchitectureBoundaryTest`는 production Java source의 `import` 선언을 스캔해서 MVC/GRASP/SOLID 패키지 의존성 방향을 실행 가능한 규칙으로 검증한다. 이 테스트는 현재 DCD 설명이 코드 구조와 함께 유지되도록 하는 경계 가드이다.
+
+가드 규칙은 다음이다.
+
+- `domain`은 `controller`, `service`, `repository`, `persistence`, `ui`, `config`, `technical`을 import하지 않는다.
+- `service`는 `controller`, `persistence`, `ui`, `config`를 import하지 않는다. Repository interface import는 허용한다.
+- `controller`는 `repository`, `persistence`, `ui`를 import하지 않는다.
+- `ui`는 `repository`, `persistence`를 import하지 않는다.
+
+현재 dev 구현에는 다음 임시 예외가 있다.
+
+- `controller/AccountController.java` -> `UserRepository`
+- `controller/DeletedIssueController.java` -> `IssueRepository`
+- `controller/StatisticsController.java` -> `StatisticsRepository`
+- `ui/DemoDashboardPresenter.java` -> `IssueRepository`
+- `ui/DemoDashboardPresenter.java` -> `ProjectRepository`
+- `ui/DemoDashboardPresenter.java` -> `StatisticsRepository`
+- `ui/DemoDashboardPresenter.java` -> `UserRepository`
+
+이 예외는 영구 설계가 아니라 debt marker이다. 이후 clean-code slice에서 해당 흐름이 service 또는 presenter boundary 뒤로 이동하면 예외 항목을 하나씩 제거해야 한다.
+
+Review comment 정책은 다음 기준을 따른다.
+
+- 임시 architecture exception, non-obvious responsibility boundary, side effect를 막는 ordering rule에는 짧은 code comment를 남긴다.
+- 명백한 assignment, getter, 단순 delegation에는 comment를 남기지 않는다.
+- debt를 표시하는 comment는 제거를 맡을 slice/workflow 이름을 같이 적는다.
 
 ## 주의사항
 
