@@ -85,8 +85,8 @@ class OracleRepositoryIntegrationTest {
         assertTrue(admin.isActive());
         assertEquals("project1", project1.getName());
         assertEquals("project2", project2.getName());
-        assertEquals(admin.getLoginId(), project1.getManagedById());
-        assertEquals(admin.getLoginId(), project2.getManagedById());
+        assertEquals(admin.getLoginId(), project1.getManagedByLoginId());
+        assertEquals(admin.getLoginId(), project2.getManagedByLoginId());
     }
 
     @Test

@@ -126,12 +126,13 @@ class IssueFixResolveTest {
         @Test
         @DisplayName("비활성 사용자는 fixer 또는 resolver가 될 수 없다")
         void rejectInactiveFixerAndResolver() {
+                LocalDateTime now = LocalDateTime.now();
                 // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
                 var inactiveFixer = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
                 // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
                 var inactiveResolver = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
-                inactiveFixer.deactivate();
-                inactiveResolver.deactivate();
+                inactiveFixer.deactivate(now);
+                inactiveResolver.deactivate(now);
 
                 var issueForFixer = assignedIssue();
                 assertThrows(IllegalArgumentException.class,

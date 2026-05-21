@@ -511,7 +511,8 @@ class ControllerCoverageTest {
 
         @Override
         public void deactivate(String loginId) {
-            findByLoginId(loginId).ifPresent(User::deactivate);
+            LocalDateTime now = LocalDateTime.now();
+            findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
         }
     }
 

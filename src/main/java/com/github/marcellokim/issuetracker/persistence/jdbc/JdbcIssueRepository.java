@@ -69,10 +69,10 @@ public final class JdbcIssueRepository implements IssueRepository {
             left join user_credentials resolver_credentials on resolver_credentials.login_id = resolver.login_id
             """;
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where i.id = ?";
-    private static final String FIND_BY_PROJECT_SQL =
-            BASE_SELECT + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
-    private static final String FIND_DELETED_BY_PROJECT_SQL =
-            BASE_SELECT + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_date desc, i.id desc";
+    private static final String FIND_BY_PROJECT_SQL = BASE_SELECT
+            + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
+    private static final String FIND_DELETED_BY_PROJECT_SQL = BASE_SELECT
+            + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_date desc, i.id desc";
 
     private final DatabaseConnectionProvider connectionProvider;
 
@@ -217,8 +217,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                         issue.status().name(),
                         IssueStatus.DELETED.name(),
                         message,
-                        effectiveChangedDate
-                );
+                        effectiveChangedDate);
                 connection.commit();
                 connection.setAutoCommit(originalAutoCommit);
                 return copyWithStatus(issue, IssueStatus.DELETED, effectiveChangedDate);
@@ -248,7 +247,8 @@ public final class JdbcIssueRepository implements IssueRepository {
                 }
 
                 IssueStatus restoreStatus = latestPreDeleteStatus(connection, issueId)
-                        .orElseThrow(() -> new RepositoryException("Restore requires pre-delete status history.", null));
+                        .orElseThrow(
+                                () -> new RepositoryException("Restore requires pre-delete status history.", null));
                 if (!isDeletableStatus(restoreStatus)) {
                     throw new RepositoryException("Pre-delete status history must be NEW or CLOSED.", null);
                 }
@@ -261,8 +261,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                         IssueStatus.DELETED.name(),
                         restoreStatus.name(),
                         message,
-                        effectiveChangedDate
-                );
+                        effectiveChangedDate);
                 connection.commit();
                 connection.setAutoCommit(originalAutoCommit);
                 return copyWithStatus(issue, restoreStatus, effectiveChangedDate);
@@ -446,10 +445,10 @@ public final class JdbcIssueRepository implements IssueRepository {
                 statement.setLong(1, issueId);
                 statement.setString(2, history.changedById());
                 statement.setString(3, history.actionType().name());
-                JdbcSupport.setNullableString(statement, 4, history.previousValue());
-                JdbcSupport.setNullableString(statement, 5, history.newValue());
-                statement.setString(6, history.message());
-                JdbcSupport.setNullableTimestamp(statement, 7, history.changedDate());
+                JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
+                JdbcSupport.setNullableString(statement, 5, history.getNewValue());
+                statement.setString(6, history.getMessage());
+                JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -507,8 +506,7 @@ public final class JdbcIssueRepository implements IssueRepository {
             Connection connection,
             long issueId,
             IssueStatus status,
-            LocalDateTime changedDate
-    ) throws SQLException {
+            LocalDateTime changedDate) throws SQLException {
         String sql = "update issues set status = ?, updated_at = coalesce(?, current_timestamp) where id = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, status.name());
@@ -525,8 +523,7 @@ public final class JdbcIssueRepository implements IssueRepository {
             String previousValue,
             String newValue,
             String message,
-            LocalDateTime changedDate
-    ) throws SQLException {
+            LocalDateTime changedDate) throws SQLException {
         String sql = """
                 insert into issue_history (
                     issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
@@ -544,7 +541,8 @@ public final class JdbcIssueRepository implements IssueRepository {
         }
     }
 
-    private static Optional<IssueStatus> latestPreDeleteStatus(Connection connection, long issueId) throws SQLException {
+    private static Optional<IssueStatus> latestPreDeleteStatus(Connection connection, long issueId)
+            throws SQLException {
         String sql = """
                 select previous_value
                 from issue_history
@@ -681,8 +679,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 Role.valueOf(resultSet.getString(prefix + "_role")),
                 resultSet.getInt(prefix + "_active") == 1,
                 JdbcSupport.nullableDateTime(resultSet, prefix + "_created_at"),
-                JdbcSupport.nullableDateTime(resultSet, prefix + "_updated_at")
-        );
+                JdbcSupport.nullableDateTime(resultSet, prefix + "_updated_at"));
     }
 
     @FunctionalInterface

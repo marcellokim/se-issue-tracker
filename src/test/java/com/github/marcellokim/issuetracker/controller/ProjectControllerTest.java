@@ -104,7 +104,7 @@ class ProjectControllerTest {
         assertTrue(created.getId() > 0L);
         assertEquals("project-alpha", created.getName());
         assertEquals("first project", created.getDescription());
-        assertEquals("admin", created.getManagedById());
+        assertEquals("admin", created.getManagedByLoginId());
         assertNotNull(created.getCreatedDate());
         assertNotNull(created.getUpdatedAt());
         assertTrue(projects.findById(created.getId()).isPresent());
@@ -366,7 +366,7 @@ class ProjectControllerTest {
         public Project save(Project project) {
             Project persistedProject = project.getId() == 0L
                     ? Project.create(nextProjectId++, project.getName(), project.getDescription(),
-                            project.getManagedById(),
+                            project.getManagedByLoginId(),
                             project.getCreatedDate(), project.getUpdatedAt())
                     : project;
             projectsById.put(persistedProject.getId(), persistedProject);
@@ -459,7 +459,8 @@ class ProjectControllerTest {
 
         @Override
         public void deactivate(String loginId) {
-            findByLoginId(loginId).ifPresent(User::deactivate);
+            LocalDateTime now = LocalDateTime.now();
+            findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
         }
     }
 

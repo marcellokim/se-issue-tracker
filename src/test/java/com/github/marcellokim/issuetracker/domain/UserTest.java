@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -49,10 +51,11 @@ class UserTest {
         @Test
         @DisplayName("사용자는 비활성화될 수 있다")
         void deactivateUser() {
+                LocalDateTime now = LocalDateTime.now();
                 // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
                 var user = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
 
-                user.deactivate();
+                user.deactivate(now);
 
                 assertFalse(user.isActive());
         }

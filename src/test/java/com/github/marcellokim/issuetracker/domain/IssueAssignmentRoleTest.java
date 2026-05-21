@@ -112,8 +112,8 @@ class IssueAssignmentRoleTest {
     void rejectInactiveAssignmentParticipants() {
         var inactiveAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
         var inactiveVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
-        inactiveAssignee.deactivate();
-        inactiveVerifier.deactivate();
+        inactiveAssignee.deactivate(createdAt.plusMinutes(1));
+        inactiveVerifier.deactivate(createdAt.plusMinutes(1));
 
         var issueForAssignee = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
                 createdAt);
@@ -151,7 +151,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("같은 assignee로 재배정할 수 없다")
+    @DisplayName("same assignee reassignment is rejected")
     void rejectSameAssigneeReassignment() {
         var issue = assignedIssue();
 
@@ -160,7 +160,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("같은 verifier로 변경할 수 없다")
+    @DisplayName("same verifier change is rejected")
     void rejectSameVerifierChange() {
         var issue = assignedIssue();
         issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -176,7 +176,7 @@ class IssueAssignmentRoleTest {
         var fixedIssue = assignedIssue();
         fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
         var inactiveDev = User.create("dev3", "Dev Three", "hash", Role.DEV, true, null, null);
-        inactiveDev.deactivate();
+        inactiveDev.deactivate(createdAt.plusMinutes(1));
 
         assertThrows(IllegalArgumentException.class,
                 () -> assignedIssue.reassignAssignee(verifier, pl, createdAt.plusMinutes(20)));

@@ -1,3 +1,118 @@
+// package com.github.marcellokim.issuetracker.domain;
+
+// import java.time.LocalDateTime;
+// import java.util.Objects;
+
+// public final class IssueHistory {
+
+//     private final long id; // IssueHistory 고유 ID
+//     private final long issueId;
+//     private final String changedByLoginId;
+//     private final ActionType actionType;
+//     private final String previousValue;
+//     private final String newValue;
+//     private final String message;
+//     private final LocalDateTime changedDate;
+
+//     public static IssueHistory create(
+//             long issueId,
+//             String changedByLoginId,
+//             ActionType actionType,
+//             String previousValue,
+//             String newValue,
+//             String message,
+//             LocalDateTime changedDate) {
+//         return new IssueHistory(
+//                 0L,
+//                 issueId,
+//                 changedByLoginId,
+//                 actionType,
+//                 previousValue,
+//                 newValue,
+//                 message,
+//                 changedDate);
+//     }
+
+//     public static IssueHistory fromPersistence(
+//             long id,
+//             long issueId,
+//             String changedByLoginId,
+//             ActionType actionType,
+//             String previousValue,
+//             String newValue,
+//             String message,
+//             LocalDateTime changedDate) {
+//         return new IssueHistory(
+//                 id,
+//                 issueId,
+//                 changedByLoginId,
+//                 actionType,
+//                 previousValue,
+//                 newValue,
+//                 message,
+//                 changedDate);
+//     }
+
+//     private IssueHistory(
+//             long id,
+//             long issueId,
+//             String changedByLoginId,
+//             ActionType actionType,
+//             String previousValue,
+//             String newValue,
+//             String message,
+//             LocalDateTime changedDate) {
+//         this.id = id;
+//         this.issueId = issueId;
+//         this.changedByLoginId = requireText(changedByLoginId, "changedById");
+//         this.actionType = Objects.requireNonNull(actionType, "actionType must not be null");
+//         this.previousValue = previousValue;
+//         this.newValue = newValue;
+//         this.message = message;
+//         this.changedDate = Objects.requireNonNull(changedDate, "changedDate must not be null");
+//     }
+
+//     // -- getter --
+//     public long getId() {
+//         return id;
+//     }
+
+//     public long getIssueId() {
+//         return issueId;
+//     }
+
+//     public String getChangedByLoginId() {
+//         return changedByLoginId;
+//     }
+
+//     public ActionType getActionType() {
+//         return actionType;
+//     }
+
+//     public String getPreviousValue() {
+//         return previousValue;
+//     }
+
+//     public String getNewValue() {
+//         return newValue;
+//     }
+
+//     public String getMessage() {
+//         return message;
+//     }
+
+//     public LocalDateTime getChangedDate() {
+//         return changedDate;
+//     }
+
+//     private static String requireText(String value, String fieldName) {
+//         if (value == null || value.isBlank()) {
+//             throw new IllegalArgumentException(fieldName + " must not be blank");
+//         }
+//         return value;
+//     }
+// }
+
 package com.github.marcellokim.issuetracker.domain;
 
 import java.time.LocalDateTime;
@@ -24,8 +139,7 @@ public final class IssueHistory {
             String previousValue,
             String newValue,
             String message,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         return new IssueHistory(
                 id,
                 issueId,
@@ -34,8 +148,7 @@ public final class IssueHistory {
                 previousValue,
                 newValue,
                 message,
-                changedDate
-        );
+                changedDate);
     }
 
     private IssueHistory(
@@ -46,8 +159,7 @@ public final class IssueHistory {
             String previousValue,
             String newValue,
             String message,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         this.id = id;
         this.issueId = issueId;
         this.historyId = Long.toString(id);
@@ -67,8 +179,7 @@ public final class IssueHistory {
             String newValue,
             String message,
             User changedBy,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         this.id = 0L;
         this.issueId = 0L;
         this.historyId = requireText(historyId, "historyId");
@@ -88,8 +199,7 @@ public final class IssueHistory {
             String newValue,
             String message,
             User changedBy,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         return new IssueHistory(historyId, action, previousValue, newValue, message, changedBy, changedDate);
     }
 

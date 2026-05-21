@@ -24,7 +24,7 @@ class ProjectTest {
         assertEquals(1L, project.getId());
         assertEquals("ITS", project.getName());
         assertEquals("Issue Tracking System", project.getDescription());
-        assertEquals("admin", project.getManagedById());
+        assertEquals("admin", project.getManagedByLoginId());
         assertEquals(now, project.getCreatedDate());
         assertEquals(now, project.getUpdatedAt());
     }
