@@ -668,7 +668,7 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
         "--limit", "100",
         "--json", "number,title,body,closingIssuesReferences",
     ])
-    completed_issue_numbers: dict[int, int] = {}
+    completed_issue_numbers: dict[int, tuple[int, str]] = {}
     repo_owner, repo_name = repo.split("/", 1)
     for pr in prs:
         for issue in pr.get("closingIssuesReferences", []):
@@ -676,16 +676,21 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
             issue_owner = issue_repo.get("owner") or {}
             if issue_repo.get("name") != repo_name or issue_owner.get("login") != repo_owner:
                 continue
-            completed_issue_numbers.setdefault(int(issue["number"]), int(pr["number"]))
+            completed_issue_numbers[int(issue["number"])] = (int(pr["number"]), "closingIssuesReferences")
         for issue_number in parse_closing_issue_numbers_from_body(str(pr.get("body") or "")):
-            completed_issue_numbers.setdefault(issue_number, int(pr["number"]))
+            completed_issue_numbers.setdefault(issue_number, (int(pr["number"]), "body"))
 
-    for issue_number, pr_number in sorted(completed_issue_numbers.items()):
-        issue = gh_json([
-            "issue", "view", str(issue_number),
-            "--repo", repo,
-            "--json", "number,title,state,labels",
-        ])
+    for issue_number, (pr_number, source) in sorted(completed_issue_numbers.items()):
+        try:
+            issue = gh_json([
+                "issue", "view", str(issue_number),
+                "--repo", repo,
+                "--json", "number,title,state,labels",
+            ])
+        except SystemExit:
+            if source != "body":
+                raise
+            continue
         labels = label_names(issue)
         labels_to_remove = sorted((labels & STATUS_LABELS) - {"status:done"})
         needs_done_label = "status:done" not in labels

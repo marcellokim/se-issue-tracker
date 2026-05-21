@@ -38,6 +38,11 @@ class ProjectMaintenanceScriptTest {
                             "title": "reference only",
                             "body": "## 참고\\n- Refs #103\\n",
                             "closingIssuesReferences": []
+                        }, {
+                            "number": 125,
+                            "title": "invalid closing reference",
+                            "body": "## 관련 이슈\\n- Closes: #999\\n",
+                            "closingIssuesReferences": []
                         }]
                     if args[:3] == ["issue", "view", "102"]:
                         return {
@@ -46,6 +51,8 @@ class ProjectMaintenanceScriptTest {
                             "state": "OPEN",
                             "labels": [{"name": "status:review"}]
                         }
+                    if args[:3] == ["issue", "view", "999"]:
+                        raise SystemExit("issue not found")
                     raise AssertionError(args)
 
                 project_maintenance.gh_json = fake_gh_json
