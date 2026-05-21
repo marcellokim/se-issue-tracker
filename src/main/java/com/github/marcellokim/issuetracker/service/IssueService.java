@@ -51,8 +51,9 @@ public final class IssueService {
     public CommentResult addComment(long issueId, String content, String currentUserId) {
         Issue issue = findIssue(issueId);
         User writer = findUser(currentUserId);
+        permissionPolicy.assertCanAddComment(writer, issue);
         LocalDateTime now = now();
-        Comment comment = issue.addComment(nextCommentId(issue), content, writer, now);
+        Comment comment = issue.addComment(CommentIdGenerator.nextCommentId(), content, writer, now);
         issueRepository.save(issue);
         return toCommentResult(comment);
     }
@@ -76,10 +77,6 @@ public final class IssueService {
         return clock.now();
     }
 
-    private static String nextCommentId(Issue issue) {
-        return issue.getIssueId() + "-C" + (issue.getComments().size() + 1);
-    }
-
     private static IssueResult toIssueResult(Issue issue) {
         return new IssueResult(
                 issue.getIssueId(),
@@ -95,6 +92,7 @@ public final class IssueService {
         return new CommentResult(
                 comment.getCommentId(),
                 comment.getContent(),
+                comment.getPurpose(),
                 comment.getWriter(),
                 comment.getCreatedDate()
         );

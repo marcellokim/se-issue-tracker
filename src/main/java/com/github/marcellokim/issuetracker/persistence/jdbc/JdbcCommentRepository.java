@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
@@ -14,7 +15,8 @@ import java.util.Optional;
 
 public final class JdbcCommentRepository implements CommentRepository {
 
-    private static final String BASE_SELECT = "select id, issue_id, writer_login_id, content, created_date from comments";
+    private static final String BASE_SELECT =
+            "select id, issue_id, writer_login_id, content, purpose, created_date from comments";
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by created_date, id";
 
@@ -79,15 +81,16 @@ public final class JdbcCommentRepository implements CommentRepository {
 
     private Comment insert(Comment comment) {
         String sql = """
-                insert into comments (issue_id, writer_login_id, content, created_date)
-                values (?, ?, ?, coalesce(?, current_timestamp))
+                insert into comments (issue_id, writer_login_id, content, purpose, created_date)
+                values (?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
             statement.setLong(1, comment.issueId());
             statement.setString(2, comment.writerId());
             statement.setString(3, comment.content());
-            JdbcSupport.setNullableTimestamp(statement, 4, comment.createdDate());
+            statement.setString(4, comment.purpose().name());
+            JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
             statement.executeUpdate();
             return findById(JdbcSupport.generatedId(statement))
                     .orElseThrow(() -> new RepositoryException("Inserted comment was not found.", null));
@@ -102,6 +105,7 @@ public final class JdbcCommentRepository implements CommentRepository {
                 set issue_id = ?,
                     writer_login_id = ?,
                     content = ?,
+                    purpose = ?,
                     created_date = coalesce(?, created_date)
                 where id = ?
                 """;
@@ -110,8 +114,9 @@ public final class JdbcCommentRepository implements CommentRepository {
             statement.setLong(1, comment.issueId());
             statement.setString(2, comment.writerId());
             statement.setString(3, comment.content());
-            JdbcSupport.setNullableTimestamp(statement, 4, comment.createdDate());
-            statement.setLong(5, comment.id());
+            statement.setString(4, comment.purpose().name());
+            JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
+            statement.setLong(6, comment.id());
             statement.executeUpdate();
             return findById(comment.id())
                     .orElseThrow(() -> new RepositoryException("Updated comment was not found.", null));
@@ -126,6 +131,7 @@ public final class JdbcCommentRepository implements CommentRepository {
                 resultSet.getLong("issue_id"),
                 resultSet.getString("writer_login_id"),
                 resultSet.getString("content"),
+                CommentPurpose.valueOf(resultSet.getString("purpose")),
                 JdbcSupport.nullableDateTime(resultSet, "created_date"));
     }
 }

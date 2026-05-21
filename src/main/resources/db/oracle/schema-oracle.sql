@@ -313,6 +313,7 @@ begin
                 issue_id number not null,
                 writer_login_id varchar2(50) not null,
                 content clob not null,
+                purpose varchar2(32) default 'GENERAL' not null,
                 created_date timestamp default current_timestamp not null,
                 constraint fk_comments_issue foreign key (issue_id) references issues(id) on delete cascade,
                 constraint fk_comments_writer foreign key (writer_login_id) references users(login_id)

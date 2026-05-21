@@ -411,8 +411,8 @@ public final class JdbcIssueRepository implements IssueRepository {
     private static void insertTransientComments(Connection connection, long issueId, List<Comment> comments)
             throws SQLException {
         String sql = """
-                insert into comments (issue_id, writer_login_id, content, created_date)
-                values (?, ?, ?, coalesce(?, current_timestamp))
+                insert into comments (issue_id, writer_login_id, content, purpose, created_date)
+                values (?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (Comment comment : comments) {
@@ -422,7 +422,8 @@ public final class JdbcIssueRepository implements IssueRepository {
                 statement.setLong(1, issueId);
                 statement.setString(2, comment.writerId());
                 statement.setString(3, comment.content());
-                JdbcSupport.setNullableTimestamp(statement, 4, comment.createdDate());
+                statement.setString(4, comment.purpose().name());
+                JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
                 statement.addBatch();
             }
             statement.executeBatch();
