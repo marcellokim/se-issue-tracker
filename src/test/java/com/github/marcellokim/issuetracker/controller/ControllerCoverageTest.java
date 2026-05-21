@@ -32,6 +32,7 @@ import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDate;
@@ -269,6 +270,15 @@ class ControllerCoverageTest {
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)));
+        assertDoesNotThrow(() -> new IssueDependencyController(
+                auth.service(),
+                new com.github.marcellokim.issuetracker.service.IssueDependencyService(
+                        issues,
+                        new InMemoryIssueDependencyRepository(),
+                        new InMemoryIssueDependencyRepository(),
+                        users,
+                        policy,
+                        clock)));
     }
 
     private static AuthFixture authenticated(Role role) {

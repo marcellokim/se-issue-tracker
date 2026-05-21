@@ -4,6 +4,7 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvide
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
+import com.github.marcellokim.issuetracker.repository.IssueDependencyChangeRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
@@ -44,6 +45,10 @@ public final class JdbcRepositoryFactory {
     }
 
     public IssueDependencyRepository issueDependencies() {
+        return new JdbcIssueDependencyRepository(connectionProvider);
+    }
+
+    public IssueDependencyChangeRepository issueDependencyChanges() {
         return new JdbcIssueDependencyRepository(connectionProvider);
     }
 

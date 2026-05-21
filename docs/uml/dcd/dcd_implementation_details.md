@@ -129,6 +129,41 @@ IssueStateService
 
 #47 Reopen은 같은 `changeStatus(issueId, targetStatus=REOPENED, comment)` route에서 구현한다. `Issue.reopen`이 assignee/verifier 제거와 fixer/resolver 보존 정책을 소유하고, PL 권한 검사는 `PermissionPolicy`가 담당한다.
 
+### Issue Dependency Flow
+
+현재 #45 dependency workflow 구조는 다음과 같다.
+text
+IssueDependencyController
+  -> AuthenticationService
+  -> IssueDependencyService
+
+IssueDependencyService
+  -> IssueRepository
+  -> IssueDependencyRepository
+  -> IssueDependencyChangeRepository
+  -> UserRepository
+  -> PermissionPolicy
+  -> Clock
+
+`IssueDependencyController`의 책임은 다음이다.
+
+- 현재 로그인 사용자 확인
+- `addDependency(blockingIssueId, blockedIssueId)`, `listDependencies(issueId)`, `removeDependency(dependencyId)` system operation 수신
+- 로그인 사용자의 `loginId`를 `IssueDependencyService`로 전달
+
+`IssueDependencyService`의 책임은 다음이다.
+
+- blocking issue, blocked issue, 현재 사용자, 저장된 dependency 조회
+- `PermissionPolicy.assertCanManageDependency`를 통한 PL 권한 검사
+- 자기 의존성, 저장소 기준 중복, 저장소 edge 기반 cycle 검사
+- `Issue.addDependency`와 `Issue.recordDependencyRemoved`를 통한 aggregate-local dependency history 기록
+- `IssueDependencyRepository`를 통한 dependency 조회, 목록, 중복, cycle 검사
+- `IssueDependencyChangeRepository`를 통한 dependency 저장/삭제와 blocked issue history 저장
+
+`IssueDependencyChangeRepository`는 dependency relation row와 blocked issue의 `DEPENDENCY_CHANGED` history를 하나의 persistence operation으로 묶는 write contract이다. JDBC 구현에서는 같은 connection에서 autocommit을 끄고 dependency insert/update 또는 delete와 transient history insert를 같은 transaction으로 commit한다. 삭제 경로는 stale dependency id가 이력만 남기는 것을 막기 위해 정확히 1개 row가 삭제된 경우에만 removal history를 insert한다. 따라서 service는 dependency 저장/삭제 뒤에 `IssueRepository.save(blockedIssue)`를 별도로 호출하지 않는다.
+
+이 경계에서 `Priority.BLOCKER`는 dependency workflow와 분리한다. BLOCKER priority는 우선순위 값이고, #45의 dependency 추가/목록/삭제는 `IssueDependency` 관계와 `DEPENDENCY_CHANGED` 이력만 다룬다. FIXED -> RESOLVED dependency guard(#98)는 이 slice에 포함하지 않고 status workflow/service 쪽 정책으로 남긴다.
+
 ## 구현 가이드라인
 
 앞으로 구현할 때는 다음 기준을 따른다.

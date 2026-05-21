@@ -687,6 +687,133 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("IssueDependency change repository saves dependency and blocked issue history atomically")
+    void issueDependencyChangeRepositorySavesDependencyAndHistory() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue blocking = createIssue(project.getId(), uniqueId("change_save_blocking_issue"));
+        Issue blocked = createIssue(project.getId(), uniqueId("change_save_blocked_issue"));
+        IssueDependency dependency = null;
+
+        try {
+            dependency = blocked.addDependency(
+                    IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                    blocking,
+                    user("pl1"),
+                    LocalDateTime.now());
+
+            IssueDependency saved = repositories.issueDependencyChanges()
+                    .saveWithBlockedIssueHistory(dependency, blocked);
+
+            assertEquals(saved.id(), repositories.issueDependencies().findById(saved.id()).orElseThrow().id());
+            assertEquals(1, dependencyHistoryCount(blocked.id(), saved.getDependencyId(), "Dependency added"));
+        } finally {
+            if (dependency != null && dependency.id() != 0L) {
+                repositories.issueDependencies().deleteById(dependency.id());
+            }
+            repositories.issueDependencies().deleteByIssueId(blocked.id());
+            repositories.issues().purge(blocked.id());
+            repositories.issues().purge(blocking.id());
+        }
+    }
+
+    @Test
+    @DisplayName("IssueDependency change repository rolls back duplicate dependency history")
+    void issueDependencyChangeRepositoryRollsBackDuplicateHistory() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue blocking = createIssue(project.getId(), uniqueId("change_duplicate_blocking_issue"));
+        Issue blocked = createIssue(project.getId(), uniqueId("change_duplicate_blocked_issue"));
+
+        try {
+            IssueDependency dependency = blocked.addDependency(
+                    IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                    blocking,
+                    user("pl1"),
+                    LocalDateTime.now());
+            IssueDependency saved = repositories.issueDependencyChanges()
+                    .saveWithBlockedIssueHistory(dependency, blocked);
+            int historyCountBeforeDuplicate = dependencyHistoryCount(
+                    blocked.id(),
+                    saved.getDependencyId(),
+                    "Dependency added");
+
+            Issue duplicateBlocked = copyIssueForDependencyChange(blocked);
+            IssueDependency duplicate = duplicateBlocked.addDependency(
+                    IssueDependency.dependencyIdFor(blocking.id(), duplicateBlocked.id()),
+                    blocking,
+                    user("pl1"),
+                    LocalDateTime.now());
+
+            assertThrows(RepositoryException.class,
+                    () -> repositories.issueDependencyChanges()
+                            .saveWithBlockedIssueHistory(duplicate, duplicateBlocked));
+
+            assertEquals(1, repositories.issueDependencies().findByIssueId(blocked.id()).size());
+            assertEquals(historyCountBeforeDuplicate,
+                    dependencyHistoryCount(blocked.id(), saved.getDependencyId(), "Dependency added"));
+        } finally {
+            repositories.issueDependencies().deleteByIssueId(blocked.id());
+            repositories.issues().purge(blocked.id());
+            repositories.issues().purge(blocking.id());
+        }
+    }
+
+    @Test
+    @DisplayName("IssueDependency change repository deletes dependency and records removal history atomically")
+    void issueDependencyChangeRepositoryDeletesDependencyAndHistory() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue blocking = createIssue(project.getId(), uniqueId("change_delete_blocking_issue"));
+        Issue blocked = createIssue(project.getId(), uniqueId("change_delete_blocked_issue"));
+
+        try {
+            IssueDependency saved = repositories.issueDependencies().save(IssueDependency.fromPersistence(
+                    0L,
+                    blocking.id(),
+                    blocked.id(),
+                    LocalDateTime.now()));
+            blocked.recordDependencyRemoved(saved, user("pl1"), LocalDateTime.now());
+
+            repositories.issueDependencyChanges().deleteWithBlockedIssueHistory(saved, blocked);
+
+            assertTrue(repositories.issueDependencies().findById(saved.id()).isEmpty());
+            assertEquals(1, dependencyHistoryCount(blocked.id(), saved.getDependencyId(), "Dependency removed"));
+        } finally {
+            repositories.issueDependencies().deleteByIssueId(blocked.id());
+            repositories.issues().purge(blocked.id());
+            repositories.issues().purge(blocking.id());
+        }
+    }
+
+    @Test
+    @DisplayName("IssueDependency change repository rejects stale delete without removal history")
+    void issueDependencyChangeRepositoryRejectsStaleDeleteWithoutHistory() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue blocking = createIssue(project.getId(), uniqueId("change_stale_delete_blocking_issue"));
+        Issue blocked = createIssue(project.getId(), uniqueId("change_stale_delete_blocked_issue"));
+        IssueDependency saved = null;
+
+        try {
+            saved = repositories.issueDependencies().save(IssueDependency.fromPersistence(
+                    0L,
+                    blocking.id(),
+                    blocked.id(),
+                    LocalDateTime.now()));
+            repositories.issueDependencies().deleteById(saved.id());
+            blocked.recordDependencyRemoved(saved, user("pl1"), LocalDateTime.now());
+
+            IssueDependency staleDependency = saved;
+            assertThrows(RepositoryException.class,
+                    () -> repositories.issueDependencyChanges()
+                            .deleteWithBlockedIssueHistory(staleDependency, blocked));
+
+            assertEquals(0, dependencyHistoryCount(blocked.id(), saved.getDependencyId(), "Dependency removed"));
+        } finally {
+            repositories.issueDependencies().deleteByIssueId(blocked.id());
+            repositories.issues().purge(blocked.id());
+            repositories.issues().purge(blocking.id());
+        }
+    }
+
+    @Test
     @DisplayName("Statistics and recommendation repositories reflect saved resolved issues")
     void statisticsAndRecommendationRepositoriesReflectSavedResolvedIssues() {
         var project = repositories.projects().findByName("project1").orElseThrow();
@@ -788,6 +915,33 @@ class OracleRepositoryIntegrationTest {
         }
 
         return repositories.issues().save(Issue.newForPersistence(state));
+    }
+
+    private static Issue copyIssueForDependencyChange(Issue issue) {
+        return Issue.fromPersistence(Issue.persistedState(
+                issue.projectId(),
+                issue.title(),
+                issue.description(),
+                issue.getReporter())
+                .id(issue.id())
+                .issueId(issue.getIssueId())
+                .reportedDate(issue.reportedDate())
+                .priority(issue.priority())
+                .status(issue.status())
+                .assignee(issue.getAssignee())
+                .verifier(issue.getVerifier())
+                .fixer(issue.getFixer())
+                .resolver(issue.getResolver())
+                .updatedAt(issue.updatedAt()));
+    }
+
+    private static int dependencyHistoryCount(long issueId, String dependencyId, String message) {
+        return (int) repositories.issueHistory().findByIssueId(issueId).stream()
+                .filter(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED)
+                .filter(history -> dependencyId.equals(history.previousValue())
+                        || dependencyId.equals(history.newValue()))
+                .filter(history -> message.equals(history.message()))
+                .count();
     }
 
     private static User user(String loginId) {

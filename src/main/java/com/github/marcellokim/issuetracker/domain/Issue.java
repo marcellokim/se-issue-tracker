@@ -362,6 +362,21 @@ public class Issue {
         return dependency;
     }
 
+    public void recordDependencyRemoved(IssueDependency dependency, User changedBy, LocalDateTime changedDate) {
+        Objects.requireNonNull(dependency, "dependency must not be null");
+        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        // Repository 삭제는 service/repository 책임이고, aggregate는 삭제 이력의 일관성만 소유한다.
+        recordHistory(
+                ActionType.DEPENDENCY_CHANGED,
+                dependency.getDependencyId(),
+                null,
+                "Dependency removed",
+                changedBy,
+                changedDate
+        );
+    }
+
     public Comment addComment(String commentId, String content, User writer, LocalDateTime createdDate) {
         return addComment(commentId, content, writer, createdDate, CommentPurpose.GENERAL);
     }
