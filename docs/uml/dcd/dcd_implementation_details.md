@@ -121,11 +121,13 @@ IssueStateService
 - 현재 사용자 조회
 - target status별 권한 검사
 - 필수 comment 검증
-- `Issue.markFixed`, `Issue.resolve`, `Issue.close` 등 domain operation 호출
+- `Issue.markFixed`, `Issue.resolve`, `Issue.rejectFix`, `Issue.close`, `Issue.reopen` domain operation 호출
 - comment 기록
 - 변경된 issue 저장
 
 #43 Tester reject fix는 같은 구조로 구현한다. 별도 operation 이름을 만들지 않고 `changeStatus(issueId, targetStatus=ASSIGNED, comment)` branch에서 `Issue.rejectFix`를 호출한다.
+
+#47 Reopen은 같은 `changeStatus(issueId, targetStatus=REOPENED, comment)` route에서 구현한다. `Issue.reopen`이 assignee/verifier 제거와 fixer/resolver 보존 정책을 소유하고, PL 권한 검사는 `PermissionPolicy`가 담당한다.
 
 ## 구현 가이드라인
 

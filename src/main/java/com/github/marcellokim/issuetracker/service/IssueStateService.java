@@ -38,6 +38,7 @@ public final class IssueStateService {
             case RESOLVED -> resolve(issue, actor, requiredComment);
             case ASSIGNED -> rejectFix(issue, actor, requiredComment);
             case CLOSED -> close(issue, actor, requiredComment);
+            case REOPENED -> reopen(issue, actor, requiredComment);
             default -> throw new UnsupportedOperationException("Unsupported target status: " + requiredTargetStatus);
         }
         issueRepository.save(issue);
@@ -69,6 +70,13 @@ public final class IssueStateService {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED);
         LocalDateTime changedAt = now();
         issue.close(actor, comment, changedAt);
+        recordStatusChangeReason(issue, actor, comment, changedAt);
+    }
+
+    private void reopen(Issue issue, User actor, String comment) {
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.REOPENED);
+        LocalDateTime changedAt = now();
+        issue.reopen(actor, comment, changedAt);
         recordStatusChangeReason(issue, actor, comment, changedAt);
     }
 

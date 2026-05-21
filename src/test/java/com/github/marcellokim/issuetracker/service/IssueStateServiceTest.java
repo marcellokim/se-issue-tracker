@@ -108,6 +108,46 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("PL reopens resolved issue and clears active assignment")
+    void reopenResolvedIssue() {
+        var issue = resolvedIssue();
+        var service = service(issue);
+
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId());
+
+        assertEquals(IssueStatus.REOPENED, result.status());
+        assertNull(issue.getAssignee());
+        assertNull(issue.getVerifier());
+        assertSame(assignee, issue.getFixer());
+        assertSame(verifier, issue.getResolver());
+        assertEquals(1, issue.getComments().size());
+        assertEquals("Needs more work", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertStatusChangedThenCommented(issue);
+    }
+
+    @Test
+    @DisplayName("PL reopens closed issue and preserves fixer and resolver")
+    void reopenClosedIssue() {
+        var issue = closedIssue();
+        var service = service(issue);
+
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Regression found", pl.getLoginId());
+
+        assertEquals(IssueStatus.REOPENED, result.status());
+        assertNull(issue.getAssignee());
+        assertNull(issue.getVerifier());
+        assertSame(assignee, issue.getFixer());
+        assertSame(verifier, issue.getResolver());
+        assertEquals(1, issue.getComments().size());
+        assertEquals("Regression found", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
+        assertStatusChangedThenCommented(issue);
+    }
+
+    @Test
     @DisplayName("blank comment or wrong actor fails status change")
     void rejectBlankCommentAndWrongParticipant() {
         var issue = assignedIssue();
@@ -198,6 +238,12 @@ class IssueStateServiceTest {
     private Issue resolvedIssue() {
         var issue = fixedIssue();
         issue.resolve(verifier, "Verified", createdAt().plusMinutes(30));
+        return issue;
+    }
+
+    private Issue closedIssue() {
+        var issue = resolvedIssue();
+        issue.close(pl, "Release completed", createdAt().plusMinutes(40));
         return issue;
     }
 
