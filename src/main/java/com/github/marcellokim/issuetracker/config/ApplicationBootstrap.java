@@ -14,7 +14,7 @@ import java.sql.SQLException;
 
 public final class ApplicationBootstrap implements ApplicationRuntime {
 
-    private volatile RepositoryContext context;
+    private RepositoryContext context;
 
     @Override
     public boolean hasDatabaseEnvironment() {
@@ -54,26 +54,18 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                         repositories.users())));
     }
 
-    private RepositoryContext context() throws IOException, SQLException {
-        RepositoryContext current = context;
-        if (current != null) {
-            return current;
+    private synchronized RepositoryContext context() throws IOException, SQLException {
+        if (context == null) {
+            // JavaFX와 CLI 진단 경로가 동시에 runtime을 요청해도 DB 초기화는 한 번만 수행함.
+            DatabaseEnvironment environment = DatabaseEnvironment.fromSystem();
+            var connectionProvider = DriverManagerConnectionProvider.from(environment);
+            DatabaseInitializer.initialize(connectionProvider);
+            context = new RepositoryContext(
+                    environment,
+                    connectionProvider,
+                    new JdbcRepositoryFactory(connectionProvider));
         }
-        synchronized (this) {
-            current = context;
-            if (current == null) {
-                // JavaFX와 CLI 진단 경로가 동시에 runtime을 요청해도 DB 초기화는 한 번만 수행함.
-                DatabaseEnvironment environment = DatabaseEnvironment.fromSystem();
-                var connectionProvider = DriverManagerConnectionProvider.from(environment);
-                DatabaseInitializer.initialize(connectionProvider);
-                current = new RepositoryContext(
-                        environment,
-                        connectionProvider,
-                        new JdbcRepositoryFactory(connectionProvider));
-                context = current;
-            }
-            return current;
-        }
+        return context;
     }
 
     private static DatabaseConnectionSummary connectionSummary(

@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.StringJoiner;
 
 final class JdbcIssueDeleteOperations {
 
@@ -160,41 +159,27 @@ final class JdbcIssueDeleteOperations {
         }
     }
 
-    private void purge(Connection connection, long issueId) throws SQLException {
-        String sql = "delete from issues where id = ?";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, issueId);
-            statement.executeUpdate();
-        }
-    }
-
     private void purgeAll(Connection connection, List<Long> issueIds) throws SQLException {
-        for (int start = 0; start < issueIds.size(); start += PURGE_BATCH_SIZE) {
-            List<Long> batch = issueIds.subList(start, Math.min(start + PURGE_BATCH_SIZE, issueIds.size()));
-            purgeBatch(connection, batch);
-        }
-    }
-
-    private void purgeBatch(Connection connection, List<Long> issueIds) throws SQLException {
         if (issueIds.isEmpty()) {
             return;
         }
-        // Oracle IN 목록 제한을 피하면서 기존 FIFO purge 대상 집합은 그대로 유지함.
-        String sql = "delete from issues where id in (" + placeholders(issueIds.size()) + ")";
+        String sql = "delete from issues where id = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            for (int index = 0; index < issueIds.size(); index++) {
-                statement.setLong(index + 1, issueIds.get(index));
+            int pendingBatchSize = 0;
+            for (Long issueId : issueIds) {
+                statement.setLong(1, issueId);
+                statement.addBatch();
+                pendingBatchSize++;
+                if (pendingBatchSize == PURGE_BATCH_SIZE) {
+                    statement.executeBatch();
+                    pendingBatchSize = 0;
+                }
             }
-            statement.executeUpdate();
+            if (pendingBatchSize > 0) {
+                // 단건 DELETE 문을 JDBC batch로 묶어 SQL injection hotspot 없이 기존 FIFO 대상 집합만 제거함.
+                statement.executeBatch();
+            }
         }
-    }
-
-    private static String placeholders(int count) {
-        StringJoiner joiner = new StringJoiner(", ");
-        for (int index = 0; index < count; index++) {
-            joiner.add("?");
-        }
-        return joiner.toString();
     }
 
     private Optional<Issue> findById(Connection connection, long issueId) throws SQLException {
