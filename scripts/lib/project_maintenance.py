@@ -135,22 +135,37 @@ def parse_issue_number_from_branch(branch: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def parse_issue_numbers_from_body(body: str) -> list[int]:
-    return parse_issue_numbers_with_keywords(body, r"close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?")
+def parse_issue_numbers_from_body(body: str, repo: str | None = None) -> list[int]:
+    return parse_issue_numbers_with_keywords(body, r"close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?", repo=repo)
 
 
-def parse_closing_issue_numbers_from_body(body: str) -> list[int]:
-    return parse_issue_numbers_with_keywords(body, r"close[sd]?|fix(?:e[sd])?|resolve[sd]?")
+def parse_closing_issue_numbers_from_body(body: str, repo: str | None = None) -> list[int]:
+    return parse_issue_numbers_with_keywords(body, r"close[sd]?|fix(?:e[sd])?|resolve[sd]?", repo=repo)
 
 
-def parse_issue_numbers_with_keywords(body: str, keywords: str) -> list[int]:
+def parse_issue_numbers_with_keywords(body: str, keywords: str, repo: str | None = None) -> list[int]:
     numbers: list[int] = []
-    pattern = re.compile(rf"\b(?:{keywords}):?\s+#([0-9]+)", re.IGNORECASE)
+    pattern = re.compile(
+        rf"\b(?:{keywords}):?\s+(?:(?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+))?#(?P<number>[0-9]+)",
+        re.IGNORECASE,
+    )
     for match in pattern.finditer(body):
-        number = int(match.group(1))
+        qualified_repo = match.group("repo")
+        if qualified_repo is not None and (repo is None or qualified_repo.lower() != repo.lower()):
+            continue
+        number = int(match.group("number"))
         if number not in numbers:
             numbers.append(number)
     return numbers
+
+
+def is_issue_not_found_error(error: SystemExit) -> bool:
+    message = str(error).lower()
+    return (
+        "not found" in message
+        or "could not resolve to an issue" in message
+        or "could not resolve to issue" in message
+    )
 
 
 def is_bot_login(login: str) -> bool:
@@ -477,7 +492,7 @@ def ensure_project_item(context: ProjectContext, url: str, dry_run: bool, change
 
 def append_issue_link_if_missing(pr_number: int, pr: dict[str, object], issue_number: int, repo: str, dry_run: bool, changes: list[str]) -> None:
     body = str(pr.get("body") or "")
-    if issue_number in parse_issue_numbers_from_body(body):
+    if issue_number in parse_issue_numbers_from_body(body, repo=repo):
         return
 
     if dry_run:
@@ -578,7 +593,7 @@ def sync_single_pr_metadata(args: argparse.Namespace) -> int:
         return 0
 
     linked_numbers = [int(issue["number"]) for issue in pr.get("closingIssuesReferences", [])]
-    linked_numbers.extend(parse_issue_numbers_from_body(str(pr.get("body") or "")))
+    linked_numbers.extend(parse_issue_numbers_from_body(str(pr.get("body") or ""), repo=repo))
     if not linked_numbers:
         branch_issue = parse_issue_number_from_branch(str(pr.get("headRefName") or ""))
         if branch_issue is not None:
@@ -677,7 +692,7 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
             if issue_repo.get("name") != repo_name or issue_owner.get("login") != repo_owner:
                 continue
             completed_issue_numbers[int(issue["number"])] = (int(pr["number"]), "closingIssuesReferences")
-        for issue_number in parse_closing_issue_numbers_from_body(str(pr.get("body") or "")):
+        for issue_number in parse_closing_issue_numbers_from_body(str(pr.get("body") or ""), repo=repo):
             completed_issue_numbers.setdefault(issue_number, (int(pr["number"]), "body"))
 
     for issue_number, (pr_number, source) in sorted(completed_issue_numbers.items()):
@@ -687,10 +702,10 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
                 "--repo", repo,
                 "--json", "number,title,state,labels",
             ])
-        except SystemExit:
-            if source != "body":
-                raise
-            continue
+        except SystemExit as error:
+            if source == "body" and is_issue_not_found_error(error):
+                continue
+            raise
         labels = label_names(issue)
         labels_to_remove = sorted((labels & STATUS_LABELS) - {"status:done"})
         needs_done_label = "status:done" not in labels
