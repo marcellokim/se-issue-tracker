@@ -71,6 +71,19 @@ class IssueDependencyTest {
     }
 
     @Test
+    @DisplayName("여러 blocking issue에 대한 의존성을 추가할 수 있다")
+    void addMultipleDifferentDependencies() {
+        var blockingIssue1 = Issue.create("ISSUE-1", "Fix auth", "Auth fix", null, reporter, createdAt);
+        var blockingIssue2 = Issue.create("ISSUE-3", "Fix DB", "DB fix", null, reporter, createdAt);
+        var blockedIssue = Issue.create("ISSUE-2", "Login UI", "UI depends", null, reporter, createdAt);
+
+        blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue1, pl, createdAt.plusMinutes(20));
+        blockedIssue.addDependency("ISSUE-3->ISSUE-2", blockingIssue2, pl, createdAt.plusMinutes(30));
+
+        assertEquals(2, blockedIssue.getBlockedByDependencies().size());
+    }
+
+    @Test
     @DisplayName("persisted dependency derives deterministic id and keeps database fields")
     void persistedDependencyDerivesDeterministicId() {
         var dependency = IssueDependency.fromPersistence(7L, 10L, 20L, createdAt);

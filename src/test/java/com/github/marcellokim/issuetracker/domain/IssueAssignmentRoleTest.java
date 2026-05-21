@@ -151,6 +151,25 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
+    @DisplayName("같은 assignee로 재배정할 수 없다")
+    void rejectSameAssigneeReassignment() {
+        var issue = assignedIssue();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.reassignAssignee(assignee, pl, createdAt.plusMinutes(20)));
+    }
+
+    @Test
+    @DisplayName("같은 verifier로 변경할 수 없다")
+    void rejectSameVerifierChange() {
+        var issue = assignedIssue();
+        issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.changeVerifier(verifier, pl, createdAt.plusMinutes(30)));
+    }
+
+    @Test
     @DisplayName("assignment changes require valid active participants")
     void rejectInvalidReassignmentParticipants() {
         var assignedIssue = assignedIssue();
