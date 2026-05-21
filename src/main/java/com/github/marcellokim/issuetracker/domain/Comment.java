@@ -47,6 +47,7 @@ public final class Comment {
         return new Comment(commentId, content, writer, createdDate);
     }
 
+    // --- getters ---
     public long id() {
         return id;
     }

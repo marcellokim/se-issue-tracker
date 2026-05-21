@@ -88,6 +88,68 @@ class IssueCreationTest {
     }
 
     @Test
+    @DisplayName("newForPersistence with explicit issueId preserves it")
+    void newForPersistenceWithExplicitIssueId() {
+        var issue = Issue.newForPersistence(Issue.persistedState(
+                1L, "Bug", "desc", reporter)
+                .issueId("CUSTOM-ID")
+                .reportedDate(now)
+                .updatedAt(now));
+
+        assertEquals("CUSTOM-ID", issue.getIssueId());
+    }
+
+    @Test
+    @DisplayName("fromPersistence rejects non-positive id")
+    void fromPersistenceRejectsNonPositiveId() {
+        assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(
+                Issue.persistedState(1L, "Bug", "desc", reporter)
+                        .id(0L)
+                        .issueId("ISSUE-1")
+                        .reportedDate(now)
+                        .updatedAt(now)));
+        assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(
+                Issue.persistedState(1L, "Bug", "desc", reporter)
+                        .id(-1L)
+                        .issueId("ISSUE-1")
+                        .reportedDate(now)
+                        .updatedAt(now)));
+    }
+
+    @Test
+    @DisplayName("newForPersistence rejects non-zero id")
+    void newForPersistenceRejectsNonZeroId() {
+        assertThrows(IllegalArgumentException.class, () -> Issue.newForPersistence(
+                Issue.persistedState(1L, "Bug", "desc", reporter)
+                        .id(5L)
+                        .reportedDate(now)
+                        .updatedAt(now)));
+    }
+
+    @Test
+    @DisplayName("persistence getters return expected values")
+    void persistenceGettersReturnExpectedValues() {
+        var issue = Issue.fromPersistence(Issue.persistedState(
+                1L, "Bug", "desc", reporter)
+                .id(10L)
+                .issueId("ISSUE-1")
+                .reportedDate(now)
+                .updatedAt(now));
+
+        assertEquals("Bug", issue.title());
+        assertEquals("desc", issue.description());
+        assertEquals(now, issue.reportedDate());
+        assertEquals(Priority.MAJOR, issue.priority());
+        assertEquals(IssueStatus.NEW, issue.status());
+        assertEquals(reporter.getLoginId(), issue.reporterId());
+        assertNull(issue.assigneeId());
+        assertNull(issue.verifierId());
+        assertNull(issue.fixerId());
+        assertNull(issue.resolverId());
+        assertEquals(now, issue.updatedAt());
+    }
+
+    @Test
     @DisplayName("이슈 생성 필수 값은 비어 있을 수 없다")
     void rejectInvalidIssueCreationArguments() {
         assertThrows(IllegalArgumentException.class,

@@ -88,7 +88,7 @@ public class Issue {
         recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter, reportedDate);
     }
 
-    public static Issue create(
+    public static Issue create( // 테스트용 생성 메서드, 실제로는 Persistence 계층에서 PersistedState를 통해 생성
             String issueId,
             String title,
             String description,
@@ -111,6 +111,7 @@ public class Issue {
         return new Issue(state, false);
     }
 
+    // --- getters ---
     public long id() {
         return id;
     }
@@ -223,6 +224,7 @@ public class Issue {
         return Collections.unmodifiableList(blockedByDependencies);
     }
 
+    // --- status management ---
     public void assignFromNew(User assignee, User verifier, User changedBy, LocalDateTime changedDate) {
         requireStatus(IssueStatus.NEW);
         assign(assignee, verifier, changedBy, changedDate, "Issue assigned from NEW");
@@ -327,6 +329,15 @@ public class Issue {
         changeStatusTo(IssueStatus.REOPENED, requiredComment, changedBy, changedDate);
     }
 
+    public void rejectFix(User tester, String comment, LocalDateTime changedDate) {
+        requireStatus(IssueStatus.FIXED);
+        requireRole(tester, Role.TESTER, "tester");
+        requireCurrentParticipant(tester, verifier, "tester must be current verifier");
+        var requiredComment = requireText(comment, COMMENT_FIELD);
+        changeStatusTo(IssueStatus.ASSIGNED, requiredComment, tester, changedDate);
+    }
+
+    // --- other methods ---
     public IssueDependency addDependency(
             String dependencyId,
             Issue blockingIssue,
@@ -378,7 +389,36 @@ public class Issue {
                 changedDate
         );
     }
+    public void updateTitleAndDescription(
+        String newTitle,
+        String newDescription,
+        User changer,
+        LocalDateTime changedDate
+    ) {
+        Objects.requireNonNull(changer, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
 
+        if (!sameUser(changer, reporter)) {
+            throw new IllegalArgumentException("changer must be Reporter");
+        }
+        if (status != IssueStatus.NEW && status != IssueStatus.REOPENED) {
+            throw new IllegalStateException("Issue status must be before Assigned");
+        }
+        String previousValue = title + "\n" + description;
+        this.title = requireText(newTitle, "title");
+        this.description = requireText(newDescription, "description");
+        this.updatedAt = changedDate;
+        recordHistory(
+            ActionType.TITLE_DESCRIPTION_UPDATED,
+            previousValue,
+            title + "\n" + description,
+            "Title and description changed",
+            changer,
+            changedDate
+        );
+    }
+
+    // --- general-purpose private methods ---
     private void changeStatusTo(IssueStatus targetStatus, String message, User changedBy, LocalDateTime changedDate) {
         Objects.requireNonNull(targetStatus, "targetStatus must not be null");
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);

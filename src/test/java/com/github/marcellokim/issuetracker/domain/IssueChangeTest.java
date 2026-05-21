@@ -101,6 +101,75 @@ class IssueChangeTest {
     }
 
     @Test
+    @DisplayName("reporter가 NEW 이슈의 제목과 설명을 변경하면 이력이 기록된다")
+    void updateTitleAndDescriptionByReporter() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var changedAt = createdAt.plusMinutes(10);
+
+        issue.updateTitleAndDescription("Login fixed", "Updated description", reporter, changedAt);
+
+        assertEquals("Login fixed", issue.getTitle());
+        assertEquals("Updated description", issue.getDescription());
+        var history = issue.getHistories().getLast();
+        assertEquals(ActionType.TITLE_DESCRIPTION_UPDATED, history.getAction());
+        assertEquals("Login fails\nCannot log in", history.getPreviousValue());
+        assertEquals("Login fixed\nUpdated description", history.getNewValue());
+        assertEquals(changedAt, history.getChangedDate());
+    }
+
+    @Test
+    @DisplayName("reporter가 REOPENED 이슈의 제목과 설명을 변경할 수 있다")
+    void updateTitleAndDescriptionOnReopenedIssue() {
+        var issue = resolvedIssue();
+        issue.reopen(pl, "Needs more work", createdAt.plusMinutes(40));
+
+        issue.updateTitleAndDescription("Revised title", "Revised desc", reporter, createdAt.plusMinutes(50));
+
+        assertEquals("Revised title", issue.getTitle());
+        assertEquals("Revised desc", issue.getDescription());
+    }
+
+    @Test
+    @DisplayName("reporter가 아닌 사용자는 제목/설명을 변경할 수 없다")
+    void rejectUpdateTitleByNonReporter() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.updateTitleAndDescription("New", "Desc", pl, createdAt.plusMinutes(10)));
+    }
+
+    @Test
+    @DisplayName("ASSIGNED 이후 상태에서는 제목/설명을 변경할 수 없다")
+    void rejectUpdateTitleOnAssignedIssue() {
+        var issue = assignedIssue();
+
+        assertThrows(IllegalStateException.class,
+                () -> issue.updateTitleAndDescription("New", "Desc", reporter, createdAt.plusMinutes(20)));
+    }
+
+    @Test
+    @DisplayName("빈 제목이나 설명으로는 변경할 수 없다")
+    void rejectUpdateTitleWithBlankValues() {
+        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.updateTitleAndDescription("", "Desc", reporter, createdAt.plusMinutes(10)));
+        assertThrows(IllegalArgumentException.class,
+                () -> issue.updateTitleAndDescription("Title", "", reporter, createdAt.plusMinutes(10)));
+    }
+
+    @Test
+    @DisplayName("CLOSED 이슈를 reopen할 수 있다")
+    void reopenClosedIssue() {
+        var issue = resolvedIssue();
+        issue.close(pl, "Release completed", createdAt.plusMinutes(40));
+
+        issue.reopen(pl, "Found regression", createdAt.plusMinutes(50));
+
+        assertEquals(IssueStatus.REOPENED, issue.getStatus());
+    }
+
+    @Test
     @DisplayName("같은 우선순위로는 변경할 수 없고 NEW 이슈는 reopen할 수 없다")
     void rejectNoOpChanges() {
         var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);

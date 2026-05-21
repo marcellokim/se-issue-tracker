@@ -6,11 +6,11 @@ import java.util.Objects;
 public class Project {
 
     private final long id;
-    private final String name;
-    private final String description;
+    private String name;
+    private String description;
     private final String managedById;
     private final LocalDateTime createdDate;
-    private final LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     // factory
     public static Project create(long id, String name, String description, String managedById,
@@ -24,14 +24,37 @@ public class Project {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(managedById, "managedById");
         this.id = id;
-        this.name = name;
+        this.name = requireText(name, "name");
         this.description = description;
-        this.managedById = managedById;
+        this.managedById = managedById; // AdminID
         this.createdDate = createdDate;
         this.updatedAt = updatedAt;
     }
 
     // --- domain methods ---
+
+    public Issue registerIssue(
+            String issueId,
+            String title,
+            String description,
+            Priority priority,
+            User reporter,
+            LocalDateTime now
+    ) {
+        return Issue.create(issueId, title, description, priority, reporter, now);
+    }
+
+    // --- setters ---
+
+    public void rename(String newName, LocalDateTime updatedAt) {
+        this.name = requireText(newName, "name");
+        this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
+    }
+
+    public void changeDescription(String newDescription, LocalDateTime updatedAt) {
+        this.description = newDescription;
+        this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
+    }
 
     // --- getters ---
 
@@ -57,6 +80,13 @@ public class Project {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    private static String requireText(String text, String fieldName) {
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return text;
     }
 
 }

@@ -269,7 +269,9 @@ class ControllerCoverageTest {
         Clock clock = new Clock();
 
         assertDoesNotThrow(() -> new AccountController(auth.service(), policy, users, new PasswordHasher()));
-        assertDoesNotThrow(() -> new IssueController(auth.service(), policy, projects, issues, users, clock));
+        assertDoesNotThrow(() -> new IssueController(
+                auth.service(),
+                new com.github.marcellokim.issuetracker.service.IssueService(projects, issues, users, policy, clock)));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)));

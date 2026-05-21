@@ -145,6 +145,40 @@ class IssueFixResolveTest {
                                                 createdAt.plusMinutes(30)));
         }
 
+        @Test
+        @DisplayName("FIXED 이슈를 rejectFix하면 ASSIGNED로 돌아간다")
+        void rejectFixReturnsToAssigned() {
+                var issue = assignedIssue();
+                issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+
+                issue.rejectFix(verifier, "Not fixed properly", createdAt.plusMinutes(30));
+
+                assertEquals(IssueStatus.ASSIGNED, issue.getStatus());
+                var history = issue.getHistories().getLast();
+                assertEquals(ActionType.STATUS_CHANGED, history.getAction());
+                assertEquals(IssueStatus.FIXED.name(), history.getPreviousValue());
+                assertEquals(IssueStatus.ASSIGNED.name(), history.getNewValue());
+        }
+
+        @Test
+        @DisplayName("현재 verifier만 rejectFix할 수 있다")
+        void onlyCurrentVerifierCanRejectFix() {
+                var issue = assignedIssue();
+                issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+
+                assertThrows(IllegalArgumentException.class,
+                                () -> issue.rejectFix(otherTester, "Not fixed", createdAt.plusMinutes(30)));
+        }
+
+        @Test
+        @DisplayName("FIXED가 아닌 이슈는 rejectFix할 수 없다")
+        void rejectFixRequiresFixedStatus() {
+                var issue = assignedIssue();
+
+                assertThrows(IllegalStateException.class,
+                                () -> issue.rejectFix(verifier, "Not fixed", createdAt.plusMinutes(20)));
+        }
+
         private Issue assignedIssue() {
                 var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
                 issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
