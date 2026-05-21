@@ -22,8 +22,7 @@ public final class Comment {
             User writer,
             String content,
             CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
+            LocalDateTime createdDate) {
         this.id = id;
         this.issueId = issueId;
         this.commentId = requireText(commentId, "commentId");
@@ -40,8 +39,7 @@ public final class Comment {
             String writerId,
             String content,
             CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
+            LocalDateTime createdDate) {
         return new Comment(id, issueId, Long.toString(id), writerId,
                 null, content, purpose, createdDate);
     }
@@ -51,8 +49,7 @@ public final class Comment {
             String content,
             User writer,
             CommentPurpose purpose,
-            LocalDateTime createdDate
-    ) {
+            LocalDateTime createdDate) {
         Objects.requireNonNull(writer, "writer must not be null");
         return new Comment(0L, 0L, commentId, writer.getLoginId(),
                 writer, content, purpose, createdDate);
