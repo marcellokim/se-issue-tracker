@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.config;
 
 import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
+import com.github.marcellokim.issuetracker.persistence.DatabaseEnvironment;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
@@ -15,15 +16,8 @@ public record ApplicationContext(
 ) {
 
     public static ApplicationContext fromEnvironment() throws IOException, SQLException {
-        if (!hasText(System.getenv("ITS_DB_URL"))
-                || !hasText(System.getenv("ITS_DB_USER"))
-                || !hasText(System.getenv("ITS_DB_PASSWORD"))) {
-            throw new IllegalStateException(
-                    "Oracle environment is missing. Set ITS_DB_URL, ITS_DB_USER, ITS_DB_PASSWORD."
-            );
-        }
-
-        var connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
+        DatabaseEnvironment environment = DatabaseEnvironment.fromSystem();
+        var connectionProvider = DriverManagerConnectionProvider.from(environment);
         DatabaseInitializer.initialize(connectionProvider);
 
         var repositories = new JdbcRepositoryFactory(connectionProvider);
@@ -38,7 +32,4 @@ public record ApplicationContext(
         );
     }
 
-    private static boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
 }

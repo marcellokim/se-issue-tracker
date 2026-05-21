@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker;
 
 import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
+import com.github.marcellokim.issuetracker.persistence.DatabaseEnvironment;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.LoginCheckResult;
@@ -37,7 +38,8 @@ public final class Main {
         }
 
         try {
-            var connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
+            DatabaseEnvironment environment = DatabaseEnvironment.fromSystem();
+            var connectionProvider = DriverManagerConnectionProvider.from(environment);
             DatabaseInitializer.initialize(connectionProvider);
             var repositories = new JdbcRepositoryFactory(connectionProvider);
             printRepositorySummary(new RepositoryDemoSummaryService(
@@ -62,13 +64,7 @@ public final class Main {
     }
 
     private static boolean hasDatabaseEnvironment() {
-        return hasText(System.getenv("ITS_DB_URL"))
-                && hasText(System.getenv("ITS_DB_USER"))
-                && hasText(System.getenv("ITS_DB_PASSWORD"));
-    }
-
-    private static boolean hasText(String value) {
-        return value != null && !value.isBlank();
+        return DatabaseEnvironment.isSystemConfigured();
     }
 
     private static void printDatabaseSetupGuide() {
@@ -99,9 +95,10 @@ public final class Main {
         String normalizedLoginId = loginId.trim();
 
         try {
-            var connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
+            DatabaseEnvironment environment = DatabaseEnvironment.fromSystem();
+            var connectionProvider = DriverManagerConnectionProvider.from(environment);
             DatabaseInitializer.initialize(connectionProvider);
-            printConnectionContext(connectionProvider);
+            printConnectionContext(environment, connectionProvider);
 
             var repositories = new JdbcRepositoryFactory(connectionProvider);
             LoginCheckResult result = new LoginCheckService(repositories.users()).checkLogin(normalizedLoginId, password);
@@ -122,9 +119,12 @@ public final class Main {
         }
     }
 
-    private static void printConnectionContext(DriverManagerConnectionProvider connectionProvider) throws SQLException {
-        printLine("DB URL: " + System.getenv().getOrDefault("ITS_DB_URL", ""));
-        printLine("DB user: " + System.getenv().getOrDefault("ITS_DB_USER", ""));
+    private static void printConnectionContext(
+            DatabaseEnvironment environment,
+            DriverManagerConnectionProvider connectionProvider
+    ) throws SQLException {
+        printLine("DB URL: " + environment.url());
+        printLine("DB user: " + environment.user());
 
         String sql = """
                 select sys_context('USERENV', 'CURRENT_SCHEMA') as current_schema,
