@@ -20,7 +20,7 @@ public final class AccountService {
     }
 
     /*
-     * Account management UC orchestration stays here so the controller can remain
-     * a system-operation adapter when the admin account methods are implemented.
+     * Admin account UC 조율은 service에 둔다. 이후 계정 관리 메서드가 추가되어도
+     * controller는 system operation adapter 역할만 유지한다.
      */
 }

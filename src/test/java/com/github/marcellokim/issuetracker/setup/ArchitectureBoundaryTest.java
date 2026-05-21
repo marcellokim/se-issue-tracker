@@ -23,8 +23,8 @@ class ArchitectureBoundaryTest {
     private static final Pattern IMPORT_PATTERN = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+)(?:\\.\\*)?;");
 
     /*
-     * Temporary architecture debt marker: later clean-code slices must remove each exception
-     * when that flow moves behind the intended service/presenter boundary.
+     * 임시 아키텍처 부채 표시자: 이후 clean-code slice에서 각 흐름이
+     * 의도한 service/presenter 경계로 이동하면 예외를 제거한다.
      */
     private static final Set<AllowedImport> TEMPORARY_ALLOWED_IMPORTS = Set.of();
 

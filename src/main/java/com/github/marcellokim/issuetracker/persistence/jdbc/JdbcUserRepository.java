@@ -245,7 +245,7 @@ public final class JdbcUserRepository implements UserRepository {
         try {
             connection.setAutoCommit(autoCommit);
         } catch (SQLException ignored) {
-            // Keep the original repository failure.
+            // 원래 repository 실패 원인을 유지한다.
         }
     }
 
@@ -253,7 +253,7 @@ public final class JdbcUserRepository implements UserRepository {
         try {
             connection.rollback();
         } catch (SQLException ignored) {
-            // Keep the original repository failure.
+            // 원래 repository 실패 원인을 유지한다.
         }
     }
 

@@ -606,7 +606,7 @@ public final class JdbcIssueRepository implements IssueRepository {
         try {
             connection.rollback();
         } catch (SQLException ignored) {
-            // Keep the original repository failure.
+            // 원래 repository 실패 원인을 유지한다.
         }
     }
 

@@ -29,8 +29,8 @@ public final class StatisticsService {
             User actor
     ) {
         /*
-         * Range validation is part of the statistics use-case boundary, not controller
-         * plumbing, so repository query inputs are guarded in one place.
+         * 기간 검증은 statistics use-case 경계의 책임이다. repository query input은
+         * service 한 곳에서 보호한다.
          */
         permissionPolicy.assertCanViewStatistics(actor, projectId);
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");

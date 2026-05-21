@@ -39,8 +39,8 @@ public final class RepositoryDemoSummaryService {
 
     public RepositoryDemoSummary summarizeSeedDemo() {
         /*
-         * Main owns process flow and console output. Repository aggregation lives here
-         * so the CLI demo follows the same service boundary as controller/UI flows.
+         * Main은 CLI 진입 흐름과 콘솔 출력을 담당한다. repository 집계는 여기에서 수행해
+         * CLI demo도 controller/UI 흐름과 같은 service 경계를 따르게 한다.
          */
         return new RepositoryDemoSummary(
                 userRepository.findByLoginId(DEMO_ADMIN_LOGIN_ID).map(RepositoryDemoSummaryService::toAdminAccount),
