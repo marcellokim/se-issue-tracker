@@ -3,6 +3,8 @@ package com.github.marcellokim.issuetracker.support;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,6 +50,7 @@ public final class InMemoryUserRepository implements UserRepository {
 
     @Override
     public void deactivate(String loginId) {
-        findByLoginId(loginId).ifPresent(User::deactivate);
+        LocalDateTime now = LocalDateTime.now();
+        findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
     }
 }

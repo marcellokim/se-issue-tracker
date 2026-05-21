@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 class IssueCommentTest {
 
     // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+    private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
     // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-    private final User developer = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
+    private final User developer = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
@@ -81,7 +81,8 @@ class IssueCommentTest {
     @Test
     @DisplayName("persisted comment keeps database fields")
     void persistedCommentKeepsDatabaseFields() {
-        var comment = Comment.fromPersistence(11L, 100L, "dev1", "I fixed this.", CommentPurpose.GENERAL, createdAt);
+        var comment = Comment.fromPersistence(
+                11L, 100L, "dev1", "I fixed this.", CommentPurpose.GENERAL, createdAt);
 
         assertEquals(11L, comment.id());
         assertEquals(100L, comment.issueId());
@@ -98,7 +99,8 @@ class IssueCommentTest {
     @Test
     @DisplayName("domain-created comment keeps writer fields")
     void domainCommentKeepsWriterFields() {
-        var comment = Comment.create("C-2", "Please verify again.", developer, CommentPurpose.GENERAL, createdAt.plusMinutes(15));
+        var comment = Comment.create(
+                "C-2", "Please verify again.", developer, CommentPurpose.GENERAL, createdAt.plusMinutes(15));
 
         assertEquals(0L, comment.id());
         assertEquals(0L, comment.issueId());

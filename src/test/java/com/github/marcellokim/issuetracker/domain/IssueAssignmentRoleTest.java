@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Issue assignment roles")
 class IssueAssignmentRoleTest {
 
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
-    private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, null, null);
-    private final User anotherAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
-    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, null, null);
-    private final User anotherVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null,
+    private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, null, null);
+    private final User anotherAssignee = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
+    private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, null, null);
+    private final User anotherVerifier = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null,
             null);
-    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
+    private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
@@ -110,10 +110,10 @@ class IssueAssignmentRoleTest {
     @Test
     @DisplayName("inactive users cannot be assignee or verifier")
     void rejectInactiveAssignmentParticipants() {
-        var inactiveAssignee = User.create("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
-        var inactiveVerifier = User.create("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
-        inactiveAssignee.deactivate();
-        inactiveVerifier.deactivate();
+        var inactiveAssignee = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
+        var inactiveVerifier = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
+        inactiveAssignee.deactivate(createdAt.plusMinutes(1));
+        inactiveVerifier.deactivate(createdAt.plusMinutes(1));
 
         var issueForAssignee = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
                 createdAt);
@@ -151,7 +151,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("같은 assignee로 재배정할 수 없다")
+    @DisplayName("same assignee reassignment is rejected")
     void rejectSameAssigneeReassignment() {
         var issue = assignedIssue();
 
@@ -160,7 +160,7 @@ class IssueAssignmentRoleTest {
     }
 
     @Test
-    @DisplayName("같은 verifier로 변경할 수 없다")
+    @DisplayName("same verifier change is rejected")
     void rejectSameVerifierChange() {
         var issue = assignedIssue();
         issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -175,8 +175,8 @@ class IssueAssignmentRoleTest {
         var assignedIssue = assignedIssue();
         var fixedIssue = assignedIssue();
         fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
-        var inactiveDev = User.create("dev3", "Dev Three", "hash", Role.DEV, true, null, null);
-        inactiveDev.deactivate();
+        var inactiveDev = User.fromPersistence("dev3", "Dev Three", "hash", Role.DEV, true, null, null);
+        inactiveDev.deactivate(createdAt.plusMinutes(1));
 
         assertThrows(IllegalArgumentException.class,
                 () -> assignedIssue.reassignAssignee(verifier, pl, createdAt.plusMinutes(20)));

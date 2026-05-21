@@ -72,8 +72,7 @@ public class Issue {
             String description,
             Priority priority,
             User reporter,
-            LocalDateTime reportedDate
-    ) {
+            LocalDateTime reportedDate) {
         this.id = 0L;
         this.projectId = 0L;
         this.issueId = requireText(issueId, "issueId");
@@ -85,7 +84,8 @@ public class Issue {
         this.reporterId = reporter.getLoginId();
         this.reportedDate = Objects.requireNonNull(reportedDate, "reportedDate must not be null");
         this.updatedAt = reportedDate;
-        recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter, reportedDate);
+        recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter,
+                reportedDate);
     }
 
     public static Issue create( // 테스트용 생성 메서드, 실제로는 Persistence 계층에서 PersistedState를 통해 생성
@@ -94,8 +94,7 @@ public class Issue {
             String description,
             Priority priority,
             User reporter,
-            LocalDateTime reportedDate
-    ) {
+            LocalDateTime reportedDate) {
         return new Issue(issueId, title, description, priority, reporter, reportedDate);
     }
 
@@ -254,8 +253,7 @@ public class Issue {
                 assignee.getLoginId(),
                 "Assignee changed",
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     public void changeVerifier(User verifier, User changedBy, LocalDateTime changedDate) {
@@ -277,8 +275,7 @@ public class Issue {
                 verifier.getLoginId(),
                 "Verifier changed",
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     public void markFixed(User fixer, String comment, LocalDateTime changedDate) {
@@ -342,8 +339,7 @@ public class Issue {
             String dependencyId,
             Issue blockingIssue,
             User changedBy,
-            LocalDateTime discoveredDate
-    ) {
+            LocalDateTime discoveredDate) {
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(blockingIssue, "blockingIssue must not be null");
         rejectSelfDependency(blockingIssue);
@@ -357,8 +353,7 @@ public class Issue {
                 dependencyId,
                 "Dependency added",
                 changedBy,
-                discoveredDate
-        );
+                discoveredDate);
         return dependency;
     }
 
@@ -396,8 +391,7 @@ public class Issue {
                 newPriority.name(),
                 "Priority changed",
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
     public void updateTitleAndDescription(
         String newTitle,
@@ -446,8 +440,7 @@ public class Issue {
                 targetStatus.name(),
                 message,
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     private void recordHistory(
@@ -456,8 +449,7 @@ public class Issue {
             String newValue,
             String message,
             User changedBy,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         histories.add(IssueHistory.create(
                 nextHistoryId(),
                 action,
@@ -465,8 +457,7 @@ public class Issue {
                 newValue,
                 message,
                 changedBy,
-                changedDate
-        ));
+                changedDate));
     }
 
     private String nextHistoryId() {
@@ -490,8 +481,7 @@ public class Issue {
                 assignee.getLoginId() + "/" + verifier.getLoginId(),
                 message,
                 changedBy,
-                changedDate
-        );
+                changedDate);
 
         var previousStatus = status;
         status = IssueStatus.ASSIGNED;
@@ -501,8 +491,7 @@ public class Issue {
                 IssueStatus.ASSIGNED.name(),
                 message,
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     private void requireStatus(IssueStatus expectedStatus) {

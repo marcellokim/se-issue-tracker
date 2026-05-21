@@ -117,10 +117,11 @@ public final class JdbcProjectRepository implements ProjectRepository {
         String sql = """
                 merge into project_members target
                 using (select ? as project_id, ? as user_login_id from dual) source
-                on (target.project_id = source.project_id and target.user_login_id = source.user_login_id)
+                on (target.project_id = source.project_id and target.user_login_id =
+                source.user_login_id)
                 when not matched then
-                    insert (project_id, user_login_id, joined_at)
-                    values (source.project_id, source.user_login_id, current_timestamp)
+                insert (project_id, user_login_id, joined_at)
+                values (source.project_id, source.user_login_id, current_timestamp)
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -128,7 +129,8 @@ public final class JdbcProjectRepository implements ProjectRepository {
             statement.setString(2, userId);
             statement.executeUpdate();
         } catch (SQLException exception) {
-            throw new RepositoryException("Failed to add project participant.", exception);
+            throw new RepositoryException("Failed to add project participant.",
+                    exception);
         }
     }
 
@@ -159,7 +161,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<ProjectMember> members = new ArrayList<>();
                 while (resultSet.next()) {
-                    members.add(ProjectMember.create(
+                    members.add(ProjectMember.fromPersistence(
                             resultSet.getLong("project_id"),
                             resultSet.getString("user_login_id"),
                             JdbcSupport.nullableDateTime(resultSet, "joined_at")));
@@ -167,25 +169,29 @@ public final class JdbcProjectRepository implements ProjectRepository {
                 return members;
             }
         } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list project participants.", exception);
+            throw new RepositoryException("Failed to list project participants.",
+                    exception);
         }
     }
 
     private Project insert(Project project) {
         String sql = """
-                insert into projects (name, description, managed_by_login_id, created_date, updated_at)
-                values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
+                insert into projects (name, description, managed_by_login_id, created_date,
+                updated_at)
+                values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?,
+                current_timestamp))
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
             statement.setString(1, project.getName());
             JdbcSupport.setNullableString(statement, 2, project.getDescription());
-            statement.setString(3, project.getManagedById());
+            statement.setString(3, project.getManagedByLoginId());
             JdbcSupport.setNullableTimestamp(statement, 4, project.getCreatedDate());
             JdbcSupport.setNullableTimestamp(statement, 5, project.getUpdatedAt());
             statement.executeUpdate();
             return findById(JdbcSupport.generatedId(statement))
-                    .orElseThrow(() -> new RepositoryException("Inserted project was not found.", null));
+                    .orElseThrow(() -> new RepositoryException("Inserted project was not found.",
+                            null));
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to insert project.", exception);
         }
@@ -195,21 +201,22 @@ public final class JdbcProjectRepository implements ProjectRepository {
         String sql = """
                 update projects
                 set name = ?,
-                    description = ?,
-                    managed_by_login_id = ?,
-                    updated_at = coalesce(?, current_timestamp)
+                description = ?,
+                managed_by_login_id = ?,
+                updated_at = coalesce(?, current_timestamp)
                 where id = ?
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, project.getName());
             JdbcSupport.setNullableString(statement, 2, project.getDescription());
-            statement.setString(3, project.getManagedById());
+            statement.setString(3, project.getManagedByLoginId());
             JdbcSupport.setNullableTimestamp(statement, 4, project.getUpdatedAt());
             statement.setLong(5, project.getId());
             statement.executeUpdate();
             return findById(project.getId())
-                    .orElseThrow(() -> new RepositoryException("Updated project was not found.", null));
+                    .orElseThrow(() -> new RepositoryException("Updated project was not found.",
+                            null));
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update project.", exception);
         }
@@ -231,7 +238,8 @@ public final class JdbcProjectRepository implements ProjectRepository {
         }
     }
 
-    private static void deleteProject(Connection connection, long projectId) throws SQLException {
+    private static void deleteProject(Connection connection, long projectId)
+            throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
                 "delete from projects where id = ?")) {
             statement.setLong(1, projectId);
@@ -248,7 +256,8 @@ public final class JdbcProjectRepository implements ProjectRepository {
     }
 
     static Project mapProject(ResultSet resultSet) throws SQLException {
-        return Project.create(
+        // JDBC mappers reconstruct persisted rows rather than creating new domain objects.
+        return Project.fromPersistence(
                 resultSet.getLong("id"),
                 resultSet.getString("name"),
                 resultSet.getString("description"),

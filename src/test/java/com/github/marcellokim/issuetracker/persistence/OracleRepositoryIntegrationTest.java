@@ -86,8 +86,8 @@ class OracleRepositoryIntegrationTest {
         assertTrue(admin.isActive());
         assertEquals("project1", project1.getName());
         assertEquals("project2", project2.getName());
-        assertEquals(admin.getLoginId(), project1.getManagedById());
-        assertEquals(admin.getLoginId(), project2.getManagedById());
+        assertEquals(admin.getLoginId(), project1.getManagedByLoginId());
+        assertEquals(admin.getLoginId(), project2.getManagedByLoginId());
     }
 
     @Test
@@ -358,8 +358,6 @@ class OracleRepositoryIntegrationTest {
                     "Repository CRUD Dev",
                     "InitialPassword!",
                     Role.DEV,
-                    true,
-                    now,
                     now));
 
             assertEquals(loginId, created.getLoginId());
@@ -367,7 +365,7 @@ class OracleRepositoryIntegrationTest {
             assertEquals(Role.DEV, repositories.users().findByLoginId(loginId).orElseThrow().getRole());
             assertTrue(repositories.users().findAll().stream().anyMatch(user -> user.getLoginId().equals(loginId)));
 
-            User updated = repositories.users().save(User.create(
+            User updated = repositories.users().save(User.fromPersistence(
                     loginId,
                     "Repository CRUD Tester",
                     "UpdatedPassword!",
@@ -397,16 +395,14 @@ class OracleRepositoryIntegrationTest {
 
         try {
             project = repositories.projects().save(Project.create(
-                    0L,
                     projectName,
                     "Repository CRUD test project.",
                     "admin",
-                    LocalDateTime.now(),
                     LocalDateTime.now()));
 
             assertEquals(projectName, repositories.projects().findByName(projectName).orElseThrow().getName());
 
-            Project updated = repositories.projects().save(Project.create(
+            Project updated = repositories.projects().save(Project.fromPersistence(
                     project.getId(),
                     project.getName(),
                     "Updated repository CRUD test project.",

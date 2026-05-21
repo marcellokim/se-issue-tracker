@@ -293,11 +293,11 @@ class ControllerCoverageTest {
     }
 
     private static User user(String loginId, Role role) {
-        return User.create(loginId, loginId, "stored-password", role, true, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "stored-password", role, true, NOW, NOW);
     }
 
     private static Project project(long projectId) {
-        return Project.create(projectId, "project-" + projectId, "demo project", "admin", NOW, NOW);
+        return Project.fromPersistence(projectId, "project-" + projectId, "demo project", "admin", NOW, NOW);
     }
 
     private static Issue issue(long id, long projectId, IssueStatus status) {
@@ -511,7 +511,8 @@ class ControllerCoverageTest {
 
         @Override
         public void deactivate(String loginId) {
-            findByLoginId(loginId).ifPresent(User::deactivate);
+            LocalDateTime now = LocalDateTime.now();
+            findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
         }
     }
 

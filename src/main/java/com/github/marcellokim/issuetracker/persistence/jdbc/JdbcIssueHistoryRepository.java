@@ -120,10 +120,10 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             statement.setLong(1, history.issueId());
             statement.setString(2, history.changedById());
             statement.setString(3, history.actionType().name());
-            JdbcSupport.setNullableString(statement, 4, history.previousValue());
-            JdbcSupport.setNullableString(statement, 5, history.newValue());
-            statement.setString(6, history.message());
-            JdbcSupport.setNullableTimestamp(statement, 7, history.changedDate());
+            JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
+            JdbcSupport.setNullableString(statement, 5, history.getNewValue());
+            statement.setString(6, history.getMessage());
+            JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
             statement.executeUpdate();
             return findById(JdbcSupport.generatedId(statement))
                     .orElseThrow(() -> new RepositoryException("Inserted issue history was not found.", null));
@@ -149,10 +149,10 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             statement.setLong(1, history.issueId());
             statement.setString(2, history.changedById());
             statement.setString(3, history.actionType().name());
-            JdbcSupport.setNullableString(statement, 4, history.previousValue());
-            JdbcSupport.setNullableString(statement, 5, history.newValue());
-            statement.setString(6, history.message());
-            JdbcSupport.setNullableTimestamp(statement, 7, history.changedDate());
+            JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
+            JdbcSupport.setNullableString(statement, 5, history.getNewValue());
+            statement.setString(6, history.getMessage());
+            JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
             statement.setLong(8, history.id());
             statement.executeUpdate();
             return findById(history.id())

@@ -104,7 +104,7 @@ class ProjectControllerTest {
         assertTrue(created.getId() > 0L);
         assertEquals("project-alpha", created.getName());
         assertEquals("first project", created.getDescription());
-        assertEquals("admin", created.getManagedById());
+        assertEquals("admin", created.getManagedByLoginId());
         assertNotNull(created.getCreatedDate());
         assertNotNull(created.getUpdatedAt());
         assertTrue(projects.findById(created.getId()).isPresent());
@@ -309,11 +309,11 @@ class ProjectControllerTest {
     }
 
     private static User user(String loginId, Role role, boolean active) {
-        return User.create(loginId, loginId, "stored-password", role, active, NOW, NOW);
+        return User.fromPersistence(loginId, loginId, "stored-password", role, active, NOW, NOW);
     }
 
     private static Project project(long projectId, String name) {
-        return Project.create(projectId, name, "description", "admin", NOW, NOW);
+        return Project.fromPersistence(projectId, name, "description", "admin", NOW, NOW);
     }
 
     private static Issue issue(long id, long projectId, IssueStatus status) {
@@ -365,8 +365,8 @@ class ProjectControllerTest {
         @Override
         public Project save(Project project) {
             Project persistedProject = project.getId() == 0L
-                    ? Project.create(nextProjectId++, project.getName(), project.getDescription(),
-                            project.getManagedById(),
+                    ? Project.fromPersistence(nextProjectId++, project.getName(), project.getDescription(),
+                            project.getManagedByLoginId(),
                             project.getCreatedDate(), project.getUpdatedAt())
                     : project;
             projectsById.put(persistedProject.getId(), persistedProject);
@@ -459,7 +459,8 @@ class ProjectControllerTest {
 
         @Override
         public void deactivate(String loginId) {
-            findByLoginId(loginId).ifPresent(User::deactivate);
+            LocalDateTime now = LocalDateTime.now();
+            findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
         }
     }
 

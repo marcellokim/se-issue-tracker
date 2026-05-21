@@ -14,7 +14,7 @@ class IssueHistoryTest {
 
         private static final LocalDateTime CHANGED_AT = LocalDateTime.of(2026, 5, 19, 13, 0);
         // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
-        private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, null, null);
+        private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, null, null);
 
         @Test
         @DisplayName("preserves persisted history fields")
@@ -73,6 +73,12 @@ class IssueHistoryTest {
         @Test
         @DisplayName("rejects invalid persisted history arguments")
         void rejectsInvalidPersistedHistoryArguments() {
+                assertThrows(IllegalArgumentException.class,
+                                () -> IssueHistory.fromPersistence(0L, 100L, "pl1", ActionType.CREATED, null, "NEW",
+                                                null, CHANGED_AT));
+                assertThrows(IllegalArgumentException.class,
+                                () -> IssueHistory.fromPersistence(1L, 0L, "pl1", ActionType.CREATED, null, "NEW",
+                                                null, CHANGED_AT));
                 assertThrows(IllegalArgumentException.class,
                                 () -> IssueHistory.fromPersistence(1L, 100L, " ", ActionType.CREATED, null, "NEW", null,
                                                 CHANGED_AT));

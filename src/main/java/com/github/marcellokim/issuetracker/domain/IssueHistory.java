@@ -50,7 +50,8 @@ public final class IssueHistory {
             String message,
             LocalDateTime changedDate
     ) {
-        return new IssueHistory(id, issueId, Long.toString(id), changedById,
+        return new IssueHistory(requirePositive(id, "id"), requirePositive(issueId, "issueId"),
+                Long.toString(id), changedById,
                 null, actionType, previousValue, newValue, message, changedDate);
     }
 
@@ -131,6 +132,13 @@ public final class IssueHistory {
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value;
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
         }
         return value;
     }
