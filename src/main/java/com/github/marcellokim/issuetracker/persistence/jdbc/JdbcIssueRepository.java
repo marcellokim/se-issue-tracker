@@ -5,9 +5,6 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
@@ -22,59 +19,8 @@ import java.util.Optional;
 
 public final class JdbcIssueRepository implements IssueRepository {
 
-    private static final String BASE_SELECT = """
-            select i.id, i.issue_id as issue_key, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
-                   i.reporter_login_id, i.assignee_login_id, i.verifier_login_id, i.fixer_login_id,
-                   i.resolver_login_id, i.updated_at,
-                   reporter.name as reporter_name,
-                   reporter_credentials.password_salt || ':' || reporter_credentials.password_hash as reporter_password,
-                   reporter.role as reporter_role,
-                   reporter.active as reporter_active,
-                   reporter.created_at as reporter_created_at,
-                   reporter.updated_at as reporter_updated_at,
-                   assignee.name as assignee_name,
-                   assignee_credentials.password_salt || ':' || assignee_credentials.password_hash as assignee_password,
-                   assignee.role as assignee_role,
-                   assignee.active as assignee_active,
-                   assignee.created_at as assignee_created_at,
-                   assignee.updated_at as assignee_updated_at,
-                   verifier.name as verifier_name,
-                   verifier_credentials.password_salt || ':' || verifier_credentials.password_hash as verifier_password,
-                   verifier.role as verifier_role,
-                   verifier.active as verifier_active,
-                   verifier.created_at as verifier_created_at,
-                   verifier.updated_at as verifier_updated_at,
-                   fixer.name as fixer_name,
-                   fixer_credentials.password_salt || ':' || fixer_credentials.password_hash as fixer_password,
-                   fixer.role as fixer_role,
-                   fixer.active as fixer_active,
-                   fixer.created_at as fixer_created_at,
-                   fixer.updated_at as fixer_updated_at,
-                   resolver.name as resolver_name,
-                   resolver_credentials.password_salt || ':' || resolver_credentials.password_hash as resolver_password,
-                   resolver.role as resolver_role,
-                   resolver.active as resolver_active,
-                   resolver.created_at as resolver_created_at,
-                   resolver.updated_at as resolver_updated_at
-            from issues i
-            join users reporter on reporter.login_id = i.reporter_login_id
-            join user_credentials reporter_credentials on reporter_credentials.login_id = reporter.login_id
-            left join users assignee on assignee.login_id = i.assignee_login_id
-            left join user_credentials assignee_credentials on assignee_credentials.login_id = assignee.login_id
-            left join users verifier on verifier.login_id = i.verifier_login_id
-            left join user_credentials verifier_credentials on verifier_credentials.login_id = verifier.login_id
-            left join users fixer on fixer.login_id = i.fixer_login_id
-            left join user_credentials fixer_credentials on fixer_credentials.login_id = fixer.login_id
-            left join users resolver on resolver.login_id = i.resolver_login_id
-            left join user_credentials resolver_credentials on resolver_credentials.login_id = resolver.login_id
-            """;
-    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where i.id = ?";
-    private static final String FIND_BY_PROJECT_SQL =
-            BASE_SELECT + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
-    private static final String FIND_DELETED_BY_PROJECT_SQL =
-            BASE_SELECT + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_date desc, i.id desc";
-
     private final DatabaseConnectionProvider connectionProvider;
+    private final JdbcIssueRowMapper rowMapper = new JdbcIssueRowMapper();
 
     public JdbcIssueRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
@@ -83,11 +29,11 @@ public final class JdbcIssueRepository implements IssueRepository {
     @Override
     public Optional<Issue> findById(long issueId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_ID_SQL)) {
             statement.setLong(1, issueId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    return Optional.of(mapIssue(resultSet));
+                    return Optional.of(rowMapper.mapIssue(resultSet));
                 }
                 return Optional.empty();
             }
@@ -99,7 +45,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     @Override
     public List<Issue> findByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_PROJECT_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
         } catch (SQLException exception) {
@@ -110,7 +56,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     @Override
     public List<Issue> findDeletedByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_DELETED_BY_PROJECT_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
         } catch (SQLException exception) {
@@ -120,60 +66,11 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
-        StringBuilder sql = new StringBuilder(BASE_SELECT);
-        List<SqlBinder> binders = new ArrayList<>();
-        sql.append(" where 1 = 1");
-
-        if (criteria.projectId() != null) {
-            sql.append(" and i.project_id = ?");
-            binders.add((statement, index) -> statement.setLong(index, criteria.projectId()));
-        }
-        if (criteria.status() != null) {
-            sql.append(" and i.status = ?");
-            binders.add((statement, index) -> statement.setString(index, criteria.status().name()));
-        } else if (!criteria.includeDeleted()) {
-            sql.append(" and i.status <> 'DELETED'");
-        }
-        if (criteria.priority() != null) {
-            sql.append(" and i.priority = ?");
-            binders.add((statement, index) -> statement.setString(index, criteria.priority().name()));
-        }
-        if (criteria.reporterId() != null) {
-            sql.append(" and i.reporter_login_id = ?");
-            binders.add((statement, index) -> statement.setString(index, criteria.reporterId()));
-        }
-        if (criteria.assigneeId() != null) {
-            sql.append(" and i.assignee_login_id = ?");
-            binders.add((statement, index) -> statement.setString(index, criteria.assigneeId()));
-        }
-        if (criteria.verifierId() != null) {
-            sql.append(" and i.verifier_login_id = ?");
-            binders.add((statement, index) -> statement.setString(index, criteria.verifierId()));
-        }
-        if (criteria.keyword() != null && !criteria.keyword().isBlank()) {
-            sql.append(" and (lower(i.title) like ? or dbms_lob.instr(lower(i.description), ?) > 0)");
-            String keyword = criteria.keyword().toLowerCase();
-            String likeKeyword = "%" + keyword + "%";
-            binders.add((statement, index) -> statement.setString(index, likeKeyword));
-            binders.add((statement, index) -> statement.setString(index, keyword));
-        }
-        if (criteria.reportedFrom() != null) {
-            sql.append(" and i.reported_date >= ?");
-            binders.add(
-                    (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedFrom()));
-        }
-        if (criteria.reportedTo() != null) {
-            sql.append(" and i.reported_date < ?");
-            binders.add(
-                    (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedTo()));
-        }
-
-        sql.append(" order by i.reported_date desc, i.id desc");
-
+        JdbcIssueQueries.SearchQuery query = JdbcIssueQueries.search(criteria);
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql.toString())) {
-            for (int index = 0; index < binders.size(); index++) {
-                binders.get(index).bind(statement, index + 1);
+                PreparedStatement statement = connection.prepareStatement(query.sql())) {
+            for (int index = 0; index < query.binders().size(); index++) {
+                query.binders().get(index).bind(statement, index + 1);
             }
             return executeIssueList(statement);
         } catch (SQLException exception) {
@@ -472,22 +369,22 @@ public final class JdbcIssueRepository implements IssueRepository {
         JdbcSupport.setNullableTimestamp(statement, 13, issue.updatedAt());
     }
 
-    private static List<Issue> executeIssueList(PreparedStatement statement) throws SQLException {
+    private List<Issue> executeIssueList(PreparedStatement statement) throws SQLException {
         try (ResultSet resultSet = statement.executeQuery()) {
             List<Issue> issues = new ArrayList<>();
             while (resultSet.next()) {
-                issues.add(mapIssue(resultSet));
+                issues.add(rowMapper.mapIssue(resultSet));
             }
             return issues;
         }
     }
 
     private Optional<Issue> findById(Connection connection, long issueId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
+        try (PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_ID_SQL)) {
             statement.setLong(1, issueId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    return Optional.of(mapIssue(resultSet));
+                    return Optional.of(rowMapper.mapIssue(resultSet));
                 }
                 return Optional.empty();
             }
@@ -643,51 +540,4 @@ public final class JdbcIssueRepository implements IssueRepository {
                 .updatedAt(updatedAt));
     }
 
-    static Issue mapIssue(ResultSet resultSet) throws SQLException {
-        return Issue.fromPersistence(Issue.persistedState(
-                resultSet.getLong("project_id"),
-                resultSet.getString("title"),
-                resultSet.getString("description"),
-                mapRequiredUser(resultSet, "reporter_login_id", "reporter"))
-                .id(resultSet.getLong("id"))
-                .issueId(resultSet.getString("issue_key"))
-                .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_date"))
-                .priority(Priority.valueOf(resultSet.getString("priority")))
-                .status(IssueStatus.valueOf(resultSet.getString("status")))
-                .assignee(mapNullableUser(resultSet, "assignee_login_id", "assignee"))
-                .verifier(mapNullableUser(resultSet, "verifier_login_id", "verifier"))
-                .fixer(mapNullableUser(resultSet, "fixer_login_id", "fixer"))
-                .resolver(mapNullableUser(resultSet, "resolver_login_id", "resolver"))
-                .updatedAt(JdbcSupport.nullableDateTime(resultSet, "updated_at")));
-    }
-
-    private static User mapRequiredUser(ResultSet resultSet, String loginIdColumn, String prefix) throws SQLException {
-        User user = mapNullableUser(resultSet, loginIdColumn, prefix);
-        if (user == null) {
-            throw new SQLException("Required issue user was not joined: " + loginIdColumn);
-        }
-        return user;
-    }
-
-    private static User mapNullableUser(ResultSet resultSet, String loginIdColumn, String prefix) throws SQLException {
-        String loginId = resultSet.getString(loginIdColumn);
-        if (loginId == null || loginId.isBlank()) {
-            return null;
-        }
-        return User.create(
-                loginId,
-                resultSet.getString(prefix + "_name"),
-                resultSet.getString(prefix + "_password"),
-                Role.valueOf(resultSet.getString(prefix + "_role")),
-                resultSet.getInt(prefix + "_active") == 1,
-                JdbcSupport.nullableDateTime(resultSet, prefix + "_created_at"),
-                JdbcSupport.nullableDateTime(resultSet, prefix + "_updated_at")
-        );
-    }
-
-    @FunctionalInterface
-    private interface SqlBinder {
-
-        void bind(PreparedStatement statement, int index) throws SQLException;
-    }
 }
