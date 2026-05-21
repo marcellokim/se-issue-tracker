@@ -24,11 +24,14 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
+import com.github.marcellokim.issuetracker.service.StatisticsService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDate;
@@ -60,8 +63,7 @@ class ControllerCoverageTest {
 
         StatisticsController controller = new StatisticsController(
                 auth.service(),
-                new PermissionPolicy(),
-                statistics);
+                new StatisticsService(new PermissionPolicy(), statistics));
 
         StatisticsReport actualReport = controller.viewStatistics(
                 PROJECT_ID,
@@ -81,14 +83,12 @@ class ControllerCoverageTest {
     void statisticsControllerRejectsInvalidAccessOrRange() {
         StatisticsController anonymousController = new StatisticsController(
                 anonymousAuth(),
-                new PermissionPolicy(),
-                new FakeStatisticsRepository());
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository()));
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
         StatisticsController controller = new StatisticsController(
                 authenticated(Role.PL).service(),
-                new PermissionPolicy(),
-                new FakeStatisticsRepository());
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository()));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> controller.viewStatistics(
@@ -116,9 +116,7 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue);
         DeletedIssueController controller = new DeletedIssueController(
                 auth.service(),
-                new PermissionPolicy(),
-                issues,
-                new Clock());
+                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
 
         List<Issue> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
         Issue softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
@@ -140,23 +138,17 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(101L, PROJECT_ID, IssueStatus.NEW));
         DeletedIssueController anonymousController = new DeletedIssueController(
                 anonymousAuth(),
-                new PermissionPolicy(),
-                issues,
-                new Clock());
+                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
-                new PermissionPolicy(),
-                issues,
-                new Clock());
+                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
         assertThrows(SecurityException.class, () -> adminController.deleteIssue(101L, "admin cannot delete"));
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
-                new PermissionPolicy(),
-                issues,
-                new Clock());
+                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
 
@@ -268,7 +260,9 @@ class ControllerCoverageTest {
         PermissionPolicy policy = new PermissionPolicy();
         Clock clock = new Clock();
 
-        assertDoesNotThrow(() -> new AccountController(auth.service(), policy, users, new PasswordHasher()));
+        assertDoesNotThrow(() -> new AccountController(
+                auth.service(),
+                new AccountService(policy, users, new PasswordHasher())));
         assertDoesNotThrow(() -> new IssueController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueService(projects, issues, users, policy, clock)));

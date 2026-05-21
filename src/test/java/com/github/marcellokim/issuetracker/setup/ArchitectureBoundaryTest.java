@@ -27,12 +27,6 @@ class ArchitectureBoundaryTest {
      * when that flow moves behind the intended service/presenter boundary.
      */
     private static final Set<AllowedImport> TEMPORARY_ALLOWED_IMPORTS = Set.of(
-            new AllowedImport("controller/AccountController.java", ROOT_PACKAGE + ".repository.UserRepository"),
-            new AllowedImport("controller/DeletedIssueController.java", ROOT_PACKAGE + ".repository.IssueRepository"),
-            new AllowedImport(
-                    "controller/StatisticsController.java",
-                    ROOT_PACKAGE + ".repository.StatisticsRepository"
-            ),
             new AllowedImport("ui/DemoDashboardPresenter.java", ROOT_PACKAGE + ".repository.IssueRepository"),
             new AllowedImport("ui/DemoDashboardPresenter.java", ROOT_PACKAGE + ".repository.ProjectRepository"),
             new AllowedImport("ui/DemoDashboardPresenter.java", ROOT_PACKAGE + ".repository.StatisticsRepository"),

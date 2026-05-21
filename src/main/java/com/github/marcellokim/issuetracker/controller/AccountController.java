@@ -1,27 +1,19 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.PermissionPolicy;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.util.Objects;
 
 public final class AccountController {
 
     private final AuthenticationService authenticationService;
-    private final PermissionPolicy permissionPolicy;
-    private final UserRepository userRepository;
-    private final PasswordHasher passwordHasher;
+    private final AccountService accountService;
 
     public AccountController(
             AuthenticationService authenticationService,
-            PermissionPolicy permissionPolicy,
-            UserRepository userRepository,
-            PasswordHasher passwordHasher) {
+            AccountService accountService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
-        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
-        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
+        this.accountService = Objects.requireNonNull(accountService, "accountService");
     }
 
     /*
