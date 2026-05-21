@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.config.ApplicationRuntime;
 import com.github.marcellokim.issuetracker.config.DatabaseConnectionSummary;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
@@ -50,8 +52,8 @@ class CliCommandTest {
                         1,
                         1,
                         2,
-                        Map.of(),
-                        Map.of(),
+                        Map.of(IssueStatus.CLOSED, 2, IssueStatus.NEW, 1, IssueStatus.ASSIGNED, 3),
+                        Map.of(Priority.TRIVIAL, 4, Priority.BLOCKER, 1, Priority.MAJOR, 2),
                         1,
                         1)));
 
@@ -60,6 +62,8 @@ class CliCommandTest {
         assertTrue(output.text().contains("Oracle repository demo ready."));
         assertTrue(output.text().contains("Admin: admin / ADMIN / active=true"));
         assertTrue(output.text().contains("Project: project1"));
+        assertTrue(output.text().contains("Status counts: {NEW=1, ASSIGNED=3, CLOSED=2}"));
+        assertTrue(output.text().contains("Priority counts: {BLOCKER=1, MAJOR=2, TRIVIAL=4}"));
         assertTrue(output.text().contains("Tester recommendation candidates: 1"));
     }
 

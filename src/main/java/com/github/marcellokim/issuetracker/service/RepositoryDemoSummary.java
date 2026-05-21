@@ -3,6 +3,8 @@ package com.github.marcellokim.issuetracker.service;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,8 +45,19 @@ public record RepositoryDemoSummary(
             if (projectName == null || projectName.isBlank()) {
                 throw new IllegalArgumentException("projectName must not be blank");
             }
-            statusCounts = Map.copyOf(Objects.requireNonNull(statusCounts, "statusCounts"));
-            priorityCounts = Map.copyOf(Objects.requireNonNull(priorityCounts, "priorityCounts"));
+            statusCounts = orderedEnumMap(statusCounts, IssueStatus.class, "statusCounts");
+            priorityCounts = orderedEnumMap(priorityCounts, Priority.class, "priorityCounts");
+        }
+
+        private static <E extends Enum<E>> Map<E, Integer> orderedEnumMap(
+                Map<E, Integer> source,
+                Class<E> enumType,
+                String fieldName
+        ) {
+            // CLI smoke 출력은 diff 비교 대상이므로 enum 선언 순서를 보존함.
+            EnumMap<E, Integer> ordered = new EnumMap<>(enumType);
+            ordered.putAll(Objects.requireNonNull(source, fieldName));
+            return Collections.unmodifiableMap(ordered);
         }
     }
 }

@@ -180,10 +180,16 @@ Controller가 repository, policy, clock, recommendation service를 직접 들고
 
 반영 대상:
 
+- `IssueService` 추가
 - `AssignmentService` 추가
 - `IssueStateService` 추가
+- `DeletedIssueService` 추가
+- `AccountService` 추가
+- `StatisticsService` 추가
+- `IssueController`의 repository/policy/clock 직접 dependency를 `IssueService`로 이동
 - `AssignmentController`의 repository/policy/clock 직접 dependency를 `AssignmentService`로 이동
 - `IssueStateController`의 repository/policy/clock 직접 dependency를 `IssueStateService`로 이동
+- `DeletedIssueController`, `AccountController`, `StatisticsController`의 repository/policy/clock 직접 dependency를 각 application service로 이동
 
 `dcd-ver2`는 core workflow DCD이므로 수정하지 않음. ver2는 repository/authentication/clock infrastructure를 의도적으로 생략한 보고서 본문용 요약 DCD로 유지.
 
@@ -200,7 +206,7 @@ Controller가 repository, policy, clock, recommendation service를 직접 들고
 
 현재 확인된 boundary guard 기준에는 임시 예외 없음. 예외는 영구 설계가 아니라 debt marker로만 허용하며, 새 예외를 추가해야 할 때는 해당 clean-code slice에서 제거 계획도 같이 기록.
 
-Controller layer의 repository 직접 의존 예외는 clean-code slice에서 `AccountService`, `DeletedIssueService`, `StatisticsService`로 이동됨. 이 상태 유지를 위해 신규 controller는 repository interface를 직접 import하지 않음.
+Controller layer의 repository 직접 의존 예외는 clean-code slice에서 `IssueService`, `AssignmentService`, `IssueStateService`, `AccountService`, `DeletedIssueService`, `StatisticsService`로 이동됨. 이 상태 유지를 위해 신규 controller는 repository interface를 직접 import하지 않음.
 
 UI layer의 repository 직접 의존 예외는 clean-code slice에서 `DashboardSummaryService` 뒤로 이동됨. 이 상태 유지를 위해 신규 JavaFX presenter/view는 repository interface를 직접 import하지 않음.
 
