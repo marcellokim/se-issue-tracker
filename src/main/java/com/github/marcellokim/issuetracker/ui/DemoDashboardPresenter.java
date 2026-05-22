@@ -1,31 +1,17 @@
 package com.github.marcellokim.issuetracker.ui;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.IssueRepository;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
-import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
-import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class DemoDashboardPresenter {
 
-    private final ProjectRepository projects;
-    private final IssueRepository issues;
-    private final StatisticsRepository statistics;
-    private final UserRepository users;
+    private final DashboardSummaryService dashboardSummaryService;
 
-    public DemoDashboardPresenter(
-            ProjectRepository projects,
-            IssueRepository issues,
-            StatisticsRepository statistics,
-            UserRepository users) {
-        this.projects = Objects.requireNonNull(projects, "projects");
-        this.issues = Objects.requireNonNull(issues, "issues");
-        this.statistics = Objects.requireNonNull(statistics, "statistics");
-        this.users = Objects.requireNonNull(users, "users");
+    public DemoDashboardPresenter(DashboardSummaryService dashboardSummaryService) {
+        this.dashboardSummaryService = Objects.requireNonNull(dashboardSummaryService, "dashboardSummaryService");
     }
 
     public String buildSummary(User user) {
@@ -38,21 +24,20 @@ public final class DemoDashboardPresenter {
                 .append(System.lineSeparator())
                 .append(System.lineSeparator());
 
-        for (var project : projects.findAll()) {
-            var statusCounts = statistics.countByStatus(project.getId());
-            String statusText = statusCounts.entrySet().stream()
+        for (var project : dashboardSummaryService.projectSummaries()) {
+            String statusText = project.statusCounts().entrySet().stream()
                     .sorted(java.util.Map.Entry.comparingByKey())
                     .map(entry -> entry.getKey() + "=" + entry.getValue())
                     .collect(Collectors.joining(", "));
 
-            summary.append(project.getName()).append(System.lineSeparator())
-                    .append("  members=").append(projects.findParticipants(project.getId()).size())
-                    .append(", PL=").append(users.findActiveByRole(project.getId(), Role.PL).size())
-                    .append(", DEV=").append(users.findActiveByRole(project.getId(), Role.DEV).size())
-                    .append(", TESTER=").append(users.findActiveByRole(project.getId(), Role.TESTER).size())
+            summary.append(project.projectName()).append(System.lineSeparator())
+                    .append("  members=").append(project.memberCount())
+                    .append(", PL=").append(project.projectLeaderCount())
+                    .append(", DEV=").append(project.developerCount())
+                    .append(", TESTER=").append(project.testerCount())
                     .append(System.lineSeparator())
-                    .append("  visible issues=").append(issues.findByProject(project.getId()).size())
-                    .append(", deleted bin=").append(issues.findDeletedByProject(project.getId()).size())
+                    .append("  visible issues=").append(project.visibleIssueCount())
+                    .append(", deleted bin=").append(project.deletedIssueCount())
                     .append(System.lineSeparator())
                     .append("  status=").append(statusText.isBlank() ? IssueStatus.NEW + "=0" : statusText)
                     .append(System.lineSeparator())

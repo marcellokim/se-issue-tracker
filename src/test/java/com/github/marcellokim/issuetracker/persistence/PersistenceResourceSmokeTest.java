@@ -1,11 +1,18 @@
 package com.github.marcellokim.issuetracker.persistence;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -79,6 +86,30 @@ class PersistenceResourceSmokeTest {
         assertTrue(schema.contains("alter table comments modify updated_at default current_timestamp not null"));
         assertTrue(schema.contains("chk_comments_purpose"));
         assertTrue(schema.contains("'status_change_reason'"));
+    }
+
+    @Test
+    @DisplayName("Comment purpose enum matches Oracle CHECK values")
+    void commentPurposeEnumMatchesOracleCheckValues() throws IOException {
+        String schema = readResource("db/oracle/schema-oracle.sql");
+        Set<String> enumValues = Arrays.stream(CommentPurpose.values())
+                .map(Enum::name)
+                .collect(Collectors.toCollection(TreeSet::new));
+        var checkMatcher = Pattern.compile("purpose\\s+in\\s*\\(([^)]*)\\)", Pattern.CASE_INSENSITIVE)
+                .matcher(schema);
+        int checkCount = 0;
+
+        while (checkMatcher.find()) {
+            checkCount++;
+            Set<String> schemaValues = Pattern.compile("'([^']+)'")
+                    .matcher(checkMatcher.group(1))
+                    .results()
+                    .map(match -> match.group(1))
+                    .collect(Collectors.toCollection(TreeSet::new));
+            assertEquals(enumValues, schemaValues);
+        }
+
+        assertTrue(checkCount > 0);
     }
 
     @Test

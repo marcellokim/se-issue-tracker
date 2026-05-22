@@ -66,4 +66,57 @@ class UserTest {
         assertFalse(user.isActive());
         assertEquals(NOW.plusMinutes(1), user.getUpdatedAt());
     }
+
+    @Test
+    @DisplayName("deactivated user can be reactivated")
+    void activateUser() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+        user.deactivate(NOW.plusMinutes(1));
+
+        user.activate(NOW.plusMinutes(2));
+
+        assertTrue(user.isActive());
+        assertEquals(NOW.plusMinutes(2), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("rename updates name and updatedAt")
+    void renameUser() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        user.rename("Dev Updated", NOW.plusMinutes(1));
+
+        assertEquals("Dev Updated", user.getName());
+        assertEquals(NOW.plusMinutes(1), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("rename rejects blank name")
+    void rejectBlankRename() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        assertThrows(IllegalArgumentException.class, () -> user.rename("", NOW.plusMinutes(1)));
+        assertThrows(IllegalArgumentException.class, () -> user.rename(" ", NOW.plusMinutes(1)));
+    }
+
+    @Test
+    @DisplayName("changeRole updates role and updatedAt")
+    void changeUserRole() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        user.changeRole(Role.PL, NOW.plusMinutes(1));
+
+        assertEquals(Role.PL, user.getRole());
+        assertTrue(user.hasRole(Role.PL));
+        assertFalse(user.hasRole(Role.DEV));
+        assertEquals(NOW.plusMinutes(1), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("changeRole rejects null role")
+    void rejectNullRoleChange() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        assertThrows(NullPointerException.class, () -> user.changeRole(null, NOW.plusMinutes(1)));
+    }
 }

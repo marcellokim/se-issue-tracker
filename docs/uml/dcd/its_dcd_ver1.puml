@@ -143,6 +143,11 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
     +assertCanViewStatistics(user, filters): void
   }
 
+  class IssueService <<service>> {
+    +registerIssue(projectId, title, description, priority, currentUserId): IssueResult
+    +addComment(issueId, content, currentUserId): CommentResult
+  }
+
   class AssignmentService <<service>> {
     +startAssignment(issueId, currentUserId): AssignmentOptions
     +assignIssue(issueId, assigneeId, verifierId, currentUserId): AssignmentResult
@@ -153,6 +158,15 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
   class IssueStateService <<service>> {
     +changeStatus(issueId, targetStatus, comment, currentUserId): IssueStateResult
   }
+
+  class DeletedIssueService <<service>> {
+    +viewDeletedIssues(projectId, actor): List<Issue>
+    +deleteIssue(issueId, comment, actor): Issue
+    +restoreIssue(issueId, comment, actor): Issue
+    +purgeOverflow(projectId, actor): int
+  }
+
+  class AccountService <<service>>
 
   class ProjectService <<service>> {
     +viewProjects(currentUserId): List<Project>
@@ -165,10 +179,20 @@ package "Application Services / Policies\n(concrete services and policies)" #FFF
     +removeProjectParticipant(projectId, loginId, currentUserId): void
   }
 
+  class ProjectDetail <<read model>> {
+    +project(): Project
+    +participants(): List<ProjectMember>
+    +issues(): List<Issue>
+  }
+
   class AssignmentRecommendationService <<service>> {
     +recommendAssignmentCandidates(issue): AssignmentOptions
     +findDevAssigneeCandidates(issue): List<User>
     +findTesterVerifierCandidates(issue): List<User>
+  }
+
+  class StatisticsService <<service>> {
+    +viewStatistics(projectId, dailyFromInclusive, dailyToInclusive, monthlyFromInclusive, monthlyToInclusive, actor): StatisticsReport
   }
 
   class Clock <<service>> {
@@ -363,7 +387,6 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
 
   class AssignmentOptions <<value object>>
   class AssignmentContext <<value object>>
-  class ProjectDetail <<value object>>
   class ValidationResult <<value object>>
   class StatisticsReport <<value object>>
 }
@@ -380,11 +403,7 @@ SwingAdminView --> ProjectController
 SwingAdminView --> StatisticsController
 
 IssueController ..> AuthenticationService
-IssueController ..> PermissionPolicy
-IssueController ..> ProjectRepository
-IssueController ..> IssueRepository
-IssueController ..> UserRepository
-IssueController ..> Clock
+IssueController ..> IssueService
 
 AssignmentController ..> AuthenticationService
 AssignmentController ..> AssignmentService
@@ -393,21 +412,22 @@ IssueStateController ..> AuthenticationService
 IssueStateController ..> IssueStateService
 
 DeletedIssueController ..> AuthenticationService
-DeletedIssueController ..> PermissionPolicy
-DeletedIssueController ..> IssueRepository
-DeletedIssueController ..> Clock
+DeletedIssueController ..> DeletedIssueService
 
 AccountController ..> AuthenticationService
-AccountController ..> PermissionPolicy
-AccountController ..> UserRepository
-AccountController ..> PasswordHasher
+AccountController ..> AccountService
 
 ProjectController ..> AuthenticationService
 ProjectController ..> ProjectService
 
 StatisticsController ..> AuthenticationService
-StatisticsController ..> PermissionPolicy
-StatisticsController ..> IssueRepository
+StatisticsController ..> StatisticsService
+
+IssueService ..> PermissionPolicy
+IssueService ..> ProjectRepository
+IssueService ..> IssueRepository
+IssueService ..> UserRepository
+IssueService ..> Clock
 
 AssignmentService ..> PermissionPolicy
 AssignmentService ..> AssignmentRecommendationService
@@ -419,6 +439,17 @@ IssueStateService ..> PermissionPolicy
 IssueStateService ..> IssueRepository
 IssueStateService ..> UserRepository
 IssueStateService ..> Clock
+
+DeletedIssueService ..> PermissionPolicy
+DeletedIssueService ..> IssueRepository
+DeletedIssueService ..> Clock
+
+AccountService ..> PermissionPolicy
+AccountService ..> UserRepository
+AccountService ..> PasswordHasher
+
+StatisticsService ..> PermissionPolicy
+StatisticsService ..> StatisticsRepository
 
 ProjectService ..> PermissionPolicy
 ProjectService ..> ProjectRepository
