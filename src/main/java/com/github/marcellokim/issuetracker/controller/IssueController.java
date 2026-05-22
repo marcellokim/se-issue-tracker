@@ -31,6 +31,11 @@ public final class IssueController {
         return issueService.addComment(issueId, content, user.getLoginId());
     }
 
+    public void deleteComment(long issueId, long commentId) {
+        User user = requireCurrentUser();
+        issueService.deleteComment(issueId, commentId, user.getLoginId());
+    }
+
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));

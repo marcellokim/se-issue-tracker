@@ -44,7 +44,7 @@ class IssueStateServiceTest {
         assertSame(assignee, issue.getFixer());
         assertEquals(1, issue.getComments().size());
         assertEquals("Fix completed", issue.getComments().getFirst().getContent());
-        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         org.junit.jupiter.api.Assertions.assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
@@ -62,7 +62,7 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Verified", issue.getComments().getFirst().getContent());
-        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -82,7 +82,7 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Release completed", issue.getComments().getFirst().getContent());
-        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -183,8 +183,12 @@ class IssueStateServiceTest {
 
     private static void assertStatusChangedThenCommented(Issue issue) {
         var histories = issue.getHistories();
+        var latestCommentContent = issue.getComments().getLast().getContent();
         assertEquals(ActionType.STATUS_CHANGED, histories.get(histories.size() - 2).getAction());
         assertEquals(ActionType.COMMENTED, histories.getLast().getAction());
+        assertNull(histories.getLast().getPreviousValue());
+        assertEquals(latestCommentContent, histories.getLast().getNewValue());
+        assertEquals(latestCommentContent, histories.getLast().getMessage());
     }
 
     private static LocalDateTime createdAt() {

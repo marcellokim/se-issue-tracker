@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
+import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
@@ -20,6 +21,7 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
+import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
@@ -271,7 +273,13 @@ class ControllerCoverageTest {
         assertDoesNotThrow(() -> new AccountController(auth.service(), policy, users, new PasswordHasher()));
         assertDoesNotThrow(() -> new IssueController(
                 auth.service(),
-                new com.github.marcellokim.issuetracker.service.IssueService(projects, issues, users, policy, clock)));
+                new com.github.marcellokim.issuetracker.service.IssueService(
+                        projects,
+                        issues,
+                        new FakeCommentRepository(),
+                        users,
+                        policy,
+                        clock)));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)));
@@ -570,6 +578,28 @@ class ControllerCoverageTest {
             dailyFrom = dailyFromInclusive;
             monthlyTo = monthlyToInclusive;
             return report;
+        }
+    }
+
+    private static final class FakeCommentRepository implements CommentRepository {
+
+        @Override
+        public Optional<Comment> findById(long commentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<Comment> findByIssueId(long issueId) {
+            return List.of();
+        }
+
+        @Override
+        public Comment save(Comment comment) {
+            return comment;
+        }
+
+        @Override
+        public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
         }
     }
 

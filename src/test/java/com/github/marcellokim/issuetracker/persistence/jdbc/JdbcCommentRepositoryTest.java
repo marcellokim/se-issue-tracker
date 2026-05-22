@@ -18,18 +18,21 @@ class JdbcCommentRepositoryTest {
     @DisplayName("legacy comments without purpose are treated as general comments")
     void mapCommentDefaultsMissingPurposeToGeneral() throws Exception {
         var createdDate = LocalDateTime.of(2026, 5, 21, 12, 0);
+        var updatedDate = createdDate.plusHours(2);
         var row = resultSet(Map.of(
                 "id", 10L,
                 "issue_id", 20L,
                 "writer_login_id", "dev1",
                 "content", "legacy comment",
-                "created_date", Timestamp.valueOf(createdDate)
+                "created_at", Timestamp.valueOf(createdDate),
+                "updated_at", Timestamp.valueOf(updatedDate)
         ));
 
         var comment = JdbcCommentRepository.mapComment(row);
 
         assertEquals(CommentPurpose.GENERAL, comment.getPurpose());
         assertEquals(createdDate, comment.getCreatedDate());
+        assertEquals(updatedDate, comment.getUpdatedDate());
     }
 
     private static ResultSet resultSet(Map<String, Object> values) {

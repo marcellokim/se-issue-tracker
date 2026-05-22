@@ -1,10 +1,12 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -15,6 +17,7 @@ public final class IssueService {
 
     private final ProjectRepository projectRepository;
     private final IssueRepository issueRepository;
+    private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
@@ -22,12 +25,14 @@ public final class IssueService {
     public IssueService(
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
+            CommentRepository commentRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             Clock clock
     ) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.commentRepository = Objects.requireNonNull(commentRepository, "commentRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -58,6 +63,19 @@ public final class IssueService {
         return toCommentResult(comment);
     }
 
+    public void deleteComment(long issueId, long commentId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        Comment comment = findComment(commentId);
+        User currentUser = findUser(currentUserId);
+        requireCommentBelongsToIssue(comment, issue);
+        requireCommentWriter(comment, currentUser);
+        requireGeneralComment(comment);
+
+        issue.recordCommentDeletion(comment, currentUser, now());
+        issueRepository.save(issue);
+        commentRepository.deleteGeneralById(issue.id(), comment.id(), currentUser.getLoginId());
+    }
+
     private Project findProject(long projectId) {
         return projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
@@ -68,9 +86,32 @@ public final class IssueService {
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
     }
 
+    private Comment findComment(long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
+    }
+
     private User findUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    private static void requireCommentBelongsToIssue(Comment comment, Issue issue) {
+        if (comment.issueId() != issue.id()) {
+            throw new IllegalArgumentException("Comment does not belong to the issue.");
+        }
+    }
+
+    private static void requireCommentWriter(Comment comment, User currentUser) {
+        if (!comment.writerId().equals(currentUser.getLoginId())) {
+            throw new SecurityException("Only the comment writer can delete the comment.");
+        }
+    }
+
+    private static void requireGeneralComment(Comment comment) {
+        if (comment.purpose() != CommentPurpose.GENERAL) {
+            throw new IllegalArgumentException("Only GENERAL comments can be deleted.");
+        }
     }
 
     private LocalDateTime now() {
@@ -94,7 +135,8 @@ public final class IssueService {
                 comment.getContent(),
                 comment.getPurpose(),
                 comment.getWriter(),
-                comment.getCreatedDate()
+                comment.getCreatedDate(),
+                comment.getUpdatedDate()
         );
     }
 }

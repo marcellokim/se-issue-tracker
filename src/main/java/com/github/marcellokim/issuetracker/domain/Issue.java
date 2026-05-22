@@ -366,12 +366,18 @@ public class Issue {
             String content,
             User writer,
             LocalDateTime createdDate,
-            CommentPurpose purpose
-    ) {
+            CommentPurpose purpose) {
         var comment = Comment.create(commentId, content, writer, purpose, createdDate);
         comments.add(comment);
-        recordHistory(ActionType.COMMENTED, null, commentId, content, writer, createdDate);
+        recordHistory(ActionType.COMMENTED, null, content, content, writer, createdDate);
         return comment;
+    }
+
+    public void recordCommentDeletion(Comment comment, User changedBy, LocalDateTime changedDate) {
+        Objects.requireNonNull(comment, "comment must not be null");
+        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        recordHistory(ActionType.COMMENTED, comment.content(), null, null, changedBy, changedDate);
     }
 
     public void changePriority(Priority newPriority, User changedBy, LocalDateTime changedDate) {
@@ -393,12 +399,12 @@ public class Issue {
                 changedBy,
                 changedDate);
     }
+
     public void updateTitleAndDescription(
-        String newTitle,
-        String newDescription,
-        User changer,
-        LocalDateTime changedDate
-    ) {
+            String newTitle,
+            String newDescription,
+            User changer,
+            LocalDateTime changedDate) {
         Objects.requireNonNull(changer, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
 
@@ -413,13 +419,12 @@ public class Issue {
         this.description = requireText(newDescription, "description");
         this.updatedAt = changedDate;
         recordHistory(
-            ActionType.TITLE_DESCRIPTION_UPDATED,
-            previousValue,
-            title + "\n" + description,
-            "Title and description changed",
-            changer,
-            changedDate
-        );
+                ActionType.TITLE_DESCRIPTION_UPDATED,
+                previousValue,
+                title + "\n" + description,
+                "Title and description changed",
+                changer,
+                changedDate);
     }
 
     // --- general-purpose private methods ---

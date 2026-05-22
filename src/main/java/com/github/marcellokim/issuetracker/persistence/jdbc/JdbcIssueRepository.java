@@ -23,7 +23,7 @@ import java.util.Optional;
 public final class JdbcIssueRepository implements IssueRepository {
 
     private static final String BASE_SELECT = """
-            select i.id, i.issue_id as issue_key, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
+            select i.id, i.issue_id as issue_key, i.project_id, i.title, i.description, i.reported_at, i.priority, i.status,
                    i.reporter_login_id, i.assignee_login_id, i.verifier_login_id, i.fixer_login_id,
                    i.resolver_login_id, i.updated_at,
                    reporter.name as reporter_name,
@@ -72,7 +72,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     private static final String FIND_BY_PROJECT_SQL = BASE_SELECT
             + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
     private static final String FIND_DELETED_BY_PROJECT_SQL = BASE_SELECT
-            + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_date desc, i.id desc";
+            + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_at desc, i.id desc";
 
     private final DatabaseConnectionProvider connectionProvider;
 
@@ -151,24 +151,24 @@ public final class JdbcIssueRepository implements IssueRepository {
             binders.add((statement, index) -> statement.setString(index, criteria.verifierId()));
         }
         if (criteria.keyword() != null && !criteria.keyword().isBlank()) {
-            sql.append(" and (lower(i.title) like ? or dbms_lob.instr(lower(i.description), ?) > 0)");
+            sql.append(" and (lower(i.title) like ? or lower(i.description) like ?)");
             String keyword = criteria.keyword().toLowerCase();
             String likeKeyword = "%" + keyword + "%";
             binders.add((statement, index) -> statement.setString(index, likeKeyword));
-            binders.add((statement, index) -> statement.setString(index, keyword));
+            binders.add((statement, index) -> statement.setString(index, likeKeyword));
         }
         if (criteria.reportedFrom() != null) {
-            sql.append(" and i.reported_date >= ?");
+            sql.append(" and i.reported_at >= ?");
             binders.add(
                     (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedFrom()));
         }
         if (criteria.reportedTo() != null) {
-            sql.append(" and i.reported_date < ?");
+            sql.append(" and i.reported_at < ?");
             binders.add(
                     (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedTo()));
         }
 
-        sql.append(" order by i.reported_date desc, i.id desc");
+        sql.append(" order by i.reported_at desc, i.id desc");
 
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql.toString())) {
@@ -326,7 +326,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     private Issue insert(Issue issue) {
         String sql = """
                 insert into issues (
-                    project_id, issue_id, title, description, reported_date, priority, status,
+                    project_id, issue_id, title, description, reported_at, priority, status,
                     reporter_login_id, assignee_login_id, verifier_login_id, fixer_login_id, resolver_login_id, updated_at
                 )
                 values (?, ?, ?, ?, coalesce(?, current_timestamp), ?, ?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
@@ -410,8 +410,8 @@ public final class JdbcIssueRepository implements IssueRepository {
     private static void insertTransientComments(Connection connection, long issueId, List<Comment> comments)
             throws SQLException {
         String sql = """
-                insert into comments (issue_id, writer_login_id, content, purpose, created_date)
-                values (?, ?, ?, ?, coalesce(?, current_timestamp))
+                insert into comments (issue_id, writer_login_id, content, purpose, created_at, updated_at)
+                values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, coalesce(?, current_timestamp)))
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (Comment comment : comments) {
@@ -423,6 +423,8 @@ public final class JdbcIssueRepository implements IssueRepository {
                 statement.setString(3, comment.content());
                 statement.setString(4, comment.purpose().name());
                 JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
+                JdbcSupport.setNullableTimestamp(statement, 6, comment.updatedDate());
+                JdbcSupport.setNullableTimestamp(statement, 7, comment.createdDate());
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -433,7 +435,7 @@ public final class JdbcIssueRepository implements IssueRepository {
             throws SQLException {
         String sql = """
                 insert into issue_history (
-                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
                 )
                 values (?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
@@ -526,7 +528,7 @@ public final class JdbcIssueRepository implements IssueRepository {
             LocalDateTime changedDate) throws SQLException {
         String sql = """
                 insert into issue_history (
-                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
                 )
                 values (?, ?, 'STATUS_CHANGED', ?, ?, ?, coalesce(?, current_timestamp))
                 """;
@@ -549,7 +551,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 where issue_id = ?
                   and action_type = 'STATUS_CHANGED'
                   and new_value = 'DELETED'
-                order by changed_date desc, id desc
+                order by changed_at desc, id desc
                 fetch first 1 rows only
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -569,14 +571,14 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     private static List<Long> currentDeletedIssueIdsByFifo(Connection connection, long projectId) throws SQLException {
         String sql = """
-                select id, changed_date, history_id
+                select id, changed_at, history_id
                 from (
                     select i.id,
-                           h.changed_date,
+                           h.changed_at,
                            h.id as history_id,
                            row_number() over (
                                partition by i.id
-                               order by h.changed_date desc, h.id desc
+                               order by h.changed_at desc, h.id desc
                            ) as rn
                     from issues i
                     join issue_history h on h.issue_id = i.id
@@ -586,7 +588,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                       and h.new_value = 'DELETED'
                 )
                 where rn = 1
-                order by changed_date, history_id
+                order by changed_at, history_id
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
@@ -649,7 +651,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 mapRequiredUser(resultSet, "reporter_login_id", "reporter"))
                 .id(resultSet.getLong("id"))
                 .issueId(resultSet.getString("issue_key"))
-                .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_date"))
+                .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_at"))
                 .priority(Priority.valueOf(resultSet.getString("priority")))
                 .status(IssueStatus.valueOf(resultSet.getString("status")))
                 .assignee(mapNullableUser(resultSet, "assignee_login_id", "assignee"))

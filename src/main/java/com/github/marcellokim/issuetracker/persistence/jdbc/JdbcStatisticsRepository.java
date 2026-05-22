@@ -92,13 +92,13 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         validateDateRange(fromInclusive, toInclusive);
 
         String sql = """
-                select trunc(reported_date) as reported_day, count(*) as issue_count
+                select trunc(reported_at) as reported_day, count(*) as issue_count
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
-                  and (? is null or reported_date >= ?)
-                  and (? is null or reported_date < ?)
-                group by trunc(reported_date)
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
+                group by trunc(reported_at)
                 order by reported_day
                 """;
         try (Connection connection = connectionProvider.getConnection();
@@ -137,13 +137,13 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         validateMonthRange(fromInclusive, toInclusive);
 
         String sql = """
-                select to_char(reported_date, 'YYYY-MM') as reported_month, count(*) as issue_count
+                select to_char(reported_at, 'YYYY-MM') as reported_month, count(*) as issue_count
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
-                  and (? is null or reported_date >= ?)
-                  and (? is null or reported_date < ?)
-                group by to_char(reported_date, 'YYYY-MM')
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
+                group by to_char(reported_at, 'YYYY-MM')
                 order by reported_month
                 """;
         try (Connection connection = connectionProvider.getConnection();

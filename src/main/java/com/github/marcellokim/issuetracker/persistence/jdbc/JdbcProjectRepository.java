@@ -24,7 +24,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
     @Override
     public Optional<Project> findById(long projectId) {
         String sql = """
-                select id, name, description, managed_by_login_id, created_date, updated_at
+                select id, name, description, managed_by_login_id, created_at, updated_at
                 from projects
                 where id = ?
                 """;
@@ -45,7 +45,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
     @Override
     public Optional<Project> findByName(String name) {
         String sql = """
-                select id, name, description, managed_by_login_id, created_date, updated_at
+                select id, name, description, managed_by_login_id, created_at, updated_at
                 from projects
                 where name = ?
                 """;
@@ -66,7 +66,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
     @Override
     public List<Project> findAll() {
         String sql = """
-                select id, name, description, managed_by_login_id, created_date, updated_at
+                select id, name, description, managed_by_login_id, created_at, updated_at
                 from projects
                 order by id
                 """;
@@ -176,7 +176,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
 
     private Project insert(Project project) {
         String sql = """
-                insert into projects (name, description, managed_by_login_id, created_date,
+                insert into projects (name, description, managed_by_login_id, created_at,
                 updated_at)
                 values (?, ?, ?, coalesce(?, current_timestamp), coalesce(?,
                 current_timestamp))
@@ -262,7 +262,7 @@ public final class JdbcProjectRepository implements ProjectRepository {
                 resultSet.getString("name"),
                 resultSet.getString("description"),
                 resultSet.getString("managed_by_login_id"),
-                JdbcSupport.nullableDateTime(resultSet, "created_date"),
+                JdbcSupport.nullableDateTime(resultSet, "created_at"),
                 JdbcSupport.nullableDateTime(resultSet, "updated_at"));
     }
 }

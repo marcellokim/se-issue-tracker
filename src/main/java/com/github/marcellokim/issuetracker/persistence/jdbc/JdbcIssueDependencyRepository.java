@@ -21,7 +21,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
      */
 
     private static final String BASE_SELECT =
-            "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_date from issue_dependencies";
+            "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at from issue_dependencies";
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_ISSUE_ID_SQL =
             BASE_SELECT + " where blocking_issue_id = ? or blocked_issue_id = ? order by id";
@@ -141,7 +141,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     private IssueDependency insert(IssueDependency dependency) {
         String sql = """
-                insert into issue_dependencies (dependency_id, blocking_issue_id, blocked_issue_id, discovered_date)
+                insert into issue_dependencies (dependency_id, blocking_issue_id, blocked_issue_id, discovered_at)
                 values (?, ?, ?, coalesce(?, current_timestamp))
                 """;
         try (Connection connection = connectionProvider.getConnection();
@@ -164,7 +164,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
                 set dependency_id = ?,
                     blocking_issue_id = ?,
                     blocked_issue_id = ?,
-                    discovered_date = coalesce(?, discovered_date)
+                    discovered_at = coalesce(?, discovered_at)
                 where id = ?
                 """;
         try (Connection connection = connectionProvider.getConnection();
@@ -198,7 +198,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
                 resultSet.getString("dependency_id"),
                 resultSet.getLong("blocking_issue_id"),
                 resultSet.getLong("blocked_issue_id"),
-                JdbcSupport.nullableDateTime(resultSet, "discovered_date")
+                JdbcSupport.nullableDateTime(resultSet, "discovered_at")
         );
     }
 

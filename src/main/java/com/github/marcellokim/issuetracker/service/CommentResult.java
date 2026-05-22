@@ -9,6 +9,7 @@ public record CommentResult(
         String content,
         CommentPurpose purpose,
         User writer,
-        LocalDateTime createdDate
+        LocalDateTime createdDate,
+        LocalDateTime updatedDate
 ) {
 }

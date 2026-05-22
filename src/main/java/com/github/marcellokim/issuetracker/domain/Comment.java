@@ -9,9 +9,10 @@ public final class Comment {
     private final long issueId;
     private final String commentId;
     private final String writerId;
-    private final String content;
+    private String content;
     private final CommentPurpose purpose;
     private final LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
     private final User writer;
 
     private Comment(
@@ -22,7 +23,8 @@ public final class Comment {
             User writer,
             String content,
             CommentPurpose purpose,
-            LocalDateTime createdDate) {
+            LocalDateTime createdDate,
+            LocalDateTime updatedDate) {
         this.id = id;
         this.issueId = issueId;
         this.commentId = requireText(commentId, "commentId");
@@ -31,6 +33,7 @@ public final class Comment {
         this.content = requireText(content, "content");
         this.purpose = Objects.requireNonNull(purpose, "purpose must not be null");
         this.createdDate = Objects.requireNonNull(createdDate, "createdDate must not be null");
+        this.updatedDate = Objects.requireNonNull(updatedDate, "updatedDate must not be null");
     }
 
     public static Comment fromPersistence(
@@ -39,9 +42,10 @@ public final class Comment {
             String writerId,
             String content,
             CommentPurpose purpose,
-            LocalDateTime createdDate) {
+            LocalDateTime createdDate,
+            LocalDateTime updatedDate) {
         return new Comment(id, issueId, Long.toString(id), writerId,
-                null, content, purpose, createdDate);
+                null, content, purpose, createdDate, updatedDate);
     }
 
     public static Comment create(
@@ -52,7 +56,12 @@ public final class Comment {
             LocalDateTime createdDate) {
         Objects.requireNonNull(writer, "writer must not be null");
         return new Comment(0L, 0L, commentId, writer.getLoginId(),
-                writer, content, purpose, createdDate);
+                writer, content, purpose, createdDate, createdDate);
+    }
+
+    public void changeContent(String newContent, LocalDateTime changedAt) {
+        content = requireText(newContent, "content");
+        updatedDate = Objects.requireNonNull(changedAt, "changedAt must not be null");
     }
 
     // --- getters ---
@@ -80,6 +89,10 @@ public final class Comment {
         return createdDate;
     }
 
+    public LocalDateTime updatedDate() {
+        return updatedDate;
+    }
+
     public String getCommentId() {
         return commentId;
     }
@@ -94,6 +107,10 @@ public final class Comment {
 
     public LocalDateTime getCreatedDate() {
         return createdDate;
+    }
+
+    public LocalDateTime getUpdatedDate() {
+        return updatedDate;
     }
 
     public User getWriter() {

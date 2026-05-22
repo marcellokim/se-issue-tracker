@@ -70,11 +70,13 @@ class PersistenceResourceSmokeTest {
     }
 
     @Test
-    @DisplayName("Comments schema upgrades existing tables with purpose column")
+    @DisplayName("Comments schema upgrades existing tables with purpose and updated date columns")
     void commentsSchemaUpgradesExistingPurposeColumn() throws IOException {
         String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
 
         assertTrue(schema.contains("alter table comments add purpose varchar2(32) default 'general' not null"));
+        assertTrue(schema.contains("alter table comments add updated_at timestamp"));
+        assertTrue(schema.contains("alter table comments modify updated_at default current_timestamp not null"));
         assertTrue(schema.contains("chk_comments_purpose"));
         assertTrue(schema.contains("'status_change_reason'"));
     }

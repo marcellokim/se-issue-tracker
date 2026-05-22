@@ -52,7 +52,7 @@ public final class IssueStateService {
                 comment,
                 actor,
                 changedAt,
-                CommentPurpose.STATUS_CHANGE_REASON);
+                CommentPurpose.STATUS_CHANGE);
     }
 
     private void resolve(Issue issue, User actor, String comment) {
@@ -64,7 +64,7 @@ public final class IssueStateService {
                 comment,
                 actor,
                 changedAt,
-                CommentPurpose.STATUS_CHANGE_REASON);
+                CommentPurpose.STATUS_CHANGE);
     }
 
     private void close(Issue issue, User actor, String comment) {
@@ -76,7 +76,7 @@ public final class IssueStateService {
                 comment,
                 actor,
                 changedAt,
-                CommentPurpose.STATUS_CHANGE_REASON);
+                CommentPurpose.STATUS_CHANGE);
     }
 
     private Issue findIssue(long issueId) {
