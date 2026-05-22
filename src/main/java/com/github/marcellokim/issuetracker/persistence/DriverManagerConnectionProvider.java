@@ -20,10 +20,12 @@ public final class DriverManagerConnectionProvider implements DatabaseConnection
     }
 
     public static DriverManagerConnectionProvider fromEnvironment() {
-        String url = readRequiredEnvironment("ITS_DB_URL");
-        String user = readRequiredEnvironment("ITS_DB_USER");
-        String password = readRequiredEnvironment("ITS_DB_PASSWORD");
-        return new DriverManagerConnectionProvider(url, user, password);
+        return from(DatabaseEnvironment.fromSystem());
+    }
+
+    public static DriverManagerConnectionProvider from(DatabaseEnvironment environment) {
+        Objects.requireNonNull(environment, "environment");
+        return new DriverManagerConnectionProvider(environment.url(), environment.user(), environment.password());
     }
 
     public static DriverManagerConnectionProvider fromIntegrationTestEnvironment() {

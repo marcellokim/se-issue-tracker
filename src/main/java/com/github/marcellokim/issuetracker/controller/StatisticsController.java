@@ -2,9 +2,8 @@ package com.github.marcellokim.issuetracker.controller;
 
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.StatisticsService;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Objects;
@@ -12,17 +11,14 @@ import java.util.Objects;
 public final class StatisticsController {
 
     private final AuthenticationService authenticationService;
-    private final PermissionPolicy permissionPolicy;
-    private final StatisticsRepository statisticsRepository;
+    private final StatisticsService statisticsService;
 
     public StatisticsController(
             AuthenticationService authenticationService,
-            PermissionPolicy permissionPolicy,
-            StatisticsRepository statisticsRepository
+            StatisticsService statisticsService
     ) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
-        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
+        this.statisticsService = Objects.requireNonNull(statisticsService, "statisticsService");
     }
 
     public StatisticsReport viewStatistics(
@@ -33,17 +29,13 @@ public final class StatisticsController {
             YearMonth monthlyToInclusive
     ) {
         User user = requireCurrentUser();
-        permissionPolicy.assertCanViewStatistics(user, projectId);
-        requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
-        requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
-
-        return statisticsRepository.buildReport(
+        return statisticsService.viewStatistics(
                 projectId,
                 dailyFromInclusive,
                 dailyToInclusive,
                 monthlyFromInclusive,
-                monthlyToInclusive
-        );
+                monthlyToInclusive,
+                user);
     }
 
     public StatisticsReport viewStatistics(long projectId) {
@@ -53,16 +45,5 @@ public final class StatisticsController {
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));
-    }
-
-    private static <T extends Comparable<T>> void requireOrderedRange(
-            T fromInclusive,
-            T toInclusive,
-            String fromName,
-            String toName
-    ) {
-        if (fromInclusive != null && toInclusive != null && fromInclusive.compareTo(toInclusive) > 0) {
-            throw new IllegalArgumentException(fromName + " must be <= " + toName);
-        }
     }
 }

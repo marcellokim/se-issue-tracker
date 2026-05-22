@@ -39,7 +39,7 @@ class IssueControllerTest {
     private static final String PASSWORD = "pass123";
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 21, 10, 0);
     private final PasswordHasher hasher = new PasswordHasher();
-    private final User dev = User.create("dev1", "Dev One", hasher.hash(PASSWORD), Role.DEV, true, now, now);
+    private final User dev = User.fromPersistence("dev1", "Dev One", hasher.hash(PASSWORD), Role.DEV, true, now, now);
     private final Project project = Project.create(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
 
     @Test

@@ -14,9 +14,15 @@ public class User {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    // factory
-    public static User create(String loginId, String name, String passwordHash, Role role,
+    public static User create(String loginId, String name, String passwordHash, Role role, LocalDateTime now) {
+        // 신규 계정은 저장소 복원과 달리 활성 상태와 동일한 생성/수정 시각으로 시작함.
+        LocalDateTime timestamp = requireTime(now, "now");
+        return new User(loginId, name, passwordHash, role, true, timestamp, timestamp);
+    }
+
+    public static User fromPersistence(String loginId, String name, String passwordHash, Role role,
             boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        // DB row 복원은 비활성 여부와 저장된 timestamp를 그대로 보존해야 함.
         return new User(loginId, name, passwordHash, role, active, createdAt, updatedAt);
     }
 
@@ -93,6 +99,10 @@ public class User {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return value;
+    }
+
+    private static LocalDateTime requireTime(LocalDateTime value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 
 }

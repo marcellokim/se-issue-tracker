@@ -24,13 +24,13 @@ class IssueStateServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
-    private final User reporter = User.create("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(),
+    private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(),
             createdAt());
-    private final User assignee = User.create("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
-    private final User verifier = User.create("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
+    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
             createdAt());
-    private final User pl = User.create("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
-    private final User otherDev = User.create("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
+    private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
 
     @Test
     @DisplayName("assignee marks assigned issue fixed")
@@ -110,13 +110,17 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unsupported status change target is rejected")
+    @DisplayName("unsupported status change targets remain feature gaps")
     void rejectUnsupportedTargetStatus() {
-        var issue = resolvedIssue();
-        var service = service(issue);
-
+        var fixed = fixedIssue();
+        var fixedService = service(fixed);
         assertThrows(UnsupportedOperationException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
+                () -> fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId()));
+
+        var resolved = resolvedIssue();
+        var resolvedService = service(resolved);
+        assertThrows(UnsupportedOperationException.class,
+                () -> resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
     }
 
     @Test

@@ -6,6 +6,10 @@ import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import java.util.List;
 import java.util.Objects;
 
+/*
+ * Project 관리 조회용 application read model.
+ * Project aggregate에 participants/issues collection을 넣지 않고 service가 repository 조회 결과를 조합함.
+ */
 public final class ProjectDetail {
 
     private final Project project;
