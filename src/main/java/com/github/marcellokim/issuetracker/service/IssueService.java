@@ -82,6 +82,7 @@ public final class IssueService {
         String dependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
         IssueDependency dependency = blockedIssue.addDependency(dependencyId, blockingIssue, actor, now);
         IssueDependency saved = dependencyRepository.save(dependency);
+        issueRepository.save(blockedIssue);
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
@@ -93,6 +94,7 @@ public final class IssueService {
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         blockedIssue.removeDependency(dependency, actor, now());
         dependencyRepository.deleteById(dependencyId);
+        issueRepository.save(blockedIssue);
     }
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {

@@ -13,6 +13,7 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,7 +53,7 @@ class IssueWorkflowServiceTest {
                 new AssignmentRecommendationService(new EmptyAssignmentRecommendationRepository()),
                 new Clock()
         );
-        var stateService = new IssueStateService(issueRepository, userRepository, policy, new Clock());
+        var stateService = new IssueStateService(issueRepository, new FakeIssueDependencyRepository(), userRepository, policy, new Clock());
 
         assignmentService.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId());
         stateService.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());

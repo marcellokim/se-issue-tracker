@@ -290,7 +290,6 @@ public class Issue {
         requireStatus(IssueStatus.FIXED);
         requireRole(resolver, Role.TESTER, "resolver");
         requireCurrentParticipant(resolver, verifier, "resolver must be current verifier");
-        rejectUnresolvedBlockingIssues();
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         setResolver(resolver);
@@ -564,16 +563,6 @@ public class Issue {
         return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
     }
 
-    private void rejectUnresolvedBlockingIssues() {
-        for (var dependency : blockedByDependencies) {
-            IssueStatus blockingStatus = dependency.getBlockingIssue().getStatus();
-            if (blockingStatus != IssueStatus.RESOLVED && blockingStatus != IssueStatus.CLOSED) {
-                throw new IllegalStateException(
-                        "Cannot resolve: blocking issue " + dependency.getBlockingIssue().getIssueId()
-                                + " is still " + blockingStatus);
-            }
-        }
-    }
 
     private void rejectSelfDependency(Issue blockingIssue) {
         if (Objects.equals(blockingIssue.getIssueId(), issueId)) {

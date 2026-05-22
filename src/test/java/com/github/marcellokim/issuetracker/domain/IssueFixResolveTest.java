@@ -172,20 +172,6 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("blocking issue가 미해결이면 resolve할 수 없다")
-        void rejectResolveWhenBlockingIssueUnresolved() {
-                var blockedIssue = assignedIssue();
-                var blockingIssue = Issue.create("ISSUE-2", "Auth fix", "Auth must be fixed first",
-                        null, reporter, createdAt);
-                blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
-                blockedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
-
-                var exception = assertThrows(IllegalStateException.class,
-                        () -> blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30)));
-                assertEquals("Cannot resolve: blocking issue ISSUE-2 is still NEW", exception.getMessage());
-        }
-
-        @Test
         @DisplayName("blocking issue가 RESOLVED이면 resolve할 수 있다")
         void allowResolveWhenBlockingIssueResolved() {
                 var blockedIssue = assignedIssue();
@@ -214,24 +200,6 @@ class IssueFixResolveTest {
                 blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
 
                 assertEquals(IssueStatus.RESOLVED, blockedIssue.getStatus());
-        }
-
-        @Test
-        @DisplayName("여러 blocking issue 중 하나라도 미해결이면 resolve할 수 없다")
-        void rejectResolveWhenAnyBlockingIssueUnresolved() {
-                var blockedIssue = assignedIssue();
-                var resolvedBlocking = assignedIssue("ISSUE-2");
-                var unresolvedBlocking = Issue.create("ISSUE-3", "DB fix", "DB must be fixed",
-                        null, reporter, createdAt);
-                blockedIssue.addDependency("ISSUE-2->ISSUE-1", resolvedBlocking, pl, createdAt.plusMinutes(15));
-                blockedIssue.addDependency("ISSUE-3->ISSUE-1", unresolvedBlocking, pl, createdAt.plusMinutes(16));
-                resolvedBlocking.markFixed(assignee, "Fix completed", createdAt.plusMinutes(17));
-                resolvedBlocking.resolve(verifier, "Verified", createdAt.plusMinutes(18));
-                blockedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
-
-                var exception = assertThrows(IllegalStateException.class,
-                        () -> blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30)));
-                assertEquals("Cannot resolve: blocking issue ISSUE-3 is still NEW", exception.getMessage());
         }
 
         private Issue assignedIssue() {

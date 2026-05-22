@@ -2,8 +2,10 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -12,17 +14,20 @@ import java.util.Objects;
 public final class IssueStateService {
 
     private final IssueRepository issueRepository;
+    private final IssueDependencyRepository dependencyRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
 
     public IssueStateService(
             IssueRepository issueRepository,
+            IssueDependencyRepository dependencyRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             Clock clock
     ) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -57,6 +62,7 @@ public final class IssueStateService {
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
+        rejectUnresolvedBlockingIssues(issue);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
         issue.addComment(
@@ -77,6 +83,18 @@ public final class IssueStateService {
                 actor,
                 changedAt,
                 CommentPurpose.STATUS_CHANGE);
+    }
+
+    private void rejectUnresolvedBlockingIssues(Issue issue) {
+        for (IssueDependency dep : dependencyRepository.findByBlockedIssueId(issue.id())) {
+            Issue blockingIssue = findIssue(dep.blockingIssueId());
+            IssueStatus status = blockingIssue.getStatus();
+            if (status != IssueStatus.RESOLVED && status != IssueStatus.CLOSED) {
+                throw new IllegalStateException(
+                        "Cannot resolve: blocking issue " + blockingIssue.getIssueId()
+                                + " is still " + status);
+            }
+        }
     }
 
     private Issue findIssue(long issueId) {

@@ -280,7 +280,7 @@ class ControllerCoverageTest {
                         clock)));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
-                new com.github.marcellokim.issuetracker.service.IssueStateService(issues, users, policy, clock)));
+                new com.github.marcellokim.issuetracker.service.IssueStateService(issues, new FakeIssueDependencyRepository(), users, policy, clock)));
     }
 
     private static AuthFixture authenticated(Role role) {
