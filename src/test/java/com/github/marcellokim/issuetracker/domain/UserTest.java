@@ -9,71 +9,114 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("사용자 도메인 모델")
+@DisplayName("User domain model")
 class UserTest {
 
-        private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 21, 10, 0);
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 20, 10, 0);
 
-        @Test
-        @DisplayName("새 사용자는 활성 계정과 동일한 생성/수정 시각으로 생성된다")
-        void createActiveUserWithLoginIdentifierAndRole() {
-                var user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+    @Test
+    @DisplayName("create builds an active user with current timestamps")
+    void createActiveUserWithLoginIdentifierAndRole() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
-                assertEquals("dev1", user.getLoginId());
-                assertEquals("Dev One", user.getName());
-                assertEquals("hash", user.getPasswordHash());
-                assertEquals(Role.DEV, user.getRole());
-                assertTrue(user.isActive());
-                assertEquals(NOW, user.getCreatedAt());
-                assertEquals(NOW, user.getUpdatedAt());
-                assertTrue(user.hasRole(Role.DEV));
-                assertFalse(user.hasRole(Role.TESTER));
-        }
+        assertEquals("dev1", user.getLoginId());
+        assertEquals("Dev One", user.getName());
+        assertEquals("hash", user.getPasswordHash());
+        assertEquals(Role.DEV, user.getRole());
+        assertTrue(user.isActive());
+        assertTrue(user.hasRole(Role.DEV));
+        assertFalse(user.hasRole(Role.TESTER));
+        assertEquals(NOW, user.getCreatedAt());
+        assertEquals(NOW, user.getUpdatedAt());
+    }
 
-        @Test
-        @DisplayName("저장소에서 복원한 사용자는 저장된 계정 상태를 보존한다")
-        void fromPersistencePreservesStoredUserState() {
-                var user = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, false, null, null);
+    @Test
+    @DisplayName("fromPersistence restores stored lifecycle fields")
+    void restoreUserFromPersistence() {
+        LocalDateTime createdAt = NOW.minusDays(1);
 
-                assertEquals("dev1", user.getLoginId());
-                assertEquals("Dev One", user.getName());
-                assertEquals("hash", user.getPasswordHash());
-                assertEquals(Role.DEV, user.getRole());
-                assertFalse(user.isActive());
-        }
+        User user = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, false, createdAt, NOW);
 
-        @Test
-        @DisplayName("사용자 핵심 값은 비어 있을 수 없다")
-        void rejectBlankUserFields() {
-                assertThrows(IllegalArgumentException.class,
-                                () -> User.create("", "Dev One", "hash", Role.DEV, NOW));
-                assertThrows(IllegalArgumentException.class,
-                                () -> User.create("dev1", " ", "hash", Role.DEV, NOW));
-                assertThrows(IllegalArgumentException.class,
-                                () -> User.create("dev1", "Dev One", "", Role.DEV, NOW));
-        }
+        assertFalse(user.isActive());
+        assertEquals(createdAt, user.getCreatedAt());
+        assertEquals(NOW, user.getUpdatedAt());
+    }
 
-        @Test
-        @DisplayName("사용자 역할은 필수 값이다")
-        void rejectMissingRole() {
-                assertThrows(NullPointerException.class,
-                                () -> User.create("dev1", "Dev One", "hash", null, NOW));
-        }
+    @Test
+    @DisplayName("required user fields cannot be blank")
+    void rejectBlankUserFields() {
+        assertThrows(IllegalArgumentException.class, () -> User.create("", "Dev One", "hash", Role.DEV, NOW));
+        assertThrows(IllegalArgumentException.class, () -> User.create("dev1", " ", "hash", Role.DEV, NOW));
+        assertThrows(IllegalArgumentException.class, () -> User.create("dev1", "Dev One", "", Role.DEV, NOW));
+    }
 
-        @Test
-        @DisplayName("새 사용자 생성 시점은 필수 값이다")
-        void rejectMissingCreationTime() {
-                assertThrows(NullPointerException.class,
-                                () -> User.create("dev1", "Dev One", "hash", Role.DEV, null));
-        }
+    @Test
+    @DisplayName("role is required")
+    void rejectMissingRole() {
+        assertThrows(NullPointerException.class, () -> User.create("dev1", "Dev One", "hash", null, NOW));
+    }
 
-        @Test
-        @DisplayName("사용자는 비활성화될 수 있다")
-        void deactivateUser() {
-                var user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+    @Test
+    @DisplayName("user can be deactivated")
+    void deactivateUser() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
-                user.deactivate();
+        user.deactivate(NOW.plusMinutes(1));
 
-                assertFalse(user.isActive());
-        }
+        assertFalse(user.isActive());
+        assertEquals(NOW.plusMinutes(1), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("deactivated user can be reactivated")
+    void activateUser() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+        user.deactivate(NOW.plusMinutes(1));
+
+        user.activate(NOW.plusMinutes(2));
+
+        assertTrue(user.isActive());
+        assertEquals(NOW.plusMinutes(2), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("rename updates name and updatedAt")
+    void renameUser() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        user.rename("Dev Updated", NOW.plusMinutes(1));
+
+        assertEquals("Dev Updated", user.getName());
+        assertEquals(NOW.plusMinutes(1), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("rename rejects blank name")
+    void rejectBlankRename() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        assertThrows(IllegalArgumentException.class, () -> user.rename("", NOW.plusMinutes(1)));
+        assertThrows(IllegalArgumentException.class, () -> user.rename(" ", NOW.plusMinutes(1)));
+    }
+
+    @Test
+    @DisplayName("changeRole updates role and updatedAt")
+    void changeUserRole() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        user.changeRole(Role.PL, NOW.plusMinutes(1));
+
+        assertEquals(Role.PL, user.getRole());
+        assertTrue(user.hasRole(Role.PL));
+        assertFalse(user.hasRole(Role.DEV));
+        assertEquals(NOW.plusMinutes(1), user.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("changeRole rejects null role")
+    void rejectNullRoleChange() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        assertThrows(NullPointerException.class, () -> user.changeRole(null, NOW.plusMinutes(1)));
+    }
 }

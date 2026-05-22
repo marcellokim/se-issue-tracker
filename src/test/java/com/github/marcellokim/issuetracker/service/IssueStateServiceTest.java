@@ -12,10 +12,12 @@ import org.junit.jupiter.api.Test;
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 
@@ -44,7 +46,7 @@ class IssueStateServiceTest {
         assertSame(assignee, issue.getFixer());
         assertEquals(1, issue.getComments().size());
         assertEquals("Fix completed", issue.getComments().getFirst().getContent());
-        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         org.junit.jupiter.api.Assertions.assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
@@ -62,7 +64,7 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Verified", issue.getComments().getFirst().getContent());
-        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -82,7 +84,7 @@ class IssueStateServiceTest {
         assertSame(verifier, issue.getResolver());
         assertEquals(1, issue.getComments().size());
         assertEquals("Release completed", issue.getComments().getFirst().getContent());
-        assertEquals(CommentPurpose.STATUS_CHANGE_REASON, issue.getComments().getFirst().getPurpose());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -148,9 +150,44 @@ class IssueStateServiceTest {
                 () -> service.changeStatus(ISSUE_ID, null, "Fix completed", assignee.getLoginId()));
     }
 
+    @Test
+    @DisplayName("blocking issue가 미해결이면 resolve할 수 없다")
+    void rejectResolveWhenBlockingIssueUnresolved() {
+        var blockedIssue = fixedIssue();
+        var blockingIssue = newIssue(2L, "ISSUE-2");
+        var depRepo = new FakeIssueDependencyRepository();
+        depRepo.save(IssueDependency.fromPersistence(1L, blockingIssue.id(), blockedIssue.id(), createdAt()));
+        var service = service(depRepo, blockedIssue, blockingIssue);
+
+        var exception = assertThrows(IllegalStateException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId()));
+        assertEquals("Cannot resolve: blocking issue ISSUE-2 is still NEW", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("여러 blocking issue 중 하나라도 미해결이면 resolve할 수 없다")
+    void rejectResolveWhenAnyBlockingIssueUnresolved() {
+        var blockedIssue = fixedIssue();
+        var resolvedBlocking = resolvedIssue(2L, "ISSUE-2");
+        var unresolvedBlocking = newIssue(3L, "ISSUE-3");
+        var depRepo = new FakeIssueDependencyRepository();
+        depRepo.save(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.save(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        var service = service(depRepo, blockedIssue, resolvedBlocking, unresolvedBlocking);
+
+        var exception = assertThrows(IllegalStateException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId()));
+        assertEquals("Cannot resolve: blocking issue ISSUE-3 is still NEW", exception.getMessage());
+    }
+
     private IssueStateService service(Issue issue) {
+        return service(new FakeIssueDependencyRepository(), issue);
+    }
+
+    private IssueStateService service(FakeIssueDependencyRepository depRepo, Issue... issues) {
         return new IssueStateService(
-                new InMemoryIssueRepository(issue),
+                new InMemoryIssueRepository(issues),
+                depRepo,
                 new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev),
                 new PermissionPolicy(),
                 new Clock()
@@ -158,9 +195,13 @@ class IssueStateServiceTest {
     }
 
     private Issue newIssue() {
+        return newIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue newIssue(long id, String issueId) {
         return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
+                .id(id)
+                .issueId(issueId)
                 .reportedDate(createdAt())
                 .priority(Priority.MAJOR)
                 .status(IssueStatus.NEW)
@@ -168,27 +209,43 @@ class IssueStateServiceTest {
     }
 
     private Issue assignedIssue() {
-        var issue = newIssue();
+        return assignedIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue assignedIssue(long id, String issueId) {
+        var issue = newIssue(id, issueId);
         issue.assignFromNew(assignee, verifier, pl, createdAt().plusMinutes(10));
         return issue;
     }
 
     private Issue fixedIssue() {
-        var issue = assignedIssue();
+        return fixedIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue fixedIssue(long id, String issueId) {
+        var issue = assignedIssue(id, issueId);
         issue.markFixed(assignee, "Fix completed", createdAt().plusMinutes(20));
         return issue;
     }
 
     private Issue resolvedIssue() {
-        var issue = fixedIssue();
+        return resolvedIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue resolvedIssue(long id, String issueId) {
+        var issue = fixedIssue(id, issueId);
         issue.resolve(verifier, "Verified", createdAt().plusMinutes(30));
         return issue;
     }
 
     private static void assertStatusChangedThenCommented(Issue issue) {
         var histories = issue.getHistories();
+        var latestCommentContent = issue.getComments().getLast().getContent();
         assertEquals(ActionType.STATUS_CHANGED, histories.get(histories.size() - 2).getAction());
         assertEquals(ActionType.COMMENTED, histories.getLast().getAction());
+        assertNull(histories.getLast().getPreviousValue());
+        assertEquals(latestCommentContent, histories.getLast().getNewValue());
+        assertEquals(latestCommentContent, histories.getLast().getMessage());
     }
 
     private static LocalDateTime createdAt() {

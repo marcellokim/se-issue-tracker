@@ -12,5 +12,5 @@ public interface CommentRepository {
 
     Comment save(Comment comment);
 
-    void deleteById(long commentId);
+    void deleteGeneralById(long issueId, long commentId, String writerLoginId);
 }

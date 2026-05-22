@@ -122,8 +122,8 @@ class IssueFixResolveTest {
         void rejectInactiveFixerAndResolver() {
                 var inactiveFixer = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
                 var inactiveResolver = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
-                inactiveFixer.deactivate();
-                inactiveResolver.deactivate();
+                inactiveFixer.deactivate(createdAt.plusMinutes(1));
+                inactiveResolver.deactivate(createdAt.plusMinutes(1));
 
                 var issueForFixer = assignedIssue();
                 assertThrows(IllegalArgumentException.class,
@@ -171,8 +171,43 @@ class IssueFixResolveTest {
                                 () -> issue.rejectFix(verifier, "Not fixed", createdAt.plusMinutes(20)));
         }
 
+        @Test
+        @DisplayName("blocking issue가 RESOLVED이면 resolve할 수 있다")
+        void allowResolveWhenBlockingIssueResolved() {
+                var blockedIssue = assignedIssue();
+                var blockingIssue = assignedIssue("ISSUE-2");
+                blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
+                blockingIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(16));
+                blockingIssue.resolve(verifier, "Verified", createdAt.plusMinutes(17));
+                blockedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+
+                blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
+
+                assertEquals(IssueStatus.RESOLVED, blockedIssue.getStatus());
+        }
+
+        @Test
+        @DisplayName("blocking issue가 CLOSED이면 resolve할 수 있다")
+        void allowResolveWhenBlockingIssueClosed() {
+                var blockedIssue = assignedIssue();
+                var blockingIssue = assignedIssue("ISSUE-2");
+                blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
+                blockingIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(16));
+                blockingIssue.resolve(verifier, "Verified", createdAt.plusMinutes(17));
+                blockingIssue.close(pl, "Done", createdAt.plusMinutes(18));
+                blockedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
+
+                blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
+
+                assertEquals(IssueStatus.RESOLVED, blockedIssue.getStatus());
+        }
+
         private Issue assignedIssue() {
-                var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+                return assignedIssue("ISSUE-1");
+        }
+
+        private Issue assignedIssue(String issueId) {
+                var issue = Issue.create(issueId, "Login fails", "Cannot log in", null, reporter, createdAt);
                 issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
                 return issue;
         }

@@ -42,7 +42,7 @@ class RepositoryDemoSummaryServiceTest {
         User admin = user("admin", Role.ADMIN, true);
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
-        Project project = Project.create(PROJECT_ID, "project1", "Demo", "admin", NOW, NOW);
+        Project project = Project.fromPersistence(PROJECT_ID, "project1", "Demo", "admin", NOW, NOW);
         Issue issue = issue(101L, IssueStatus.NEW);
 
         RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(
@@ -80,7 +80,7 @@ class RepositoryDemoSummaryServiceTest {
         User admin = user("root", Role.ADMIN, true);
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
-        Project project = Project.create(PROJECT_ID, "custom-project", "Demo", "root", NOW, NOW);
+        Project project = Project.fromPersistence(PROJECT_ID, "custom-project", "Demo", "root", NOW, NOW);
         Issue issue = issue(101L, IssueStatus.NEW);
 
         RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(

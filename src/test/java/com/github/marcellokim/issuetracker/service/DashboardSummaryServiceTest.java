@@ -36,7 +36,7 @@ class DashboardSummaryServiceTest {
     @Test
     @DisplayName("builds dashboard read model without exposing repositories to the presenter")
     void buildsDashboardProjectSummaries() {
-        Project project = Project.create(PROJECT_ID, "project1", "Demo project", "admin", NOW, NOW);
+        Project project = Project.fromPersistence(PROJECT_ID, "project1", "Demo project", "admin", NOW, NOW);
         User pl = user("pl", Role.PL);
         User dev = user("dev", Role.DEV);
         User tester = user("tester", Role.TESTER);

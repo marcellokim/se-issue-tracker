@@ -74,11 +74,9 @@ public final class ProjectService {
 
         LocalDateTime now = clock.now();
         return projectRepository.save(Project.create(
-                0L,
                 projectName,
                 description,
                 admin.getLoginId(),
-                now,
                 now));
     }
 

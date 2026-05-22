@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
@@ -85,8 +86,8 @@ class OracleRepositoryIntegrationTest {
         assertTrue(admin.isActive());
         assertEquals("project1", project1.getName());
         assertEquals("project2", project2.getName());
-        assertEquals(admin.getLoginId(), project1.getManagedById());
-        assertEquals(admin.getLoginId(), project2.getManagedById());
+        assertEquals(admin.getLoginId(), project1.getManagedByLoginId());
+        assertEquals(admin.getLoginId(), project2.getManagedByLoginId());
     }
 
     @Test
@@ -317,8 +318,7 @@ class OracleRepositoryIntegrationTest {
                     .status());
 
             invalidDeleted = createIssue(project.getId(), uniqueId("restore_invalid_issue"), IssueStatus.DELETED);
-            repositories.issueHistory().save(IssueHistory.fromPersistence(
-                    0L,
+            repositories.issueHistory().save(IssueHistory.newForPersistence(
                     invalidDeleted.id(),
                     "pl1",
                     ActionType.STATUS_CHANGED,
@@ -352,13 +352,11 @@ class OracleRepositoryIntegrationTest {
         LocalDateTime now = LocalDateTime.now();
 
         try {
-            User created = repositories.users().save(User.fromPersistence(
+            User created = repositories.users().save(User.create(
                     loginId,
                     "Repository CRUD Dev",
                     "InitialPassword!",
                     Role.DEV,
-                    true,
-                    now,
                     now));
 
             assertEquals(loginId, created.getLoginId());
@@ -396,16 +394,14 @@ class OracleRepositoryIntegrationTest {
 
         try {
             project = repositories.projects().save(Project.create(
-                    0L,
                     projectName,
                     "Repository CRUD test project.",
                     "admin",
-                    LocalDateTime.now(),
                     LocalDateTime.now()));
 
             assertEquals(projectName, repositories.projects().findByName(projectName).orElseThrow().getName());
 
-            Project updated = repositories.projects().save(Project.create(
+            Project updated = repositories.projects().save(Project.fromPersistence(
                     project.getId(),
                     project.getName(),
                     "Updated repository CRUD test project.",
@@ -558,7 +554,10 @@ class OracleRepositoryIntegrationTest {
                             && IssueStatus.NEW.name().equals(history.previousValue())
                             && IssueStatus.ASSIGNED.name().equals(history.newValue())));
             assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
-                    .anyMatch(history -> history.actionType() == ActionType.COMMENTED));
+                    .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                            && history.previousValue() == null
+                            && "Assignment audit comment.".equals(history.newValue())
+                            && "Assignment audit comment.".equals(history.message())));
         } finally {
             if (issue != null) {
                 repositories.issues().purge(issue.id());
@@ -575,12 +574,15 @@ class OracleRepositoryIntegrationTest {
         Comment comment = null;
 
         try {
+            LocalDateTime createdAt = LocalDateTime.now();
             comment = repositories.comments().save(Comment.fromPersistence(
                     0L,
                     issue.id(),
                     "tester1",
                     "Initial repository comment.",
-                    LocalDateTime.now()));
+                    CommentPurpose.GENERAL,
+                    createdAt,
+                    createdAt));
 
             assertEquals("Initial repository comment.", repositories.comments().findById(comment.id())
                     .orElseThrow().content());
@@ -588,22 +590,39 @@ class OracleRepositoryIntegrationTest {
             assertTrue(repositories.comments().findByIssueId(issue.id()).stream()
                     .anyMatch(value -> value.id() == commentId));
 
+            LocalDateTime updatedAt = comment.createdDate().plusMinutes(10);
+            comment.changeContent("Updated repository comment.", updatedAt);
             Comment updated = repositories.comments().save(Comment.fromPersistence(
                     comment.id(),
                     issue.id(),
                     "tester1",
-                    "Updated repository comment.",
-                    comment.createdDate()));
+                    comment.content(),
+                    CommentPurpose.GENERAL,
+                    comment.createdDate(),
+                    comment.updatedDate()));
 
             assertEquals("Updated repository comment.", updated.content());
+            assertEquals(updatedAt, updated.updatedDate());
 
-            repositories.comments().deleteById(comment.id());
+            Comment statusChangeComment = repositories.comments().save(Comment.fromPersistence(
+                    0L,
+                    issue.id(),
+                    "tester1",
+                    "Status-change repository comment.",
+                    CommentPurpose.STATUS_CHANGE,
+                    createdAt,
+                    createdAt));
+            assertThrows(IllegalArgumentException.class,
+                    () -> repositories.comments().deleteGeneralById(issue.id(), statusChangeComment.id(), "tester1"));
+            assertTrue(repositories.comments().findById(statusChangeComment.id()).isPresent());
+
+            repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
             comment = null;
 
             assertTrue(repositories.comments().findById(updated.id()).isEmpty());
         } finally {
             if (comment != null) {
-                repositories.comments().deleteById(comment.id());
+                repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
             }
             repositories.issues().purge(issue.id());
         }
@@ -616,8 +635,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"));
 
         try {
-            IssueHistory history = repositories.issueHistory().save(IssueHistory.fromPersistence(
-                    0L,
+            IssueHistory history = repositories.issueHistory().save(IssueHistory.newForPersistence(
                     issue.id(),
                     "pl1",
                     ActionType.STATUS_CHANGED,

@@ -1,139 +1,157 @@
 begin
    merge into users target
    using (
-       select 'admin' as login_id,
-              'Admin' as name,
-              'ADMIN' as role,
-              1 as active
-         from dual
-       union all
-       select 'pl1',
-              'PL 1',
-              'PL',
-              1
-         from dual
-       union all
-       select 'pl2',
-              'PL 2',
-              'PL',
-              1
-         from dual
-       union all
-       select 'dev1',
-              'Dev 1',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev2',
-              'Dev 2',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev3',
-              'Dev 3',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev4',
-              'Dev 4',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev5',
-              'Dev 5',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev6',
-              'Dev 6',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev7',
-              'Dev 7',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev8',
-              'Dev 8',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev9',
-              'Dev 9',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'dev10',
-              'Dev 10',
-              'DEV',
-              1
-         from dual
-       union all
-       select 'tester1',
-              'Tester 1',
-              'TESTER',
-              1
-         from dual
-       union all
-       select 'tester2',
-              'Tester 2',
-              'TESTER',
-              1
-         from dual
-       union all
-       select 'tester3',
-              'Tester 3',
-              'TESTER',
-              1
-         from dual
-       union all
-       select 'tester4',
-              'Tester 4',
-              'TESTER',
-              1
-         from dual
-       union all
-       select 'tester5',
-              'Tester 5',
-              'TESTER',
-              1
-         from dual
+      select seed.login_id,
+             seed.name,
+             seed.role,
+             seed.active,
+             timestamp '2026-04-30 00:00:00' as created_at,
+             timestamp '2026-04-30 00:00:00' as updated_at
+        from (
+         select 'admin' as login_id,
+                'Admin' as name,
+                'ADMIN' as role,
+                1 as active
+           from dual
+      union all
+      select 'pl1',
+             'PL 1',
+             'PL',
+             1
+        from dual
+      union all
+      select 'pl2',
+             'PL 2',
+             'PL',
+             1
+        from dual
+      union all
+      select 'dev1',
+             'Dev 1',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev2',
+             'Dev 2',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev3',
+             'Dev 3',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev4',
+             'Dev 4',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev5',
+             'Dev 5',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev6',
+             'Dev 6',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev7',
+             'Dev 7',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev8',
+             'Dev 8',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev9',
+             'Dev 9',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'dev10',
+             'Dev 10',
+             'DEV',
+             1
+        from dual
+      union all
+      select 'tester1',
+             'Tester 1',
+             'TESTER',
+             1
+        from dual
+      union all
+      select 'tester2',
+             'Tester 2',
+             'TESTER',
+             1
+        from dual
+      union all
+      select 'tester3',
+             'Tester 3',
+             'TESTER',
+             1
+        from dual
+      union all
+      select 'tester4',
+             'Tester 4',
+             'TESTER',
+             1
+        from dual
+      union all
+      select 'tester5',
+             'Tester 5',
+             'TESTER',
+             1
+        from dual
+      ) seed
    ) source on ( target.login_id = source.login_id )
    when matched then update
    set target.name = source.name,
        target.role = source.role,
        target.active = source.active,
-       target.updated_at = current_timestamp
-    when not matched then
-    insert (
-       login_id,
-       name,
-       role,
-       active )
-    values
-       ( source.login_id,
+       target.created_at = source.created_at,
+       target.updated_at = source.updated_at
+   when not matched then
+   insert (
+      login_id,
+      name,
+      role,
+      active,
+      created_at,
+      updated_at )
+   values
+      ( source.login_id,
         source.name,
         source.role,
-        source.active );
+        source.active,
+        source.created_at,
+        source.updated_at );
 end;
 /
 begin
    merge into user_credentials target
    using (
-      select 'admin' as login_id,
-             '4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt,
-             'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash
-        from dual
+      select seed.login_id,
+             seed.password_salt,
+             seed.password_hash,
+             timestamp '2026-04-30 00:00:00' as updated_at
+        from (
+         select 'admin' as login_id,
+                '4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt,
+                'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash
+           from dual
       union all
       select 'pl1',
              '5158aa2245b0cd6d35eb50acb51f90f0',
@@ -219,48 +237,63 @@ begin
              '410692becb9135a848939b8419359965',
              '3fbd6f0569669a2b6a072648cd26a8a5d5f18082b7146392e2b82866c07b9e96'
         from dual
+      ) seed
    ) source on ( target.login_id = source.login_id )
    when matched then update
    set target.password_salt = source.password_salt,
        target.password_hash = source.password_hash,
-       target.updated_at = current_timestamp
+       target.updated_at = source.updated_at
    when not matched then
    insert (
       login_id,
       password_salt,
-      password_hash )
+      password_hash,
+      updated_at )
    values
       ( source.login_id,
         source.password_salt,
-        source.password_hash );
+        source.password_hash,
+        source.updated_at );
 end;
 /
 begin
    merge into projects target
    using (
-      select 'project1' as name,
-             'Demo project for ITS persistence and query flows' as description,
-             'admin' as managed_by_login_id
-        from dual
+      select seed.name,
+             seed.description,
+             seed.managed_by_login_id,
+             timestamp '2026-05-01 00:00:00' as created_at,
+             timestamp '2026-05-01 00:00:00' as updated_at
+        from (
+         select 'project1' as name,
+                'Demo project for ITS persistence and query flows' as description,
+                'admin' as managed_by_login_id
+           from dual
       union all
       select 'project2',
              'Second demo project for PL assignment separation',
              'admin'
         from dual
+      ) seed
    ) source on ( target.name = source.name )
    when matched then update
    set target.description = source.description,
        target.managed_by_login_id = source.managed_by_login_id,
-       target.updated_at = current_timestamp
+       target.created_at = source.created_at,
+       target.updated_at = source.updated_at
    when not matched then
    insert (
       name,
       description,
-      managed_by_login_id )
+      managed_by_login_id,
+      created_at,
+      updated_at )
    values
       ( source.name,
         source.description,
-        source.managed_by_login_id );
+        source.managed_by_login_id,
+        source.created_at,
+        source.updated_at );
 end;
 /
 begin
@@ -301,7 +334,8 @@ begin
    merge into project_members target
    using (
       select p.id as project_id,
-             u.login_id as user_login_id
+             u.login_id as user_login_id,
+             timestamp '2026-05-01 00:00:00' as joined_at
         from (
          select 'project1' as project_name,
                 'pl1' as login_id
@@ -396,10 +430,12 @@ begin
    when not matched then
    insert (
       project_id,
-      user_login_id )
+      user_login_id,
+      joined_at )
    values
       ( source.project_id,
-        source.user_login_id );
+        source.user_login_id,
+        source.joined_at );
 end;
 /
 begin
@@ -415,11 +451,7 @@ begin
          and target.action_type = 'STATUS_CHANGED'
          and target.previous_value = 'FIXED'
          and target.new_value = 'RESOLVED'
-         and dbms_lob.substr(
-         target.message,
-         4000,
-         1
-      ) = 'Closed issue count verified'
+         and target.message = 'Closed issue count verified'
    );
 end;
 /
@@ -443,13 +475,17 @@ begin
 end;
 /
 begin
-   merge into issues target
-   using (
+   for seed_issue in (
       select p.id as project_id,
-             lower(standard_hash(s.project_name || ':' || s.title, 'SHA256')) as issue_id,
+             lower(standard_hash(
+                s.project_name
+                || ':'
+                || s.title,
+                'SHA256'
+             )) as issue_id,
              s.title,
              s.description,
-             s.reported_date,
+             s.reported_at,
              s.priority,
              s.status,
              reporter.login_id as reporter_login_id,
@@ -458,43 +494,17 @@ begin
              fixer.login_id as fixer_login_id,
              resolver.login_id as resolver_login_id
         from (
-         select 'project1' as project_name,
-                'Login fails on invalid credential' as title,
-                'Login failure message should be stable for invalid credentials.' as description,
-                current_timestamp - interval '15' day as reported_date,
+         select 'project2' as project_name,
+                'Dashboard statistics misses closed issues' as title,
+                'Statistics should include closed issues in status trend queries.' as description,
+                current_timestamp - interval '20' day as reported_at,
                 'MAJOR' as priority,
                 'CLOSED' as status,
-                'tester1' as reporter_login,
+                'tester4' as reporter_login,
                 null as assignee_login,
                 null as verifier_login,
-                'dev1' as fixer_login,
-                'tester2' as resolver_login
-           from dual
-         union all
-         select 'project1',
-                'Search result filter returns stale status',
-                'Search filters should reflect the latest issue status and priority.',
-                current_timestamp - interval '10' day,
-                'CRITICAL',
-                'RESOLVED',
-                'tester2',
-                'dev2',
-                'tester1',
-                'dev2',
-                'tester1'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'Statistics should include closed issues in status trend queries.',
-                current_timestamp - interval '20' day,
-                'MAJOR',
-                'CLOSED',
-                'tester4',
-                null,
-                null,
-                'dev4',
-                'tester4'
+                'dev4' as fixer_login,
+                'tester4' as resolver_login
            from dual
          union all
          select 'project2',
@@ -508,6 +518,32 @@ begin
                 'tester5',
                 'dev5',
                 'tester5'
+           from dual
+         union all
+         select 'project1',
+                'Login fails on invalid credential',
+                'Login failure message should be stable for invalid credentials.',
+                current_timestamp - interval '15' day,
+                'MAJOR',
+                'CLOSED',
+                'tester1',
+                null,
+                null,
+                'dev1',
+                'tester2'
+           from dual
+         union all
+         select 'project1',
+                'Search result filter returns stale status',
+                'Search filters should reflect the latest issue status and priority.',
+                current_timestamp - interval '10' day,
+                'CRITICAL',
+                'RESOLVED',
+                'tester2',
+                'dev2',
+                'tester1',
+                'dev2',
+                'tester1'
            from dual
          union all
          select 'project1',
@@ -561,12 +597,30 @@ begin
       on fixer.login_id = s.fixer_login
         left join users resolver
       on resolver.login_id = s.resolver_login
+      order by s.reported_at,
+               s.title
+   ) loop
+      merge into issues target
+      using (
+         select seed_issue.project_id as project_id,
+                seed_issue.issue_id as issue_id,
+                seed_issue.title as title,
+                seed_issue.description as description,
+                seed_issue.reported_at as reported_at,
+                seed_issue.priority as priority,
+                seed_issue.status as status,
+                seed_issue.reporter_login_id as reporter_login_id,
+                seed_issue.assignee_login_id as assignee_login_id,
+                seed_issue.verifier_login_id as verifier_login_id,
+                seed_issue.fixer_login_id as fixer_login_id,
+                seed_issue.resolver_login_id as resolver_login_id
+           from dual
    ) source on ( target.project_id = source.project_id
       and target.title = source.title )
    when matched then update
    set target.issue_id = source.issue_id,
        target.description = source.description,
-       target.reported_date = source.reported_date,
+       target.reported_at = source.reported_at,
        target.priority = source.priority,
        target.status = source.status,
        target.reporter_login_id = source.reporter_login_id,
@@ -581,7 +635,7 @@ begin
       issue_id,
       title,
       description,
-      reported_date,
+      reported_at,
       priority,
       status,
       reporter_login_id,
@@ -594,7 +648,7 @@ begin
         source.issue_id,
         source.title,
         source.description,
-        source.reported_date,
+        source.reported_at,
         source.priority,
         source.status,
         source.reporter_login_id,
@@ -602,21 +656,47 @@ begin
         source.verifier_login_id,
         source.fixer_login_id,
         source.resolver_login_id );
+   end loop;
 end;
 /
 begin
-   merge into comments target
-   using (
+   for seed_comment in (
       select i.id as issue_id,
              u.login_id as writer_login_id,
              s.content,
-             s.created_date
+             case
+                when s.content in ( 'Fix implemented',
+                                    'Fix verified',
+                                    'Closed by PL',
+                                    'Filter corrected',
+                                    'Verification complete',
+                                    'Statistics query updated',
+                                    'Closed issue count verified after dependency guard passed',
+                                    'Closed after dashboard verification',
+                                    'Reopened after release dashboard regression',
+                                    'Follow-up statistics fix implemented',
+                                    'Follow-up dashboard verification complete',
+                                    'Reclosed after release regression verification',
+                                    'Initial reassignment fix implemented',
+                                    'Initial verification complete',
+                                    'Regression reproduced after reopen',
+                                    'Regression fix implemented',
+                                    'Regression verification complete',
+                                    'Initial fix ready for verification',
+                                    'Verification failed due to stale cache',
+                                    'Rework completed after rejection',
+                                    'Reverification complete' ) then
+                   'STATUS_CHANGE'
+                else
+                   'GENERAL'
+             end as purpose,
+             s.created_at
         from (
          select 'project1' as project_name,
                 'Login fails on invalid credential' as issue_title,
                 'tester1' as writer_login,
                 'Initial login bug report.' as content,
-                current_timestamp - interval '15' day as created_date
+                current_timestamp - interval '15' day as created_at
            from dual
          union all
          select 'project1',
@@ -871,47 +951,62 @@ begin
          and i.title = s.issue_title
         join users u
       on u.login_id = s.writer_login
+      order by s.created_at,
+               i.id,
+               s.content
+   ) loop
+      merge into comments target
+      using (
+         select seed_comment.issue_id as issue_id,
+                seed_comment.writer_login_id as writer_login_id,
+                seed_comment.content as content,
+                seed_comment.purpose as purpose,
+                seed_comment.created_at as created_at,
+                seed_comment.created_at as updated_at
+           from dual
    ) source on ( target.issue_id = source.issue_id
       and target.writer_login_id = source.writer_login_id
-      and dbms_lob.substr(
-      target.content,
-      4000,
-      1
-   ) = source.content )
+      and target.content = source.content )
    when matched then update
-   set target.created_date = source.created_date
+   set target.purpose = source.purpose,
+       target.created_at = source.created_at,
+       target.updated_at = source.updated_at
    when not matched then
    insert (
       issue_id,
       writer_login_id,
       content,
-      created_date )
+      purpose,
+      created_at,
+      updated_at )
    values
       ( source.issue_id,
         source.writer_login_id,
         source.content,
-        source.created_date );
+        source.purpose,
+        source.created_at,
+        source.updated_at );
+   end loop;
 end;
 /
 begin
-   merge into issue_history target
-   using (
+   for seed_history in (
       select i.id as issue_id,
              u.login_id as changed_by_login_id,
              s.action_type,
              s.previous_value,
              s.new_value,
              s.message,
-             s.changed_date
+             s.changed_at
         from (
          select 'project1' as project_name,
                 'Login fails on invalid credential' as issue_title,
                 'tester1' as changed_by_login,
-                'CREATED' as action_type,
-                null as previous_value,
-                'NEW' as new_value,
-                'Issue created' as message,
-                current_timestamp - interval '15' day as changed_date
+                cast('CREATED' as varchar2(40)) as action_type,
+                cast(null as varchar2(4000 byte)) as previous_value,
+                cast('NEW' as varchar2(4000 byte)) as new_value,
+                cast('Issue created' as varchar2(4000 byte)) as message,
+                current_timestamp - interval '15' day as changed_at
            from dual
          union all
          select 'project1',
@@ -1021,16 +1116,6 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Statistics query updated',
-                current_timestamp - interval '18' day
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'dev4',
-                'COMMENTED',
-                null,
-                null,
-                'Implementation note added to comment thread',
                 current_timestamp - interval '18' day
            from dual
          union all
@@ -1177,16 +1262,6 @@ begin
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'tester5',
-                'COMMENTED',
-                null,
-                null,
-                'Regression path documented in comments',
-                current_timestamp - interval '12' day
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
                 'STATUS_CHANGED',
                 'FIXED',
                 'RESOLVED',
@@ -1283,14 +1358,126 @@ begin
                 'Assigned to dev3 and tester3',
                 current_timestamp - interval '1' day
            from dual
+         union all
+         select p.name,
+                i.title,
+                c.writer_login_id,
+                'COMMENTED',
+                null,
+                c.content,
+                c.content,
+                c.created_at
+           from comments c
+           join issues i
+         on i.id = c.issue_id
+           join projects p
+         on p.id = i.project_id
+          where c.purpose in ( 'GENERAL',
+                               'STATUS_CHANGE' )
+         union all
+         select 'project2',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'DEPENDENCY_CHANGED',
+                null,
+                (
+                   select lower(standard_hash(
+                      to_char(blocking_issue.id)
+                      || ':'
+                      || to_char(blocked_issue.id),
+                      'SHA256'
+                   ))
+                     from projects blocking_project
+                     join issues blocking_issue
+                   on blocking_issue.project_id = blocking_project.id
+                     join projects blocked_project
+                   on blocked_project.name = 'project2'
+                     join issues blocked_issue
+                   on blocked_issue.project_id = blocked_project.id
+                    where blocking_project.name = 'project1'
+                      and blocking_issue.title = 'Login fails on invalid credential'
+                      and blocked_issue.title = 'Dashboard statistics misses closed issues'
+                ),
+                'Dependency added',
+                current_timestamp - interval '11' day
+           from dual
+         union all
+         select 'project2',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'DEPENDENCY_CHANGED',
+                null,
+                (
+                   select lower(standard_hash(
+                      to_char(blocking_issue.id)
+                      || ':'
+                      || to_char(blocked_issue.id),
+                      'SHA256'
+                   ))
+                     from projects blocking_project
+                     join issues blocking_issue
+                   on blocking_issue.project_id = blocking_project.id
+                     join projects blocked_project
+                   on blocked_project.name = 'project2'
+                     join issues blocked_issue
+                   on blocked_issue.project_id = blocked_project.id
+                    where blocking_project.name = 'project2'
+                      and blocking_issue.title = 'Dashboard statistics misses closed issues'
+                      and blocked_issue.title = 'Reopened issue keeps old assignee'
+                ),
+                'Dependency added',
+                current_timestamp - interval '13' day
+           from dual
+         union all
+         select 'project1',
+                'Dependency resolution flow blocked',
+                'pl1',
+                'DEPENDENCY_CHANGED',
+                null,
+                (
+                   select lower(standard_hash(
+                      to_char(blocking_issue.id)
+                      || ':'
+                      || to_char(blocked_issue.id),
+                      'SHA256'
+                   ))
+                     from projects blocking_project
+                     join issues blocking_issue
+                   on blocking_issue.project_id = blocking_project.id
+                     join projects blocked_project
+                   on blocked_project.name = 'project1'
+                     join issues blocked_issue
+                   on blocked_issue.project_id = blocked_project.id
+                    where blocking_project.name = 'project1'
+                      and blocking_issue.title = 'Login fails on invalid credential'
+                      and blocked_issue.title = 'Dependency resolution flow blocked'
+                ),
+                'Dependency added',
+                current_timestamp - interval '1' day
+           from dual
       ) s
         join projects p
       on p.name = s.project_name
         join issues i
       on i.project_id = p.id
-         and i.title = s.issue_title
+        and i.title = s.issue_title
         join users u
       on u.login_id = s.changed_by_login
+      order by s.changed_at,
+               i.id,
+               s.action_type,
+               s.message
+   ) loop
+      merge into issue_history target
+      using (
+         select seed_history.issue_id as issue_id,
+                seed_history.changed_by_login_id as changed_by_login_id,
+                seed_history.action_type as action_type,
+                seed_history.previous_value as previous_value,
+                seed_history.new_value as new_value,
+                seed_history.message as message,
+                seed_history.changed_at as changed_at
+           from dual
    ) source on ( target.issue_id = source.issue_id
       and target.action_type = source.action_type
       and nvl(
@@ -1308,11 +1495,7 @@ begin
       '#'
    )
       and nvl(
-      dbms_lob.substr(
-         target.message,
-         4000,
-         1
-      ),
+      target.message,
       '#'
    ) = nvl(
       source.message,
@@ -1320,7 +1503,7 @@ begin
    ) )
    when matched then update
    set target.changed_by_login_id = source.changed_by_login_id,
-       target.changed_date = source.changed_date
+       target.changed_at = source.changed_at
    when not matched then
    insert (
       issue_id,
@@ -1329,7 +1512,7 @@ begin
       previous_value,
       new_value,
       message,
-      changed_date )
+      changed_at )
    values
       ( source.issue_id,
         source.changed_by_login_id,
@@ -1337,22 +1520,57 @@ begin
         source.previous_value,
         source.new_value,
         source.message,
-        source.changed_date );
+        source.changed_at );
+   end loop;
 end;
 /
 begin
-   merge into issue_dependencies target
-   using (
+   update issues target
+      set target.updated_at = (
+      select max(history.changed_at)
+        from issue_history history
+       where history.issue_id = target.id
+   )
+    where exists (
+      select 1
+        from issue_history history
+       where history.issue_id = target.id
+   )
+      and exists (
+      select 1
+        from projects project
+       where project.id = target.project_id
+         and (
+            ( project.name = 'project1'
+              and target.title in ( 'Login fails on invalid credential',
+                                    'Search result filter returns stale status',
+                                    'Verification rejection returns to assignee',
+                                    'Assignment notification not shown',
+                                    'Dependency resolution flow blocked' ) )
+            or ( project.name = 'project2'
+                 and target.title in ( 'Dashboard statistics misses closed issues',
+                                       'Reopened issue keeps old assignee' ) )
+         )
+   );
+end;
+/
+begin
+   for seed_dependency in (
       select blocking_issue.id as blocking_issue_id,
              blocked_issue.id as blocked_issue_id,
-             lower(standard_hash(to_char(blocking_issue.id) || ':' || to_char(blocked_issue.id), 'SHA256')) as dependency_id,
-             s.discovered_date
+             lower(standard_hash(
+                to_char(blocking_issue.id)
+                || ':'
+                || to_char(blocked_issue.id),
+                'SHA256'
+             )) as dependency_id,
+             s.discovered_at
         from (
          select 'project1' as blocking_project_name,
                 'Login fails on invalid credential' as blocking_title,
                 'project1' as blocked_project_name,
                 'Dependency resolution flow blocked' as blocked_title,
-                current_timestamp - interval '1' day as discovered_date
+                current_timestamp - interval '1' day as discovered_at
            from dual
          union all
          select 'project1',
@@ -1379,21 +1597,33 @@ begin
         join issues blocked_issue
       on blocked_issue.project_id = blocked_project.id
          and blocked_issue.title = s.blocked_title
+      order by s.discovered_at,
+               blocking_issue.id,
+               blocked_issue.id
+   ) loop
+      merge into issue_dependencies target
+      using (
+         select seed_dependency.dependency_id as dependency_id,
+                seed_dependency.blocking_issue_id as blocking_issue_id,
+                seed_dependency.blocked_issue_id as blocked_issue_id,
+                seed_dependency.discovered_at as discovered_at
+           from dual
    ) source on ( target.blocking_issue_id = source.blocking_issue_id
       and target.blocked_issue_id = source.blocked_issue_id )
    when matched then update
    set target.dependency_id = source.dependency_id,
-       target.discovered_date = source.discovered_date
+       target.discovered_at = source.discovered_at
    when not matched then
    insert (
       dependency_id,
       blocking_issue_id,
       blocked_issue_id,
-      discovered_date )
+      discovered_at )
    values
       ( source.dependency_id,
         source.blocking_issue_id,
         source.blocked_issue_id,
-        source.discovered_date );
+        source.discovered_at );
+   end loop;
 end;
 /

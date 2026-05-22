@@ -1,20 +1,30 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.CommentRepository;
+import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
 
 public final class IssueService {
 
     private final ProjectRepository projectRepository;
     private final IssueRepository issueRepository;
+    private final IssueDependencyRepository dependencyRepository;
+    private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
@@ -22,12 +32,16 @@ public final class IssueService {
     public IssueService(
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
+            IssueDependencyRepository dependencyRepository,
+            CommentRepository commentRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             Clock clock
     ) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
+        this.commentRepository = Objects.requireNonNull(commentRepository, "commentRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -58,6 +72,44 @@ public final class IssueService {
         return toCommentResult(comment);
     }
 
+    public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
+        Issue blockingIssue = findIssue(blockingIssueId);
+        Issue blockedIssue = findIssue(blockedIssueId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanManageDependency(actor, blockedIssue);
+        validateDependency(blockingIssueId, blockedIssueId);
+        LocalDateTime now = now();
+        String dependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
+        IssueDependency dependency = blockedIssue.addDependency(dependencyId, blockingIssue, actor, now);
+        IssueDependency saved = dependencyRepository.save(dependency);
+        issueRepository.save(blockedIssue);
+        return toDependencyResult(saved, blockingIssue, blockedIssue);
+    }
+
+    public void removeDependency(long dependencyId, String currentUserId) {
+        IssueDependency dependency = dependencyRepository.findById(dependencyId)
+                .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
+        Issue blockedIssue = findIssue(dependency.blockedIssueId());
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanManageDependency(actor, blockedIssue);
+        blockedIssue.removeDependency(dependency, actor, now());
+        dependencyRepository.deleteById(dependencyId);
+        issueRepository.save(blockedIssue);
+    }
+
+    public void deleteComment(long issueId, long commentId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        Comment comment = findComment(commentId);
+        User currentUser = findUser(currentUserId);
+        requireCommentBelongsToIssue(comment, issue);
+        requireCommentWriter(comment, currentUser);
+        requireGeneralComment(comment);
+
+        issue.recordCommentDeletion(comment, currentUser, now());
+        issueRepository.save(issue);
+        commentRepository.deleteGeneralById(issue.id(), comment.id(), currentUser.getLoginId());
+    }
+
     private Project findProject(long projectId) {
         return projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
@@ -68,9 +120,56 @@ public final class IssueService {
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
     }
 
+    private Comment findComment(long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
+    }
+
     private User findUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    private void validateDependency(long blockingIssueId, long blockedIssueId) {
+        if (blockingIssueId == blockedIssueId) {
+            throw new IllegalArgumentException("Issue cannot depend on itself");
+        }
+        if (dependencyRepository.existsByPair(blockingIssueId, blockedIssueId)) {
+            throw new IllegalArgumentException("Dependency already exists");
+        }
+        Set<Long> visited = new HashSet<>();
+        Queue<Long> queue = new ArrayDeque<>();
+        queue.add(blockingIssueId);
+        while (!queue.isEmpty()) {
+            long current = queue.poll();
+            if (current == blockedIssueId) {
+                throw new IllegalArgumentException("Circular dependency detected");
+            }
+            if (!visited.add(current)) {
+                continue;
+            }
+            for (var dep : dependencyRepository.findByBlockedIssueId(current)) {
+                queue.add(dep.blockingIssueId());
+            }
+        }
+    }
+
+    private static void requireCommentBelongsToIssue(Comment comment, Issue issue) {
+        if (comment.issueId() != issue.id()) {
+            throw new IllegalArgumentException("Comment does not belong to the issue.");
+        }
+    }
+
+    private static void requireCommentWriter(Comment comment, User currentUser) {
+        if (!comment.writerId().equals(currentUser.getLoginId())) {
+            throw new SecurityException("Only the comment writer can delete the comment.");
+        }
+    }
+
+    private static void requireGeneralComment(Comment comment) {
+        if (comment.purpose() != CommentPurpose.GENERAL) {
+            throw new IllegalArgumentException("Only GENERAL comments can be deleted.");
+        }
     }
 
     private LocalDateTime now() {
@@ -94,7 +193,18 @@ public final class IssueService {
                 comment.getContent(),
                 comment.getPurpose(),
                 comment.getWriter(),
-                comment.getCreatedDate()
+                comment.getCreatedDate(),
+                comment.getUpdatedDate()
+        );
+    }
+
+    private static DependencyResult toDependencyResult(IssueDependency dep, Issue blockingIssue, Issue blockedIssue) {
+        return new DependencyResult(
+                dep.id(),
+                dep.getDependencyId(),
+                blockingIssue.getIssueId(),
+                blockedIssue.getIssueId(),
+                dep.getDiscoveredDate()
         );
     }
 }

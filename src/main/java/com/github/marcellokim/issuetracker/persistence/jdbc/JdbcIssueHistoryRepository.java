@@ -17,16 +17,16 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
 
     private static final String INVALID_ACTION_TYPE = "Invalid issue history action type.";
     private static final String BASE_SELECT = """
-            select id, issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+            select id, issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
             from issue_history
             """;
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
-    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by changed_date, id";
+    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by changed_at, id";
     private static final String FIND_LATEST_STATUS_CHANGE_TO_DELETED_SQL = BASE_SELECT + """
              where issue_id = ?
                and action_type = 'STATUS_CHANGED'
                and new_value = 'DELETED'
-             order by changed_date desc, id desc
+             order by changed_at desc, id desc
              fetch first 1 rows only
             """;
 
@@ -83,13 +83,13 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
     public List<IssueHistory> findDeletedTransitionsByProject(long projectId) {
         String sql = """
                 select h.id, h.issue_id, h.changed_by_login_id, h.action_type, h.previous_value,
-                       h.new_value, h.message, h.changed_date
+                       h.new_value, h.message, h.changed_at
                 from issue_history h
                 join issues i on i.id = h.issue_id
                 where i.project_id = ?
                   and h.action_type = 'STATUS_CHANGED'
                   and h.new_value = 'DELETED'
-                order by h.changed_date, h.id
+                order by h.changed_at, h.id
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -111,7 +111,7 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
     private IssueHistory insert(IssueHistory history) {
         String sql = """
                 insert into issue_history (
-                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
                 )
                 values (?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
@@ -120,10 +120,10 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             statement.setLong(1, history.issueId());
             statement.setString(2, history.changedById());
             statement.setString(3, history.actionType().name());
-            JdbcSupport.setNullableString(statement, 4, history.previousValue());
-            JdbcSupport.setNullableString(statement, 5, history.newValue());
-            statement.setString(6, history.message());
-            JdbcSupport.setNullableTimestamp(statement, 7, history.changedDate());
+            JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
+            JdbcSupport.setNullableString(statement, 5, history.getNewValue());
+            statement.setString(6, history.getMessage());
+            JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
             statement.executeUpdate();
             return findById(JdbcSupport.generatedId(statement))
                     .orElseThrow(() -> new RepositoryException("Inserted issue history was not found.", null));
@@ -141,7 +141,7 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
                     previous_value = ?,
                     new_value = ?,
                     message = ?,
-                    changed_date = coalesce(?, changed_date)
+                    changed_at = coalesce(?, changed_at)
                 where id = ?
                 """;
         try (Connection connection = connectionProvider.getConnection();
@@ -149,10 +149,10 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             statement.setLong(1, history.issueId());
             statement.setString(2, history.changedById());
             statement.setString(3, history.actionType().name());
-            JdbcSupport.setNullableString(statement, 4, history.previousValue());
-            JdbcSupport.setNullableString(statement, 5, history.newValue());
-            statement.setString(6, history.message());
-            JdbcSupport.setNullableTimestamp(statement, 7, history.changedDate());
+            JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
+            JdbcSupport.setNullableString(statement, 5, history.getNewValue());
+            statement.setString(6, history.getMessage());
+            JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
             statement.setLong(8, history.id());
             statement.executeUpdate();
             return findById(history.id())
@@ -181,7 +181,7 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
                 resultSet.getString("previous_value"),
                 resultSet.getString("new_value"),
                 resultSet.getString("message"),
-                JdbcSupport.nullableDateTime(resultSet, "changed_date"));
+                JdbcSupport.nullableDateTime(resultSet, "changed_at"));
     }
 
     private static ActionType actionType(String value) throws SQLException {

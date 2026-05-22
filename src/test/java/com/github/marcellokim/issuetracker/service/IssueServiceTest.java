@@ -1,9 +1,13 @@
 package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.github.marcellokim.issuetracker.domain.ActionType;
+import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -12,9 +16,12 @@ import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,13 +36,14 @@ class IssueServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final long ISSUE_ID = 1L;
+    private static final long COMMENT_ID = 100L;
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 21, 10, 0);
     private final User dev = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, now, now);
     private final User tester = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, now, now);
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, now, now);
     private final User admin = User.fromPersistence("admin", "Admin", "hash", Role.ADMIN, true, now, now);
     private final User inactiveDev = User.fromPersistence("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
-    private final Project project = Project.create(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
+    private final Project project = Project.fromPersistence(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
 
     @Test
     @DisplayName("registers a new issue with project and reporter")
@@ -110,7 +118,7 @@ class IssueServiceTest {
     }
 
     @Test
-    @DisplayName("ADMIN과 비활성 사용자는 이슈 댓글을 추가할 수 없다")
+    @DisplayName("ADMIN and inactive users cannot add issue comments")
     void addCommentRejectsAdminAndInactiveUser() {
         var issue = persistedIssue();
         var service = service(new InMemoryIssueRepository(issue));
@@ -150,10 +158,181 @@ class IssueServiceTest {
                 () -> service.addComment(ISSUE_ID, "", dev.getLoginId()));
     }
 
+    @Test
+    @DisplayName("adds dependency between two issues")
+    void addDependencySucceeds() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertNotNull(result.dependencyId());
+        assertEquals("ISSUE-1", result.blockingIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueId());
+        assertNotNull(result.discoveredDate());
+    }
+
+    @Test
+    @DisplayName("rejects self-dependency at service level")
+    void addDependencyRejectsSelf() {
+        var issue = persistedIssue(1L, "ISSUE-1");
+        var service = service(new InMemoryIssueRepository(issue));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(1L, 1L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("rejects duplicate dependency at service level")
+    void addDependencyRejectsDuplicate() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(1L, 2L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("rejects cyclic dependency between two issues")
+    void addDependencyRejectsTwoNodeCycle() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(2L, 1L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("rejects cyclic dependency across three issues")
+    void addDependencyRejectsThreeNodeCycle() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var issueC = persistedIssue(3L, "ISSUE-3");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB, issueC), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+        service.addDependency(2L, 3L, pl.getLoginId());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(3L, 1L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("removes existing dependency")
+    void removeDependencySucceeds() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+
+        service.removeDependency(result.id(), pl.getLoginId());
+    }
+
+    @Test
+    @DisplayName("rejects removing nonexistent dependency")
+    void removeDependencyRejectsUnknown() {
+        var service = service(new InMemoryIssueRepository());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.removeDependency(999L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("non-PL user cannot add dependency")
+    void addDependencyRejectsNonPl() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var service = service(new InMemoryIssueRepository(issueA, issueB));
+
+        assertThrows(SecurityException.class,
+                () -> service.addDependency(1L, 2L, dev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("deletes writer-owned general comment and records comment history")
+    void deleteCommentSucceeds() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId());
+
+        assertFalse(comments.findById(COMMENT_ID).isPresent());
+        var history = issue.getHistories().getLast();
+        assertEquals(ActionType.COMMENTED, history.actionType());
+        assertEquals("Outdated investigation note", history.previousValue());
+        assertNull(history.newValue());
+        assertNull(history.message());
+        assertEquals(dev.getLoginId(), history.changedById());
+    }
+
+    @Test
+    @DisplayName("rejects comment delete by non-writer")
+    void deleteCommentRejectsNonWriter() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        assertThrows(SecurityException.class,
+                () -> service.deleteComment(ISSUE_ID, COMMENT_ID, tester.getLoginId()));
+        assertNotNull(comments.findById(COMMENT_ID).orElseThrow());
+    }
+
+    @Test
+    @DisplayName("rejects status-change comment delete")
+    void deleteCommentRejectsStatusChangeComment() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId()));
+        assertNotNull(comments.findById(COMMENT_ID).orElseThrow());
+    }
+
+    @Test
+    @DisplayName("rejects comment delete for different issue")
+    void deleteCommentRejectsDifferentIssue() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, 999L, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId()));
+        assertNotNull(comments.findById(COMMENT_ID).orElseThrow());
+    }
+
     private IssueService service(InMemoryIssueRepository issues) {
+        return service(issues, new FakeIssueDependencyRepository(), new FakeCommentRepository());
+    }
+
+    private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies) {
+        return service(issues, dependencies, new FakeCommentRepository());
+    }
+
+    private IssueService service(InMemoryIssueRepository issues, FakeCommentRepository comments) {
+        return service(issues, new FakeIssueDependencyRepository(), comments);
+    }
+
+    private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies, FakeCommentRepository comments) {
         return new IssueService(
                 new FakeProjectRepository(project),
                 issues,
+                dependencies,
+                comments,
                 new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev),
                 new PermissionPolicy(),
                 new Clock()
@@ -161,14 +340,29 @@ class IssueServiceTest {
     }
 
     private Issue persistedIssue() {
+        return persistedIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue persistedIssue(long id, String issueId) {
         return Issue.fromPersistence(
-                Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", dev)
-                        .id(ISSUE_ID)
-                        .issueId("ISSUE-1")
+                Issue.persistedState(PROJECT_ID, "Issue " + id, "Description " + id, dev)
+                        .id(id)
+                        .issueId(issueId)
                         .reportedDate(now)
                         .priority(Priority.MAJOR)
                         .status(IssueStatus.NEW)
                         .updatedAt(now));
+    }
+
+    private Comment comment(long commentId, long issueId, User writer, CommentPurpose purpose) {
+        return Comment.fromPersistence(
+                commentId,
+                issueId,
+                writer.getLoginId(),
+                "Outdated investigation note",
+                purpose,
+                now,
+                now);
     }
 
     private static final class FakeProjectRepository implements ProjectRepository {
@@ -220,6 +414,49 @@ class IssueServiceTest {
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
             return List.of();
+        }
+    }
+
+    private static final class FakeCommentRepository implements CommentRepository {
+
+        private final Map<Long, Comment> comments = new LinkedHashMap<>();
+
+        private FakeCommentRepository(Comment... comments) {
+            for (Comment comment : comments) {
+                this.comments.put(comment.id(), comment);
+            }
+        }
+
+        @Override
+        public Optional<Comment> findById(long commentId) {
+            return Optional.ofNullable(comments.get(commentId));
+        }
+
+        @Override
+        public List<Comment> findByIssueId(long issueId) {
+            return comments.values().stream()
+                    .filter(comment -> comment.issueId() == issueId)
+                    .toList();
+        }
+
+        @Override
+        public Comment save(Comment comment) {
+            comments.put(comment.id(), comment);
+            return comment;
+        }
+
+        @Override
+        public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
+            Comment comment = comments.get(commentId);
+            if (comment == null
+                    || comment.issueId() != issueId
+                    || !comment.writerId().equals(writerLoginId)
+                    || comment.purpose() != CommentPurpose.GENERAL) {
+                throw new IllegalArgumentException(
+                        "Comment was not deleted because it does not exist, is not owned by the writer, "
+                                + "or is not a GENERAL comment.");
+            }
+            comments.remove(commentId);
         }
     }
 }

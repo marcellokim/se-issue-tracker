@@ -72,8 +72,7 @@ public class Issue {
             String description,
             Priority priority,
             User reporter,
-            LocalDateTime reportedDate
-    ) {
+            LocalDateTime reportedDate) {
         this.id = 0L;
         this.projectId = 0L;
         this.issueId = requireText(issueId, "issueId");
@@ -85,7 +84,8 @@ public class Issue {
         this.reporterId = reporter.getLoginId();
         this.reportedDate = Objects.requireNonNull(reportedDate, "reportedDate must not be null");
         this.updatedAt = reportedDate;
-        recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter, reportedDate);
+        recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter,
+                reportedDate);
     }
 
     public static Issue create( // 테스트용 생성 메서드. 실제 생성은 Persistence 계층의 PersistedState 경유.
@@ -94,8 +94,7 @@ public class Issue {
             String description,
             Priority priority,
             User reporter,
-            LocalDateTime reportedDate
-    ) {
+            LocalDateTime reportedDate) {
         return new Issue(issueId, title, description, priority, reporter, reportedDate);
     }
 
@@ -253,8 +252,7 @@ public class Issue {
                 assignee.getLoginId(),
                 "Assignee changed",
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     public void changeVerifier(User verifier, User changedBy, LocalDateTime changedDate) {
@@ -275,8 +273,7 @@ public class Issue {
                 verifier.getLoginId(),
                 "Verifier changed",
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     public void markFixed(User fixer, String comment, LocalDateTime changedDate) {
@@ -332,8 +329,7 @@ public class Issue {
             String dependencyId,
             Issue blockingIssue,
             User changedBy,
-            LocalDateTime discoveredDate
-    ) {
+            LocalDateTime discoveredDate) {
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(blockingIssue, "blockingIssue must not be null");
         rejectSelfDependency(blockingIssue);
@@ -347,9 +343,28 @@ public class Issue {
                 dependencyId,
                 "Dependency added",
                 changedBy,
-                discoveredDate
-        );
+                discoveredDate);
         return dependency;
+    }
+
+    public void removeDependency(IssueDependency dependency, User changedBy, LocalDateTime changedDate) {
+        Objects.requireNonNull(dependency, "dependency must not be null");
+        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        if (!blockedByDependencies.remove(dependency)) {
+            throw new IllegalArgumentException("Dependency not found in this issue");
+        }
+        Issue blockingIssue = dependency.getBlockingIssue();
+        if (blockingIssue != null) {
+            blockingIssue.blockingDependencies.remove(dependency);
+        }
+        recordHistory(
+                ActionType.DEPENDENCY_CHANGED,
+                dependency.getDependencyId(),
+                null,
+                "Dependency removed",
+                changedBy,
+                changedDate);
     }
 
     public Comment addComment(String commentId, String content, User writer, LocalDateTime createdDate) {
@@ -361,12 +376,18 @@ public class Issue {
             String content,
             User writer,
             LocalDateTime createdDate,
-            CommentPurpose purpose
-    ) {
+            CommentPurpose purpose) {
         var comment = Comment.create(commentId, content, writer, purpose, createdDate);
         comments.add(comment);
-        recordHistory(ActionType.COMMENTED, null, commentId, content, writer, createdDate);
+        recordHistory(ActionType.COMMENTED, null, content, content, writer, createdDate);
         return comment;
+    }
+
+    public void recordCommentDeletion(Comment comment, User changedBy, LocalDateTime changedDate) {
+        Objects.requireNonNull(comment, "comment must not be null");
+        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        recordHistory(ActionType.COMMENTED, comment.content(), null, null, changedBy, changedDate);
     }
 
     public void changePriority(Priority newPriority, User changedBy, LocalDateTime changedDate) {
@@ -386,16 +407,14 @@ public class Issue {
                 newPriority.name(),
                 "Priority changed",
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     public void updateTitleAndDescription(
             String newTitle,
             String newDescription,
             User changer,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         Objects.requireNonNull(changer, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
 
@@ -416,8 +435,7 @@ public class Issue {
                 title + "\n" + description,
                 "Title and description changed",
                 changer,
-                changedDate
-        );
+                changedDate);
     }
 
     // --- general-purpose private methods ---
@@ -438,8 +456,7 @@ public class Issue {
                 targetStatus.name(),
                 message,
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     private void recordHistory(
@@ -448,8 +465,7 @@ public class Issue {
             String newValue,
             String message,
             User changedBy,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         histories.add(IssueHistory.create(
                 nextHistoryId(),
                 action,
@@ -457,8 +473,7 @@ public class Issue {
                 newValue,
                 message,
                 changedBy,
-                changedDate
-        ));
+                changedDate));
     }
 
     private String nextHistoryId() {
@@ -509,8 +524,7 @@ public class Issue {
                 assignee.getLoginId() + "/" + verifier.getLoginId(),
                 message,
                 changedBy,
-                changedDate
-        );
+                changedDate);
 
         var previousStatus = status;
         status = IssueStatus.ASSIGNED;
@@ -520,8 +534,7 @@ public class Issue {
                 IssueStatus.ASSIGNED.name(),
                 message,
                 changedBy,
-                changedDate
-        );
+                changedDate);
     }
 
     private void requireStatus(IssueStatus expectedStatus) {
@@ -549,6 +562,7 @@ public class Issue {
     private static boolean sameUser(User first, User second) {
         return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
     }
+
 
     private void rejectSelfDependency(Issue blockingIssue) {
         if (Objects.equals(blockingIssue.getIssueId(), issueId)) {

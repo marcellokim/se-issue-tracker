@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -137,14 +139,20 @@ class ProjectMaintenanceScriptTest {
     }
 
     private ScriptResult runPython(String script) throws IOException, InterruptedException {
-        var processBuilder = new ProcessBuilder("python3", "-c", script);
-        processBuilder.directory(Path.of(".").toAbsolutePath().normalize().toFile());
-        processBuilder.redirectErrorStream(true);
+        Path scriptFile = Files.createTempFile("project-maintenance-test-", ".py");
+        Files.writeString(scriptFile, script, StandardCharsets.UTF_8);
+        try {
+            var processBuilder = new ProcessBuilder("python3", scriptFile.toString());
+            processBuilder.directory(Path.of(".").toAbsolutePath().normalize().toFile());
+            processBuilder.redirectErrorStream(true);
 
-        var process = processBuilder.start();
-        String output = new String(process.getInputStream().readAllBytes());
-        int exitCode = process.waitFor();
-        return new ScriptResult(exitCode, output);
+            var process = processBuilder.start();
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            int exitCode = process.waitFor();
+            return new ScriptResult(exitCode, output);
+        } finally {
+            Files.deleteIfExists(scriptFile);
+        }
     }
 
     record ScriptResult(int exitCode, String output) {
