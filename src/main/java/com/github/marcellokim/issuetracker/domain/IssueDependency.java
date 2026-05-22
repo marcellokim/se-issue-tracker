@@ -118,6 +118,18 @@ public final class IssueDependency {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof IssueDependency other)) return false;
+        return Objects.equals(dependencyId, other.dependencyId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(dependencyId);
+    }
+
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");

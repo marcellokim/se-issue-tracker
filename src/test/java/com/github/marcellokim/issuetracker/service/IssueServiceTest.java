@@ -18,8 +18,10 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -157,6 +159,109 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("adds dependency between two issues")
+    void addDependencySucceeds() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertNotNull(result.dependencyId());
+        assertEquals("ISSUE-1", result.blockingIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueId());
+        assertNotNull(result.discoveredDate());
+    }
+
+    @Test
+    @DisplayName("rejects self-dependency at service level")
+    void addDependencyRejectsSelf() {
+        var issue = persistedIssue(1L, "ISSUE-1");
+        var service = service(new InMemoryIssueRepository(issue));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(1L, 1L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("rejects duplicate dependency at service level")
+    void addDependencyRejectsDuplicate() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(1L, 2L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("rejects cyclic dependency between two issues")
+    void addDependencyRejectsTwoNodeCycle() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(2L, 1L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("rejects cyclic dependency across three issues")
+    void addDependencyRejectsThreeNodeCycle() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var issueC = persistedIssue(3L, "ISSUE-3");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB, issueC), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+        service.addDependency(2L, 3L, pl.getLoginId());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(3L, 1L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("removes existing dependency")
+    void removeDependencySucceeds() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+
+        service.removeDependency(result.id(), pl.getLoginId());
+    }
+
+    @Test
+    @DisplayName("rejects removing nonexistent dependency")
+    void removeDependencyRejectsUnknown() {
+        var service = service(new InMemoryIssueRepository());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.removeDependency(999L, pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("non-PL user cannot add dependency")
+    void addDependencyRejectsNonPl() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var service = service(new InMemoryIssueRepository(issueA, issueB));
+
+        assertThrows(SecurityException.class,
+                () -> service.addDependency(1L, 2L, dev.getLoginId()));
+    }
+
+    @Test
     @DisplayName("deletes writer-owned general comment and records comment history")
     void deleteCommentSucceeds() {
         var issue = persistedIssue();
@@ -211,13 +316,22 @@ class IssueServiceTest {
     }
 
     private IssueService service(InMemoryIssueRepository issues) {
-        return service(issues, new FakeCommentRepository());
+        return service(issues, new FakeIssueDependencyRepository(), new FakeCommentRepository());
+    }
+
+    private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies) {
+        return service(issues, dependencies, new FakeCommentRepository());
     }
 
     private IssueService service(InMemoryIssueRepository issues, FakeCommentRepository comments) {
+        return service(issues, new FakeIssueDependencyRepository(), comments);
+    }
+
+    private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies, FakeCommentRepository comments) {
         return new IssueService(
                 new FakeProjectRepository(project),
                 issues,
+                dependencies,
                 comments,
                 new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev),
                 new PermissionPolicy(),
@@ -226,10 +340,14 @@ class IssueServiceTest {
     }
 
     private Issue persistedIssue() {
+        return persistedIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue persistedIssue(long id, String issueId) {
         return Issue.fromPersistence(
-                Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", dev)
-                        .id(ISSUE_ID)
-                        .issueId("ISSUE-1")
+                Issue.persistedState(PROJECT_ID, "Issue " + id, "Description " + id, dev)
+                        .id(id)
+                        .issueId(issueId)
                         .reportedDate(now)
                         .priority(Priority.MAJOR)
                         .status(IssueStatus.NEW)

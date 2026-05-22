@@ -23,6 +23,7 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -276,6 +277,7 @@ class ControllerCoverageTest {
                 new com.github.marcellokim.issuetracker.service.IssueService(
                         projects,
                         issues,
+                        new FakeIssueDependencyRepository(),
                         new FakeCommentRepository(),
                         users,
                         policy,

@@ -293,6 +293,7 @@ public class Issue {
         requireStatus(IssueStatus.FIXED);
         requireRole(resolver, Role.TESTER, "resolver");
         requireCurrentParticipant(resolver, verifier, "resolver must be current verifier");
+        rejectUnresolvedBlockingIssues();
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         this.resolver = resolver;
@@ -355,6 +356,26 @@ public class Issue {
                 changedBy,
                 discoveredDate);
         return dependency;
+    }
+
+    public void removeDependency(IssueDependency dependency, User changedBy, LocalDateTime changedDate) {
+        Objects.requireNonNull(dependency, "dependency must not be null");
+        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        if (!blockedByDependencies.remove(dependency)) {
+            throw new IllegalArgumentException("Dependency not found in this issue");
+        }
+        Issue blockingIssue = dependency.getBlockingIssue();
+        if (blockingIssue != null) {
+            blockingIssue.blockingDependencies.remove(dependency);
+        }
+        recordHistory(
+                ActionType.DEPENDENCY_CHANGED,
+                dependency.getDependencyId(),
+                null,
+                "Dependency removed",
+                changedBy,
+                changedDate);
     }
 
     public Comment addComment(String commentId, String content, User writer, LocalDateTime createdDate) {
@@ -523,6 +544,17 @@ public class Issue {
 
     private static boolean sameUser(User first, User second) {
         return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
+    }
+
+    private void rejectUnresolvedBlockingIssues() {
+        for (var dependency : blockedByDependencies) {
+            IssueStatus blockingStatus = dependency.getBlockingIssue().getStatus();
+            if (blockingStatus != IssueStatus.RESOLVED && blockingStatus != IssueStatus.CLOSED) {
+                throw new IllegalStateException(
+                        "Cannot resolve: blocking issue " + dependency.getBlockingIssue().getIssueId()
+                                + " is still " + blockingStatus);
+            }
+        }
     }
 
     private void rejectSelfDependency(Issue blockingIssue) {

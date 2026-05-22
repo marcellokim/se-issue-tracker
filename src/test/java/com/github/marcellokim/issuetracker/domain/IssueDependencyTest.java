@@ -84,6 +84,31 @@ class IssueDependencyTest {
     }
 
     @Test
+    @DisplayName("의존성을 제거하면 양쪽 리스트에서 삭제된다")
+    void removeDependencyRemovesFromBothSides() {
+        var blockingIssue = Issue.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = Issue.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var dependency = blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, createdAt.plusMinutes(20));
+
+        blockedIssue.removeDependency(dependency, pl, createdAt.plusMinutes(30));
+
+        assertEquals(0, blockedIssue.getBlockedByDependencies().size());
+        assertEquals(0, blockingIssue.getBlockingDependencies().size());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 의존성 제거 시 예외가 발생한다")
+    void removeNonexistentDependencyThrows() {
+        var blockingIssue = Issue.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = Issue.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var otherIssue = Issue.create("ISSUE-3", "Other", "Other issue", null, reporter, createdAt);
+        var dependency = otherIssue.addDependency("ISSUE-1->ISSUE-3", blockingIssue, pl, createdAt.plusMinutes(20));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> blockedIssue.removeDependency(dependency, pl, createdAt.plusMinutes(30)));
+    }
+
+    @Test
     @DisplayName("persisted dependency derives deterministic id and keeps database fields")
     void persistedDependencyDerivesDeterministicId() {
         var dependency = IssueDependency.fromPersistence(7L, 10L, 20L, createdAt);
