@@ -318,8 +318,7 @@ class OracleRepositoryIntegrationTest {
                     .status());
 
             invalidDeleted = createIssue(project.getId(), uniqueId("restore_invalid_issue"), IssueStatus.DELETED);
-            repositories.issueHistory().save(IssueHistory.fromPersistence(
-                    0L,
+            repositories.issueHistory().save(IssueHistory.newForPersistence(
                     invalidDeleted.id(),
                     "pl1",
                     ActionType.STATUS_CHANGED,
@@ -636,8 +635,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"));
 
         try {
-            IssueHistory history = repositories.issueHistory().save(IssueHistory.fromPersistence(
-                    0L,
+            IssueHistory history = repositories.issueHistory().save(IssueHistory.newForPersistence(
                     issue.id(),
                     "pl1",
                     ActionType.STATUS_CHANGED,

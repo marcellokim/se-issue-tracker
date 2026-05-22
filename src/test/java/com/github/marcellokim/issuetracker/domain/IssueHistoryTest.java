@@ -71,6 +71,29 @@ class IssueHistoryTest {
         }
 
         @Test
+        @DisplayName("new history for persistence keeps issue id and transient database id")
+        void newForPersistenceKeepsIssueIdAndTransientId() {
+                IssueHistory history = IssueHistory.newForPersistence(
+                                100L,
+                                "pl1",
+                                ActionType.STATUS_CHANGED,
+                                IssueStatus.ASSIGNED.name(),
+                                IssueStatus.DELETED.name(),
+                                "delete issue",
+                                CHANGED_AT);
+
+                assertEquals(0L, history.id());
+                assertEquals(100L, history.issueId());
+                assertEquals("pl1", history.changedById());
+                assertEquals(ActionType.STATUS_CHANGED, history.actionType());
+                assertEquals(IssueStatus.ASSIGNED.name(), history.previousValue());
+                assertEquals(IssueStatus.DELETED.name(), history.newValue());
+                assertEquals("delete issue", history.message());
+                assertNull(history.getChangedBy());
+                assertEquals(CHANGED_AT, history.changedDate());
+        }
+
+        @Test
         @DisplayName("rejects invalid persisted history arguments")
         void rejectsInvalidPersistedHistoryArguments() {
                 assertThrows(IllegalArgumentException.class,

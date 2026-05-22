@@ -55,6 +55,28 @@ public final class IssueHistory {
                 null, actionType, previousValue, newValue, message, changedDate);
     }
 
+    public static IssueHistory newForPersistence(
+            long issueId,
+            String changedById,
+            ActionType actionType,
+            String previousValue,
+            String newValue,
+            String message,
+            LocalDateTime changedDate
+    ) {
+        return new IssueHistory(
+                0L,
+                requirePositive(issueId, "issueId"),
+                "NEW-HISTORY",
+                changedById,
+                null,
+                actionType,
+                previousValue,
+                newValue,
+                message,
+                changedDate);
+    }
+
     public static IssueHistory create(
             String historyId,
             ActionType action,
