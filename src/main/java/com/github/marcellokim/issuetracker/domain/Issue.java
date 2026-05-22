@@ -88,7 +88,7 @@ public class Issue {
                 reportedDate);
     }
 
-    public static Issue create( // 테스트용 생성 메서드, 실제로는 Persistence 계층에서 PersistedState를 통해 생성
+    public static Issue create( // 테스트용 생성 메서드. 실제 생성은 Persistence 계층의 PersistedState 경유.
             String issueId,
             String title,
             String description,
@@ -244,8 +244,7 @@ public class Issue {
         }
 
         var previousAssignee = this.assignee;
-        this.assignee = assignee;
-        this.assigneeId = assignee.getLoginId();
+        setAssignee(assignee);
         updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
@@ -266,8 +265,7 @@ public class Issue {
         }
 
         var previousVerifier = this.verifier;
-        this.verifier = verifier;
-        this.verifierId = verifier.getLoginId();
+        setVerifier(verifier);
         updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
@@ -284,8 +282,7 @@ public class Issue {
         requireCurrentParticipant(fixer, assignee, "fixer must be current assignee");
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
-        this.fixer = fixer;
-        this.fixerId = fixer.getLoginId();
+        setFixer(fixer);
         changeStatusTo(IssueStatus.FIXED, requiredComment, fixer, changedDate);
     }
 
@@ -295,8 +292,7 @@ public class Issue {
         requireCurrentParticipant(resolver, verifier, "resolver must be current verifier");
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
-        this.resolver = resolver;
-        this.resolverId = resolver.getLoginId();
+        setResolver(resolver);
         changeStatusTo(IssueStatus.RESOLVED, requiredComment, resolver, changedDate);
     }
 
@@ -306,10 +302,7 @@ public class Issue {
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
         changeStatusTo(IssueStatus.CLOSED, requiredComment, changedBy, changedDate);
-        assignee = null;
-        verifier = null;
-        assigneeId = null;
-        verifierId = null;
+        clearActiveAssignment();
     }
 
     public void reopen(User changedBy, String comment, LocalDateTime changedDate) {
@@ -319,10 +312,7 @@ public class Issue {
         requireRole(changedBy, Role.PL, "changedBy");
         var requiredComment = requireText(comment, COMMENT_FIELD);
 
-        assignee = null;
-        verifier = null;
-        assigneeId = null;
-        verifierId = null;
+        clearActiveAssignment();
         changeStatusTo(IssueStatus.REOPENED, requiredComment, changedBy, changedDate);
     }
 
@@ -355,6 +345,26 @@ public class Issue {
                 changedBy,
                 discoveredDate);
         return dependency;
+    }
+
+    public void removeDependency(IssueDependency dependency, User changedBy, LocalDateTime changedDate) {
+        Objects.requireNonNull(dependency, "dependency must not be null");
+        Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
+        Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
+        if (!blockedByDependencies.remove(dependency)) {
+            throw new IllegalArgumentException("Dependency not found in this issue");
+        }
+        Issue blockingIssue = dependency.getBlockingIssue();
+        if (blockingIssue != null) {
+            blockingIssue.blockingDependencies.remove(dependency);
+        }
+        recordHistory(
+                ActionType.DEPENDENCY_CHANGED,
+                dependency.getDependencyId(),
+                null,
+                "Dependency removed",
+                changedBy,
+                changedDate);
     }
 
     public Comment addComment(String commentId, String content, User writer, LocalDateTime createdDate) {
@@ -414,10 +424,11 @@ public class Issue {
         if (status != IssueStatus.NEW && status != IssueStatus.REOPENED) {
             throw new IllegalStateException("Issue status must be before Assigned");
         }
+
         String previousValue = title + "\n" + description;
-        this.title = requireText(newTitle, "title");
-        this.description = requireText(newDescription, "description");
-        this.updatedAt = changedDate;
+        title = requireText(newTitle, "title");
+        description = requireText(newDescription, "description");
+        updatedAt = changedDate;
         recordHistory(
                 ActionType.TITLE_DESCRIPTION_UPDATED,
                 previousValue,
@@ -469,16 +480,43 @@ public class Issue {
         return issueId + "-H" + (histories.size() + 1);
     }
 
+    /*
+     * User reference와 loginId snapshot 함께 갱신.
+     * 도메인 전이 메서드가 association 변경 규칙에 집중하도록 field/id 동기화 한 곳에 모음.
+     */
+    private void setAssignee(User assignee) {
+        this.assignee = assignee;
+        assigneeId = loginIdOrNull(assignee);
+    }
+
+    private void setVerifier(User verifier) {
+        this.verifier = verifier;
+        verifierId = loginIdOrNull(verifier);
+    }
+
+    private void setFixer(User fixer) {
+        this.fixer = fixer;
+        fixerId = loginIdOrNull(fixer);
+    }
+
+    private void setResolver(User resolver) {
+        this.resolver = resolver;
+        resolverId = loginIdOrNull(resolver);
+    }
+
+    private void clearActiveAssignment() {
+        setAssignee(null);
+        setVerifier(null);
+    }
+
     private void assign(User assignee, User verifier, User changedBy, LocalDateTime changedDate, String message) {
         requireRole(assignee, Role.DEV, "assignee");
         requireRole(verifier, Role.TESTER, "verifier");
         requireRole(changedBy, Role.PL, "changedBy");
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
 
-        this.assignee = assignee;
-        this.verifier = verifier;
-        this.assigneeId = assignee.getLoginId();
-        this.verifierId = verifier.getLoginId();
+        setAssignee(assignee);
+        setVerifier(verifier);
         updatedAt = changedDate;
         recordHistory(
                 ActionType.ASSIGNMENT_CHANGED,
@@ -524,6 +562,7 @@ public class Issue {
     private static boolean sameUser(User first, User second) {
         return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
     }
+
 
     private void rejectSelfDependency(Issue blockingIssue) {
         if (Objects.equals(blockingIssue.getIssueId(), issueId)) {

@@ -59,7 +59,7 @@ class ProjectTest {
     @DisplayName("registerIssue creates issue via Creator pattern")
     void registerIssueCreatesIssue() {
         Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now, now);
-        User reporter = User.create("dev1", "Dev One", "hash", Role.DEV, now);
+        User reporter = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, now, now);
 
         Issue issue = project.registerIssue("ISSUE-1", "Bug", "Login fails", Priority.MAJOR, reporter, now);
 

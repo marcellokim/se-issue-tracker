@@ -245,7 +245,7 @@ public final class JdbcUserRepository implements UserRepository {
         try {
             connection.setAutoCommit(autoCommit);
         } catch (SQLException ignored) {
-            // Keep the original repository failure.
+            // 원래 repository 실패 원인 유지.
         }
     }
 
@@ -253,7 +253,7 @@ public final class JdbcUserRepository implements UserRepository {
         try {
             connection.rollback();
         } catch (SQLException ignored) {
-            // Keep the original repository failure.
+            // 원래 repository 실패 원인 유지.
         }
     }
 
@@ -265,7 +265,6 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     static User mapUser(ResultSet resultSet) throws SQLException {
-        // JDBC mappers reconstruct persisted rows rather than creating new domain users.
         return User.fromPersistence(
                 resultSet.getString("login_id"),
                 resultSet.getString("name"),

@@ -16,9 +16,11 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.CommentResult;
+import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
@@ -45,6 +47,7 @@ class IssueControllerTest {
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 21, 10, 0);
     private final PasswordHasher hasher = new PasswordHasher();
     private final User dev = User.fromPersistence("dev1", "Dev One", hasher.hash(PASSWORD), Role.DEV, true, now, now);
+    private final User pl = User.fromPersistence("pl1", "PL One", hasher.hash(PASSWORD), Role.PL, true, now, now);
     private final Project project = Project.fromPersistence(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
 
     @Test
@@ -69,6 +72,20 @@ class IssueControllerTest {
 
         assertEquals("Confirmed this bug", result.content());
         assertEquals(dev, result.writer());
+    }
+
+    @Test
+    @DisplayName("authenticated PL adds dependency")
+    void addDependency() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var controller = authenticatedController(pl, issueA, issueB);
+
+        DependencyResult result = controller.addDependency(1L, 2L);
+
+        assertNotNull(result.dependencyId());
+        assertEquals("ISSUE-1", result.blockingIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueId());
     }
 
     @Test
@@ -115,6 +132,7 @@ class IssueControllerTest {
         var issueService = new IssueService(
                 new FakeProjectRepository(project),
                 new InMemoryIssueRepository(issues),
+                new FakeIssueDependencyRepository(),
                 comments,
                 users,
                 new PermissionPolicy(),
@@ -129,6 +147,7 @@ class IssueControllerTest {
         var issueService = new IssueService(
                 new FakeProjectRepository(project),
                 new InMemoryIssueRepository(),
+                new FakeIssueDependencyRepository(),
                 new FakeCommentRepository(),
                 users,
                 new PermissionPolicy(),
@@ -138,10 +157,14 @@ class IssueControllerTest {
     }
 
     private Issue persistedIssue() {
+        return persistedIssue(ISSUE_ID, "ISSUE-1");
+    }
+
+    private Issue persistedIssue(long id, String issueId) {
         return Issue.fromPersistence(
-                Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", dev)
-                        .id(ISSUE_ID)
-                        .issueId("ISSUE-1")
+                Issue.persistedState(PROJECT_ID, "Issue " + id, "Desc " + id, dev)
+                        .id(id)
+                        .issueId(issueId)
                         .reportedDate(now)
                         .priority(Priority.MAJOR)
                         .status(IssueStatus.NEW)
