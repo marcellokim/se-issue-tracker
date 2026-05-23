@@ -163,6 +163,11 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public void activate(String loginId) {
+            throw new UnsupportedOperationException("activate is not needed by RepositoryDemoSummaryServiceTest.");
+        }
+
+        @Override
         public void deactivate(String loginId) {
             throw new UnsupportedOperationException("deactivate is not needed by RepositoryDemoSummaryServiceTest.");
         }

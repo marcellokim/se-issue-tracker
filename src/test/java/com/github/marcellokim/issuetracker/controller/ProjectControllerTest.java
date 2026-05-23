@@ -489,6 +489,12 @@ class ProjectControllerTest {
         }
 
         @Override
+        public void activate(String loginId) {
+            LocalDateTime now = LocalDateTime.now();
+            findByLoginId(loginId).ifPresent(user -> user.activate(now));
+        }
+
+        @Override
         public void deactivate(String loginId) {
             LocalDateTime now = LocalDateTime.now();
             findByLoginId(loginId).ifPresent(user -> user.deactivate(now));

@@ -302,6 +302,11 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public void activate(String loginId) {
+            throw new UnsupportedOperationException("activate is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
         public void deactivate(String loginId) {
             throw new UnsupportedOperationException("deactivate is not needed by DashboardSummaryServiceTest.");
         }

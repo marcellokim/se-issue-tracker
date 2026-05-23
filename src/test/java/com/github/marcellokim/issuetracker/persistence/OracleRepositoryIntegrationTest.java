@@ -338,7 +338,7 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("User repository saves, updates, finds, and deactivates users")
+    @DisplayName("User repository saves, updates, finds, deactivates, and activates users")
     void userRepositorySupportsCrudPolicy() {
         String loginId = uniqueId("crud_dev");
         LocalDateTime now = LocalDateTime.now();
@@ -365,13 +365,16 @@ class OracleRepositoryIntegrationTest {
                     created.getCreatedAt(),
                     LocalDateTime.now()));
 
-            assertTrue(new PasswordHasher().matches("UpdatedPassword!", updated.getPasswordHash()));
+            assertTrue(new PasswordHasher().matches("InitialPassword!", updated.getPasswordHash()));
             assertEquals("Repository CRUD Tester", repositories.users().findById(loginId).orElseThrow().getName());
             assertEquals(Role.TESTER, updated.getRole());
 
             repositories.users().deactivate(loginId);
 
             assertFalse(repositories.users().findById(loginId).orElseThrow().isActive());
+            repositories.users().activate(loginId);
+
+            assertTrue(repositories.users().findById(loginId).orElseThrow().isActive());
         } finally {
             deleteUser(loginId);
         }

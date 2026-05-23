@@ -23,5 +23,7 @@ public interface UserRepository {
 
     User save(User user);
 
+    void activate(String loginId);
+
     void deactivate(String loginId);
 }

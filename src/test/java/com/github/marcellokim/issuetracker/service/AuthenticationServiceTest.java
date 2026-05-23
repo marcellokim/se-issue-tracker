@@ -153,6 +153,22 @@ class AuthenticationServiceTest {
         }
 
         @Override
+        public void activate(String loginId) {
+            findById(loginId).ifPresent(user -> usersByLoginId.put(
+                    user.getLoginId(),
+                    User.fromPersistence(
+                            user.getLoginId(),
+                            user.getName(),
+                            user.getPasswordHash(),
+                            user.getRole(),
+                            true,
+                            user.getCreatedAt(),
+                            user.getUpdatedAt()
+                    )
+            ));
+        }
+
+        @Override
         public void deactivate(String loginId) {
             findById(loginId).ifPresent(user -> usersByLoginId.put(
                     user.getLoginId(),
