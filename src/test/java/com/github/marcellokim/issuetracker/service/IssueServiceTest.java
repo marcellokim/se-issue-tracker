@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 class IssueServiceTest {
 
     private static final long PROJECT_ID = 10L;
+    private static final long OTHER_PROJECT_ID = 20L;
     private static final long ISSUE_ID = 1L;
     private static final long COMMENT_ID = 100L;
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 21, 10, 0);
@@ -45,6 +46,13 @@ class IssueServiceTest {
     private final User admin = User.fromPersistence("admin", "Admin", "hash", Role.ADMIN, true, now, now);
     private final User inactiveDev = User.fromPersistence("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
     private final Project project = Project.fromPersistence(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
+    private final Project otherProject = Project.fromPersistence(
+            OTHER_PROJECT_ID,
+            "External ITS",
+            "External dependency project",
+            "admin",
+            now,
+            now);
 
     @Test
     @DisplayName("registers a new issue with project and reporter")
@@ -277,6 +285,26 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("blocked issue project PL can add cross-project dependency")
+    void addDependencyAllowsBlockedProjectLeadForCrossProjectDependency() {
+        var blockingIssue = persistedIssue(1L, "ISSUE-1", OTHER_PROJECT_ID);
+        var blockedIssue = persistedIssue(2L, "ISSUE-2", PROJECT_ID);
+        var deps = new FakeIssueDependencyRepository();
+        var users = new InMemoryUserRepository(dev, tester, pl, otherProjectPl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId())
+                .withProjectMembers(OTHER_PROJECT_ID, otherProjectPl.getLoginId());
+        var service = service(new InMemoryIssueRepository(blockingIssue, blockedIssue), deps,
+                new FakeCommentRepository(), users);
+
+        DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+
+        assertEquals("ISSUE-1", result.blockingIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueId());
+        assertEquals(ActionType.DEPENDENCY_CHANGED, blockedIssue.getHistories().getLast().actionType());
+        assertEquals(0, blockingIssue.getHistories().size());
+    }
+
+    @Test
     @DisplayName("deletes writer-owned general comment and records comment history")
     void deleteCommentSucceeds() {
         var issue = persistedIssue();
@@ -354,7 +382,7 @@ class IssueServiceTest {
             InMemoryUserRepository users
     ) {
         return new IssueService(
-                new FakeProjectRepository(project),
+                new FakeProjectRepository(project, otherProject),
                 issues,
                 dependencies,
                 comments,
@@ -369,8 +397,12 @@ class IssueServiceTest {
     }
 
     private Issue persistedIssue(long id, String issueId) {
+        return persistedIssue(id, issueId, PROJECT_ID);
+    }
+
+    private Issue persistedIssue(long id, String issueId, long projectId) {
         return Issue.fromPersistence(
-                Issue.persistedState(PROJECT_ID, "Issue " + id, "Description " + id, dev)
+                Issue.persistedState(projectId, "Issue " + id, "Description " + id, dev)
                         .id(id)
                         .issueId(issueId)
                         .reportedDate(now)

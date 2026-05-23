@@ -43,6 +43,15 @@ public final class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public List<User> findByRole(long projectId, Role role) {
+        Set<String> members = projectMembers.get(projectId);
+        return users.values().stream()
+                .filter(user -> user.getRole() == role)
+                .filter(user -> projectMembers.isEmpty() || members != null && members.contains(user.getLoginId()))
+                .toList();
+    }
+
+    @Override
     public List<User> findActiveByRole(long projectId, Role role) {
         Set<String> members = projectMembers.get(projectId);
         return users.values().stream()

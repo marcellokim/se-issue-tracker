@@ -79,9 +79,6 @@ public final class IssueService {
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
-        if (blockingIssue.projectId() != blockedIssue.projectId()) {
-            requireProjectLead(actor, blockingIssue.projectId(), "Only the project PL can manage dependencies.");
-        }
         validateDependency(blockingIssueId, blockedIssueId);
         LocalDateTime now = now();
         String dependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);

@@ -119,17 +119,24 @@ tasks.register('oracleConnectionCheck', JavaExec) {
 
 tasks.register('oracleInitializeDatabase', JavaExec) {
     group = 'application'
-    description = 'Drops/recreates Oracle schema and fixed demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    description = 'Creates or migrates Oracle schema without deleting existing data; seed is inserted only on first initialization.'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
-    args '--reset-fixed-seed'
 }
 
 tasks.register('oracleInitializeApplicationDatabase', JavaExec) {
     group = 'application'
-    description = 'Creates Oracle schema/seed only when application data is missing; existing data is reused.'
+    description = 'Alias for oracleInitializeDatabase: non-destructive application database initialization.'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+}
+
+tasks.register('oracleResetFixedSeed', JavaExec) {
+    group = 'application'
+    description = 'Destructively drops/recreates Oracle schema and fixed demo seed data. Use only for development/test resets.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+    args '--reset-fixed-seed'
 }
 
 def oracleIntegrationTestRequested = {

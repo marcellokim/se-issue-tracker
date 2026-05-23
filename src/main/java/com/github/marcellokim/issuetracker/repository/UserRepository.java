@@ -17,6 +17,8 @@ public interface UserRepository {
 
     List<User> findAll();
 
+    List<User> findByRole(long projectId, Role role);
+
     List<User> findActiveByRole(long projectId, Role role);
 
     User save(User user);

@@ -283,6 +283,13 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public List<User> findByRole(long projectId, Role role) {
+            return users.stream()
+                    .filter(user -> user.getRole() == role)
+                    .toList();
+        }
+
+        @Override
         public List<User> findActiveByRole(long projectId, Role role) {
             return users.stream()
                     .filter(user -> user.getRole() == role)

@@ -231,6 +231,21 @@ class ProjectControllerTest {
     }
 
     @Test
+    @DisplayName("participant add rejects another PL when existing PL is inactive")
+    void participantAddRejectsSecondProjectLeadEvenWhenExistingLeadIsInactive() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User inactivePl = inactive("pl1", Role.PL);
+        User activePl = active("pl2", Role.PL);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, "pl1");
+        FakeUserRepository users = new FakeUserRepository(auth.user(), inactivePl, activePl);
+        ProjectController controller = controller(auth, projects, users);
+
+        assertThrows(IllegalArgumentException.class, () -> controller.addProjectParticipant(1L, "pl2"));
+        assertEquals(List.of("pl1"), projects.participantIds(1L));
+    }
+
+    @Test
     @DisplayName("participant remove requires current membership")
     void participantRemoveRequiresCurrentMembership() {
         AuthFixture auth = authenticated(Role.ADMIN);
@@ -431,6 +446,22 @@ class ProjectControllerTest {
         @Override
         public List<User> findAll() {
             return new ArrayList<>(usersByLoginId.values());
+        }
+
+        @Override
+        public List<User> findByRole(long projectId, Role role) {
+            if (projects == null) {
+                return usersByLoginId.values().stream()
+                        .filter(user -> user.getRole() == role)
+                        .toList();
+            }
+
+            return projects.findParticipants(projectId).stream()
+                    .map(ProjectMember::userId)
+                    .map(usersByLoginId::get)
+                    .filter(Objects::nonNull)
+                    .filter(user -> user.getRole() == role)
+                    .toList();
         }
 
         @Override

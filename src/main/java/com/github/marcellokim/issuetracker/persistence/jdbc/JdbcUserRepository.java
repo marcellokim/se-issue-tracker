@@ -29,6 +29,21 @@ public final class JdbcUserRepository implements UserRepository {
             """;
     private static final String FIND_BY_LOGIN_ID_SQL = BASE_SELECT + " where u.login_id = ?";
     private static final String FIND_ALL_SQL = BASE_SELECT + " order by u.login_id";
+    private static final String FIND_BY_ROLE_SQL = """
+            select u.login_id,
+                   u.name,
+                   c.password_salt || ':' || c.password_hash as password,
+                   u.role,
+                   u.active,
+                   u.created_at,
+                   u.updated_at
+            from users u
+            join user_credentials c on c.login_id = u.login_id
+            join project_members pm on pm.user_login_id = u.login_id
+            where pm.project_id = ?
+              and u.role = ?
+            order by u.login_id
+            """;
     private static final String FIND_ACTIVE_BY_ROLE_SQL = """
             select u.login_id,
                    u.name,
@@ -122,9 +137,18 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     @Override
+    public List<User> findByRole(long projectId, Role role) {
+        return findProjectUsersByRole(FIND_BY_ROLE_SQL, projectId, role);
+    }
+
+    @Override
     public List<User> findActiveByRole(long projectId, Role role) {
+        return findProjectUsersByRole(FIND_ACTIVE_BY_ROLE_SQL, projectId, role);
+    }
+
+    private List<User> findProjectUsersByRole(String sql, long projectId, Role role) {
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ACTIVE_BY_ROLE_SQL)) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             statement.setString(2, role.name());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -135,7 +159,7 @@ public final class JdbcUserRepository implements UserRepository {
                 return users;
             }
         } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find active users by role.", exception);
+            throw new RepositoryException("Failed to find project users by role.", exception);
         }
     }
 

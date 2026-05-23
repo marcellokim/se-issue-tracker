@@ -77,8 +77,8 @@ public final class DatabaseInitializer {
         try (Connection connection = connectionProvider.getConnection()) {
             connection.setAutoCommit(false);
             try {
-                boolean schemaCreated = ensureApplicationSchema(connection);
-                if (schemaCreated) {
+                boolean firstRun = prepareApplicationSchema(connection);
+                if (firstRun) {
                     runScript(connection, ORACLE_SEED_SCRIPT);
                 } else {
                     ConsoleOutput.out("Oracle application data reused without seed reset.");
@@ -113,19 +113,15 @@ public final class DatabaseInitializer {
         return Arrays.asList(args).contains(RESET_FIXED_SEED_ARGUMENT);
     }
 
-    private static boolean ensureApplicationSchema(Connection connection) throws SQLException, IOException {
-        if (coreTablesExist(connection)) {
-            ConsoleOutput.out("Oracle schema already exists; existing schema reused.");
-            return false;
-        }
-
-        if (anyCoreTableExists(connection)) {
+    private static boolean prepareApplicationSchema(Connection connection) throws SQLException, IOException {
+        boolean firstRun = !anyCoreTableExists(connection);
+        if (!firstRun && !coreTablesExist(connection)) {
             throw new IllegalStateException(
-                    "Oracle schema is incomplete. Run oracleInitializeDatabase to reset the development/test schema.");
+                    "Oracle schema is incomplete. Run oracleResetFixedSeed to reset the development/test schema.");
         }
 
         runScript(connection, ORACLE_SCHEMA_SCRIPT);
-        return true;
+        return firstRun;
     }
 
     private static boolean coreTablesExist(Connection connection) throws SQLException {
