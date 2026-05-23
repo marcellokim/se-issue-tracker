@@ -118,7 +118,7 @@ class JdbcIssueQueriesTest {
                 new BoundValue(5, "dev1"),
                 new BoundValue(6, "tester2"),
                 new BoundValue(7, "%login%"),
-                new BoundValue(8, "login"),
+                new BoundValue(8, "%login%"),
                 new BoundValue(9, reportedFrom),
                 new BoundValue(10, reportedTo)
         ), recorder.boundValues());

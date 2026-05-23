@@ -117,7 +117,15 @@ tasks.register('oracleConnectionCheck', JavaExec) {
 
 tasks.register('oracleInitializeDatabase', JavaExec) {
     group = 'application'
-    description = 'Initializes Oracle schema and repeatable demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    description = 'Drops/recreates Oracle schema and fixed demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+    args '--reset-fixed-seed'
+}
+
+tasks.register('oracleInitializeApplicationDatabase', JavaExec) {
+    group = 'application'
+    description = 'Creates Oracle schema/seed only when application data is missing; existing data is reused.'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
 }

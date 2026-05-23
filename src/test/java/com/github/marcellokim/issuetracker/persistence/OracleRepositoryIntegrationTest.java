@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,40 +45,31 @@ class OracleRepositoryIntegrationTest {
     static void initializeDatabase() throws SQLException, IOException {
         connectionProvider = DriverManagerConnectionProvider.fromIntegrationTestEnvironment();
 
-        resetTestSchema();
-        DatabaseInitializer.initialize(connectionProvider);
-        DatabaseInitializer.initialize(connectionProvider);
+        assertTestSchema();
+        DatabaseInitializer.resetWithFixedSeed(connectionProvider);
+        DatabaseInitializer.initializeApplication(connectionProvider);
 
         repositories = new JdbcRepositoryFactory(connectionProvider);
     }
 
-    private static void resetTestSchema() throws SQLException {
+    private static void assertTestSchema() throws SQLException {
+        String sql = "select sys_context('USERENV', 'CURRENT_SCHEMA') from dual";
         try (var connection = connectionProvider.getConnection();
-                var statement = connection.createStatement()) {
-            connection.setAutoCommit(false);
-            try {
-                for (String tableName : List.of(
-                        "issue_dependencies",
-                        "issue_history",
-                        "comments",
-                        "issues",
-                        "project_members",
-                        "projects",
-                        "user_credentials",
-                        "users")) {
-                    statement.executeUpdate("delete from " + tableName);
-                }
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
+                var statement = connection.prepareStatement(sql);
+                var resultSet = statement.executeQuery()) {
+            resultSet.next();
+            String currentSchema = resultSet.getString(1);
+            if (currentSchema == null || !currentSchema.toUpperCase(Locale.ROOT).contains("TEST")) {
+                throw new IllegalStateException(
+                        "Oracle integration tests must run against a TEST schema. Current schema: "
+                                + currentSchema);
             }
         }
     }
 
     @Test
-    @DisplayName("repeatable seed keeps admin and demo projects stable")
-    void repeatableSeedKeepsAdminAndProjectStable() {
+    @DisplayName("seed data includes admin account and demo projects")
+    void seedDataIncludesAdminAccountAndDemoProjects() {
         var admin = repositories.users().findById("admin").orElseThrow();
         var project1 = repositories.projects().findByName("project1").orElseThrow();
         var project2 = repositories.projects().findByName("project2").orElseThrow();
