@@ -1,21 +1,25 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
+import com.github.marcellokim.issuetracker.repository.IssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
@@ -26,6 +30,7 @@ public final class IssueService {
     private final IssueRepository issueRepository;
     private final IssueDependencyRepository dependencyRepository;
     private final CommentRepository commentRepository;
+    private final IssueHistoryRepository issueHistoryRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
@@ -35,6 +40,7 @@ public final class IssueService {
             IssueRepository issueRepository,
             IssueDependencyRepository dependencyRepository,
             CommentRepository commentRepository,
+            IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             Clock clock
@@ -43,6 +49,7 @@ public final class IssueService {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.commentRepository = Objects.requireNonNull(commentRepository, "commentRepository");
+        this.issueHistoryRepository = Objects.requireNonNull(issueHistoryRepository, "issueHistoryRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -53,7 +60,7 @@ public final class IssueService {
         User reporter = findUser(currentUserId);
         permissionPolicy.assertCanRegisterIssue(reporter, project);
         LocalDateTime now = now();
-        Issue issue = Issue.newForPersistence(
+        Issue issue = Issue.create(
                 Issue.persistedState(project.getId(), title, description, reporter)
                         .priority(priority != null ? priority : Priority.MAJOR)
                         .reportedDate(now)
@@ -90,6 +97,14 @@ public final class IssueService {
         Comment comment = issue.addComment(CommentIdGenerator.nextCommentId(), content, writer, now);
         issueRepository.save(issue);
         return toCommentResult(comment);
+    }
+
+    public List<CommentResult> viewComments(long issueId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        findUser(currentUserId);
+        return commentRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toCommentResult)
+                .toList();
     }
 
     public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
@@ -137,8 +152,18 @@ public final class IssueService {
         requireCommentBelongsToIssue(comment, issue);
         requireCommentWriter(comment, currentUser);
 
-        comment.changeContent(content, now());
+        String previousContent = comment.content();
+        LocalDateTime changedAt = now();
+        comment.changeContent(content, changedAt);
         Comment saved = commentRepository.save(comment);
+        issueHistoryRepository.save(IssueHistory.newForPersistence(
+                issue.id(),
+                currentUser.getLoginId(),
+                ActionType.COMMENTED,
+                previousContent,
+                saved.content(),
+                saved.content(),
+                changedAt));
         return toCommentResult(saved);
     }
 
@@ -232,6 +257,7 @@ public final class IssueService {
                 comment.getCommentId(),
                 comment.getContent(),
                 comment.getPurpose(),
+                comment.writerId(),
                 comment.getWriter(),
                 comment.getCreatedDate(),
                 comment.getUpdatedDate()

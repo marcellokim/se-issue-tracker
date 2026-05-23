@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.github.marcellokim.issuetracker.controller.IssueController.CommentView;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -17,9 +18,9 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
-import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
@@ -68,10 +69,32 @@ class IssueControllerTest {
         var issue = persistedIssue();
         var controller = authenticatedController(dev, issue);
 
-        CommentResult result = controller.addComment(ISSUE_ID, "Confirmed this bug");
+        CommentView result = controller.addComment(ISSUE_ID, "Confirmed this bug");
 
         assertEquals("Confirmed this bug", result.content());
-        assertEquals(dev, result.writer());
+        assertEquals(dev.getLoginId(), result.writerLoginId());
+    }
+
+    @Test
+    @DisplayName("authenticated user views issue comments")
+    void viewComments() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
+                COMMENT_ID,
+                ISSUE_ID,
+                dev.getLoginId(),
+                "Visible comment",
+                CommentPurpose.GENERAL,
+                now,
+                now));
+        var controller = authenticatedController(dev, comments, issue);
+
+        List<CommentView> results = controller.viewComments(ISSUE_ID);
+
+        assertEquals(1, results.size());
+        assertEquals(String.valueOf(COMMENT_ID), results.getFirst().commentId());
+        assertEquals(dev.getLoginId(), results.getFirst().writerLoginId());
+        assertEquals("Visible comment", results.getFirst().content());
     }
 
     @Test
@@ -134,10 +157,10 @@ class IssueControllerTest {
                 new InMemoryIssueRepository(issues),
                 new FakeIssueDependencyRepository(),
                 comments,
+                new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                new Clock()
-        );
+                new Clock());
         return new IssueController(authService, issueService);
     }
 
@@ -149,10 +172,10 @@ class IssueControllerTest {
                 new InMemoryIssueRepository(),
                 new FakeIssueDependencyRepository(),
                 new FakeCommentRepository(),
+                new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                new Clock()
-        );
+                new Clock());
         return new IssueController(authService, issueService);
     }
 

@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRe
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -322,6 +323,7 @@ class ControllerCoverageTest {
                         issues,
                         new FakeIssueDependencyRepository(),
                         new FakeCommentRepository(),
+                        new FakeIssueHistoryRepository(),
                         users,
                         policy,
                         clock)));

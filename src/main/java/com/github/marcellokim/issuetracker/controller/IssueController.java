@@ -1,12 +1,15 @@
 package com.github.marcellokim.issuetracker.controller;
 
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 public final class IssueController {
@@ -16,8 +19,7 @@ public final class IssueController {
 
     public IssueController(
             AuthenticationService authenticationService,
-            IssueService issueService
-    ) {
+            IssueService issueService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.issueService = Objects.requireNonNull(issueService, "issueService");
     }
@@ -37,9 +39,16 @@ public final class IssueController {
         return issueService.changePriority(issueId, priority, user.getLoginId());
     }
 
-    public CommentResult addComment(long issueId, String content) {
+    public CommentView addComment(long issueId, String content) {
         User user = requireCurrentUser();
-        return issueService.addComment(issueId, content, user.getLoginId());
+        return CommentView.from(issueService.addComment(issueId, content, user.getLoginId()));
+    }
+
+    public List<CommentView> viewComments(long issueId) {
+        User user = requireCurrentUser();
+        return issueService.viewComments(issueId, user.getLoginId()).stream()
+                .map(CommentView::from)
+                .toList();
     }
 
     public DependencyResult addDependency(long blockingIssueId, long blockedIssueId) {
@@ -57,13 +66,33 @@ public final class IssueController {
         issueService.deleteComment(issueId, commentId, user.getLoginId());
     }
 
-    public CommentResult updateComment(long issueId, long commentId, String content) {
+    public CommentView updateComment(long issueId, long commentId, String content) {
         User user = requireCurrentUser();
-        return issueService.updateComment(issueId, commentId, content, user.getLoginId());
+        return CommentView.from(issueService.updateComment(issueId, commentId, content, user.getLoginId()));
     }
 
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));
+    }
+
+    public record CommentView(
+            String commentId,
+            String content,
+            CommentPurpose purpose,
+            String writerLoginId,
+            LocalDateTime createdDate,
+            LocalDateTime updatedDate) {
+
+        private static CommentView from(CommentResult result) {
+            Objects.requireNonNull(result, "result");
+            return new CommentView(
+                    result.commentId(),
+                    result.content(),
+                    result.purpose(),
+                    result.writerLoginId(),
+                    result.createdDate(),
+                    result.updatedDate());
+        }
     }
 }

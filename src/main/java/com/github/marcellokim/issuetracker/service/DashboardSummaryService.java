@@ -70,6 +70,7 @@ public final class DashboardSummaryService {
         return new DashboardProjectSummary(
                 project.getId(),
                 project.getName(),
+                project.getDescription(),
                 projectRepository.findParticipants(project.getId()).size(),
                 userRepository.findActiveByRole(project.getId(), Role.PL).size(),
                 userRepository.findActiveByRole(project.getId(), Role.DEV).size(),

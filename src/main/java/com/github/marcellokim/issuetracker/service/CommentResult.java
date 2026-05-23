@@ -8,6 +8,7 @@ public record CommentResult(
         String commentId,
         String content,
         CommentPurpose purpose,
+        String writerLoginId,
         User writer,
         LocalDateTime createdDate,
         LocalDateTime updatedDate

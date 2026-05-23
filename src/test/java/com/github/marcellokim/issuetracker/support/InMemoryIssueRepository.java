@@ -14,6 +14,7 @@ import java.util.Optional;
 public final class InMemoryIssueRepository implements IssueRepository {
 
     private final Map<Long, Issue> issues = new LinkedHashMap<>();
+    private long nextId = 1L;
 
     public InMemoryIssueRepository(Issue... issues) {
         for (Issue issue : issues) {
@@ -48,8 +49,10 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     @Override
     public Issue save(Issue issue) {
-        issues.put(issue.id(), issue);
-        return issue;
+        Issue saved = issue.id() == 0L ? persistNew(issue) : issue;
+        issues.put(saved.id(), saved);
+        nextId = Math.max(nextId, saved.id() + 1);
+        return saved;
     }
 
     @Override
@@ -70,5 +73,23 @@ public final class InMemoryIssueRepository implements IssueRepository {
     @Override
     public void purge(long issueId) {
         issues.remove(issueId);
+    }
+
+    private Issue persistNew(Issue issue) {
+        return Issue.fromPersistence(Issue.persistedState(
+                        issue.projectId(),
+                        issue.title(),
+                        issue.description(),
+                        issue.getReporter())
+                .id(nextId++)
+                .issueId(issue.getIssueId())
+                .reportedDate(issue.reportedDate())
+                .priority(issue.priority())
+                .status(issue.status())
+                .assignee(issue.getAssignee())
+                .verifier(issue.getVerifier())
+                .fixer(issue.getFixer())
+                .resolver(issue.getResolver())
+                .updatedAt(issue.updatedAt()));
     }
 }

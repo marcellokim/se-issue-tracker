@@ -11,6 +11,7 @@ import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
@@ -19,6 +20,7 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
@@ -156,6 +158,23 @@ class IssueServiceTest {
         assertEquals("Looks like a real bug", result.content());
         assertEquals(dev, result.writer());
         assertNotNull(result.createdDate());
+    }
+
+    @Test
+    @DisplayName("views comments for an issue")
+    void viewCommentsReturnsIssueComments() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(
+                comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL),
+                comment(COMMENT_ID + 1L, 999L, tester, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        List<CommentResult> results = service.viewComments(ISSUE_ID, dev.getLoginId());
+
+        assertEquals(1, results.size());
+        assertEquals(String.valueOf(COMMENT_ID), results.getFirst().commentId());
+        assertEquals(dev.getLoginId(), results.getFirst().writerLoginId());
+        assertEquals("Outdated investigation note", results.getFirst().content());
     }
 
     @Test
@@ -382,7 +401,9 @@ class IssueServiceTest {
     void updateCommentSucceedsForWriter() {
         var issue = persistedIssue();
         var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
-        var service = service(new InMemoryIssueRepository(issue), comments);
+        var histories = new FakeIssueHistoryRepository();
+        var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
+                histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
 
         CommentResult result = service.updateComment(
                 ISSUE_ID,
@@ -393,6 +414,70 @@ class IssueServiceTest {
         assertEquals("Updated investigation note", result.content());
         assertEquals("Updated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
         assertNotNull(result.updatedDate());
+        IssueHistory history = histories.findByIssueId(ISSUE_ID).getFirst();
+        assertEquals(ActionType.COMMENTED, history.actionType());
+        assertEquals("Outdated investigation note", history.previousValue());
+        assertEquals("Updated investigation note", history.newValue());
+        assertEquals("Updated investigation note", history.message());
+        assertEquals(dev.getLoginId(), history.changedById());
+    }
+
+    @Test
+    @DisplayName("comment update appends history without changing existing history")
+    void updateCommentAppendsHistoryWithoutChangingExistingHistory() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var histories = new FakeIssueHistoryRepository();
+        IssueHistory existingHistory = IssueHistory.fromPersistence(
+                77L,
+                ISSUE_ID,
+                dev.getLoginId(),
+                ActionType.COMMENTED,
+                null,
+                "Original comment",
+                "Original comment",
+                now.minusDays(1));
+        histories.addFixture(existingHistory);
+        var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
+                histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
+
+        service.updateComment(ISSUE_ID, COMMENT_ID, "Updated investigation note", dev.getLoginId());
+
+        List<IssueHistory> issueHistories = histories.findByIssueId(ISSUE_ID);
+        assertEquals(2, issueHistories.size());
+        IssueHistory unchangedHistory = histories.findById(existingHistory.id()).orElseThrow();
+        assertEquals("Original comment", unchangedHistory.newValue());
+        assertEquals("Original comment", unchangedHistory.message());
+        IssueHistory appendedHistory = issueHistories.get(1);
+        assertEquals(ActionType.COMMENTED, appendedHistory.actionType());
+        assertEquals("Outdated investigation note", appendedHistory.previousValue());
+        assertEquals("Updated investigation note", appendedHistory.newValue());
+        assertEquals("Updated investigation note", appendedHistory.message());
+    }
+
+    @Test
+    @DisplayName("writer updates own status-change comment content")
+    void updateStatusChangeCommentSucceedsForWriter() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
+        var histories = new FakeIssueHistoryRepository();
+        var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
+                histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
+
+        CommentResult result = service.updateComment(
+                ISSUE_ID,
+                COMMENT_ID,
+                "Updated status transition reason",
+                dev.getLoginId());
+
+        assertEquals(CommentPurpose.STATUS_CHANGE, result.purpose());
+        assertEquals("Updated status transition reason", result.content());
+        assertEquals("Updated status transition reason", comments.findById(COMMENT_ID).orElseThrow().content());
+        IssueHistory history = histories.findByIssueId(ISSUE_ID).getFirst();
+        assertEquals(ActionType.COMMENTED, history.actionType());
+        assertEquals("Outdated investigation note", history.previousValue());
+        assertEquals("Updated status transition reason", history.newValue());
+        assertEquals("Updated status transition reason", history.message());
     }
 
     @Test
@@ -457,6 +542,7 @@ class IssueServiceTest {
 
     private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies, FakeCommentRepository comments) {
         return service(issues, dependencies, comments,
+                new FakeIssueHistoryRepository(),
                 new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
     }
 
@@ -466,11 +552,22 @@ class IssueServiceTest {
             FakeCommentRepository comments,
             InMemoryUserRepository users
     ) {
+        return service(issues, dependencies, comments, new FakeIssueHistoryRepository(), users);
+    }
+
+    private IssueService service(
+            InMemoryIssueRepository issues,
+            FakeIssueDependencyRepository dependencies,
+            FakeCommentRepository comments,
+            FakeIssueHistoryRepository histories,
+            InMemoryUserRepository users
+    ) {
         return new IssueService(
                 new FakeProjectRepository(project, otherProject),
                 issues,
                 dependencies,
                 comments,
+                histories,
                 users,
                 new PermissionPolicy(),
                 new Clock()

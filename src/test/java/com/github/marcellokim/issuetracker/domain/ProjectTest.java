@@ -63,6 +63,7 @@ class ProjectTest {
 
         Issue issue = project.registerIssue("ISSUE-1", "Bug", "Login fails", Priority.MAJOR, reporter, now);
 
+        assertEquals(project.getId(), issue.projectId());
         assertEquals("ISSUE-1", issue.getIssueId());
         assertEquals("Bug", issue.getTitle());
         assertEquals(IssueStatus.NEW, issue.getStatus());

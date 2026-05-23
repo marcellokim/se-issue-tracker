@@ -3,20 +3,22 @@ package com.github.marcellokim.issuetracker.ui;
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.DashboardController.DashboardProjectView;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
+import com.github.marcellokim.issuetracker.controller.IssueController.CommentView;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -66,7 +68,8 @@ public final class LoginView {
     private final TextField blockedIssueIdField = field("blocked issue id");
     private final TextField dependencyIdField = field("dependency id");
     private final TextField commentIdField = field("comment id");
-    private final TextArea commentArea = area("comment / status reason");
+    private final TextArea commentArea = area("general comment content");
+    private final TextArea reasonArea = area("status/delete reason");
     private final TextArea workflowOutputArea = area("");
     private final TextArea detailOutputArea = area("");
 
@@ -80,10 +83,10 @@ public final class LoginView {
     private DeletedIssueController deletedIssueController;
     private StatisticsController statisticsController;
     private List<Issue> currentIssues = List.of();
-    private List<DashboardProjectSummary> currentProjects = List.of();
+    private List<DashboardProjectView> currentProjects = List.of();
     private List<User> currentUsers = List.of();
     private Issue selectedIssue;
-    private DashboardProjectSummary selectedProject;
+    private DashboardProjectView selectedProject;
 
     public LoginView() {
         configureFields();
@@ -206,6 +209,7 @@ public final class LoginView {
         detailOutputArea.setWrapText(true);
         detailOutputArea.setPrefRowCount(4);
         commentArea.setPrefRowCount(3);
+        reasonArea.setPrefRowCount(3);
     }
 
     private void configureLayout() {
@@ -326,7 +330,7 @@ public final class LoginView {
         if (currentProjects.isEmpty()) {
             list.getChildren().add(emptyLabel("No projects to show."));
         }
-        for (DashboardProjectSummary project : currentProjects) {
+        for (DashboardProjectView project : currentProjects) {
             Button button = card("""
                     %s
                     projectId=%d
@@ -379,8 +383,8 @@ public final class LoginView {
         grid.setVgap(10);
         addInput(grid, 0, 0, "Project ID", projectIdField);
         addInput(grid, 2, 0, "Issue ID", issueIdField);
-        grid.add(new Label("Comment / Reason"), 4, 0);
-        grid.add(commentArea, 5, 0);
+        grid.add(new Label("Reason"), 4, 0);
+        grid.add(reasonArea, 5, 0);
         return grid;
     }
 
@@ -422,7 +426,8 @@ public final class LoginView {
                         "Title", issueTitleField,
                         "Description", issueDescriptionField,
                         "Priority", priorityBox,
-                        "Comment ID", commentIdField),
+                        "Comment ID", commentIdField,
+                        "Comment Content", commentArea),
                 actionRow(
                         actionButton("Register", isIssueActor(), () -> {
                             var issue = issueController.registerIssue(
@@ -525,7 +530,7 @@ public final class LoginView {
                 actionButton("Soft Delete", canDeleteSelectedIssue(), () -> {
                     var issue = deletedIssueController.deleteIssue(
                             requiredLong(issueIdField, "issueId"),
-                            requiredText(commentArea, "comment"));
+                            requiredText(reasonArea, "reason"));
                     return "Issue deleted: " + issue.getIssueId() + " / " + issue.status();
                 }),
                 actionButton("Deleted List", isPl(), () -> deletedIssueController
@@ -535,7 +540,7 @@ public final class LoginView {
                 actionButton("Restore", isPl(), () -> {
                     var issue = deletedIssueController.restoreIssue(
                             requiredLong(issueIdField, "issueId"),
-                            requiredText(commentArea, "comment"));
+                            requiredText(reasonArea, "reason"));
                     return "Issue restored: " + issue.getIssueId() + " / " + issue.status();
                 }),
                 actionButton("Purge Overflow", isPl(), () -> {
@@ -551,7 +556,7 @@ public final class LoginView {
         var result = issueStateController.changeStatus(
                 requiredLong(issueIdField, "issueId"),
                 targetStatus,
-                requiredText(commentArea, "comment"));
+                requiredText(reasonArea, "reason"));
         return "Status changed: " + result.issueId() + " / " + result.status();
     }
 
@@ -618,7 +623,7 @@ public final class LoginView {
         showIssueDetail(issue);
     }
 
-    private void selectProject(DashboardProjectSummary project) {
+    private void selectProject(DashboardProjectView project) {
         selectedProject = project;
         projectIdField.setText(String.valueOf(project.projectId()));
         showProjectPage(project);
@@ -666,6 +671,7 @@ public final class LoginView {
                 title,
                 body,
                 issueStatusActionPanel(),
+                issueCommentsList(issue.id()),
                 issueCommentActionPanel(),
                 detailOutputArea,
                 backButton);
@@ -680,6 +686,7 @@ public final class LoginView {
         panel.setStyle("-fx-border-color: #9ca3af; -fx-border-width: 1.5; -fx-background-color: #ffffff;");
         panel.getChildren().addAll(
                 sectionLabel("Status Transition"),
+                fieldsGrid("Status Reason", reasonArea),
                 actionRow(
                         detailActionButton("ASSIGNED -> FIXED", canMarkFixed(),
                                 () -> changeStatusInDetail(IssueStatus.FIXED)),
@@ -700,46 +707,119 @@ public final class LoginView {
         panel.setStyle("-fx-border-color: #9ca3af; -fx-border-width: 1.5; -fx-background-color: #ffffff;");
         panel.getChildren().addAll(
                 sectionLabel("Comments"),
-                fieldsGrid(
-                        "Comment ID", commentIdField,
-                        "Content", commentArea),
+                fieldsGrid("New Comment", commentArea),
                 actionRow(
                         detailActionButton("Add Comment", isIssueActor(), () -> {
                             var comment = issueController.addComment(
                                     requiredLong(issueIdField, "issueId"),
                                     requiredText(commentArea, "comment"));
                             return "Comment added: " + comment.commentId() + " / " + comment.purpose();
-                        }),
-                        detailActionButton("Update Comment", isIssueActor(), () -> {
-                            var comment = issueController.updateComment(
-                                    requiredLong(issueIdField, "issueId"),
-                                    requiredLong(commentIdField, "commentId"),
-                                    requiredText(commentArea, "comment"));
-                            return "Comment updated: " + comment.commentId();
-                        }),
-                        detailActionButton("Delete Comment", isIssueActor(), () -> {
-                            issueController.deleteComment(
-                                    requiredLong(issueIdField, "issueId"),
-                                    requiredLong(commentIdField, "commentId"));
-                            return "General comment deleted.";
                         })));
         return panel;
+    }
+
+    private VBox issueCommentsList(long issueId) {
+        VBox panel = new VBox(10);
+        panel.setPadding(new Insets(14));
+        panel.setStyle("-fx-border-color: #9ca3af; -fx-border-width: 1.5; -fx-background-color: #ffffff;");
+        panel.getChildren().add(sectionLabel("Comment List"));
+        List<CommentView> comments = issueController.viewComments(issueId);
+        if (comments.isEmpty()) {
+            panel.getChildren().add(emptyLabel("No comments."));
+            return panel;
+        }
+        for (CommentView comment : comments) {
+            panel.getChildren().add(commentCard(issueId, comment));
+        }
+        return panel;
+    }
+
+    private HBox commentCard(long issueId, CommentView comment) {
+        boolean writer = isCommentWriter(comment);
+        Label meta = new Label("ID %s / %s / %s / %s -> %s%s".formatted(
+                comment.commentId(),
+                comment.writerLoginId(),
+                comment.purpose(),
+                comment.createdDate(),
+                comment.updatedDate(),
+                writer ? " / editable" : " / read-only"));
+        meta.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #374151;");
+
+        TextArea editor = area("");
+        editor.setText(comment.content());
+        editor.setPromptText(writer ? "Edit this comment here, then press Update" : "Only the writer can edit");
+        editor.setPrefRowCount(2);
+        editor.setEditable(writer);
+        editor.setStyle(writer
+                ? "-fx-font-size: 18px; -fx-border-color: #2563eb;"
+                : "-fx-font-size: 18px; -fx-control-inner-background: #f3f4f6;");
+
+        VBox text = new VBox(6, meta, editor);
+        HBox.setHgrow(text, javafx.scene.layout.Priority.ALWAYS);
+
+        VBox buttons = new VBox(
+                8,
+                commentActionButton("Update Comment", writer, () -> {
+                    var updated = issueController.updateComment(
+                            issueId,
+                            commentDatabaseId(comment),
+                            requiredText(editor, "comment"));
+                    return "Comment updated: " + updated.commentId();
+                }),
+                commentActionButton("Delete Comment", canDeleteComment(comment), () -> {
+                    issueController.deleteComment(issueId, commentDatabaseId(comment));
+                    return "General comment deleted: " + comment.commentId();
+                }));
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+
+        HBox card = new HBox(12, text, buttons);
+        card.setPadding(new Insets(10));
+        card.setStyle("-fx-border-color: #d1d5db; -fx-background-color: #f9fafb;");
+        return card;
+    }
+
+    private Button commentActionButton(String text, boolean enabled, Supplier<String> action) {
+        Button button = new Button(text);
+        button.setDisable(!enabled);
+        button.setMinWidth(120);
+        button.setOnAction(event -> runDetailAction(action));
+        return button;
+    }
+
+    private boolean isCommentWriter(CommentView comment) {
+        return currentUser != null && currentUser.getLoginId().equals(comment.writerLoginId());
+    }
+
+    private boolean canDeleteComment(CommentView comment) {
+        return isCommentWriter(comment) && comment.purpose() == CommentPurpose.GENERAL;
+    }
+
+    private static long commentDatabaseId(CommentView comment) {
+        try {
+            return Long.parseLong(comment.commentId());
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("commentId must be a persisted numeric id");
+        }
     }
 
     private String changeStatusInDetail(IssueStatus targetStatus) {
         var result = issueStateController.changeStatus(
                 requiredLong(issueIdField, "issueId"),
                 targetStatus,
-                requiredText(commentArea, "comment"));
+                requiredText(reasonArea, "reason"));
         return "Status changed: " + result.issueId() + " / " + result.status();
     }
 
-    private void showProjectPage(DashboardProjectSummary project) {
-        Label title = new Label("Project Page");
+    private void showProjectPage(DashboardProjectView project) {
+        Label title = new Label(project.projectName());
         title.setStyle("-fx-font-size: 32px; -fx-font-weight: bold;");
+        Label description = new Label(valueOrBlank(project.projectDescription()).isBlank()
+                ? "No description."
+                : project.projectDescription());
+        description.setWrapText(true);
+        description.setStyle("-fx-font-size: 22px;");
         Label body = new Label("""
                 Project ID: %d
-                Project: %s
                 Members: %d
                 PL: %d
                 DEV: %d
@@ -749,7 +829,6 @@ public final class LoginView {
                 Status counts: %s
                 """.formatted(
                 project.projectId(),
-                project.projectName(),
                 project.memberCount(),
                 project.projectLeaderCount(),
                 project.developerCount(),
@@ -758,12 +837,63 @@ public final class LoginView {
                 project.deletedIssueCount(),
                 project.statusCounts()));
         body.setStyle("-fx-font-size: 22px;");
+        VBox registerIssuePanel = panel("Register Issue");
+        registerIssuePanel.getChildren().addAll(
+                fieldsGrid(
+                        "Title", issueTitleField,
+                        "Description", issueDescriptionField,
+                        "Priority", priorityBox),
+                actionRow(projectActionButton(project, "Register Issue", isIssueActor(), () -> {
+                    var issue = issueController.registerIssue(
+                            project.projectId(),
+                            requiredText(issueTitleField, "issueTitle"),
+                            requiredText(issueDescriptionField, "issueDescription"),
+                            priorityBox.getValue());
+                    return "Issue registered: " + issue.issueId() + " / " + issue.status();
+                })));
         Button backButton = new Button("Back to Dashboard");
         backButton.setOnAction(event -> refreshDashboard("Selected project: " + project.projectName()));
-        VBox box = new VBox(16, title, body, backButton);
+        VBox box = new VBox(16, title, description, body, registerIssuePanel, detailOutputArea, backButton);
         box.setPadding(new Insets(24));
         box.setAlignment(Pos.CENTER_LEFT);
         root.setCenter(scroll(box));
+    }
+
+    private Button projectActionButton(
+            DashboardProjectView project,
+            String text,
+            boolean enabled,
+            Supplier<String> action
+    ) {
+        Button button = new Button(text);
+        button.setDisable(!enabled);
+        button.setOnAction(event -> runProjectAction(project.projectId(), action));
+        return button;
+    }
+
+    private void runProjectAction(long projectId, Supplier<String> action) {
+        try {
+            String message = action.get();
+            refreshProjectPage(projectId, message);
+        } catch (RuntimeException exception) {
+            detailOutputArea.setText("Failed: " + exception.getMessage());
+            detailOutputArea.setStyle("-fx-text-fill: #b91c1c;");
+        }
+    }
+
+    private void refreshProjectPage(long projectId, String message) {
+        currentProjects = dashboardController.viewProjects();
+        selectedProject = currentProjects.stream()
+                .filter(project -> project.projectId() == projectId)
+                .findFirst()
+                .orElse(null);
+        detailOutputArea.setText(message);
+        detailOutputArea.setStyle("-fx-text-fill: #111827;");
+        if (selectedProject == null) {
+            refreshDashboard(message);
+            return;
+        }
+        showProjectPage(selectedProject);
     }
 
     private boolean isAdmin() {
@@ -982,6 +1112,7 @@ public final class LoginView {
         dependencyIdField.clear();
         commentIdField.clear();
         commentArea.clear();
+        reasonArea.clear();
     }
 
     private static long requiredLong(TextField field, String fieldName) {

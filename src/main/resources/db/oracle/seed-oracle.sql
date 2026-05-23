@@ -892,7 +892,7 @@ begin
                 'Reopened issue keeps old assignee',
                 'tester5',
                 'Regression verification complete',
-                timestamp '2026-05-11 10:00:00'
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1266,7 +1266,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Regression verification complete',
-                timestamp '2026-05-11 10:00:00'
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1449,7 +1449,7 @@ begin
                      join issues blocked_issue
                    on blocked_issue.project_id = blocked_project.id
                     where blocking_project.name = 'project1'
-                      and blocking_issue.title = 'Login fails on invalid credential'
+                      and blocking_issue.title = 'Assignment notification not shown'
                       and blocked_issue.title = 'Dependency resolution flow blocked'
                 ),
                 'Dependency added',
@@ -1548,7 +1548,7 @@ begin
              s.discovered_at
         from (
          select 'project1' as blocking_project_name,
-                'Login fails on invalid credential' as blocking_title,
+                'Assignment notification not shown' as blocking_title,
                 'project1' as blocked_project_name,
                 'Dependency resolution flow blocked' as blocked_title,
                 timestamp '2026-05-21 11:00:00' as discovered_at

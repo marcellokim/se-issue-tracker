@@ -73,9 +73,9 @@ class IssueCreationTest {
     }
 
     @Test
-    @DisplayName("New issue for persistence may generate issueId before save")
-    void newIssueForPersistenceCanGenerateIssueIdBeforeSave() {
-        var issue = Issue.newForPersistence(Issue.persistedState(
+    @DisplayName("New issue create may generate issueId before save")
+    void createIssueCanGenerateIssueIdBeforeSave() {
+        var issue = Issue.create(Issue.persistedState(
                 1L,
                 "New repository issue",
                 "Before DB identity is assigned.",
@@ -85,12 +85,20 @@ class IssueCreationTest {
 
         assertEquals(0L, issue.id());
         assertFalse(issue.getIssueId().isBlank());
+        assertEquals(1, issue.getHistories().size());
+        var history = issue.getHistories().getFirst();
+        assertEquals(ActionType.CREATED, history.getAction());
+        assertNull(history.getPreviousValue());
+        assertEquals(IssueStatus.NEW.name(), history.getNewValue());
+        assertEquals("Issue created", history.getMessage());
+        assertSame(reporter, history.getChangedBy());
+        assertEquals(now, history.getChangedDate());
     }
 
     @Test
-    @DisplayName("newForPersistence with explicit issueId preserves it")
-    void newForPersistenceWithExplicitIssueId() {
-        var issue = Issue.newForPersistence(Issue.persistedState(
+    @DisplayName("create with explicit issueId preserves it")
+    void createWithExplicitIssueId() {
+        var issue = Issue.create(Issue.persistedState(
                 1L, "Bug", "desc", reporter)
                 .issueId("CUSTOM-ID")
                 .reportedDate(now)
@@ -117,9 +125,9 @@ class IssueCreationTest {
     }
 
     @Test
-    @DisplayName("newForPersistence rejects non-zero id")
-    void newForPersistenceRejectsNonZeroId() {
-        assertThrows(IllegalArgumentException.class, () -> Issue.newForPersistence(
+    @DisplayName("create rejects non-zero id")
+    void createRejectsNonZeroId() {
+        assertThrows(IllegalArgumentException.class, () -> Issue.create(
                 Issue.persistedState(1L, "Bug", "desc", reporter)
                         .id(5L)
                         .reportedDate(now)

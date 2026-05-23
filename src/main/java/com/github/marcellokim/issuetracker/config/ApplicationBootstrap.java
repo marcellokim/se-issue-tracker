@@ -65,6 +65,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
         var projects = repositories.projects();
         var issues = repositories.issues();
         var comments = repositories.comments();
+        var issueHistory = repositories.issueHistory();
         var issueDependencies = repositories.issueDependencies();
         var statistics = repositories.statistics();
         var assignmentRecommendations = repositories.assignmentRecommendations();
@@ -76,6 +77,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 issues,
                 issueDependencies,
                 comments,
+                issueHistory,
                 users,
                 permissionPolicy,
                 clock);

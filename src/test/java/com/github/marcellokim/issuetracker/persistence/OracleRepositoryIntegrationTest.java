@@ -215,7 +215,7 @@ class OracleRepositoryIntegrationTest {
         var admin = repositories.users().findById("admin").orElseThrow();
         purgeIssuesByTitle(project.getId(), "Temporary deleted issue for repository policy test");
 
-        Issue deletedIssue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+        Issue deletedIssue = repositories.issues().save(Issue.create(Issue.persistedState(
                 project.getId(),
                 "Temporary deleted issue for repository policy test",
                 "Deleted issues should stay out of normal browse and statistics.",
@@ -414,7 +414,7 @@ class OracleRepositoryIntegrationTest {
             assertFalse(repositories.projects().findParticipants(project.getId()).stream()
                     .anyMatch(member -> member.userId().equals("dev1")));
 
-            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     uniqueId("crud_project_composition_issue"),
                     "Issue should be removed when its owning project is deleted.",
@@ -451,7 +451,7 @@ class OracleRepositoryIntegrationTest {
         Issue saved = null;
 
         try {
-            saved = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            saved = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     title,
                     "Issue repository CRUD test.",
@@ -525,7 +525,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     title,
                     "Aggregate root save should persist audit children.",
@@ -534,6 +534,11 @@ class OracleRepositoryIntegrationTest {
                     .priority(Priority.MAJOR)
                     .status(IssueStatus.NEW)
                     .updatedAt(LocalDateTime.now())));
+
+            assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.CREATED
+                            && history.previousValue() == null
+                            && IssueStatus.NEW.name().equals(history.newValue())));
 
             issue.assignFromNew(user("dev2"), user("tester1"), user("pl1"), LocalDateTime.now());
             issue.addComment("aggregate-audit-comment", "Assignment audit comment.", user("pl1"), LocalDateTime.now());
@@ -763,7 +768,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     uniqueId("crud_stats_issue"),
                     "Resolved issue for statistics and recommendation CRUD test.",
@@ -851,7 +856,7 @@ class OracleRepositoryIntegrationTest {
             state.resolver(user("tester1"));
         }
 
-        return repositories.issues().save(Issue.newForPersistence(state));
+        return repositories.issues().save(Issue.create(state));
     }
 
     private static User user(String loginId) {

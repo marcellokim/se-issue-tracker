@@ -57,7 +57,11 @@ public class Project {
             Priority priority,
             User reporter,
             LocalDateTime now) {
-        return Issue.create(issueId, title, description, priority, reporter, now);
+        return Issue.create(Issue.persistedState(id, title, description, reporter)
+                .issueId(issueId)
+                .priority(priority == null ? Priority.MAJOR : priority)
+                .reportedDate(now)
+                .updatedAt(now));
     }
 
     public void rename(String newName, LocalDateTime updatedAt) {

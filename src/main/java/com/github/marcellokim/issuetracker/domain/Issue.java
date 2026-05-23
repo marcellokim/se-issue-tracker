@@ -64,6 +64,10 @@ public class Issue {
         this.fixerId = loginIdOrNull(fixer);
         this.resolverId = loginIdOrNull(resolver);
         this.updatedAt = Objects.requireNonNull(state.updatedAt, "updatedAt must not be null");
+        if (!persisted && status == IssueStatus.NEW) {
+            recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created",
+                    reporter, reportedDate);
+        }
     }
 
     private Issue(
@@ -98,16 +102,16 @@ public class Issue {
         return new Issue(issueId, title, description, priority, reporter, reportedDate);
     }
 
+    public static Issue create(PersistedState state) {
+        return new Issue(state, false);
+    }
+
     public static PersistedState persistedState(long projectId, String title, String description, User reporter) {
         return new PersistedState(projectId, title, description, reporter);
     }
 
     public static Issue fromPersistence(PersistedState state) {
         return new Issue(state);
-    }
-
-    public static Issue newForPersistence(PersistedState state) {
-        return new Issue(state, false);
     }
 
     // --- getters ---
@@ -565,7 +569,6 @@ public class Issue {
     private static boolean sameUser(User first, User second) {
         return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
     }
-
 
     private void rejectSelfDependency(Issue blockingIssue) {
         if (Objects.equals(blockingIssue.getIssueId(), issueId)) {
