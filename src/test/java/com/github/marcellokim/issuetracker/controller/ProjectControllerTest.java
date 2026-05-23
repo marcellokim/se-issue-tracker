@@ -231,7 +231,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    @DisplayName("participant add rejects another PL when existing PL is inactive")
+    @DisplayName("participant add rejects another PL even when the existing PL is inactive")
     void participantAddRejectsSecondProjectLeadEvenWhenExistingLeadIsInactive() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User inactivePl = inactive("pl1", Role.PL);

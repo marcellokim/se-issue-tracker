@@ -5,6 +5,7 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.User;
 
 public record IssueResult(
+        long id,
         String issueId,
         IssueStatus status,
         Priority priority,

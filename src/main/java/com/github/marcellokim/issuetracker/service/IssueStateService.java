@@ -130,6 +130,7 @@ public final class IssueStateService {
 
     private static IssueStateResult toResult(Issue issue) {
         return new IssueStateResult(
+                issue.id(),
                 issue.getIssueId(),
                 issue.status(),
                 issue.getAssignee(),

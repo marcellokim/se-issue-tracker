@@ -178,8 +178,10 @@ class IssueServiceTest {
         DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
 
         assertNotNull(result.dependencyId());
-        assertEquals("ISSUE-1", result.blockingIssueId());
-        assertEquals("ISSUE-2", result.blockedIssueId());
+        assertEquals(1L, result.blockingIssueId());
+        assertEquals("ISSUE-1", result.blockingIssueKey());
+        assertEquals(2L, result.blockedIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueKey());
         assertNotNull(result.discoveredDate());
     }
 
@@ -306,8 +308,10 @@ class IssueServiceTest {
 
         DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
 
-        assertEquals("ISSUE-1", result.blockingIssueId());
-        assertEquals("ISSUE-2", result.blockedIssueId());
+        assertEquals(1L, result.blockingIssueId());
+        assertEquals("ISSUE-1", result.blockingIssueKey());
+        assertEquals(2L, result.blockedIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueKey());
         assertEquals(ActionType.DEPENDENCY_CHANGED, blockedIssue.getHistories().getLast().actionType());
         assertEquals(0, blockingIssue.getHistories().size());
     }

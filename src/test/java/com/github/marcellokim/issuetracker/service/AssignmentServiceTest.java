@@ -147,6 +147,48 @@ class AssignmentServiceTest {
                         otherProjectPl.getLoginId()));
     }
 
+    @Test
+    @DisplayName("assignee must be active DEV member of the issue project")
+    void rejectAssigneeFromOtherProjectAssignment() {
+        var users = projectMemberUsers();
+        var service = service(new InMemoryIssueRepository(newIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.assignIssue(ISSUE_ID, anotherAssignee.getLoginId(), verifier.getLoginId(),
+                        pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("verifier must be active TESTER member of the issue project")
+    void rejectVerifierFromOtherProjectAssignment() {
+        var users = projectMemberUsers();
+        var service = service(new InMemoryIssueRepository(newIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.assignIssue(ISSUE_ID, assignee.getLoginId(), anotherVerifier.getLoginId(),
+                        pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("reassignment target must be active DEV member of the issue project")
+    void rejectReassignmentToDevFromOtherProject() {
+        var users = projectMemberUsers();
+        var service = service(new InMemoryIssueRepository(assignedIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.reassignIssue(ISSUE_ID, anotherAssignee.getLoginId(), pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("new verifier must be active TESTER member of the issue project")
+    void rejectVerifierChangeToTesterFromOtherProject() {
+        var users = projectMemberUsers();
+        var service = service(new InMemoryIssueRepository(fixedIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeVerifier(ISSUE_ID, anotherVerifier.getLoginId(), pl.getLoginId()));
+    }
+
     private AssignmentService service(Issue issue) {
         return service(new InMemoryIssueRepository(issue));
     }
@@ -164,6 +206,18 @@ class AssignmentServiceTest {
                 new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository()),
                 new Clock()
         );
+    }
+
+    private InMemoryUserRepository projectMemberUsers() {
+        return new InMemoryUserRepository(
+                reporter,
+                assignee,
+                verifier,
+                pl,
+                otherProjectPl,
+                anotherAssignee,
+                anotherVerifier)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId(), verifier.getLoginId());
     }
 
     private Issue newIssue() {

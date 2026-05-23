@@ -84,8 +84,10 @@ class IssueControllerTest {
         DependencyResult result = controller.addDependency(1L, 2L);
 
         assertNotNull(result.dependencyId());
-        assertEquals("ISSUE-1", result.blockingIssueId());
-        assertEquals("ISSUE-2", result.blockedIssueId());
+        assertEquals(1L, result.blockingIssueId());
+        assertEquals("ISSUE-1", result.blockingIssueKey());
+        assertEquals(2L, result.blockedIssueId());
+        assertEquals("ISSUE-2", result.blockedIssueKey());
     }
 
     @Test

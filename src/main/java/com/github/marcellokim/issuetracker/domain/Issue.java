@@ -566,7 +566,6 @@ public class Issue {
         return first != null && second != null && Objects.equals(first.getLoginId(), second.getLoginId());
     }
 
-
     private void rejectSelfDependency(Issue blockingIssue) {
         if (Objects.equals(blockingIssue.getIssueId(), issueId)) {
             throw new IllegalArgumentException("Issue cannot depend on itself");

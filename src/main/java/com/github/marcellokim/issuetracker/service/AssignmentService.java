@@ -45,6 +45,16 @@ public final class AssignmentService {
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         User verifier = findUser(verifierId);
+        requireActiveProjectMemberWithRole(
+                assignee,
+                issue.projectId(),
+                Role.DEV,
+                "Assignee must be an active DEV member of the issue project.");
+        requireActiveProjectMemberWithRole(
+                verifier,
+                issue.projectId(),
+                Role.TESTER,
+                "Verifier must be an active TESTER member of the issue project.");
         if (issue.status() == IssueStatus.NEW) {
             issue.assignFromNew(assignee, verifier, actor, now());
         } else if (issue.status() == IssueStatus.REOPENED) {
@@ -61,6 +71,11 @@ public final class AssignmentService {
         User actor = findUser(currentUserId);
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
+        requireActiveProjectMemberWithRole(
+                assignee,
+                issue.projectId(),
+                Role.DEV,
+                "Assignee must be an active DEV member of the issue project.");
         issue.reassignAssignee(assignee, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -71,6 +86,11 @@ public final class AssignmentService {
         User actor = findUser(currentUserId);
         assertCanManageAssignment(actor, issue);
         User verifier = findUser(verifierId);
+        requireActiveProjectMemberWithRole(
+                verifier,
+                issue.projectId(),
+                Role.TESTER,
+                "Verifier must be an active TESTER member of the issue project.");
         issue.changeVerifier(verifier, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -98,6 +118,14 @@ public final class AssignmentService {
         }
     }
 
+    private void requireActiveProjectMemberWithRole(User candidate, long projectId, Role role, String message) {
+        boolean projectMember = userRepository.findActiveByRole(projectId, role).stream()
+                .anyMatch(user -> user.getLoginId().equals(candidate.getLoginId()));
+        if (!projectMember) {
+            throw new SecurityException(message);
+        }
+    }
+
     private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
@@ -113,6 +141,11 @@ public final class AssignmentService {
     }
 
     private static AssignmentResult toResult(Issue issue) {
-        return new AssignmentResult(issue.getIssueId(), issue.status(), issue.getAssignee(), issue.getVerifier());
+        return new AssignmentResult(
+                issue.id(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.getAssignee(),
+                issue.getVerifier());
     }
 }
