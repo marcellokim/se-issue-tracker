@@ -119,7 +119,7 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue);
         DeletedIssueController controller = new DeletedIssueController(
                 auth.service(),
-                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), new Clock()));
 
         List<Issue> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
         Issue softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
@@ -141,19 +141,19 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(101L, PROJECT_ID, IssueStatus.NEW));
         DeletedIssueController anonymousController = new DeletedIssueController(
                 anonymousAuth(),
-                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
-                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
         SecurityException adminFailure =
                 assertThrows(SecurityException.class, () -> adminController.deleteIssue(101L, "admin cannot delete"));
         assertEquals("Only PL can manage deleted issues.", adminFailure.getMessage());
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
-                new DeletedIssueService(issues, new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
 

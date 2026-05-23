@@ -41,6 +41,7 @@ class IssueServiceTest {
     private final User dev = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, now, now);
     private final User tester = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, now, now);
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, now, now);
+    private final User otherProjectPl = User.fromPersistence("pl2", "PL Two", "hash", Role.PL, true, now, now);
     private final User admin = User.fromPersistence("admin", "Admin", "hash", Role.ADMIN, true, now, now);
     private final User inactiveDev = User.fromPersistence("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
     private final Project project = Project.fromPersistence(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
@@ -262,6 +263,20 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("PL must belong to the blocked issue project to manage dependencies")
+    void addDependencyRejectsPlFromOtherProject() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var users = new InMemoryUserRepository(dev, tester, pl, otherProjectPl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId());
+        var service = service(new InMemoryIssueRepository(issueA, issueB), new FakeIssueDependencyRepository(),
+                new FakeCommentRepository(), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.addDependency(1L, 2L, otherProjectPl.getLoginId()));
+    }
+
+    @Test
     @DisplayName("deletes writer-owned general comment and records comment history")
     void deleteCommentSucceeds() {
         var issue = persistedIssue();
@@ -328,12 +343,22 @@ class IssueServiceTest {
     }
 
     private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies, FakeCommentRepository comments) {
+        return service(issues, dependencies, comments,
+                new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
+    }
+
+    private IssueService service(
+            InMemoryIssueRepository issues,
+            FakeIssueDependencyRepository dependencies,
+            FakeCommentRepository comments,
+            InMemoryUserRepository users
+    ) {
         return new IssueService(
                 new FakeProjectRepository(project),
                 issues,
                 dependencies,
                 comments,
-                new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev),
+                users,
                 new PermissionPolicy(),
                 new Clock()
         );

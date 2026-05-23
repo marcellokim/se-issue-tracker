@@ -4,6 +4,7 @@ import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
@@ -75,6 +76,7 @@ public final class IssueStateService {
 
     private void close(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED);
+        requireProjectLead(actor, issue.projectId(), "Only the project PL can close or reopen issues.");
         LocalDateTime changedAt = now();
         issue.close(actor, comment, changedAt);
         issue.addComment(
@@ -105,6 +107,14 @@ public final class IssueStateService {
     private User findUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    private void requireProjectLead(User actor, long projectId, String message) {
+        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectLead) {
+            throw new SecurityException(message);
+        }
     }
 
     private LocalDateTime now() {

@@ -3,6 +3,7 @@ package com.github.marcellokim.issuetracker.service;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -41,9 +42,9 @@ public final class AssignmentService {
     public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         User verifier = findUser(verifierId);
-        permissionPolicy.assertCanAssignIssue(actor, issue);
         if (issue.status() == IssueStatus.NEW) {
             issue.assignFromNew(assignee, verifier, actor, now());
         } else if (issue.status() == IssueStatus.REOPENED) {
@@ -58,8 +59,8 @@ public final class AssignmentService {
     public AssignmentResult reassignIssue(long issueId, String assigneeId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
-        permissionPolicy.assertCanAssignIssue(actor, issue);
         issue.reassignAssignee(assignee, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -68,8 +69,8 @@ public final class AssignmentService {
     public AssignmentResult changeVerifier(long issueId, String verifierId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        assertCanManageAssignment(actor, issue);
         User verifier = findUser(verifierId);
-        permissionPolicy.assertCanAssignIssue(actor, issue);
         issue.changeVerifier(verifier, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -77,8 +78,23 @@ public final class AssignmentService {
 
     private void assertCanStartAssignment(User actor, Issue issue) {
         switch (issue.status()) {
-            case NEW, REOPENED, ASSIGNED, FIXED -> permissionPolicy.assertCanAssignIssue(actor, issue);
+            case NEW, REOPENED, ASSIGNED, FIXED -> {
+                assertCanManageAssignment(actor, issue);
+            }
             default -> throw new IllegalStateException("Issue status does not allow assignment updates");
+        }
+    }
+
+    private void assertCanManageAssignment(User actor, Issue issue) {
+        permissionPolicy.assertCanAssignIssue(actor, issue);
+        requireProjectLead(actor, issue.projectId(), "Only the project PL can assign issue owners.");
+    }
+
+    private void requireProjectLead(User actor, long projectId, String message) {
+        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectLead) {
+            throw new SecurityException(message);
         }
     }
 

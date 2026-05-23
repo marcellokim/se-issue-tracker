@@ -6,6 +6,7 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
@@ -77,6 +78,10 @@ public final class IssueService {
         Issue blockedIssue = findIssue(blockedIssueId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
+        requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
+        if (blockingIssue.projectId() != blockedIssue.projectId()) {
+            requireProjectLead(actor, blockingIssue.projectId(), "Only the project PL can manage dependencies.");
+        }
         validateDependency(blockingIssueId, blockedIssueId);
         LocalDateTime now = now();
         String dependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
@@ -92,6 +97,7 @@ public final class IssueService {
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
+        requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         blockedIssue.removeDependency(dependency, actor, now());
         dependencyRepository.deleteById(dependencyId);
         issueRepository.save(blockedIssue);
@@ -128,6 +134,14 @@ public final class IssueService {
     private User findUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    private void requireProjectLead(User actor, long projectId, String message) {
+        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectLead) {
+            throw new SecurityException(message);
+        }
     }
 
     private void validateDependency(long blockingIssueId, long blockedIssueId) {
