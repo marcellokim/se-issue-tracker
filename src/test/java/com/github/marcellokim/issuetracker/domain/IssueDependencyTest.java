@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -134,6 +135,21 @@ class IssueDependencyTest {
         assertEquals("DEP-10-20", dependency.getDependencyId());
         assertEquals(10L, dependency.blockingIssueId());
         assertEquals(20L, dependency.blockedIssueId());
+    }
+
+    @Test
+    @DisplayName("dependency equality uses dependency id")
+    void dependencyEqualityUsesDependencyId() {
+        var dependency = IssueDependency.fromPersistence(8L, "DEP-10-20", 10L, 20L, createdAt);
+        var equalDependency = IssueDependency.fromPersistence(9L, "DEP-10-20", 30L, 40L, createdAt.plusDays(1));
+        var differentDependency = IssueDependency.fromPersistence(10L, "DEP-20-30", 10L, 20L, createdAt);
+        Object sameReference = dependency;
+
+        assertTrue(dependency.equals(sameReference));
+        assertEquals(dependency, equalDependency);
+        assertEquals(dependency.hashCode(), equalDependency.hashCode());
+        assertNotEquals(dependency, differentDependency);
+        assertNotEquals(dependency, "DEP-10-20");
     }
 
     @Test

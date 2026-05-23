@@ -27,15 +27,15 @@ public final class DatabaseInitializer {
             "comments",
             "issue_history",
             "issue_dependencies");
-    private static final List<String> ORACLE_DROP_ORDER = List.of(
-            "issue_dependencies",
-            "issue_history",
-            "comments",
-            "issues",
-            "project_members",
-            "projects",
-            "user_credentials",
-            "users");
+    private static final List<String> ORACLE_DROP_STATEMENTS = List.of(
+            "drop table issue_dependencies cascade constraints purge",
+            "drop table issue_history cascade constraints purge",
+            "drop table comments cascade constraints purge",
+            "drop table issues cascade constraints purge",
+            "drop table project_members cascade constraints purge",
+            "drop table projects cascade constraints purge",
+            "drop table user_credentials cascade constraints purge",
+            "drop table users cascade constraints purge");
     private static final String ORACLE_SCHEMA_SCRIPT = "db/oracle/schema-oracle.sql";
     private static final String ORACLE_SEED_SCRIPT = "db/oracle/seed-oracle.sql";
     private static final String RESET_FIXED_SEED_ARGUMENT = "--reset-fixed-seed";
@@ -163,9 +163,9 @@ public final class DatabaseInitializer {
 
     private static void dropSchemaObjects(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            for (String tableName : ORACLE_DROP_ORDER) {
+            for (String dropStatement : ORACLE_DROP_STATEMENTS) {
                 try {
-                    statement.executeUpdate("drop table " + tableName + " cascade constraints purge");
+                    statement.executeUpdate(dropStatement);
                 } catch (SQLException exception) {
                     if (exception.getErrorCode() != 942) {
                         throw exception;
