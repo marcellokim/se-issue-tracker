@@ -656,15 +656,24 @@ class OracleRepositoryIntegrationTest {
         Issue blocked = createIssue(project.getId(), uniqueId("crud_blocked_issue"));
 
         try {
-            IssueDependency dependency = repositories.issueDependencies().save(IssueDependency.fromPersistence(
-                    0L,
-                    blocking.id(),
-                    blocked.id(),
-                    LocalDateTime.now()));
+            User projectLead = repositories.users().findById("pl1").orElseThrow();
+            IssueDependency newDependency = blocked.addDependency(
+                    IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                    blocking,
+                    projectLead,
+                    LocalDateTime.now());
+            IssueDependency dependency = repositories.issueDependencies().saveAndRecordIssueChange(newDependency,
+                    blocked);
 
             assertEquals(dependency.id(),
                     repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
+            assertEquals(dependency.id(),
+                    repositories.issueDependencies().findByDependencyId(dependency.getDependencyId()).orElseThrow()
+                            .id());
             assertEquals(IssueDependency.dependencyIdFor(blocking.id(), blocked.id()), dependency.getDependencyId());
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependency.getDependencyId().equals(history.newValue())));
             assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
             assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
                     .anyMatch(value -> value.id() == dependency.id()));
@@ -673,23 +682,65 @@ class OracleRepositoryIntegrationTest {
             assertTrue(repositories.issueDependencies().findByBlockedIssueId(blocked.id()).stream()
                     .anyMatch(value -> value.id() == dependency.id()));
             assertThrows(RepositoryException.class,
-                    () -> repositories.issueDependencies().save(IssueDependency.fromPersistence(
-                            0L,
-                            blocking.id(),
-                            blocked.id(),
-                            LocalDateTime.now())));
+                    () -> repositories.issueDependencies().saveAndRecordIssueChange(
+                            IssueDependency.fromPersistence(
+                                    0L,
+                                    blocking.id(),
+                                    blocked.id(),
+                                    LocalDateTime.now()),
+                            blocked));
 
-            repositories.issueDependencies().deleteById(dependency.id());
+            LocalDateTime previousUpdatedAt = repositories.issues().findById(blocked.id()).orElseThrow().updatedAt();
+            Issue blockedForRemoval = repositories.issues().findById(blocked.id()).orElseThrow();
+            blockedForRemoval.removeDependency(dependency, projectLead, previousUpdatedAt.plusSeconds(1));
+            repositories.issueDependencies().deleteByDependencyIdAndRecordIssueChange(
+                    dependency.getDependencyId(), blockedForRemoval);
             assertFalse(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
+            assertTrue(repositories.issueDependencies().findByDependencyId(dependency.getDependencyId()).isEmpty());
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependency.getDependencyId().equals(history.previousValue())
+                            && history.newValue() == null));
+            assertTrue(
+                    repositories.issues().findById(blocked.id()).orElseThrow().updatedAt().isAfter(previousUpdatedAt));
 
-            IssueDependency secondDependency = repositories.issueDependencies().save(IssueDependency.fromPersistence(
-                    0L,
-                    blocking.id(),
-                    blocked.id(),
-                    LocalDateTime.now()));
-            repositories.issueDependencies().deleteByIssueId(blocking.id());
+        } finally {
+            repositories.issues().purge(blocked.id());
+            repositories.issues().purge(blocking.id());
+        }
+    }
 
-            assertTrue(repositories.issueDependencies().findById(secondDependency.id()).isEmpty());
+    @Test
+    @DisplayName("IssueDependency repository deletes by dependency id")
+    void issueDependencyRepositoryDeletesByDependencyId() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue blocking = createIssue(project.getId(), uniqueId("dependency_id_delete_blocking"));
+        Issue blocked = createIssue(project.getId(), uniqueId("dependency_id_delete_blocked"));
+
+        try {
+            User projectLead = repositories.users().findById("pl1").orElseThrow();
+            IssueDependency dependency = repositories.issueDependencies().saveAndRecordIssueChange(
+                    blocked.addDependency(
+                            IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                            blocking,
+                            projectLead,
+                            LocalDateTime.now()),
+                    blocked);
+            String dependencyId = dependency.getDependencyId();
+            LocalDateTime previousUpdatedAt = repositories.issues().findById(blocked.id()).orElseThrow().updatedAt();
+
+            Issue blockedForRemoval = repositories.issues().findById(blocked.id()).orElseThrow();
+            blockedForRemoval.removeDependency(dependency, projectLead, previousUpdatedAt.plusSeconds(1));
+            repositories.issueDependencies().deleteByDependencyIdAndRecordIssueChange(dependencyId, blockedForRemoval);
+
+            assertTrue(repositories.issueDependencies().findByDependencyId(dependencyId).isEmpty());
+            assertFalse(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependencyId.equals(history.previousValue())
+                            && history.newValue() == null));
+            assertTrue(
+                    repositories.issues().findById(blocked.id()).orElseThrow().updatedAt().isAfter(previousUpdatedAt));
         } finally {
             repositories.issues().purge(blocked.id());
             repositories.issues().purge(blocking.id());

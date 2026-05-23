@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.support;
 
+import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import java.util.LinkedHashMap;
@@ -15,6 +16,13 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     @Override
     public Optional<IssueDependency> findById(long dependencyId) {
         return Optional.ofNullable(dependencies.get(dependencyId));
+    }
+
+    @Override
+    public Optional<IssueDependency> findByDependencyId(String dependencyId) {
+        return dependencies.values().stream()
+                .filter(dependency -> dependency.getDependencyId().equals(dependencyId))
+                .findFirst();
     }
 
     @Override
@@ -44,8 +52,7 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
                 .anyMatch(d -> d.blockingIssueId() == blockingIssueId && d.blockedIssueId() == blockedIssueId);
     }
 
-    @Override
-    public IssueDependency save(IssueDependency dependency) {
+    public IssueDependency addFixture(IssueDependency dependency) {
         long id = dependency.id() == 0L ? nextId++ : dependency.id();
         var persisted = IssueDependency.fromPersistence(
                 id, dependency.getDependencyId(),
@@ -56,13 +63,17 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public void deleteById(long dependencyId) {
-        dependencies.remove(dependencyId);
+    public IssueDependency saveAndRecordIssueChange(IssueDependency dependency, Issue issue) {
+        return addFixture(dependency);
     }
 
     @Override
-    public void deleteByIssueId(long issueId) {
-        dependencies.entrySet().removeIf(
-                e -> e.getValue().blockingIssueId() == issueId || e.getValue().blockedIssueId() == issueId);
+    public void deleteByDependencyIdAndRecordIssueChange(String dependencyId, Issue issue) {
+        IssueDependency dependency = findByDependencyId(dependencyId)
+                .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
+        if (!dependencies.containsKey(dependency.id())) {
+            throw new IllegalArgumentException("Dependency not found: " + dependencyId);
+        }
+        dependencies.remove(dependency.id());
     }
 }

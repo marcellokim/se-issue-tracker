@@ -337,6 +337,7 @@ public class Issue {
         var dependency = IssueDependency.create(dependencyId, blockingIssue, this, discoveredDate);
         blockedByDependencies.add(dependency);
         blockingIssue.blockingDependencies.add(dependency);
+        updatedAt = discoveredDate;
         recordHistory(
                 ActionType.DEPENDENCY_CHANGED,
                 null,
@@ -351,13 +352,15 @@ public class Issue {
         Objects.requireNonNull(dependency, "dependency must not be null");
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
-        if (!blockedByDependencies.remove(dependency)) {
+        boolean removed = blockedByDependencies.remove(dependency);
+        if (!removed && (id <= 0L || dependency.blockedIssueId() != id)) {
             throw new IllegalArgumentException("Dependency not found in this issue");
         }
         Issue blockingIssue = dependency.getBlockingIssue();
         if (blockingIssue != null) {
             blockingIssue.blockingDependencies.remove(dependency);
         }
+        updatedAt = changedDate;
         recordHistory(
                 ActionType.DEPENDENCY_CHANGED,
                 dependency.getDependencyId(),

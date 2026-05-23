@@ -247,7 +247,15 @@ class IssueServiceTest {
 
         DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
 
-        service.removeDependency(result.id(), pl.getLoginId());
+        service.removeDependency(result.dependencyId(), pl.getLoginId());
+
+        assertFalse(deps.findById(result.id()).isPresent());
+        assertFalse(deps.findByDependencyId(result.dependencyId()).isPresent());
+        var history = issueB.getHistories().getLast();
+        assertEquals(ActionType.DEPENDENCY_CHANGED, history.actionType());
+        assertEquals(result.dependencyId(), history.previousValue());
+        assertNull(history.newValue());
+        assertEquals("Dependency removed", history.message());
     }
 
     @Test
@@ -256,7 +264,7 @@ class IssueServiceTest {
         var service = service(new InMemoryIssueRepository());
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.removeDependency(999L, pl.getLoginId()));
+                () -> service.removeDependency("missing-dependency-id", pl.getLoginId()));
     }
 
     @Test

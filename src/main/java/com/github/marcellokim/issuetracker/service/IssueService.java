@@ -83,21 +83,19 @@ public final class IssueService {
         LocalDateTime now = now();
         String dependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
         IssueDependency dependency = blockedIssue.addDependency(dependencyId, blockingIssue, actor, now);
-        IssueDependency saved = dependencyRepository.save(dependency);
-        issueRepository.save(blockedIssue);
+        IssueDependency saved = dependencyRepository.saveAndRecordIssueChange(dependency, blockedIssue);
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
-    public void removeDependency(long dependencyId, String currentUserId) {
-        IssueDependency dependency = dependencyRepository.findById(dependencyId)
+    public void removeDependency(String dependencyId, String currentUserId) {
+        IssueDependency dependency = dependencyRepository.findByDependencyId(dependencyId)
                 .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         blockedIssue.removeDependency(dependency, actor, now());
-        dependencyRepository.deleteById(dependencyId);
-        issueRepository.save(blockedIssue);
+        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(dependencyId, blockedIssue);
     }
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {

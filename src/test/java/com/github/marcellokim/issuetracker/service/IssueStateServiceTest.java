@@ -171,7 +171,7 @@ class IssueStateServiceTest {
         var blockedIssue = fixedIssue();
         var blockingIssue = newIssue(2L, "ISSUE-2");
         var depRepo = new FakeIssueDependencyRepository();
-        depRepo.save(IssueDependency.fromPersistence(1L, blockingIssue.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(IssueDependency.fromPersistence(1L, blockingIssue.id(), blockedIssue.id(), createdAt()));
         var service = service(depRepo, blockedIssue, blockingIssue);
 
         var exception = assertThrows(IllegalStateException.class,
@@ -186,8 +186,8 @@ class IssueStateServiceTest {
         var resolvedBlocking = resolvedIssue(2L, "ISSUE-2");
         var unresolvedBlocking = newIssue(3L, "ISSUE-3");
         var depRepo = new FakeIssueDependencyRepository();
-        depRepo.save(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
-        depRepo.save(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
         var service = service(depRepo, blockedIssue, resolvedBlocking, unresolvedBlocking);
 
         var exception = assertThrows(IllegalStateException.class,
