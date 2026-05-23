@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public record DashboardProjectSummary(
+        long projectId,
         String projectName,
         int memberCount,
         int projectLeaderCount,
@@ -16,6 +17,9 @@ public record DashboardProjectSummary(
 ) {
 
     public DashboardProjectSummary {
+        if (projectId <= 0L) {
+            throw new IllegalArgumentException("projectId must be positive");
+        }
         if (projectName == null || projectName.isBlank()) {
             throw new IllegalArgumentException("projectName must not be blank");
         }

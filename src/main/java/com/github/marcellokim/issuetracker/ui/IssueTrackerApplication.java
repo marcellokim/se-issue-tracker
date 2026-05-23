@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.ui;
 
 import com.github.marcellokim.issuetracker.config.ApplicationContext;
-import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -17,7 +16,7 @@ public final class IssueTrackerApplication extends Application {
         LoginView loginView = new LoginView();
         initializeLoginFlow(loginView);
 
-        Scene scene = new Scene(loginView.root(), 620, 520);
+        Scene scene = new Scene(loginView.root(), 1240, 1040);
         stage.setTitle("ITS Login");
         stage.setScene(scene);
         stage.show();
@@ -26,7 +25,7 @@ public final class IssueTrackerApplication extends Application {
     private static void initializeLoginFlow(LoginView loginView) {
         try {
             ApplicationContext context = ApplicationContext.fromEnvironment();
-            bindLoginAction(loginView, context.authenticationService(), context.dashboardPresenter());
+            bindControllers(loginView, context);
             loginView.setStatus("Oracle repository ready.");
         } catch (Exception exception) {
             loginView.setLoginEnabled(false);
@@ -35,18 +34,17 @@ public final class IssueTrackerApplication extends Application {
         }
     }
 
-    private static void bindLoginAction(
+    private static void bindControllers(
             LoginView loginView,
-            AuthenticationService authenticationService,
-            DemoDashboardPresenter dashboardPresenter
-    ) {
-        loginView.loginButton().setOnAction(event -> {
-            var result = authenticationService.login(loginView.loginId(), loginView.password());
-            if (result.success()) {
-                loginView.showSuccess(result.message(), dashboardPresenter.buildSummary(result.user()));
-            } else {
-                loginView.showFailure(result.message());
-            }
-        });
+            ApplicationContext context) {
+        loginView.bindControllers(
+                context.authenticationController(),
+                context.dashboardController(),
+                context.projectController(),
+                context.issueController(),
+                context.assignmentController(),
+                context.issueStateController(),
+                context.deletedIssueController(),
+                context.statisticsController());
     }
 }

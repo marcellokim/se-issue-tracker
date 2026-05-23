@@ -63,6 +63,25 @@ public final class IssueService {
         return toIssueResult(saved);
     }
 
+    public IssueResult updateIssue(long issueId, String title, String description, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanAddComment(actor, issue);
+        issue.updateTitleAndDescription(title, description, actor, now());
+        Issue saved = issueRepository.save(issue);
+        return toIssueResult(saved);
+    }
+
+    public IssueResult changePriority(long issueId, Priority priority, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanChangePriority(actor, issue, priority);
+        requireProjectLead(actor, issue.projectId(), "Only the project PL can change issue priority.");
+        issue.changePriority(priority, actor, now());
+        Issue saved = issueRepository.save(issue);
+        return toIssueResult(saved);
+    }
+
     public CommentResult addComment(long issueId, String content, String currentUserId) {
         Issue issue = findIssue(issueId);
         User writer = findUser(currentUserId);
@@ -109,6 +128,18 @@ public final class IssueService {
         issue.recordCommentDeletion(comment, currentUser, now());
         issueRepository.save(issue);
         commentRepository.deleteGeneralById(issue.id(), comment.id(), currentUser.getLoginId());
+    }
+
+    public CommentResult updateComment(long issueId, long commentId, String content, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        Comment comment = findComment(commentId);
+        User currentUser = findUser(currentUserId);
+        requireCommentBelongsToIssue(comment, issue);
+        requireCommentWriter(comment, currentUser);
+
+        comment.changeContent(content, now());
+        Comment saved = commentRepository.save(comment);
+        return toCommentResult(saved);
     }
 
     private Project findProject(long projectId) {

@@ -1,14 +1,30 @@
 package com.github.marcellokim.issuetracker.config;
 
+import com.github.marcellokim.issuetracker.controller.AssignmentController;
+import com.github.marcellokim.issuetracker.controller.AuthenticationController;
+import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
+import com.github.marcellokim.issuetracker.controller.IssueController;
+import com.github.marcellokim.issuetracker.controller.IssueStateController;
+import com.github.marcellokim.issuetracker.controller.ProjectController;
+import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.persistence.DatabaseEnvironment;
 import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
+import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
+import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
+import com.github.marcellokim.issuetracker.service.DeletedIssueService;
+import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
+import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
-import com.github.marcellokim.issuetracker.ui.DemoDashboardPresenter;
+import com.github.marcellokim.issuetracker.service.StatisticsService;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -45,13 +61,62 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
 
     public ApplicationContext startUiContext() throws IOException, SQLException {
         var repositories = context().repositories();
+        var users = repositories.users();
+        var projects = repositories.projects();
+        var issues = repositories.issues();
+        var comments = repositories.comments();
+        var issueDependencies = repositories.issueDependencies();
+        var statistics = repositories.statistics();
+        var assignmentRecommendations = repositories.assignmentRecommendations();
+        PermissionPolicy permissionPolicy = new PermissionPolicy();
+        Clock clock = new Clock();
+        AuthenticationService authenticationService = new AuthenticationService(users);
+        IssueService issueService = new IssueService(
+                projects,
+                issues,
+                issueDependencies,
+                comments,
+                users,
+                permissionPolicy,
+                clock);
+        AssignmentService assignmentService = new AssignmentService(
+                issues,
+                users,
+                permissionPolicy,
+                new AssignmentRecommendationService(assignmentRecommendations),
+                clock);
+        IssueStateService issueStateService = new IssueStateService(
+                issues,
+                issueDependencies,
+                users,
+                permissionPolicy,
+                clock);
+        DeletedIssueService deletedIssueService = new DeletedIssueService(
+                issues,
+                users,
+                permissionPolicy,
+                clock);
+        ProjectService projectService = ProjectService.create(
+                projects,
+                issues,
+                users,
+                permissionPolicy,
+                clock);
+        StatisticsService statisticsService = new StatisticsService(permissionPolicy, statistics);
+        DashboardSummaryService dashboardSummaryService = new DashboardSummaryService(
+                projects,
+                issues,
+                statistics,
+                users);
         return new ApplicationContext(
-                new AuthenticationService(repositories.users()),
-                new DemoDashboardPresenter(new DashboardSummaryService(
-                        repositories.projects(),
-                        repositories.issues(),
-                        repositories.statistics(),
-                        repositories.users())));
+                new AuthenticationController(authenticationService),
+                new DashboardController(authenticationService, dashboardSummaryService),
+                ProjectController.create(authenticationService, projectService),
+                new IssueController(authenticationService, issueService),
+                new AssignmentController(authenticationService, assignmentService),
+                new IssueStateController(authenticationService, issueStateService),
+                new DeletedIssueController(authenticationService, deletedIssueService),
+                new StatisticsController(authenticationService, statisticsService));
     }
 
     private synchronized RepositoryContext context() throws IOException, SQLException {

@@ -1,17 +1,20 @@
 package com.github.marcellokim.issuetracker.ui;
 
+import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
+import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class DemoDashboardPresenter {
 
-    private final DashboardSummaryService dashboardSummaryService;
+    private final DashboardController dashboardController;
 
-    public DemoDashboardPresenter(DashboardSummaryService dashboardSummaryService) {
-        this.dashboardSummaryService = Objects.requireNonNull(dashboardSummaryService, "dashboardSummaryService");
+    public DemoDashboardPresenter(DashboardController dashboardController) {
+        this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
     }
 
     public String buildSummary(User user) {
@@ -24,7 +27,9 @@ public final class DemoDashboardPresenter {
                 .append(System.lineSeparator())
                 .append(System.lineSeparator());
 
-        for (var project : dashboardSummaryService.projectSummaries()) {
+        summary.append("Projects").append(System.lineSeparator());
+        summary.append("========").append(System.lineSeparator());
+        for (var project : dashboardController.viewProjects()) {
             String statusText = project.statusCounts().entrySet().stream()
                     .sorted(java.util.Map.Entry.comparingByKey())
                     .map(entry -> entry.getKey() + "=" + entry.getValue())
@@ -44,6 +49,33 @@ public final class DemoDashboardPresenter {
                     .append(System.lineSeparator());
         }
 
+        if (user.getRole() == com.github.marcellokim.issuetracker.domain.Role.ADMIN) {
+            summary.append("Users").append(System.lineSeparator());
+            summary.append("=====").append(System.lineSeparator());
+            for (var account : dashboardController.viewUsers()) {
+                summary.append(account.getLoginId())
+                        .append(" / ")
+                        .append(account.getName())
+                        .append(" / ")
+                        .append(account.getRole())
+                        .append(" / ")
+                        .append(account.isActive() ? "ACTIVE" : "INACTIVE")
+                        .append(System.lineSeparator());
+            }
+        }
+
         return summary.toString();
+    }
+
+    public List<Issue> relatedIssues() {
+        return dashboardController.viewRelatedIssues();
+    }
+
+    public List<DashboardProjectSummary> projectSummaries() {
+        return dashboardController.viewProjects();
+    }
+
+    public List<User> users() {
+        return dashboardController.viewUsers();
     }
 }

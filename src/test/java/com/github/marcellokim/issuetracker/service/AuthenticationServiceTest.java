@@ -91,6 +91,21 @@ class AuthenticationServiceTest {
     }
 
     @Test
+    @DisplayName("logout clears authenticated current user")
+    void logoutClearsCurrentUser() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of(
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
+        )));
+
+        assertTrue(service.login("admin", ADMIN_PASSWORD).success());
+        assertTrue(service.currentUser().isPresent());
+
+        service.logout();
+
+        assertFalse(service.currentUser().isPresent());
+    }
+
+    @Test
     @DisplayName("rejects unknown account")
     void loginRejectsUnknownAccount() {
         var service = new AuthenticationService(new FakeUserRepository(List.of()));

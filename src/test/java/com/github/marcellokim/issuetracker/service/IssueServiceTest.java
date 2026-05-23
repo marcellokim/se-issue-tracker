@@ -97,6 +97,53 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("reporter updates title and description before assignment")
+    void updateIssueSucceedsForReporterBeforeAssignment() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueResult result = service.updateIssue(ISSUE_ID, "Updated title", "Updated description", dev.getLoginId());
+
+        assertEquals("Updated title", result.title());
+        assertEquals("Updated description", result.description());
+        assertEquals(ActionType.TITLE_DESCRIPTION_UPDATED, issue.getHistories().getLast().actionType());
+    }
+
+    @Test
+    @DisplayName("non-reporter cannot update title and description")
+    void updateIssueRejectsNonReporter() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateIssue(ISSUE_ID, "Updated title", "Updated description", tester.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("project PL changes issue priority")
+    void changePrioritySucceedsForProjectPl() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueResult result = service.changePriority(ISSUE_ID, Priority.CRITICAL, pl.getLoginId());
+
+        assertEquals(Priority.CRITICAL, result.priority());
+        assertEquals(ActionType.PRIORITY_CHANGED, issue.getHistories().getLast().actionType());
+        assertEquals(Priority.MAJOR.name(), issue.getHistories().getLast().previousValue());
+        assertEquals(Priority.CRITICAL.name(), issue.getHistories().getLast().newValue());
+    }
+
+    @Test
+    @DisplayName("non-PL cannot change issue priority")
+    void changePriorityRejectsNonPl() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        assertThrows(SecurityException.class,
+                () -> service.changePriority(ISSUE_ID, Priority.CRITICAL, dev.getLoginId()));
+    }
+
+    @Test
     @DisplayName("adds comment to existing issue")
     void addCommentSucceeds() {
         var issue = persistedIssue();
@@ -328,6 +375,36 @@ class IssueServiceTest {
         assertNull(history.newValue());
         assertNull(history.message());
         assertEquals(dev.getLoginId(), history.changedById());
+    }
+
+    @Test
+    @DisplayName("writer updates own comment content")
+    void updateCommentSucceedsForWriter() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        CommentResult result = service.updateComment(
+                ISSUE_ID,
+                COMMENT_ID,
+                "Updated investigation note",
+                dev.getLoginId());
+
+        assertEquals("Updated investigation note", result.content());
+        assertEquals("Updated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
+        assertNotNull(result.updatedDate());
+    }
+
+    @Test
+    @DisplayName("rejects comment update by non-writer")
+    void updateCommentRejectsNonWriter() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(issue), comments);
+
+        assertThrows(SecurityException.class,
+                () -> service.updateComment(ISSUE_ID, COMMENT_ID, "Updated", tester.getLoginId()));
+        assertEquals("Outdated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
     }
 
     @Test

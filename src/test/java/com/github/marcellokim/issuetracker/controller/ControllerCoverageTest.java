@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
@@ -31,6 +32,7 @@ import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
@@ -55,6 +57,51 @@ class ControllerCoverageTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 10, 0);
     private static final long PROJECT_ID = 10L;
+
+    @Test
+    @DisplayName("authentication controller delegates login and logout")
+    void authenticationControllerDelegatesLoginAndLogout() {
+        PasswordHasher hasher = new PasswordHasher();
+        User user = User.fromPersistence("dev", "dev", hasher.hash("secret"), Role.DEV, true, NOW, NOW);
+        FakeUserRepository users = new FakeUserRepository(user);
+        AuthenticationService authService = new AuthenticationService(users, hasher, new SessionStore());
+        AuthenticationController controller = new AuthenticationController(authService);
+
+        var result = controller.login(user.getLoginId(), "secret");
+        controller.logout();
+
+        assertTrue(result.success());
+        assertEquals(Optional.empty(), authService.currentUser());
+    }
+
+    @Test
+    @DisplayName("dashboard controller reads dashboard data through service after auth")
+    void dashboardControllerDelegatesDashboardReads() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
+        FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
+        DashboardController controller = new DashboardController(
+                auth.service(),
+                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users()));
+
+        assertEquals(1, controller.viewProjects().size());
+        assertEquals(1, controller.viewRelatedIssues().size());
+        assertEquals(List.of(auth.user()), controller.viewUsers());
+    }
+
+    @Test
+    @DisplayName("dashboard controller rejects anonymous users")
+    void dashboardControllerRejectsAnonymousUsers() {
+        DashboardController controller = new DashboardController(
+                anonymousAuth(),
+                new DashboardSummaryService(
+                        new FakeProjectRepository(),
+                        new FakeIssueRepository(),
+                        new FakeStatisticsRepository(),
+                        new FakeUserRepository()));
+
+        assertThrows(SecurityException.class, controller::viewProjects);
+    }
 
     @Test
     @DisplayName("statistics controller delegates report query after auth and range validation")

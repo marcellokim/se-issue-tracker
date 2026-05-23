@@ -67,6 +67,61 @@ class DashboardSummaryServiceTest {
         assertEquals(statusCounts, summary.statusCounts());
     }
 
+    @Test
+    @DisplayName("admin dashboard includes all projects and users")
+    void adminDashboardIncludesAllProjectsAndUsers() {
+        User admin = user("admin", Role.ADMIN);
+        User dev = user("dev", Role.DEV);
+        User tester = user("tester", Role.TESTER);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Project project2 = Project.fromPersistence(2L, "project2", "Demo project", "admin", NOW, NOW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(
+                        List.of(project1, project2),
+                        Map.of(
+                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
+                        )),
+                new FakeIssueRepository(List.of(), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(admin, dev, tester)));
+
+        List<DashboardProjectSummary> summaries = service.projectSummariesFor(admin);
+
+        assertEquals(List.of("project1", "project2"), summaries.stream()
+                .map(DashboardProjectSummary::projectName)
+                .toList());
+        assertEquals(List.of(admin, dev, tester), service.usersFor(admin));
+    }
+
+    @Test
+    @DisplayName("non-admin dashboard includes only participating projects")
+    void nonAdminDashboardIncludesOnlyParticipatingProjects() {
+        User dev = user("dev", Role.DEV);
+        User tester = user("tester", Role.TESTER);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Project project2 = Project.fromPersistence(2L, "project2", "Demo project", "admin", NOW, NOW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(
+                        List.of(project1, project2),
+                        Map.of(
+                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
+                        )),
+                new FakeIssueRepository(List.of(), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(dev, tester)));
+
+        List<DashboardProjectSummary> summaries = service.projectSummariesFor(dev);
+
+        assertEquals(List.of("project1"), summaries.stream()
+                .map(DashboardProjectSummary::projectName)
+                .toList());
+        assertEquals(List.of(), service.usersFor(dev));
+    }
+
     private static User user(String loginId, Role role) {
         return User.fromPersistence(loginId, loginId, "hash", role, true, NOW, NOW);
     }
@@ -87,27 +142,35 @@ class DashboardSummaryServiceTest {
 
     private static final class FakeProjectRepository implements ProjectRepository {
 
-        private final Project project;
-        private final List<ProjectMember> members;
+        private final List<Project> projects;
+        private final Map<Long, List<ProjectMember>> membersByProjectId;
 
         private FakeProjectRepository(Project project, List<ProjectMember> members) {
-            this.project = project;
-            this.members = List.copyOf(members);
+            this(List.of(project), Map.of(project.getId(), members));
+        }
+
+        private FakeProjectRepository(List<Project> projects, Map<Long, List<ProjectMember>> membersByProjectId) {
+            this.projects = List.copyOf(projects);
+            this.membersByProjectId = Map.copyOf(membersByProjectId);
         }
 
         @Override
         public Optional<Project> findById(long projectId) {
-            return project.getId() == projectId ? Optional.of(project) : Optional.empty();
+            return projects.stream()
+                    .filter(project -> project.getId() == projectId)
+                    .findFirst();
         }
 
         @Override
         public Optional<Project> findByName(String name) {
-            return project.getName().equals(name) ? Optional.of(project) : Optional.empty();
+            return projects.stream()
+                    .filter(project -> project.getName().equals(name))
+                    .findFirst();
         }
 
         @Override
         public List<Project> findAll() {
-            return List.of(project);
+            return projects;
         }
 
         @Override
@@ -132,7 +195,7 @@ class DashboardSummaryServiceTest {
 
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
-            return project.getId() == projectId ? members : List.of();
+            return membersByProjectId.getOrDefault(projectId, List.of());
         }
     }
 

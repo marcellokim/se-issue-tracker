@@ -127,17 +127,46 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unsupported status change targets remain feature gaps")
-    void rejectUnsupportedTargetStatus() {
+    @DisplayName("verifier rejects fixed issue back to assigned")
+    void rejectFixedIssueBackToAssigned() {
         var fixed = fixedIssue();
         var fixedService = service(fixed);
-        assertThrows(UnsupportedOperationException.class,
-                () -> fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId()));
 
+        var result = fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId());
+
+        assertEquals(IssueStatus.ASSIGNED, result.status());
+        assertEquals(1, fixed.getComments().size());
+        assertEquals("Reject fix", fixed.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE, fixed.getComments().getFirst().getPurpose());
+        assertStatusChangedThenCommented(fixed);
+    }
+
+    @Test
+    @DisplayName("project PL reopens resolved issue")
+    void reopenResolvedIssue() {
         var resolved = resolvedIssue();
         var resolvedService = service(resolved);
+
+        var result = resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId());
+
+        assertEquals(IssueStatus.REOPENED, result.status());
+        assertNull(resolved.getAssignee());
+        assertNull(resolved.getVerifier());
+        assertEquals(1, resolved.getComments().size());
+        assertEquals("Needs more work", resolved.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE, resolved.getComments().getFirst().getPurpose());
+        assertStatusChangedThenCommented(resolved);
+    }
+
+    @Test
+    @DisplayName("unsupported status change target remains a feature gap")
+    void rejectUnsupportedTargetStatus() {
+        var issue = assignedIssue();
+        var service = service(issue);
+
         assertThrows(UnsupportedOperationException.class,
-                () -> resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.DELETED, "Delete through state service",
+                        pl.getLoginId()));
     }
 
     @Test

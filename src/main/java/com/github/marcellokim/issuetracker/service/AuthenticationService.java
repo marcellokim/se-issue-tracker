@@ -31,6 +31,10 @@ public final class AuthenticationService {
         return sessionStore.currentUser();
     }
 
+    public void logout() {
+        sessionStore.clear();
+    }
+
     public AuthenticationResult logIn(String loginId, String password) {
         return login(loginId, password);
     }

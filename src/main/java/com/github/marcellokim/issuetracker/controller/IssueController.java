@@ -27,6 +27,16 @@ public final class IssueController {
         return issueService.registerIssue(projectId, title, description, priority, user.getLoginId());
     }
 
+    public IssueResult updateIssue(long issueId, String title, String description) {
+        User user = requireCurrentUser();
+        return issueService.updateIssue(issueId, title, description, user.getLoginId());
+    }
+
+    public IssueResult changePriority(long issueId, Priority priority) {
+        User user = requireCurrentUser();
+        return issueService.changePriority(issueId, priority, user.getLoginId());
+    }
+
     public CommentResult addComment(long issueId, String content) {
         User user = requireCurrentUser();
         return issueService.addComment(issueId, content, user.getLoginId());
@@ -45,6 +55,11 @@ public final class IssueController {
     public void deleteComment(long issueId, long commentId) {
         User user = requireCurrentUser();
         issueService.deleteComment(issueId, commentId, user.getLoginId());
+    }
+
+    public CommentResult updateComment(long issueId, long commentId, String content) {
+        User user = requireCurrentUser();
+        return issueService.updateComment(issueId, commentId, content, user.getLoginId());
     }
 
     private User requireCurrentUser() {
