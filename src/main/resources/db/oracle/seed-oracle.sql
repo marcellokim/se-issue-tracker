@@ -514,8 +514,8 @@ begin
                 'CRITICAL',
                 'RESOLVED',
                 'tester5',
-                'dev5',
-                'tester5',
+                null,
+                null,
                 'dev5',
                 'tester5'
            from dual
@@ -540,8 +540,8 @@ begin
                 'CRITICAL',
                 'RESOLVED',
                 'tester2',
-                'dev2',
-                'tester1',
+                null,
+                null,
                 'dev2',
                 'tester1'
            from dual
@@ -553,8 +553,8 @@ begin
                 'MAJOR',
                 'RESOLVED',
                 'tester5',
-                'dev6',
-                'tester5',
+                null,
+                null,
                 'dev6',
                 'tester5'
            from dual
@@ -583,6 +583,45 @@ begin
                 'tester3',
                 null,
                 null
+           from dual
+         union all
+         select 'project1',
+                'Duplicate mobile login report',
+                'Duplicate issue should be deleted from NEW and restored to NEW when needed.',
+                timestamp '2026-05-22 09:00:00',
+                'TRIVIAL',
+                'DELETED',
+                'tester2',
+                null,
+                null,
+                null,
+                null
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'Generated reports fail during export and are waiting for verifier review.',
+                timestamp '2026-05-22 09:00:00',
+                'MAJOR',
+                'FIXED',
+                'tester4',
+                'dev4',
+                'tester4',
+                'dev4',
+                null
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'Closed checklist issue has been deleted after archive handoff.',
+                timestamp '2026-05-23 09:00:00',
+                'MINOR',
+                'DELETED',
+                'tester5',
+                null,
+                null,
+                'dev5',
+                'tester5'
            from dual
       ) s
         join projects p
@@ -685,7 +724,13 @@ begin
                                     'Initial fix ready for verification',
                                     'Verification failed due to stale cache',
                                     'Rework completed after rejection',
-                                    'Reverification complete' ) then
+                                    'Reverification complete',
+                                    'Deleted duplicate NEW issue before assignment',
+                                    'Export generation fix implemented',
+                                    'Retired checklist fix implemented',
+                                    'Retired checklist verified',
+                                    'Retired checklist closed',
+                                    'Deleted retired CLOSED issue after archive' ) then
                    'STATUS_CHANGE'
                 else
                    'GENERAL'
@@ -892,7 +937,7 @@ begin
                 'Reopened issue keeps old assignee',
                 'tester5',
                 'Regression verification complete',
-                timestamp '2026-05-11 10:00:00'
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
          select 'project1',
@@ -942,6 +987,83 @@ begin
                 'pl1',
                 'Assigned to dev3 and tester3',
                 timestamp '2026-05-21 10:00:00'
+           from dual
+         union all
+         select 'project1',
+                'Duplicate mobile login report',
+                'tester2',
+                'Duplicate mobile login report filed by mistake.',
+                timestamp '2026-05-22 09:30:00'
+           from dual
+         union all
+         select 'project1',
+                'Duplicate mobile login report',
+                'pl1',
+                'Deleted duplicate NEW issue before assignment',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'tester4',
+                'Report export failure reproduced.',
+                timestamp '2026-05-22 09:30:00'
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'pl2',
+                'Assigned to dev4 and tester4 for export fix',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'dev4',
+                'Export generation fix implemented',
+                timestamp '2026-05-23 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'tester5',
+                'Retired browser support checklist reported.',
+                timestamp '2026-05-23 09:30:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'pl2',
+                'Assigned retired checklist to dev5 and tester5',
+                timestamp '2026-05-23 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'dev5',
+                'Retired checklist fix implemented',
+                timestamp '2026-05-23 11:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'tester5',
+                'Retired checklist verified',
+                timestamp '2026-05-23 12:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'pl2',
+                'Retired checklist closed',
+                timestamp '2026-05-23 13:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'pl2',
+                'Deleted retired CLOSED issue after archive',
+                timestamp '2026-05-23 14:00:00'
            from dual
       ) s
         join projects p
@@ -1266,7 +1388,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Regression verification complete',
-                timestamp '2026-05-11 10:00:00'
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1359,6 +1481,116 @@ begin
                 timestamp '2026-05-21 10:00:00'
            from dual
          union all
+         select 'project1',
+                'Duplicate mobile login report',
+                'tester2',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-22 09:00:00'
+           from dual
+         union all
+         select 'project1',
+                'Duplicate mobile login report',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'DELETED',
+                'Deleted duplicate NEW issue before assignment',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-22 09:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev4 and tester4 for export fix',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Report export fails after generation',
+                'dev4',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Export generation fix implemented',
+                timestamp '2026-05-23 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'tester5',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-23 09:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned retired checklist to dev5 and tester5',
+                timestamp '2026-05-23 10:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'dev5',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Retired checklist fix implemented',
+                timestamp '2026-05-23 11:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'tester5',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Retired checklist verified',
+                timestamp '2026-05-23 12:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Retired checklist closed',
+                timestamp '2026-05-23 13:00:00'
+           from dual
+         union all
+         select 'project2',
+                'Retired browser support checklist',
+                'pl2',
+                'STATUS_CHANGED',
+                'CLOSED',
+                'DELETED',
+                'Deleted retired CLOSED issue after archive',
+                timestamp '2026-05-23 14:00:00'
+           from dual
+         union all
          select p.name,
                 i.title,
                 c.writer_login_id,
@@ -1449,7 +1681,7 @@ begin
                      join issues blocked_issue
                    on blocked_issue.project_id = blocked_project.id
                     where blocking_project.name = 'project1'
-                      and blocking_issue.title = 'Login fails on invalid credential'
+                      and blocking_issue.title = 'Assignment notification not shown'
                       and blocked_issue.title = 'Dependency resolution flow blocked'
                 ),
                 'Dependency added',
@@ -1528,10 +1760,13 @@ begin
                                'Search result filter returns stale status',
                                'Verification rejection returns to assignee',
                                'Assignment notification not shown',
-                               'Dependency resolution flow blocked' ) )
+                               'Dependency resolution flow blocked',
+                               'Duplicate mobile login report' ) )
           or ( project.name = 'project2'
          and target.title in ( 'Dashboard statistics misses closed issues',
-                               'Reopened issue keeps old assignee' ) ) )
+                               'Reopened issue keeps old assignee',
+                               'Report export fails after generation',
+                               'Retired browser support checklist' ) ) )
    );
 end;
 /
@@ -1548,7 +1783,7 @@ begin
              s.discovered_at
         from (
          select 'project1' as blocking_project_name,
-                'Login fails on invalid credential' as blocking_title,
+                'Assignment notification not shown' as blocking_title,
                 'project1' as blocked_project_name,
                 'Dependency resolution flow blocked' as blocked_title,
                 timestamp '2026-05-21 11:00:00' as discovered_at
