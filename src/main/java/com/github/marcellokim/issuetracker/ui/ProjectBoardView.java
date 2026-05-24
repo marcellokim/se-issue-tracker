@@ -577,6 +577,9 @@ public final class ProjectBoardView {
 
     private static String formatStatistics(StatisticsReport report) {
         return """
+                Summary
+                %s
+
                 Daily Issue Registrations
                 %s
 
@@ -595,6 +598,9 @@ public final class ProjectBoardView {
                 Current Priority Counts
                 %s
 
+                Monthly Status Counts
+                %s
+
                 Monthly Priority Counts
                 %s
 
@@ -604,15 +610,40 @@ public final class ProjectBoardView {
                 Monthly Comments
                 %s
                 """.formatted(
+                formatStatisticsSummary(report),
                 formatDailyCounts(report),
                 formatMonthlyCounts(report),
                 formatDailyCounts(report.dailyStatusChangeCounts(), "No daily status change data."),
                 formatMonthlyCounts(report.monthlyStatusChangeCounts(), "No monthly status change data."),
                 formatStatusCounts(report),
                 formatPriorityCounts(report),
+                formatMonthlyStatusCounts(report),
                 formatMonthlyPriorityCounts(report),
                 formatDailyCounts(report.dailyCommentCounts(), "No daily comment data."),
                 formatMonthlyCounts(report.monthlyCommentCounts(), "No monthly comment data."));
+    }
+
+    private static String formatStatisticsSummary(StatisticsReport report) {
+        return """
+                Total Issues: %d
+                Total Status Changes: %d
+                Total Comments: %d
+                """.formatted(
+                totalIssues(report),
+                totalDailyCounts(report.dailyStatusChangeCounts()),
+                totalDailyCounts(report.dailyCommentCounts())).stripTrailing();
+    }
+
+    private static int totalIssues(StatisticsReport report) {
+        return report.statusCounts().values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
+    private static int totalDailyCounts(List<DailyIssueCount> counts) {
+        return counts.stream()
+                .mapToInt(DailyIssueCount::count)
+                .sum();
     }
 
     private static String formatStatusCounts(StatisticsReport report) {

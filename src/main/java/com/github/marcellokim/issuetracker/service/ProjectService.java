@@ -164,13 +164,18 @@ public final class ProjectService {
 
     private void rejectActiveIssueAssigneeOrVerifier(long projectId, String participantId) {
         for (Issue issue : issueRepository.findByProject(projectId)) {
-            if (issue.status() == IssueStatus.ASSIGNED && participantId.equals(issue.assigneeId())) {
-                throw new IllegalArgumentException("Assigned issue assignee cannot be removed from project.");
+            if (!hasActiveAssignment(issue)) {
+                continue;
             }
-            if (issue.status() == IssueStatus.FIXED && participantId.equals(issue.verifierId())) {
-                throw new IllegalArgumentException("Fixed issue verifier cannot be removed from project.");
+            if (participantId.equals(issue.assigneeId()) || participantId.equals(issue.verifierId())) {
+                throw new IllegalArgumentException(
+                        "Issue assignee or verifier cannot be removed while assignment is active.");
             }
         }
+    }
+
+    private static boolean hasActiveAssignment(Issue issue) {
+        return issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED;
     }
 
     private static void requireProjectId(long projectId) {

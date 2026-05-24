@@ -297,6 +297,40 @@ class ProjectControllerTest {
     }
 
     @Test
+    @DisplayName("participant remove rejects assignee of fixed issue")
+    void participantRemoveRejectsFixedIssueAssignee() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = active("dev1", Role.DEV);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, assignee.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), assignee);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.FIXED, assignee, null));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, assignee.getLoginId()));
+        assertEquals(List.of(assignee.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove rejects verifier of assigned issue")
+    void participantRemoveRejectsAssignedIssueVerifier() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User verifier = active("tester1", Role.TESTER);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, verifier.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), verifier);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.ASSIGNED, null, verifier));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, verifier.getLoginId()));
+        assertEquals(List.of(verifier.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
     @DisplayName("participant remove allows resolved issue assignee and verifier")
     void participantRemoveAllowsResolvedIssueAssigneeAndVerifier() {
         AuthFixture auth = authenticated(Role.ADMIN);
