@@ -319,6 +319,7 @@ public final class IssueService {
 
     private static IssueResult toIssueResult(Issue issue) {
         return new IssueResult(
+                issue.id(),
                 issue.getIssueId(),
                 issue.status(),
                 issue.priority(),
@@ -342,7 +343,9 @@ public final class IssueService {
         return new DependencyResult(
                 dep.id(),
                 dep.getDependencyId(),
+                blockingIssue.id(),
                 blockingIssue.getIssueId(),
+                blockedIssue.id(),
                 blockedIssue.getIssueId(),
                 dep.getDiscoveredDate());
     }

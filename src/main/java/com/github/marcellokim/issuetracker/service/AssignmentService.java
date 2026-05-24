@@ -135,6 +135,11 @@ public final class AssignmentService {
     }
 
     private static AssignmentResult toResult(Issue issue) {
-        return new AssignmentResult(issue.getIssueId(), issue.status(), issue.getAssignee(), issue.getVerifier());
+        return new AssignmentResult(
+                issue.id(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.getAssignee(),
+                issue.getVerifier());
     }
 }

@@ -220,8 +220,7 @@ class AssignmentServiceTest {
     }
 
     private AssignmentService service(InMemoryIssueRepository issueRepository) {
-        return service(issueRepository,
-                new InMemoryUserRepository(reporter, assignee, verifier, pl, anotherAssignee, anotherVerifier));
+        return service(issueRepository, projectMemberUsers());
     }
 
     private AssignmentService service(InMemoryIssueRepository issueRepository, InMemoryUserRepository userRepository) {
@@ -232,6 +231,23 @@ class AssignmentServiceTest {
                 new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository()),
                 new Clock()
         );
+    }
+
+    private InMemoryUserRepository projectMemberUsers() {
+        return new InMemoryUserRepository(
+                reporter,
+                assignee,
+                verifier,
+                pl,
+                otherProjectPl,
+                anotherAssignee,
+                anotherVerifier)
+                .withProjectMembers(PROJECT_ID,
+                        pl.getLoginId(),
+                        assignee.getLoginId(),
+                        verifier.getLoginId(),
+                        anotherAssignee.getLoginId(),
+                        anotherVerifier.getLoginId());
     }
 
     private Issue newIssue() {

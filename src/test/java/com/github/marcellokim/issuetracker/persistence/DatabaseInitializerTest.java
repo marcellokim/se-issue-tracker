@@ -140,12 +140,17 @@ class DatabaseInitializerTest {
                 String tableName;
             }
             PreparedStatementState state = new PreparedStatementState();
+            boolean columnQuery = sql.toLowerCase(Locale.ROOT).contains("user_tab_columns");
             InvocationHandler handler = (proxy, method, args) -> switch (method.getName()) {
                 case "setString" -> {
-                    state.tableName = ((String) args[1]).toUpperCase(Locale.ROOT);
+                    int parameterIndex = (int) args[0];
+                    String value = ((String) args[1]).toUpperCase(Locale.ROOT);
+                    if (parameterIndex == 1) {
+                        state.tableName = value;
+                    }
                     yield null;
                 }
-                case "executeQuery" -> resultSet(existingTables.contains(state.tableName) ? 1 : 0);
+                case "executeQuery" -> resultSet(columnQuery ? 1 : existingTables.contains(state.tableName) ? 1 : 0);
                 case "close" -> null;
                 default -> defaultValue(method);
             };

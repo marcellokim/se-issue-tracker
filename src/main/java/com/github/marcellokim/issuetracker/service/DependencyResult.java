@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 public record DependencyResult(
         long id,
         String dependencyId,
-        String blockingIssueId,
-        String blockedIssueId,
+        long blockingIssueId,
+        String blockingIssueKey,
+        long blockedIssueId,
+        String blockedIssueKey,
         LocalDateTime discoveredDate
 ) {
 }
