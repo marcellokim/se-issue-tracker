@@ -10,6 +10,7 @@ import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import java.time.LocalDateTime;
@@ -52,9 +53,10 @@ public final class IssueController {
         return issueService.viewIssue(issueId, user.getLoginId());
     }
 
-    public List<Issue> searchProjectIssues(long projectId, String keyword, IssueStatus status, Priority priority) {
+    public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
+            Priority priority) {
         User user = requireCurrentUser();
-        return issueService.searchProjectIssues(projectId, keyword, status, priority, user.getLoginId());
+        return issueService.searchIssues(projectId, keyword, status, priority, user.getLoginId());
     }
 
     public List<Issue> viewRelatedProjectIssues(long projectId) {
@@ -167,8 +169,7 @@ public final class IssueController {
             boolean canAddDependency,
             boolean canRemoveDependency,
             boolean canAddComment,
-            boolean canSoftDelete
-    ) {
+            boolean canSoftDelete) {
 
         private static IssueWorkflowActionView from(IssueWorkflowActions actions) {
             return new IssueWorkflowActionView(

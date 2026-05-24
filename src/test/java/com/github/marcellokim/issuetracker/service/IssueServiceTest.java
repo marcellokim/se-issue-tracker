@@ -47,7 +47,8 @@ class IssueServiceTest {
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, now, now);
     private final User otherProjectPl = User.fromPersistence("pl2", "PL Two", "hash", Role.PL, true, now, now);
     private final User admin = User.fromPersistence("admin", "Admin", "hash", Role.ADMIN, true, now, now);
-    private final User inactiveDev = User.fromPersistence("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now, now);
+    private final User inactiveDev = User.fromPersistence("dev-disabled", "Inactive Dev", "hash", Role.DEV, false, now,
+            now);
     private final Project project = Project.fromPersistence(PROJECT_ID, "ITS", "Issue Tracking", "admin", now, now);
     private final Project otherProject = Project.fromPersistence(
             OTHER_PROJECT_ID,
@@ -62,7 +63,8 @@ class IssueServiceTest {
     void registerIssueSucceeds() {
         var service = service(new InMemoryIssueRepository());
 
-        IssueResult result = service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR, dev.getLoginId());
+        IssueResult result = service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR,
+                dev.getLoginId());
 
         assertNotNull(result.issueId());
         assertEquals(IssueStatus.NEW, result.status());
@@ -173,12 +175,15 @@ class IssueServiceTest {
         Issue otherProjectIssue = persistedIssue(21L, "ISSUE-21", OTHER_PROJECT_ID, "Login bug", IssueStatus.NEW);
         var service = service(new InMemoryIssueRepository(projectIssue, otherProjectIssue));
 
-        List<Issue> results = service.searchProjectIssues(PROJECT_ID, "login", null, null, dev.getLoginId());
+        List<IssueSummary> results = service.searchIssues(PROJECT_ID, "login", null, null, dev.getLoginId());
 
         assertEquals(1, results.size());
         assertEquals(projectIssue.id(), results.getFirst().id());
+        assertEquals(projectIssue.getIssueId(), results.getFirst().issueId());
+        assertEquals(projectIssue.projectId(), results.getFirst().projectId());
+        assertEquals(projectIssue.title(), results.getFirst().title());
         assertThrows(SecurityException.class,
-                () -> service.searchProjectIssues(PROJECT_ID, "login", null, null, admin.getLoginId()));
+                () -> service.searchIssues(PROJECT_ID, "login", null, null, admin.getLoginId()));
     }
 
     @Test
@@ -319,8 +324,7 @@ class IssueServiceTest {
         assertEquals(CommentPurpose.GENERAL, result.purpose());
         assertTrue(
                 result.commentId().startsWith("COMMENT-"),
-                "commentId should use the shared generated comment id contract"
-        );
+                "commentId should use the shared generated comment id contract");
     }
 
     @Test
@@ -726,7 +730,8 @@ class IssueServiceTest {
         return service(issues, new FakeIssueDependencyRepository(), comments);
     }
 
-    private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies, FakeCommentRepository comments) {
+    private IssueService service(InMemoryIssueRepository issues, FakeIssueDependencyRepository dependencies,
+            FakeCommentRepository comments) {
         return service(issues, dependencies, comments,
                 new FakeIssueHistoryRepository(),
                 new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
@@ -736,8 +741,7 @@ class IssueServiceTest {
             InMemoryIssueRepository issues,
             FakeIssueDependencyRepository dependencies,
             FakeCommentRepository comments,
-            InMemoryUserRepository users
-    ) {
+            InMemoryUserRepository users) {
         return service(issues, dependencies, comments, new FakeIssueHistoryRepository(), users);
     }
 
@@ -746,8 +750,7 @@ class IssueServiceTest {
             FakeIssueDependencyRepository dependencies,
             FakeCommentRepository comments,
             FakeIssueHistoryRepository histories,
-            InMemoryUserRepository users
-    ) {
+            InMemoryUserRepository users) {
         return new IssueService(
                 new FakeProjectRepository(project, otherProject),
                 issues,
@@ -756,8 +759,7 @@ class IssueServiceTest {
                 histories,
                 users,
                 new PermissionPolicy(),
-                new Clock()
-        );
+                new Clock());
     }
 
     private Issue persistedIssue() {
@@ -776,7 +778,8 @@ class IssueServiceTest {
         return persistedIssue(id, issueId, projectId, title, status, dev);
     }
 
-    private Issue persistedIssue(long id, String issueId, long projectId, String title, IssueStatus status, User reporter) {
+    private Issue persistedIssue(long id, String issueId, long projectId, String title, IssueStatus status,
+            User reporter) {
         return Issue.fromPersistence(
                 Issue.persistedState(projectId, title, "Description " + id, reporter)
                         .id(id)
@@ -794,8 +797,7 @@ class IssueServiceTest {
             String title,
             User reporter,
             User assignee,
-            User verifier
-    ) {
+            User verifier) {
         return Issue.fromPersistence(
                 Issue.persistedState(projectId, title, "Description " + id, reporter)
                         .id(id)

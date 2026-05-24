@@ -14,6 +14,7 @@ import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 // import java.time.LocalDate;
 import java.time.YearMonth;
 // import java.time.format.DateTimeParseException;
@@ -410,7 +411,7 @@ public final class ProjectBoardView {
     private void renderIssueSearchResults(DashboardProjectView project, VBox results) {
         results.getChildren().clear();
         try {
-            List<Issue> issues = issueController.searchProjectIssues(
+            List<IssueSummary> issues = issueController.searchIssues(
                     project.projectId(),
                     text(issueKeywordField),
                     selectedStatus(),
@@ -419,8 +420,8 @@ public final class ProjectBoardView {
                 results.getChildren().add(emptyLabel("No project issues match the current filters."));
                 return;
             }
-            for (Issue issue : issues) {
-                results.getChildren().add(issueCard(issue));
+            for (IssueSummary issue : issues) {
+                results.getChildren().add(issueSummaryCard(issue));
             }
         } catch (RuntimeException exception) {
             results.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
@@ -440,6 +441,22 @@ public final class ProjectBoardView {
                 issue.status(),
                 issue.priority()));
         button.setOnAction(event -> onIssueSelected.accept(issue));
+        return button;
+    }
+
+    private Button issueSummaryCard(IssueSummary issue) {
+        Button button = card("""
+                ID=%d
+                %s
+                reporter=%s
+                %s / %s
+                """.formatted(
+                issue.id(),
+                issue.title(),
+                issue.reporterId(),
+                issue.status(),
+                issue.priority()));
+        button.setOnAction(event -> onIssueSelected.accept(issueController.viewIssue(issue.id())));
         return button;
     }
 

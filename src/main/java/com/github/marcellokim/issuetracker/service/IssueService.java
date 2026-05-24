@@ -91,28 +91,28 @@ public final class IssueService {
         return findIssue(issueId);
     }
 
-    public List<Issue> searchProjectIssues(
+    public List<IssueSummary> searchIssues(
             long projectId,
             String keyword,
             IssueStatus status,
             Priority priority,
-            String currentUserId
-    ) {
+            String currentUserId) {
         findProject(projectId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
         return issueRepository.findByCriteria(IssueSearchCriteria.create(
-                        projectId,
-                        status,
-                        priority,
-                        null,
-                        null,
-                        null,
-                        keyword,
-                        null,
-                        null,
-                        false)).stream()
+                projectId,
+                status,
+                priority,
+                null,
+                null,
+                null,
+                keyword,
+                null,
+                null,
+                false)).stream()
                 .filter(issue -> issue.projectId() == projectId)
+                .map(IssueService::toIssueSummary)
                 .toList();
     }
 
@@ -122,16 +122,16 @@ public final class IssueService {
         permissionPolicy.assertCanViewIssue(actor);
         requireActiveProjectMember(actor, projectId, "Only project members can view related project issues.");
         return issueRepository.findByCriteria(IssueSearchCriteria.create(
-                        projectId,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        false)).stream()
+                projectId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false)).stream()
                 .filter(issue -> actor.getRole() == Role.PL || isAssignedParticipant(issue, actor.getLoginId()))
                 .toList();
     }
@@ -323,6 +323,21 @@ public final class IssueService {
                 issue.title(),
                 issue.description(),
                 issue.getReporter());
+    }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.projectId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt());
     }
 
     private static CommentResult toCommentResult(Comment comment) {
