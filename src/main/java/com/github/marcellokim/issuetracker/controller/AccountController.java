@@ -1,5 +1,7 @@
 package com.github.marcellokim.issuetracker.controller;
 
+import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import java.util.Objects;
@@ -16,8 +18,28 @@ public final class AccountController {
         this.accountService = Objects.requireNonNull(accountService, "accountService");
     }
 
-    /*
-     * 다른 팀원 구현 범위:
-     * Admin 계정 생성/수정/비활성화 UC 입력 검증, DTO 변환, 감사 이력 처리 필요.
-     */
+    public User createAccount(String loginId, String name, String password, Role role) {
+        User user = requireCurrentUser();
+        return accountService.createAccount(loginId, name, password, role, user.getLoginId());
+    }
+
+    public User updateAccount(String loginId, String name, Role role) {
+        User user = requireCurrentUser();
+        return accountService.updateAccount(loginId, name, role, user.getLoginId());
+    }
+
+    public User activateAccount(String loginId) {
+        User user = requireCurrentUser();
+        return accountService.activateAccount(loginId, user.getLoginId());
+    }
+
+    public User deactivateAccount(String loginId) {
+        User user = requireCurrentUser();
+        return accountService.deactivateAccount(loginId, user.getLoginId());
+    }
+
+    private User requireCurrentUser() {
+        return authenticationService.currentUser()
+                .orElseThrow(() -> new SecurityException("Login is required."));
+    }
 }

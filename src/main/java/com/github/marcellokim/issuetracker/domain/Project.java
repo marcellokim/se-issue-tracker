@@ -50,19 +50,19 @@ public class Project {
         this.updatedAt = updatedAt;
     }
 
-    public Issue registerIssue(
-            String issueId,
-            String title,
-            String description,
-            Priority priority,
-            User reporter,
-            LocalDateTime now) {
-        return Issue.create(Issue.persistedState(id, title, description, reporter)
-                .issueId(issueId)
-                .priority(priority == null ? Priority.MAJOR : priority)
-                .reportedDate(now)
-                .updatedAt(now));
-    }
+    // public Issue registerIssue(
+    // String issueId,
+    // String title,
+    // String description,
+    // Priority priority,
+    // User reporter,
+    // LocalDateTime now) {
+    // return Issue.create(Issue.persistedState(id, title, description, reporter)
+    // .issueId(issueId)
+    // .priority(priority == null ? Priority.MAJOR : priority)
+    // .reportedDate(now)
+    // .updatedAt(now));
+    // }
 
     public void rename(String newName, LocalDateTime updatedAt) {
         this.name = requireText(newName, "name");

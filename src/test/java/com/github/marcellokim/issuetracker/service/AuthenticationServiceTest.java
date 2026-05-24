@@ -65,6 +65,19 @@ class AuthenticationServiceTest {
     }
 
     @Test
+    @DisplayName("inactive account still requires matching password")
+    void inactiveAccountStillRequiresMatchingPassword() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of(
+                user("dev1", ADMIN_PASSWORD, Role.DEV, false)
+        )));
+
+        AuthenticationResult result = service.login("dev1", "wrong-password");
+
+        assertFalse(result.success());
+        assertEquals("Invalid ID or password.", result.message());
+    }
+
+    @Test
     @DisplayName("rejects missing credentials before repository lookup")
     void loginRejectsMissingCredentials() {
         var service = new AuthenticationService(new FakeUserRepository(List.of()));

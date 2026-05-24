@@ -59,6 +59,9 @@ public final class IssueService {
         Project project = findProject(projectId);
         User reporter = findUser(currentUserId);
         permissionPolicy.assertCanRegisterIssue(reporter, project);
+        if (issueRepository.existsByProjectIdAndTitle(project.getId(), title)) {
+            throw new IllegalArgumentException("Issue title already exists in this project.");
+        }
         LocalDateTime now = now();
         Issue issue = Issue.create(
                 Issue.persistedState(project.getId(), title, description, reporter)

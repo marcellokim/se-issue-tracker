@@ -437,6 +437,12 @@ class ControllerCoverageTest {
         }
 
         @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return issuesById.values().stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
         public Issue save(Issue issue) {
             issuesById.put(issue.id(), issue);
             return issue;

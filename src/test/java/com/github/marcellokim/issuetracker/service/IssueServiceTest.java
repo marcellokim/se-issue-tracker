@@ -81,6 +81,40 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("rejects duplicate issue title in same project including deleted issues")
+    void registerIssueRejectsDuplicateTitleIncludingDeletedIssue() {
+        Issue deletedIssue = persistedIssue(
+                11L,
+                "ISSUE-11",
+                PROJECT_ID,
+                "Login bug",
+                IssueStatus.DELETED);
+        var service = service(new InMemoryIssueRepository(deletedIssue));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR,
+                        dev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("allows same issue title in different projects")
+    void registerIssueAllowsSameTitleInDifferentProject() {
+        Issue otherProjectIssue = persistedIssue(
+                21L,
+                "ISSUE-21",
+                OTHER_PROJECT_ID,
+                "Login bug",
+                IssueStatus.NEW);
+        var service = service(new InMemoryIssueRepository(otherProjectIssue));
+
+        IssueResult result = service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR,
+                dev.getLoginId());
+
+        assertEquals("Login bug", result.title());
+        assertEquals(IssueStatus.NEW, result.status());
+    }
+
+    @Test
     @DisplayName("rejects issue registration for nonexistent project")
     void registerIssueRejectsUnknownProject() {
         var service = service(new InMemoryIssueRepository());
@@ -583,13 +617,17 @@ class IssueServiceTest {
     }
 
     private Issue persistedIssue(long id, String issueId, long projectId) {
+        return persistedIssue(id, issueId, projectId, "Issue " + id, IssueStatus.NEW);
+    }
+
+    private Issue persistedIssue(long id, String issueId, long projectId, String title, IssueStatus status) {
         return Issue.fromPersistence(
-                Issue.persistedState(projectId, "Issue " + id, "Description " + id, dev)
+                Issue.persistedState(projectId, title, "Description " + id, dev)
                         .id(id)
                         .issueId(issueId)
                         .reportedDate(now)
                         .priority(Priority.MAJOR)
-                        .status(IssueStatus.NEW)
+                        .status(status)
                         .updatedAt(now));
     }
 

@@ -59,6 +59,13 @@ final class JdbcIssueQueries {
             BASE_SELECT + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
     static final String FIND_DELETED_BY_PROJECT_SQL =
             BASE_SELECT + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_at desc, i.id desc";
+    static final String EXISTS_BY_PROJECT_ID_AND_TITLE_SQL = """
+            select 1
+            from issues
+            where project_id = ?
+              and title = ?
+            fetch first 1 rows only
+            """;
 
     private JdbcIssueQueries() {
     }

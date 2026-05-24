@@ -59,16 +59,16 @@ Controller는 UI toolkit이나 DB 구현체의 세부사항을 직접 알지 않
 `Issue`는 status, priority, reporter/assignee/verifier/fixer/resolver, comment/history/dependency association을 가장 잘 알고 있으므로 대부분의 핵심 규칙을 가진다.
 
 - UC5: `assignFromNew`, `assignReopened`, `reassignAssignee`, `changeVerifier`
-- UC6: `markFixed`, `resolve`, `rejectFix`, `close`, `reopen`
+- UC6: `changeStatus(issueId, targetStatus, comment)` 하나를 system operation으로 두고, target status에 따라 `markFixed`, `resolve`, `rejectFix`, `close`, `reopen` domain operation으로 분기한다.
 - UC7: `validateDependencyCandidate`, `addDependency`, `removeDependency`
 - UC9: `softDelete`, `restore`, `findDeleteStatusHistory`
 - UC16: `verifyPriorityChange`, `changePriority`
 
 ### Creator
 
-- `Project`는 `Issue`를 포함하므로 UC1에서 `registerIssue(...)`를 통해 새 `Issue`를 생성하고 `issues` association에 추가한다.
+- `Project`는 `Issue` 목록을 내부 collection으로 소유하지 않는다. UC1에서는 application service가 대상 `Project`를 조회해 권한과 존재 여부를 확인한 뒤, `Issue.create(...)`로 새 `Issue`를 생성하고 `Issue.projectId`로 프로젝트 관계를 기록한다.
 - `Issue`는 `Comment`, `IssueHistory`, `IssueDependency`를 자신의 aggregate 내부 기록으로 관리하므로 해당 객체의 생성과 연결을 책임진다.
-- ID 생성, repository 저장, transaction 경계는 application/service 또는 technical service 책임이며, `Project.registerIssue(...)` 자체는 domain object 생성과 association 형성 책임으로 제한한다.
+- ID 생성, repository 저장, transaction 경계는 application/service 또는 technical service 책임이다. `Project`는 프로젝트명/설명/관리자 식별자 같은 자기 상태의 불변식에 집중하고, 프로젝트-이슈 목록 조합은 repository 조회와 application read model에서 처리한다.
 
 ### Low Coupling / High Cohesion
 
@@ -122,7 +122,7 @@ UC8 담당자 추천은 이후 알고리즘 변경 가능성이 높으므로 `As
 - `IssueDependency`의 시간 속성은 OC-14와 맞추어 `discoveredDate`로 둔다.
 - UC5의 네 branch는 모두 `Issue` operation으로 분리했다. `NEW/REOPENED`는 status 변경과 assignment 변경을 함께 수행하고, `ASSIGNED/FIXED`는 status를 유지하며 assignment history만 기록한다.
 - UC6 상태 전이는 모두 comment와 history를 동반하므로 `IssueStateController`가 값을 직접 바꾸지 않고 `Issue`에 전이 의도를 전달한다.
-- UC1의 기본 priority 결정과 초기 `IssueHistory(CREATED)` 기록은 이슈 생성의 원자적 책임으로 보아 `Project.registerIssue(...)`와 `Issue.createWithDefaultPriority(...)` 주변에 배치했다.
+- UC1의 기본 priority 결정과 초기 `IssueHistory(CREATED)` 기록은 이슈 생성의 원자적 책임으로 보아 `Issue.create(...)` 주변에 배치했다. Project는 issue collection을 직접 갱신하지 않으며, 새 이슈는 `Issue.projectId`와 repository 저장으로 프로젝트에 연결된다.
 - UC16 priority 변경은 OC-16과 SD-27을 기준으로 `IssueHistory(PRIORITY_CHANGED)`만 생성한다. 요구사항 추적표의 comment 문구는 구현 확인 항목의 표현으로 보고, DCD에서는 현재 OC/SD 계약을 우선했다.
 - UC14 권한 검사는 공통 `verifyPermission(user, operation, resource)`와 use case별 `assertCan...` operation을 함께 둔다. 전자는 SSD-22 및 Logical Architecture의 공통 권한 검사를 반영하고, 후자는 controller에서 읽기 쉬운 application policy entry point로 사용한다.
 - 상세 SD와 DCD의 operation 이름이 충돌하면 SSD/OC/SD의 system operation 이름을 우선한다.
@@ -134,7 +134,7 @@ UC8 담당자 추천은 이후 알고리즘 변경 가능성이 높으므로 `As
 | #16 계정, 역할, 프로젝트 기본 모델 구현 | `AccountController`, `ProjectController` | `AccountService`, `ProjectService`, `AuthenticationService`, `PermissionPolicy` | `User`, `Role`, `Project` | `UserRepository`, `ProjectRepository`, JDBC 구현체 |
 | #17 이슈, 댓글, 우선순위, 상태 전이 모델 구현 | `IssueController`, `IssueStateController` | `IssueService`, `IssueStateService`, `PermissionPolicy`, `Clock` | `Issue`, `Comment`, `IssueHistory`, `IssueStatus`, `Priority`, `ActionType` | `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
 | #18 DB 기반 영속 저장소와 데모 초기 데이터 준비 | CLI/composition root가 repository demo 진입점 제공 | `RepositoryDemoSummaryService`, technical service/resource setup | domain object는 persistence 구현을 알지 않음 | repository interface와 JDBC implementation 분리, schema/seed data 준비 |
-| #19 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | `IssueController` | `IssueService`, `PermissionPolicy`, `Clock` | `Project.registerIssue`, `Issue.createWithDefaultPriority`, `Issue.addComment` | `ProjectRepository`, `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
+| #19 이슈 등록, 검색, 상세 조회, 코멘트 서비스 구현 | `IssueController` | `IssueService`, `PermissionPolicy`, `Clock` | `Issue.create`, `Issue.addComment` | `ProjectRepository`, `IssueRepository`, `CommentRepository`, `IssueHistoryRepository` |
 | #20 이슈 배정과 상태 변경 흐름 구현 | `AssignmentController`, `IssueStateController` | `AssignmentService`, `IssueStateService`, `PermissionPolicy`, `AssignmentRecommendationService`, `Clock` | `Issue.assignFromNew`, `Issue.assignReopened`, `Issue.reassignAssignee`, `Issue.changeVerifier`, `Issue.markFixed`, `Issue.resolve`, `Issue.close`, `Issue.reopen` | `IssueRepository`, `IssueHistoryRepository`, `CommentRepository`, recommendation 조회용 repository |
 | #21 일/월별 이슈 통계와 추이 조회 구현 | `StatisticsController` | `StatisticsService`, `PermissionPolicy` | `IssueStatus`, `Priority` 등 집계 기준 | `StatisticsRepository` 구현체가 기간별 count/trend 조회 |
 | #22 해결 이력 기반 담당자 추천 기능 구현 | `AssignmentController` | `AssignmentRecommendationService` | `IssueHistory`, `IssueStatus`, `Role`은 추천 근거 데이터 제공 | `AssignmentRecommendationRepository` 또는 이력 조회 repository |

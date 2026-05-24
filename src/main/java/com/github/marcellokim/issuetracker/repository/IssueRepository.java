@@ -16,6 +16,8 @@ public interface IssueRepository {
 
     List<Issue> findByCriteria(IssueSearchCriteria criteria);
 
+    boolean existsByProjectIdAndTitle(long projectId, String title);
+
     Issue save(Issue issue);
 
     Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate);

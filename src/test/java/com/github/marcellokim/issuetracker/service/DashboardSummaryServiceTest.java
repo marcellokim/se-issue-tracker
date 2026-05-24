@@ -232,6 +232,14 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return activeIssues.stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title))
+                    || deletedIssues.stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
         public Issue save(Issue issue) {
             throw new UnsupportedOperationException("save is not needed by DashboardSummaryServiceTest.");
         }

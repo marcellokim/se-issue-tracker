@@ -46,11 +46,11 @@ public final class AuthenticationService {
 
         return users.findByLoginId(loginId.trim())
                 .map(user -> {
-                    if (!user.isActive()) {
-                        return AuthenticationResult.failure("This account is inactive.");
-                    }
                     if (!passwordHasher.matches(password, user.getPasswordHash())) {
                         return AuthenticationResult.failure("Invalid ID or password.");
+                    }
+                    if (!user.isActive()) {
+                        return AuthenticationResult.failure("This account is inactive.");
                     }
                     sessionStore.startSession(user);
                     return AuthenticationResult.success(user);

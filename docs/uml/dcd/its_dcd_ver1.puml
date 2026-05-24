@@ -87,11 +87,6 @@ package "Application Layer\n(concrete controllers)" #FFF8E1 {
 
   class IssueStateController <<control>> {
     +changeStatus(issueId, targetStatus, comment): IssueDto
-    +markFixed(issueId, comment): IssueDto
-    +resolveIssue(issueId, comment): IssueDto
-    +rejectFix(issueId, comment): IssueDto
-    +closeIssue(issueId, comment): IssueDto
-    +reopenIssue(issueId, comment): IssueDto
   }
 
   class DeletedIssueController <<control>> {
@@ -265,11 +260,8 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     -name: Text
     -description: Text
     -createdDate: DateTime
-    +registerIssue(title, description, priority, reporter, now): Issue
-    +addIssue(issue): void
-    +assignManager(admin): void
-    +addParticipant(user): void
-    +removeParticipant(user): void
+    +rename(newName, updatedAt): void
+    +changeDescription(newDescription, updatedAt): void
   }
 
   class Issue <<aggregate root>> {
@@ -284,8 +276,8 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     -verifier: User
     -fixer: User
     -resolver: User
-    +createWithDefaultPriority(title, description, priority, reporter, now): Issue
-    +recordCreation(changedBy, now): void
+    +create(state): Issue
+    +fromPersistence(state): Issue
     +updateTitleAndDescription(title, description, changedBy, now): void
     +addComment(content, writer, now): Comment
     +addHistory(history): void
@@ -475,7 +467,7 @@ JdbcProjectRepository ..> DatabaseConnectionProvider
 JdbcIssueRepository ..> DatabaseConnectionProvider
 JdbcUserRepository ..> DatabaseConnectionProvider
 
-Project "1" *-- "0..*" Issue : owns\ncascade delete
+Project "1" -- "0..*" Issue : referenced by\nIssue.projectId
 User "*" -- "*" Project : participates in
 User "1" -- "0..*" Project : manages\n(Admin only)
 Issue "1" *-- "0..*" Comment : comments
@@ -496,9 +488,9 @@ Issue ..> AssignmentContext
 Issue ..> ValidationResult
 
 note right of Project
-Project owns Issue by composition.
-Deleting a Project cascades deletion of its Issues.
-Issue-owned comments, histories, and dependencies are then removed by Issue FK cascade.
+Project does not own an in-memory Issue collection.
+Issue.projectId records the project relationship.
+Project deletion is coordinated by service/repository and DB FK cascade.
 end note
 
 @enduml

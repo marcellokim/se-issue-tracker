@@ -39,6 +39,7 @@ public final class IssueTrackerApplication extends Application {
             ApplicationContext context) {
         loginView.bindControllers(
                 context.authenticationController(),
+                context.accountController(),
                 context.dashboardController(),
                 context.projectController(),
                 context.issueController(),

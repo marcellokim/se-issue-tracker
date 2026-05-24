@@ -462,6 +462,7 @@ class OracleRepositoryIntegrationTest {
                     .updatedAt(LocalDateTime.now())));
 
             assertEquals(title, repositories.issues().findById(saved.id()).orElseThrow().title());
+            assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
             long savedIssueId = saved.id();
             assertTrue(repositories.issues().findByCriteria(IssueSearchCriteria.create(
                     project.getId(), IssueStatus.NEW, Priority.MINOR, "dev1", null, null, "crud_issue",
@@ -504,6 +505,7 @@ class OracleRepositoryIntegrationTest {
                     .anyMatch(issue -> issue.id() == deleted.id()));
             assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
                     .anyMatch(issue -> issue.id() == deleted.id()));
+            assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
 
             repositories.issues().purge(deleted.id());
             saved = null;

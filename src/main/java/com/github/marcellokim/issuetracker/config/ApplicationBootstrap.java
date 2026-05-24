@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.config;
 
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
+import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
@@ -14,6 +15,7 @@ import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionPr
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
+import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
@@ -25,6 +27,7 @@ import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -72,6 +75,11 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         Clock clock = new Clock();
         AuthenticationService authenticationService = new AuthenticationService(users);
+        AccountService accountService = new AccountService(
+                permissionPolicy,
+                users,
+                new PasswordHasher(),
+                clock);
         IssueService issueService = new IssueService(
                 projects,
                 issues,
@@ -112,6 +120,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 users);
         return new ApplicationContext(
                 new AuthenticationController(authenticationService),
+                new AccountController(authenticationService, accountService),
                 new DashboardController(authenticationService, dashboardSummaryService),
                 ProjectController.create(authenticationService, projectService),
                 new IssueController(authenticationService, issueService),

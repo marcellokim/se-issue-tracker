@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.config;
 
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
+import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 
 public record ApplicationContext(
         AuthenticationController authenticationController,
+        AccountController accountController,
         DashboardController dashboardController,
         ProjectController projectController,
         IssueController issueController,

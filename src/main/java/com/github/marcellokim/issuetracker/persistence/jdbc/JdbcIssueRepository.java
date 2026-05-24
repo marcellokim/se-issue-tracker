@@ -56,7 +56,8 @@ public final class JdbcIssueRepository implements IssueRepository {
     @Override
     public List<Issue> findDeletedByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
+                PreparedStatement statement = connection
+                        .prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
         } catch (SQLException exception) {
@@ -75,6 +76,21 @@ public final class JdbcIssueRepository implements IssueRepository {
             return executeIssueList(statement);
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to search issues.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsByProjectIdAndTitle(long projectId, String title) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        JdbcIssueQueries.EXISTS_BY_PROJECT_ID_AND_TITLE_SQL)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, title);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue title duplication.", exception);
         }
     }
 

@@ -48,6 +48,12 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
+    public boolean existsByProjectIdAndTitle(long projectId, String title) {
+        return issues.values().stream()
+                .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+    }
+
+    @Override
     public Issue save(Issue issue) {
         Issue saved = issue.id() == 0L ? persistNew(issue) : issue;
         issues.put(saved.id(), saved);

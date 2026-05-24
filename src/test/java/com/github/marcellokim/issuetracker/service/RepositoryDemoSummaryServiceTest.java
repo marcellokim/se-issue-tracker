@@ -258,6 +258,12 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return issues.stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
         public Issue save(Issue issue) {
             throw new UnsupportedOperationException("save is not needed by RepositoryDemoSummaryServiceTest.");
         }

@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.ui;
 
+import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
@@ -44,6 +45,7 @@ import javafx.scene.layout.VBox;
 public final class LoginView {
 
     private static final String LOGIN_FAILURE_MESSAGE = "잘못된 로그인 ID, 비밀번호 입니다";
+    private static final String INACTIVE_ACCOUNT_MESSAGE = "현재 귀하의 계정이 비활성화 상태입니다. admin에게 문의 바랍니다";
 
     private final Label statusLabel = new Label();
     private final Label resultLabel = new Label();
@@ -58,6 +60,14 @@ public final class LoginView {
     private final TextField projectNameField = field("new project name");
     private final TextField projectDescriptionField = field("project description");
     private final TextField participantLoginIdField = field("participant loginId");
+    private final TextField createAccountLoginIdField = field("new account loginId");
+    private final TextField createAccountNameField = field("new account name");
+    private final PasswordField createAccountPasswordField = new PasswordField();
+    private final ComboBox<Role> createAccountRoleBox = new ComboBox<>();
+    private final TextField updateAccountLoginIdField = field("account loginId");
+    private final TextField updateAccountNameField = field("updated account name");
+    private final ComboBox<Role> updateAccountRoleBox = new ComboBox<>();
+    private final TextField accountStatusLoginIdField = field("account loginId");
     private final TextField issueIdField = field("issue id");
     private final TextField issueTitleField = field("issue title");
     private final TextField issueDescriptionField = field("issue description");
@@ -75,6 +85,7 @@ public final class LoginView {
 
     private User currentUser;
     private AuthenticationController authenticationController;
+    private AccountController accountController;
     private DashboardController dashboardController;
     private ProjectController projectController;
     private IssueController issueController;
@@ -120,6 +131,7 @@ public final class LoginView {
 
     public void bindControllers(
             AuthenticationController authenticationController,
+            AccountController accountController,
             DashboardController dashboardController,
             ProjectController projectController,
             IssueController issueController,
@@ -128,6 +140,7 @@ public final class LoginView {
             DeletedIssueController deletedIssueController,
             StatisticsController statisticsController) {
         this.authenticationController = Objects.requireNonNull(authenticationController, "authenticationController");
+        this.accountController = Objects.requireNonNull(accountController, "accountController");
         this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
         this.projectController = Objects.requireNonNull(projectController, "projectController");
         this.issueController = Objects.requireNonNull(issueController, "issueController");
@@ -186,7 +199,9 @@ public final class LoginView {
     }
 
     public void showFailure(String message) {
-        resultLabel.setText(LOGIN_FAILURE_MESSAGE);
+        resultLabel.setText("This account is inactive.".equals(message)
+                ? INACTIVE_ACCOUNT_MESSAGE
+                : LOGIN_FAILURE_MESSAGE);
         resultLabel.setStyle("-fx-text-fill: #b91c1c;");
     }
 
@@ -199,9 +214,14 @@ public final class LoginView {
         loginIdField.setPromptText("LOGIN_ID");
         passwordField.setPromptText("password");
         loginButton.setDefaultButton(true);
+        createAccountPasswordField.setPromptText("temporary password");
         resultLabel.setMinHeight(26);
         priorityBox.getItems().setAll(Priority.values());
         priorityBox.setValue(Priority.MAJOR);
+        createAccountRoleBox.getItems().setAll(Role.PL, Role.DEV, Role.TESTER);
+        createAccountRoleBox.setValue(Role.DEV);
+        updateAccountRoleBox.getItems().setAll(Role.PL, Role.DEV, Role.TESTER);
+        updateAccountRoleBox.setValue(Role.DEV);
         workflowOutputArea.setEditable(false);
         workflowOutputArea.setWrapText(true);
         workflowOutputArea.setPrefRowCount(6);
@@ -253,6 +273,16 @@ public final class LoginView {
         workflowOutputArea.setStyle("-fx-text-fill: #111827;");
     }
 
+    private void clearWorkflowOutput() {
+        workflowOutputArea.clear();
+        workflowOutputArea.setStyle("-fx-text-fill: #111827;");
+    }
+
+    private void clearDetailOutput() {
+        detailOutputArea.clear();
+        detailOutputArea.setStyle("-fx-text-fill: #111827;");
+    }
+
     private void keepSelectionIfStillVisible() {
         if (selectedIssue != null) {
             selectedIssue = currentIssues.stream()
@@ -283,6 +313,9 @@ public final class LoginView {
         dashboard.setAlignment(Pos.CENTER_LEFT);
 
         VBox box = new VBox(14, userBar, dashboard, projectCreatePanel());
+        if (isAdmin()) {
+            box.getChildren().add(accountManagementPanel());
+        }
         box.setAlignment(Pos.TOP_LEFT);
         return box;
     }
@@ -305,6 +338,62 @@ public final class LoginView {
                     return "Project created: " + project.getId() + " / " + project.getName();
                 })),
                 workflowOutputArea);
+        return panel;
+    }
+
+    private VBox accountManagementPanel() {
+        VBox panel = new VBox(12);
+        panel.setPadding(new Insets(16));
+        panel.setStyle("-fx-border-color: #9ca3af; -fx-border-width: 2; -fx-background-color: #ffffff;");
+        VBox createPanel = panel("Create Account");
+        createPanel.getChildren().addAll(
+                fieldsGrid(
+                        "Login ID", createAccountLoginIdField,
+                        "Name", createAccountNameField,
+                        "Password", createAccountPasswordField,
+                        "Role", createAccountRoleBox),
+                actionRow(actionButton("Create Account", true, () -> {
+                    User user = accountController.createAccount(
+                            requiredText(createAccountLoginIdField, "loginId"),
+                            requiredText(createAccountNameField, "name"),
+                            requiredText(createAccountPasswordField, "password"),
+                            createAccountRoleBox.getValue());
+                    createAccountPasswordField.clear();
+                    return "Account created: " + formatAccount(user);
+                })));
+
+        VBox updatePanel = panel("Update Account");
+        updatePanel.getChildren().addAll(
+                fieldsGrid(
+                        "Login ID", updateAccountLoginIdField,
+                        "Name", updateAccountNameField,
+                        "Role", updateAccountRoleBox),
+                actionRow(actionButton("Update Account", true, () -> {
+                    User user = accountController.updateAccount(
+                            requiredText(updateAccountLoginIdField, "loginId"),
+                            requiredText(updateAccountNameField, "name"),
+                            updateAccountRoleBox.getValue());
+                    return "Account updated: " + formatAccount(user);
+                })));
+
+        VBox activePanel = panel("Activation");
+        activePanel.getChildren().addAll(
+                fieldsGrid("Login ID", accountStatusLoginIdField),
+                actionRow(
+                        actionButton("Activate", true, () -> {
+                            User user = accountController.activateAccount(
+                                    requiredText(accountStatusLoginIdField, "loginId"));
+                            return "Account activated: " + formatAccount(user);
+                        }),
+                        actionButton("Deactivate", true, () -> {
+                            User user = accountController.deactivateAccount(
+                                    requiredText(accountStatusLoginIdField, "loginId"));
+                            return "Account deactivated: " + formatAccount(user);
+                        })));
+
+        panel.getChildren().addAll(
+                sectionLabel("Account Management"),
+                new HBox(12, createPanel, updatePanel, activePanel));
         return panel;
     }
 
@@ -347,16 +436,21 @@ public final class LoginView {
         if (!currentUsers.isEmpty()) {
             list.getChildren().add(sectionLabel("Users"));
             for (User account : currentUsers) {
-                Label userLabel = new Label("%s / %s / %s / %s".formatted(
-                        account.getLoginId(),
-                        account.getName(),
-                        account.getRole(),
-                        account.isActive() ? "ACTIVE" : "INACTIVE"));
-                userLabel.setStyle("-fx-font-size: 18px;");
-                list.getChildren().add(userLabel);
+                Button accountButton = card(formatAccount(account));
+                accountButton.setOnAction(event -> selectAccount(account));
+                list.getChildren().add(accountButton);
             }
         }
         return scrollablePanel(list);
+    }
+
+    private void selectAccount(User account) {
+        updateAccountLoginIdField.setText(account.getLoginId());
+        updateAccountNameField.setText(account.getName());
+        if (account.getRole() != Role.ADMIN) {
+            updateAccountRoleBox.setValue(account.getRole());
+        }
+        accountStatusLoginIdField.setText(account.getLoginId());
     }
 
     private VBox workflowPanel() {
@@ -612,6 +706,7 @@ public final class LoginView {
 
     private void selectIssue(Issue issue) {
         selectedIssue = issue;
+        clearDetailOutput();
         issueIdField.setText(String.valueOf(issue.id()));
         projectIdField.setText(String.valueOf(issue.projectId()));
         issueTitleField.setText(issue.title());
@@ -625,6 +720,7 @@ public final class LoginView {
 
     private void selectProject(DashboardProjectView project) {
         selectedProject = project;
+        clearDetailOutput();
         projectIdField.setText(String.valueOf(project.projectId()));
         showProjectPage(project);
     }
@@ -665,7 +761,10 @@ public final class LoginView {
                 issue.updatedAt()));
         body.setStyle("-fx-font-size: 22px;");
         Button backButton = new Button("Back to Dashboard");
-        backButton.setOnAction(event -> refreshDashboard("Selected issue: " + issue.getIssueId()));
+        backButton.setOnAction(event -> {
+            clearWorkflowOutput();
+            refreshDashboard("");
+        });
         VBox box = new VBox(
                 16,
                 title,
@@ -852,7 +951,10 @@ public final class LoginView {
                     return "Issue registered: " + issue.issueId() + " / " + issue.status();
                 })));
         Button backButton = new Button("Back to Dashboard");
-        backButton.setOnAction(event -> refreshDashboard("Selected project: " + project.projectName()));
+        backButton.setOnAction(event -> {
+            clearWorkflowOutput();
+            refreshDashboard("");
+        });
         VBox box = new VBox(16, title, description, body, registerIssuePanel, detailOutputArea, backButton);
         box.setPadding(new Insets(24));
         box.setAlignment(Pos.CENTER_LEFT);
@@ -993,6 +1095,14 @@ public final class LoginView {
                 + "Monthly counts: " + report.monthlyCounts();
     }
 
+    private static String formatAccount(User user) {
+        return "%s / %s / %s / %s".formatted(
+                user.getLoginId(),
+                user.getName(),
+                user.getRole(),
+                user.isActive() ? "ACTIVE" : "INACTIVE");
+    }
+
     private static Tab actionTab(String title, Node content) {
         Tab tab = new Tab(title, content);
         tab.setClosable(false);
@@ -1101,6 +1211,14 @@ public final class LoginView {
         projectNameField.clear();
         projectDescriptionField.clear();
         participantLoginIdField.clear();
+        createAccountLoginIdField.clear();
+        createAccountNameField.clear();
+        createAccountPasswordField.clear();
+        createAccountRoleBox.setValue(Role.DEV);
+        updateAccountLoginIdField.clear();
+        updateAccountNameField.clear();
+        updateAccountRoleBox.setValue(Role.DEV);
+        accountStatusLoginIdField.clear();
         issueIdField.clear();
         issueTitleField.clear();
         issueDescriptionField.clear();

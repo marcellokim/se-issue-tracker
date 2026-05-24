@@ -55,20 +55,23 @@ class ProjectTest {
         assertThrows(IllegalArgumentException.class, () -> Project.create(" ", "desc", "admin", now));
     }
 
-    @Test
-    @DisplayName("registerIssue creates issue via Creator pattern")
-    void registerIssueCreatesIssue() {
-        Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now, now);
-        User reporter = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, now, now);
+    // @Test
+    // @DisplayName("registerIssue creates issue via Creator pattern")
+    // void registerIssueCreatesIssue() {
+    // Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now,
+    // now);
+    // User reporter = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV,
+    // true, now, now);
 
-        Issue issue = project.registerIssue("ISSUE-1", "Bug", "Login fails", Priority.MAJOR, reporter, now);
+    // Issue issue = project.registerIssue("ISSUE-1", "Bug", "Login fails",
+    // Priority.MAJOR, reporter, now);
 
-        assertEquals(project.getId(), issue.projectId());
-        assertEquals("ISSUE-1", issue.getIssueId());
-        assertEquals("Bug", issue.getTitle());
-        assertEquals(IssueStatus.NEW, issue.getStatus());
-        assertEquals(Priority.MAJOR, issue.getPriority());
-    }
+    // assertEquals(project.getId(), issue.projectId());
+    // assertEquals("ISSUE-1", issue.getIssueId());
+    // assertEquals("Bug", issue.getTitle());
+    // assertEquals(IssueStatus.NEW, issue.getStatus());
+    // assertEquals(Priority.MAJOR, issue.getPriority());
+    // }
 
     @Test
     @DisplayName("rename updates name and updatedAt")
