@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
@@ -317,6 +318,107 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("searches issues and returns IssueSummary list")
+    void searchIssuesReturnsSummaries() {
+        var issue1 = persistedIssue(1L, "ISSUE-1");
+        var issue2 = persistedIssue(2L, "ISSUE-2");
+        var service = service(new InMemoryIssueRepository(issue1, issue2));
+
+        List<IssueSummary> results = service.searchIssues(
+                PROJECT_ID, null, null, null, null, null, null, dev.getLoginId());
+
+        assertEquals(2, results.size());
+        assertEquals("ISSUE-1", results.get(0).issueId());
+        assertEquals(IssueStatus.NEW, results.get(0).status());
+        assertEquals(Priority.MAJOR, results.get(0).priority());
+    }
+
+    @Test
+    @DisplayName("search rejects ADMIN user")
+    void searchIssuesRejectsAdmin() {
+        var service = service(new InMemoryIssueRepository());
+
+        assertThrows(SecurityException.class,
+                () -> service.searchIssues(PROJECT_ID, null, null, null, null, null, null, admin.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("views issue detail with comments and histories")
+    void viewIssueDetailReturnsFullResult() {
+        var issue = persistedIssue();
+        issue.addComment("COMMENT-1", "Test comment", dev, now.plusMinutes(5));
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueDetailResult result = service.viewIssueDetail(ISSUE_ID, dev.getLoginId());
+
+        assertEquals("ISSUE-1", result.issueId());
+        assertEquals(IssueStatus.NEW, result.status());
+        assertEquals("Issue 1", result.title());
+        assertEquals(1, result.comments().size());
+        assertEquals("Test comment", result.comments().get(0).content());
+        assertFalse(result.histories().isEmpty());
+    }
+
+    @Test
+    @DisplayName("detail rejects nonexistent issue")
+    void viewIssueDetailRejectsUnknownIssue() {
+        var service = service(new InMemoryIssueRepository());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.viewIssueDetail(999L, dev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("detail rejects ADMIN user")
+    void viewIssueDetailRejectsAdmin() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        assertThrows(SecurityException.class,
+                () -> service.viewIssueDetail(ISSUE_ID, admin.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("PL on NEW issue gets ASSIGN, DELETE, ADD_COMMENT, MANAGE_DEPENDENCY actions")
+    void availableActionsForPlOnNewIssue() {
+        var issue = persistedIssue();
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueDetailResult result = service.viewIssueDetail(ISSUE_ID, pl.getLoginId());
+
+        assertTrue(result.availableActions().contains("ASSIGN"));
+        assertTrue(result.availableActions().contains("DELETE"));
+        assertTrue(result.availableActions().contains("ADD_COMMENT"));
+        assertTrue(result.availableActions().contains("MANAGE_DEPENDENCY"));
+    }
+
+    @Test
+    @DisplayName("DEV assignee on ASSIGNED issue gets FIX action")
+    void availableActionsForDevAssigneeOnAssignedIssue() {
+        var issue = assignedIssue(ISSUE_ID, "ISSUE-1");
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueDetailResult result = service.viewIssueDetail(ISSUE_ID, dev.getLoginId());
+
+        assertTrue(result.availableActions().contains("FIX"));
+        assertTrue(result.availableActions().contains("ADD_COMMENT"));
+    }
+
+    @Test
+    @DisplayName("TESTER verifier on FIXED issue gets RESOLVE and REJECT_FIX actions")
+    void availableActionsForTesterOnFixedIssue() {
+        var issue = assignedIssue(ISSUE_ID, "ISSUE-1");
+        issue.markFixed(dev, "Fixed", now.plusMinutes(20));
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueDetailResult result = service.viewIssueDetail(ISSUE_ID, tester.getLoginId());
+
+        assertTrue(result.availableActions().contains("RESOLVE"));
+        assertTrue(result.availableActions().contains("REJECT_FIX"));
+        assertTrue(result.availableActions().contains("ADD_COMMENT"));
+    }
+
+    @Test
     @DisplayName("deletes writer-owned general comment and records comment history")
     void deleteCommentSucceeds() {
         var issue = persistedIssue();
@@ -421,6 +523,12 @@ class IssueServiceTest {
                         .priority(Priority.MAJOR)
                         .status(IssueStatus.NEW)
                         .updatedAt(now));
+    }
+
+    private Issue assignedIssue(long id, String issueId) {
+        var issue = persistedIssue(id, issueId);
+        issue.assignFromNew(dev, tester, pl, now.plusMinutes(10));
+        return issue;
     }
 
     private Comment comment(long commentId, long issueId, User writer, CommentPurpose purpose) {
