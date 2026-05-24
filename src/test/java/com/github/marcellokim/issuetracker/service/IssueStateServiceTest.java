@@ -72,6 +72,38 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("verifier rejects fixed issue back to assigned")
+    void rejectFixedIssueBackToAssigned() {
+        var issue = fixedIssue();
+        var service = service(issue);
+
+        var result = service.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Needs more work",
+                verifier.getLoginId());
+
+        assertEquals(IssueStatus.ASSIGNED, result.status());
+        assertEquals(IssueStatus.ASSIGNED, issue.getStatus());
+        assertSame(assignee, result.assignee());
+        assertSame(verifier, result.verifier());
+        assertSame(assignee, result.fixer());
+        assertNull(result.resolver());
+        assertSame(assignee, issue.getAssignee());
+        assertSame(verifier, issue.getVerifier());
+        assertSame(assignee, issue.getFixer());
+        assertNull(issue.getResolver());
+        assertEquals(1, issue.getComments().size());
+        assertEquals("Needs more work", issue.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
+
+        var histories = issue.getHistories();
+        var statusHistory = histories.get(histories.size() - 2);
+        assertEquals(ActionType.STATUS_CHANGED, statusHistory.getAction());
+        assertEquals(IssueStatus.FIXED.name(), statusHistory.getPreviousValue());
+        assertEquals(IssueStatus.ASSIGNED.name(), statusHistory.getNewValue());
+        assertEquals("Needs more work", statusHistory.getMessage());
+        assertStatusChangedThenCommented(issue);
+    }
+
+    @Test
     @DisplayName("PL closes resolved issue and clears active assignment")
     void closeResolvedIssue() {
         var issue = resolvedIssue();
@@ -105,6 +137,38 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("only current verifier can reject a fixed issue")
+    void rejectFixRequiresCurrentVerifier() {
+        var issue = fixedIssue();
+        int commentCount = issue.getComments().size();
+        int historyCount = issue.getHistories().size();
+        var service = service(issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Needs more work",
+                        otherDev.getLoginId()));
+
+        assertEquals(commentCount, issue.getComments().size());
+        assertEquals(historyCount, issue.getHistories().size());
+    }
+
+    @Test
+    @DisplayName("reject fix requires fixed issue status")
+    void rejectFixRequiresFixedIssueStatus() {
+        var issue = assignedIssue();
+        int commentCount = issue.getComments().size();
+        int historyCount = issue.getHistories().size();
+        var service = service(issue);
+
+        assertThrows(IllegalStateException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Needs more work",
+                        pl.getLoginId()));
+
+        assertEquals(commentCount, issue.getComments().size());
+        assertEquals(historyCount, issue.getHistories().size());
+    }
+
+    @Test
     @DisplayName("blank comment or wrong actor fails status change")
     void rejectBlankCommentAndWrongParticipant() {
         var issue = assignedIssue();
@@ -127,15 +191,11 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unsupported status change targets remain feature gaps")
-    void rejectUnsupportedTargetStatus() {
-        var fixed = fixedIssue();
-        var fixedService = service(fixed);
-        assertThrows(UnsupportedOperationException.class,
-                () -> fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId()));
-
+    @DisplayName("reopened status change target remains a feature gap")
+    void rejectUnsupportedReopenedTargetStatus() {
         var resolved = resolvedIssue();
         var resolvedService = service(resolved);
+
         assertThrows(UnsupportedOperationException.class,
                 () -> resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
     }

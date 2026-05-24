@@ -42,6 +42,7 @@ public final class IssueStateService {
         switch (requiredTargetStatus) {
             case FIXED -> markFixed(issue, actor, requiredComment);
             case RESOLVED -> resolve(issue, actor, requiredComment);
+            case ASSIGNED -> rejectFix(issue, actor, requiredComment);
             case CLOSED -> close(issue, actor, requiredComment);
             default -> throw new UnsupportedOperationException("Unsupported target status: " + requiredTargetStatus);
         }
@@ -66,6 +67,18 @@ public final class IssueStateService {
         rejectUnresolvedBlockingIssues(issue);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
+        issue.addComment(
+                CommentIdGenerator.nextCommentId(),
+                comment,
+                actor,
+                changedAt,
+                CommentPurpose.STATUS_CHANGE);
+    }
+
+    private void rejectFix(Issue issue, User actor, String comment) {
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED);
+        LocalDateTime changedAt = now();
+        issue.rejectFix(actor, comment, changedAt);
         issue.addComment(
                 CommentIdGenerator.nextCommentId(),
                 comment,
