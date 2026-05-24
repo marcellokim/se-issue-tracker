@@ -8,7 +8,8 @@ The current `origin/dev` baseline already contains the domain and policy foundat
 
 - `Issue.rejectFix(tester, comment, changedDate)` changes `FIXED -> ASSIGNED`.
 - `PermissionPolicy.assertCanChangeStatus(actor, issue, ASSIGNED)` allows only the active current verifier when the issue is `FIXED`.
-- The UML domain model, DCD, and OC describe the rejection as `changeStatus(issueId, targetStatus=ASSIGNED, comment)`, not as a separate controller operation.
+- The OC and current implementation API describe the rejection as `changeStatus(issueId, targetStatus=ASSIGNED, comment)`.
+- The DCD includes state-specific convenience operation names such as `rejectFix(issueId, comment)`, but the current controller/service public API exposes `changeStatus(...)`; this issue completes that existing route instead of expanding the public API.
 - The DCD and OC do not define `CommentPurpose.STATUS_CHANGE_REASON`; current code uses `CommentPurpose.STATUS_CHANGE` for status-change comments.
 
 The remaining gap is application-service routing. `IssueStateService.changeStatus(...)` currently routes `FIXED`, `RESOLVED`, and `CLOSED`, while `ASSIGNED` still falls through to the unsupported-target branch.
@@ -21,7 +22,7 @@ Do not add a new public `rejectFix` controller/service operation. Do not introdu
 
 ## Architecture
 
-`IssueStateController.changeStatus(...)` remains unchanged. It already matches the DCD/OC operation shape and passes the authenticated user's login id to `IssueStateService`.
+`IssueStateController.changeStatus(...)` remains unchanged. It matches the current implementation and OC operation shape and passes the authenticated user's login id to `IssueStateService`.
 
 `IssueStateService.changeStatus(...)` will add an `ASSIGNED` switch branch that delegates to a private `rejectFix(Issue issue, User actor, String comment)` method.
 
@@ -40,7 +41,7 @@ The existing outer method will continue saving the issue with `issueRepository.s
 2. The controller loads the current session user.
 3. The service rejects blank comments before repository lookup.
 4. The service loads the issue and actor.
-5. The `ASSIGNED` branch performs verifier-only permission validation.
+5. The `ASSIGNED` branch delegates permission validation to `PermissionPolicy`.
 6. The domain object performs the `FIXED -> ASSIGNED` transition and preserves current assignee, verifier, and fixer.
 7. The service records the rejection reason as a `STATUS_CHANGE` comment.
 8. The repository saves the updated issue.
@@ -50,8 +51,9 @@ The existing outer method will continue saving the issue with `issueRepository.s
 
 - Blank `comment` fails before issue/user lookup with `IllegalArgumentException`.
 - Null `targetStatus` fails with `NullPointerException`.
-- A non-verifier actor fails with `SecurityException`.
-- A non-`FIXED` issue fails during the domain transition with `IllegalStateException`.
+- A non-verifier actor on a `FIXED` issue fails with `SecurityException`.
+- A non-`FIXED` issue fails during the domain transition with `IllegalStateException` when the actor passes the broader `ASSIGNED` permission path, such as a PL actor.
+- This design intentionally does not change `PermissionPolicy` ordering. For `targetStatus=ASSIGNED`, the policy currently treats `FIXED` as verifier rejection and non-`FIXED` as PL assignment permission.
 - On failed domain transition, no new comment, history, or save side effect should occur.
 - `REOPENED` remains unsupported in this issue because #47 owns reopen routing.
 
@@ -67,16 +69,16 @@ Success coverage:
 - Existing assignee is retained.
 - Existing verifier is retained.
 - Existing fixer is retained.
-- Resolver remains unchanged.
+- Resolver remains unchanged; if it was `null`, it stays `null`.
 - One status-change comment is created with `CommentPurpose.STATUS_CHANGE`.
 - Latest histories are `STATUS_CHANGED` followed by `COMMENTED`.
 - `STATUS_CHANGED` records `previousValue=FIXED` and `newValue=ASSIGNED`.
 
 Failure coverage:
 
-- Wrong actor cannot reject the fix.
-- A non-`FIXED` issue cannot be rejected.
-- Existing unsupported-target coverage keeps `REOPENED` as unsupported.
+- Wrong actor on a `FIXED` issue cannot reject the fix and fails with `SecurityException`.
+- A non-`FIXED` issue cannot be rejected. Use a PL actor for this service-level test if expecting `IllegalStateException`, because the current permission policy allows PL assignment on non-`FIXED` issues before the domain `rejectFix` guard runs.
+- Existing unsupported-target coverage removes `ASSIGNED` from unsupported cases and keeps `REOPENED` as unsupported.
 
 ## Scope Exclusions
 
@@ -95,3 +97,14 @@ Required local checks:
 - `./gradlew check --console=plain`
 
 PR evidence should mention branch `feat/43-reject-fix-transition`, base `origin/dev`, and that Oracle-local integration and UI/manual flows are outside this issue's scope unless run separately.
+
+Suggested PR description wording:
+
+```text
+Implements #43 by completing the existing IssueStateService.changeStatus(...)
+routing for targetStatus=ASSIGNED when the current issue is FIXED.
+
+This keeps the public controller/service operation shape aligned with the
+current implementation and OC: changeStatus(issueId, targetStatus=ASSIGNED, comment).
+No new public rejectFix API, IssueStatus, CommentPurpose, or persistence schema is added.
+```
