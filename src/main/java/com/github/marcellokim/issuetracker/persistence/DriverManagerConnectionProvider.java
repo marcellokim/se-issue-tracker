@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -53,56 +54,66 @@ public final class DriverManagerConnectionProvider implements DatabaseConnection
     }
 
     public static DriverManagerConnectionProvider fromIntegrationTestEnvironment() {
-        String url = readEnvironment("ITS_TEST_DB_URL", readEnvironment("ITS_DB_URL", DEFAULT_ORACLE_URL));
-        String user = readRequiredEnvironment("ITS_TEST_DB_USER");
-        String password = readRequiredEnvironment("ITS_TEST_DB_PASSWORD");
-        int connectionRetries = readNonNegativeIntegerEnvironment("ITS_TEST_DB_CONNECT_RETRIES", 0);
-        long retryDelayMillis = readNonNegativeLongEnvironment("ITS_TEST_DB_CONNECT_RETRY_DELAY_MS", 0);
+        return fromIntegrationTestEnvironment(System.getenv(), DriverManager::getConnection);
+    }
+
+    static DriverManagerConnectionProvider fromIntegrationTestEnvironment(
+            Map<String, String> environment,
+            ConnectionOpener connectionOpener) {
+        Objects.requireNonNull(environment, "environment");
+        Objects.requireNonNull(connectionOpener, "connectionOpener");
+        String url = readEnvironment(environment, "ITS_TEST_DB_URL",
+                readEnvironment(environment, "ITS_DB_URL", DEFAULT_ORACLE_URL));
+        String user = readRequiredEnvironment(environment, "ITS_TEST_DB_USER");
+        String password = readRequiredEnvironment(environment, "ITS_TEST_DB_PASSWORD");
+        int connectionRetries = readNonNegativeIntegerEnvironment(environment, "ITS_TEST_DB_CONNECT_RETRIES", 0);
+        long retryDelayMillis = readNonNegativeLongEnvironment(environment, "ITS_TEST_DB_CONNECT_RETRY_DELAY_MS", 0);
         return new DriverManagerConnectionProvider(
                 url,
                 user,
                 password,
                 connectionRetries,
                 retryDelayMillis,
-                DriverManager::getConnection);
+                connectionOpener);
     }
 
     @Override
     public Connection getConnection() throws SQLException {
-        SQLException lastException = null;
-        int maxAttempts = connectionRetries + 1;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        int attempt = 1;
+        while (true) {
             try {
                 return connectionOpener.open(url, user, password);
             } catch (SQLException exception) {
-                lastException = exception;
-                if (attempt == maxAttempts || !isRetryableConnectionException(exception)) {
+                if (attempt > connectionRetries || !isRetryableConnectionException(exception)) {
                     throw exception;
                 }
                 sleepBeforeRetry();
+                attempt++;
             }
         }
-        throw lastException;
     }
 
-    private static String readEnvironment(String name, String defaultValue) {
-        String value = System.getenv(name);
+    private static String readEnvironment(Map<String, String> environment, String name, String defaultValue) {
+        String value = environment.get(name);
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
         return value;
     }
 
-    private static String readRequiredEnvironment(String name) {
-        String value = System.getenv(name);
+    private static String readRequiredEnvironment(Map<String, String> environment, String name) {
+        String value = environment.get(name);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(name + " environment variable is required.");
         }
         return value;
     }
 
-    private static int readNonNegativeIntegerEnvironment(String name, int defaultValue) {
-        String value = System.getenv(name);
+    private static int readNonNegativeIntegerEnvironment(
+            Map<String, String> environment,
+            String name,
+            int defaultValue) {
+        String value = environment.get(name);
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
@@ -113,8 +124,11 @@ public final class DriverManagerConnectionProvider implements DatabaseConnection
         }
     }
 
-    private static long readNonNegativeLongEnvironment(String name, long defaultValue) {
-        String value = System.getenv(name);
+    private static long readNonNegativeLongEnvironment(
+            Map<String, String> environment,
+            String name,
+            long defaultValue) {
+        String value = environment.get(name);
         if (value == null || value.isBlank()) {
             return defaultValue;
         }
