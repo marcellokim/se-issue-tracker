@@ -14,8 +14,8 @@ final class JdbcIssueWriteSupport {
     void insertTransientComments(Connection connection, long issueId, List<Comment> comments)
             throws SQLException {
         String sql = """
-                insert into comments (issue_id, writer_login_id, content, purpose, created_date)
-                values (?, ?, ?, ?, coalesce(?, current_timestamp))
+                insert into comments (issue_id, writer_login_id, content, purpose, created_at, updated_at)
+                values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, coalesce(?, current_timestamp)))
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (Comment comment : comments) {
@@ -27,6 +27,8 @@ final class JdbcIssueWriteSupport {
                 statement.setString(3, comment.content());
                 statement.setString(4, comment.purpose().name());
                 JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
+                JdbcSupport.setNullableTimestamp(statement, 6, comment.updatedDate());
+                JdbcSupport.setNullableTimestamp(statement, 7, comment.createdDate());
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -37,7 +39,7 @@ final class JdbcIssueWriteSupport {
             throws SQLException {
         String sql = """
                 insert into issue_history (
-                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
                 )
                 values (?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
                 """;
@@ -94,7 +96,7 @@ final class JdbcIssueWriteSupport {
     ) throws SQLException {
         String sql = """
                 insert into issue_history (
-                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_date
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
                 )
                 values (?, ?, 'STATUS_CHANGED', ?, ?, ?, coalesce(?, current_timestamp))
                 """;

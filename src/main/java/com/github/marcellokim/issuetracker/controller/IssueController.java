@@ -37,7 +37,7 @@ public final class IssueController {
         return issueService.addDependency(blockingIssueId, blockedIssueId, user.getLoginId());
     }
 
-    public void removeDependency(long dependencyId) {
+    public void removeDependency(String dependencyId) {
         User user = requireCurrentUser();
         issueService.removeDependency(dependencyId, user.getLoginId());
     }

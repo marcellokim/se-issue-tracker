@@ -6,6 +6,7 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
@@ -77,24 +78,24 @@ public final class IssueService {
         Issue blockedIssue = findIssue(blockedIssueId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
+        requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         validateDependency(blockingIssueId, blockedIssueId);
         LocalDateTime now = now();
         String dependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
         IssueDependency dependency = blockedIssue.addDependency(dependencyId, blockingIssue, actor, now);
-        IssueDependency saved = dependencyRepository.save(dependency);
-        issueRepository.save(blockedIssue);
+        IssueDependency saved = dependencyRepository.saveAndRecordIssueChange(dependency, blockedIssue);
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
-    public void removeDependency(long dependencyId, String currentUserId) {
-        IssueDependency dependency = dependencyRepository.findById(dependencyId)
+    public void removeDependency(String dependencyId, String currentUserId) {
+        IssueDependency dependency = dependencyRepository.findByDependencyId(dependencyId)
                 .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
+        requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         blockedIssue.removeDependency(dependency, actor, now());
-        dependencyRepository.deleteById(dependencyId);
-        issueRepository.save(blockedIssue);
+        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(dependencyId, blockedIssue);
     }
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {
@@ -128,6 +129,14 @@ public final class IssueService {
     private User findUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    private void requireProjectLead(User actor, long projectId, String message) {
+        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectLead) {
+            throw new SecurityException(message);
+        }
     }
 
     private void validateDependency(long blockingIssueId, long blockedIssueId) {
@@ -178,6 +187,7 @@ public final class IssueService {
 
     private static IssueResult toIssueResult(Issue issue) {
         return new IssueResult(
+                issue.id(),
                 issue.getIssueId(),
                 issue.status(),
                 issue.priority(),
@@ -202,7 +212,9 @@ public final class IssueService {
         return new DependencyResult(
                 dep.id(),
                 dep.getDependencyId(),
+                blockingIssue.id(),
                 blockingIssue.getIssueId(),
+                blockedIssue.id(),
                 blockedIssue.getIssueId(),
                 dep.getDiscoveredDate()
         );

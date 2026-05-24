@@ -26,8 +26,7 @@ public final class IssueHistory {
             String previousValue,
             String newValue,
             String message,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         this.id = id;
         this.issueId = issueId;
         this.historyId = requireText(historyId, "historyId");
@@ -48,8 +47,7 @@ public final class IssueHistory {
             String previousValue,
             String newValue,
             String message,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         return new IssueHistory(requirePositive(id, "id"), requirePositive(issueId, "issueId"),
                 Long.toString(id), changedById,
                 null, actionType, previousValue, newValue, message, changedDate);
@@ -62,8 +60,7 @@ public final class IssueHistory {
             String previousValue,
             String newValue,
             String message,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         return new IssueHistory(
                 0L,
                 requirePositive(issueId, "issueId"),
@@ -84,8 +81,7 @@ public final class IssueHistory {
             String newValue,
             String message,
             User changedBy,
-            LocalDateTime changedDate
-    ) {
+            LocalDateTime changedDate) {
         Objects.requireNonNull(changedBy, "changedBy must not be null");
         return new IssueHistory(0L, 0L, historyId, changedBy.getLoginId(),
                 changedBy, action, previousValue, newValue, message, changedDate);

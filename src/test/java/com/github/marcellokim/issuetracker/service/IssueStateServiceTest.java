@@ -32,6 +32,8 @@ class IssueStateServiceTest {
     private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
             createdAt());
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
+    private final User otherProjectPl = User.fromPersistence("pl2", "PL Two", "hash", Role.PL, true, createdAt(),
+            createdAt());
     private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
 
     @Test
@@ -87,6 +89,19 @@ class IssueStateServiceTest {
         assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
+    }
+
+    @Test
+    @DisplayName("PL must belong to the issue project to close an issue")
+    void rejectCloseByPlFromOtherProject() {
+        var issue = resolvedIssue();
+        var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId());
+        var service = service(new FakeIssueDependencyRepository(), users, issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed",
+                        otherProjectPl.getLoginId()));
     }
 
     @Test
@@ -156,7 +171,7 @@ class IssueStateServiceTest {
         var blockedIssue = fixedIssue();
         var blockingIssue = newIssue(2L, "ISSUE-2");
         var depRepo = new FakeIssueDependencyRepository();
-        depRepo.save(IssueDependency.fromPersistence(1L, blockingIssue.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(IssueDependency.fromPersistence(1L, blockingIssue.id(), blockedIssue.id(), createdAt()));
         var service = service(depRepo, blockedIssue, blockingIssue);
 
         var exception = assertThrows(IllegalStateException.class,
@@ -171,8 +186,8 @@ class IssueStateServiceTest {
         var resolvedBlocking = resolvedIssue(2L, "ISSUE-2");
         var unresolvedBlocking = newIssue(3L, "ISSUE-3");
         var depRepo = new FakeIssueDependencyRepository();
-        depRepo.save(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
-        depRepo.save(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
         var service = service(depRepo, blockedIssue, resolvedBlocking, unresolvedBlocking);
 
         var exception = assertThrows(IllegalStateException.class,
@@ -185,10 +200,14 @@ class IssueStateServiceTest {
     }
 
     private IssueStateService service(FakeIssueDependencyRepository depRepo, Issue... issues) {
+        return service(depRepo, new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev), issues);
+    }
+
+    private IssueStateService service(FakeIssueDependencyRepository depRepo, InMemoryUserRepository users, Issue... issues) {
         return new IssueStateService(
                 new InMemoryIssueRepository(issues),
                 depRepo,
-                new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev),
+                users,
                 new PermissionPolicy(),
                 new Clock()
         );

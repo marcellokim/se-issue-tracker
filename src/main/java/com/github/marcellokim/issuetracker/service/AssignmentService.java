@@ -3,6 +3,7 @@ package com.github.marcellokim.issuetracker.service;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -41,9 +42,19 @@ public final class AssignmentService {
     public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         User verifier = findUser(verifierId);
-        permissionPolicy.assertCanAssignIssue(actor, issue);
+        requireActiveProjectMemberWithRole(
+                assignee,
+                issue.projectId(),
+                Role.DEV,
+                "Assignee must be an active DEV member of the issue project.");
+        requireActiveProjectMemberWithRole(
+                verifier,
+                issue.projectId(),
+                Role.TESTER,
+                "Verifier must be an active TESTER member of the issue project.");
         if (issue.status() == IssueStatus.NEW) {
             issue.assignFromNew(assignee, verifier, actor, now());
         } else if (issue.status() == IssueStatus.REOPENED) {
@@ -58,8 +69,13 @@ public final class AssignmentService {
     public AssignmentResult reassignIssue(long issueId, String assigneeId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
-        permissionPolicy.assertCanAssignIssue(actor, issue);
+        requireActiveProjectMemberWithRole(
+                assignee,
+                issue.projectId(),
+                Role.DEV,
+                "Assignee must be an active DEV member of the issue project.");
         issue.reassignAssignee(assignee, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -68,8 +84,13 @@ public final class AssignmentService {
     public AssignmentResult changeVerifier(long issueId, String verifierId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        assertCanManageAssignment(actor, issue);
         User verifier = findUser(verifierId);
-        permissionPolicy.assertCanAssignIssue(actor, issue);
+        requireActiveProjectMemberWithRole(
+                verifier,
+                issue.projectId(),
+                Role.TESTER,
+                "Verifier must be an active TESTER member of the issue project.");
         issue.changeVerifier(verifier, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -77,8 +98,31 @@ public final class AssignmentService {
 
     private void assertCanStartAssignment(User actor, Issue issue) {
         switch (issue.status()) {
-            case NEW, REOPENED, ASSIGNED, FIXED -> permissionPolicy.assertCanAssignIssue(actor, issue);
+            case NEW, REOPENED, ASSIGNED, FIXED -> {
+                assertCanManageAssignment(actor, issue);
+            }
             default -> throw new IllegalStateException("Issue status does not allow assignment updates");
+        }
+    }
+
+    private void assertCanManageAssignment(User actor, Issue issue) {
+        permissionPolicy.assertCanAssignIssue(actor, issue);
+        requireProjectLead(actor, issue.projectId(), "Only the project PL can assign issue owners.");
+    }
+
+    private void requireProjectLead(User actor, long projectId, String message) {
+        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectLead) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private void requireActiveProjectMemberWithRole(User candidate, long projectId, Role role, String message) {
+        boolean projectMember = userRepository.findActiveByRole(projectId, role).stream()
+                .anyMatch(user -> user.getLoginId().equals(candidate.getLoginId()));
+        if (!projectMember) {
+            throw new SecurityException(message);
         }
     }
 
@@ -97,6 +141,11 @@ public final class AssignmentService {
     }
 
     private static AssignmentResult toResult(Issue issue) {
-        return new AssignmentResult(issue.getIssueId(), issue.status(), issue.getAssignee(), issue.getVerifier());
+        return new AssignmentResult(
+                issue.id(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.getAssignee(),
+                issue.getVerifier());
     }
 }

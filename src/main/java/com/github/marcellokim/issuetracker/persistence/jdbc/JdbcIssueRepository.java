@@ -109,7 +109,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     private Issue insert(Issue issue) {
         String sql = """
                 insert into issues (
-                    project_id, issue_id, title, description, reported_date, priority, status,
+                    project_id, issue_id, title, description, reported_at, priority, status,
                     reporter_login_id, assignee_login_id, verifier_login_id, fixer_login_id, resolver_login_id, updated_at
                 )
                 values (?, ?, ?, ?, coalesce(?, current_timestamp), ?, ?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))

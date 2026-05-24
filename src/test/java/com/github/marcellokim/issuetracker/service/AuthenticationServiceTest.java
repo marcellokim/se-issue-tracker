@@ -132,6 +132,13 @@ class AuthenticationServiceTest {
         }
 
         @Override
+        public List<User> findByRole(long projectId, Role role) {
+            return usersByLoginId.values().stream()
+                    .filter(user -> user.getRole() == role)
+                    .toList();
+        }
+
+        @Override
         public List<User> findActiveByRole(long projectId, Role role) {
             return usersByLoginId.values().stream()
                     .filter(User::isActive)
@@ -143,6 +150,22 @@ class AuthenticationServiceTest {
         public User save(User user) {
             usersByLoginId.put(user.getLoginId(), user);
             return user;
+        }
+
+        @Override
+        public void activate(String loginId) {
+            findById(loginId).ifPresent(user -> usersByLoginId.put(
+                    user.getLoginId(),
+                    User.fromPersistence(
+                            user.getLoginId(),
+                            user.getName(),
+                            user.getPasswordHash(),
+                            user.getRole(),
+                            true,
+                            user.getCreatedAt(),
+                            user.getUpdatedAt()
+                    )
+            ));
         }
 
         @Override

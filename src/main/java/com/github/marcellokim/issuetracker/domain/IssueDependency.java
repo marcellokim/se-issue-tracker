@@ -20,15 +20,13 @@ public final class IssueDependency {
             long id,
             long blockingIssueId,
             long blockedIssueId,
-            LocalDateTime discoveredDate
-    ) {
+            LocalDateTime discoveredDate) {
         return fromPersistence(
                 id,
                 dependencyIdFor(blockingIssueId, blockedIssueId),
                 blockingIssueId,
                 blockedIssueId,
-                discoveredDate
-        );
+                discoveredDate);
     }
 
     public static IssueDependency fromPersistence(
@@ -36,8 +34,7 @@ public final class IssueDependency {
             String dependencyId,
             long blockingIssueId,
             long blockedIssueId,
-            LocalDateTime discoveredDate
-    ) {
+            LocalDateTime discoveredDate) {
         return new IssueDependency(id, dependencyId, blockingIssueId, blockedIssueId, discoveredDate);
     }
 
@@ -46,8 +43,7 @@ public final class IssueDependency {
             String dependencyId,
             long blockingIssueId,
             long blockedIssueId,
-            LocalDateTime discoveredDate
-    ) {
+            LocalDateTime discoveredDate) {
         this.id = id;
         this.blockingIssueId = blockingIssueId;
         this.blockedIssueId = blockedIssueId;
@@ -57,7 +53,8 @@ public final class IssueDependency {
         this.discoveredDate = discoveredDate;
     }
 
-    private IssueDependency(String dependencyId, Issue blockingIssue, Issue blockedIssue, LocalDateTime discoveredDate) {
+    private IssueDependency(String dependencyId, Issue blockingIssue, Issue blockedIssue,
+            LocalDateTime discoveredDate) {
         this.id = 0L;
         this.blockingIssue = Objects.requireNonNull(blockingIssue, "blockingIssue must not be null");
         this.blockedIssue = Objects.requireNonNull(blockedIssue, "blockedIssue must not be null");
@@ -71,8 +68,7 @@ public final class IssueDependency {
             String dependencyId,
             Issue blockingIssue,
             Issue blockedIssue,
-            LocalDateTime discoveredDate
-    ) {
+            LocalDateTime discoveredDate) {
         return new IssueDependency(dependencyId, blockingIssue, blockedIssue, discoveredDate);
     }
 
@@ -120,8 +116,12 @@ public final class IssueDependency {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof IssueDependency other)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof IssueDependency other)) {
+            return false;
+        }
         return Objects.equals(dependencyId, other.dependencyId);
     }
 

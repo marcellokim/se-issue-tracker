@@ -283,6 +283,13 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public List<User> findByRole(long projectId, Role role) {
+            return users.stream()
+                    .filter(user -> user.getRole() == role)
+                    .toList();
+        }
+
+        @Override
         public List<User> findActiveByRole(long projectId, Role role) {
             return users.stream()
                     .filter(user -> user.getRole() == role)
@@ -292,6 +299,11 @@ class DashboardSummaryServiceTest {
         @Override
         public User save(User user) {
             throw new UnsupportedOperationException("save is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public void activate(String loginId) {
+            throw new UnsupportedOperationException("activate is not needed by DashboardSummaryServiceTest.");
         }
 
         @Override

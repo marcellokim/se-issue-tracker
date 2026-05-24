@@ -50,7 +50,9 @@ sonar {
         def coverageExcludedSources = [
             'src/main/java/com/github/marcellokim/issuetracker/Main.java',
             'src/main/java/com/github/marcellokim/issuetracker/config/ApplicationContext.java',
+            'src/main/java/com/github/marcellokim/issuetracker/config/ApplicationBootstrap.java',
             'src/main/java/com/github/marcellokim/issuetracker/ui/**',
+            'src/main/java/com/github/marcellokim/issuetracker/persistence/DatabaseInitializer.java',
             'src/main/java/com/github/marcellokim/issuetracker/persistence/OracleConnectionCheck.java',
             'src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/**'
         ].join(',')
@@ -117,9 +119,24 @@ tasks.register('oracleConnectionCheck', JavaExec) {
 
 tasks.register('oracleInitializeDatabase', JavaExec) {
     group = 'application'
-    description = 'Initializes Oracle schema and repeatable demo seed data using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
+    description = 'Creates or migrates Oracle schema without deleting existing data; seed is inserted only on first initialization.'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+}
+
+tasks.register('oracleInitializeApplicationDatabase', JavaExec) {
+    group = 'application'
+    description = 'Alias for oracleInitializeDatabase: non-destructive application database initialization.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+}
+
+tasks.register('oracleResetFixedSeed', JavaExec) {
+    group = 'application'
+    description = 'Destructively drops/recreates Oracle schema and fixed demo seed data. Use only for development/test resets.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+    args '--reset-fixed-seed'
 }
 
 def oracleIntegrationTestRequested = {

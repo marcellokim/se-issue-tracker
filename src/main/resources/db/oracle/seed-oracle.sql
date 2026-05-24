@@ -13,108 +13,108 @@ begin
                 'ADMIN' as role,
                 1 as active
            from dual
-      union all
-      select 'pl1',
-             'PL 1',
-             'PL',
-             1
-        from dual
-      union all
-      select 'pl2',
-             'PL 2',
-             'PL',
-             1
-        from dual
-      union all
-      select 'dev1',
-             'Dev 1',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev2',
-             'Dev 2',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev3',
-             'Dev 3',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev4',
-             'Dev 4',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev5',
-             'Dev 5',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev6',
-             'Dev 6',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev7',
-             'Dev 7',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev8',
-             'Dev 8',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev9',
-             'Dev 9',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'dev10',
-             'Dev 10',
-             'DEV',
-             1
-        from dual
-      union all
-      select 'tester1',
-             'Tester 1',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester2',
-             'Tester 2',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester3',
-             'Tester 3',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester4',
-             'Tester 4',
-             'TESTER',
-             1
-        from dual
-      union all
-      select 'tester5',
-             'Tester 5',
-             'TESTER',
-             1
-        from dual
+         union all
+         select 'pl1',
+                'PL 1',
+                'PL',
+                1
+           from dual
+         union all
+         select 'pl2',
+                'PL 2',
+                'PL',
+                1
+           from dual
+         union all
+         select 'dev1',
+                'Dev 1',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev2',
+                'Dev 2',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev3',
+                'Dev 3',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev4',
+                'Dev 4',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev5',
+                'Dev 5',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev6',
+                'Dev 6',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev7',
+                'Dev 7',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev8',
+                'Dev 8',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev9',
+                'Dev 9',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'dev10',
+                'Dev 10',
+                'DEV',
+                1
+           from dual
+         union all
+         select 'tester1',
+                'Tester 1',
+                'TESTER',
+                1
+           from dual
+         union all
+         select 'tester2',
+                'Tester 2',
+                'TESTER',
+                1
+           from dual
+         union all
+         select 'tester3',
+                'Tester 3',
+                'TESTER',
+                1
+           from dual
+         union all
+         select 'tester4',
+                'Tester 4',
+                'TESTER',
+                1
+           from dual
+         union all
+         select 'tester5',
+                'Tester 5',
+                'TESTER',
+                1
+           from dual
       ) seed
    ) source on ( target.login_id = source.login_id )
    when matched then update
@@ -152,91 +152,91 @@ begin
                 '4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt,
                 'e0029239253cae8b9f8851e1e6a59a0c6b2d8692af7d7a3843da2ca4665da673' as password_hash
            from dual
-      union all
-      select 'pl1',
-             '5158aa2245b0cd6d35eb50acb51f90f0',
-             'bfc0e50ac607c99ea9e0c30f931c059832046f2190b975c51f715d5b4e08eb48'
-        from dual
-      union all
-      select 'pl2',
-             'b6cff8e992a228c0223c6e19c4513254',
-             'e221f253a29d9201e759a693910f90f22fb66b2c48d922549c0c10c159efb44d'
-        from dual
-      union all
-      select 'dev1',
-             '780f2e9102a5710b4ab9d439b04fbbb2',
-             '6a809c6135282018f27e9ab49454553995b198b5d37c8df591a59f36c1e9aa27'
-        from dual
-      union all
-      select 'dev2',
-             'e24fd4c7135f6697853d273c58b6012a',
-             '6b15ca53ee39f47d37342723a49d2f858e8cce1c0edb6e671bbd79d90feea4ac'
-        from dual
-      union all
-      select 'dev3',
-             '51f481f3ca01e49494ac97c8433cbadc',
-             'ebf5e8bc15550305b63ebd622ab586f987608c444ed5c5984b351d161f41c1dd'
-        from dual
-      union all
-      select 'dev4',
-             '91d41e978ac3797be9276d041d1198e8',
-             '068c973da29e3b607fc630b0213f5b5a62db55f249567d88d955bc8bc052aee0'
-        from dual
-      union all
-      select 'dev5',
-             '991d64bb66d214708d91a3a956eb1940',
-             '6424c8701be088e670a51c1ea227af4806484e2099e70765ba94c71310688421'
-        from dual
-      union all
-      select 'dev6',
-             'fbcea9ca91363148673e2967942ff76d',
-             'b69dc0d1eaa1bb08e849144a49562e9ffa5b5e6564a8d96dec57bf3cd673b1d7'
-        from dual
-      union all
-      select 'dev7',
-             '02d38b80e8c06c5b02d9f4a8b512730b',
-             '529f4ff49d6cb0fdb2825f38efda20573235e4f971bc6e15d47ced71a590e2b6'
-        from dual
-      union all
-      select 'dev8',
-             'a72916048583855e543c75fdd70f1317',
-             '78ef14d74c09a5f61f8989902f3182c7f7970f32c3f69afe4802c662f9fd177c'
-        from dual
-      union all
-      select 'dev9',
-             'c43ecfac55a533aa4e5ca7233492d793',
-             'a1ce90140e1ee9931a8ab64346e40b26748305fa559eee7f70ad2d647f43c9fd'
-        from dual
-      union all
-      select 'dev10',
-             '41ffe9aa08cf84ab48c1758bf5e64a63',
-             'ff9489f3b4b0522a82b96229d69fbdd0f123f98d6d695868cce0dcebf2bec0d5'
-        from dual
-      union all
-      select 'tester1',
-             '7fe69942c0dd8b9a8c7d0109e691c13e',
-             'c82a56579bdb85cc0eb948ddf2bbeba6b2c106ac59f8a6a178128134debfb6c4'
-        from dual
-      union all
-      select 'tester2',
-             '92b65790d122706e584563b840c92de0',
-             'da02203ce16bb24ecbbdf77e752855108a3a0d554175c497f3b464071109bc79'
-        from dual
-      union all
-      select 'tester3',
-             'c33fa6ae64c6397d5ae55b8e8fd826bf',
-             '4c8ad45e23c4e89400a0677ca35d29c22520016df774e57287cab55effacf929'
-        from dual
-      union all
-      select 'tester4',
-             'd92a5ba7508931ff9d919cdcd9b42ae6',
-             '50ef0e5db933166ffbb158dcaa8fcb9116b60dfa5a7aeb7272d8f5f959ff44d5'
-        from dual
-      union all
-      select 'tester5',
-             '410692becb9135a848939b8419359965',
-             '3fbd6f0569669a2b6a072648cd26a8a5d5f18082b7146392e2b82866c07b9e96'
-        from dual
+         union all
+         select 'pl1',
+                '5158aa2245b0cd6d35eb50acb51f90f0',
+                'bfc0e50ac607c99ea9e0c30f931c059832046f2190b975c51f715d5b4e08eb48'
+           from dual
+         union all
+         select 'pl2',
+                'b6cff8e992a228c0223c6e19c4513254',
+                'e221f253a29d9201e759a693910f90f22fb66b2c48d922549c0c10c159efb44d'
+           from dual
+         union all
+         select 'dev1',
+                '780f2e9102a5710b4ab9d439b04fbbb2',
+                '6a809c6135282018f27e9ab49454553995b198b5d37c8df591a59f36c1e9aa27'
+           from dual
+         union all
+         select 'dev2',
+                'e24fd4c7135f6697853d273c58b6012a',
+                '6b15ca53ee39f47d37342723a49d2f858e8cce1c0edb6e671bbd79d90feea4ac'
+           from dual
+         union all
+         select 'dev3',
+                '51f481f3ca01e49494ac97c8433cbadc',
+                'ebf5e8bc15550305b63ebd622ab586f987608c444ed5c5984b351d161f41c1dd'
+           from dual
+         union all
+         select 'dev4',
+                '91d41e978ac3797be9276d041d1198e8',
+                '068c973da29e3b607fc630b0213f5b5a62db55f249567d88d955bc8bc052aee0'
+           from dual
+         union all
+         select 'dev5',
+                '991d64bb66d214708d91a3a956eb1940',
+                '6424c8701be088e670a51c1ea227af4806484e2099e70765ba94c71310688421'
+           from dual
+         union all
+         select 'dev6',
+                'fbcea9ca91363148673e2967942ff76d',
+                'b69dc0d1eaa1bb08e849144a49562e9ffa5b5e6564a8d96dec57bf3cd673b1d7'
+           from dual
+         union all
+         select 'dev7',
+                '02d38b80e8c06c5b02d9f4a8b512730b',
+                '529f4ff49d6cb0fdb2825f38efda20573235e4f971bc6e15d47ced71a590e2b6'
+           from dual
+         union all
+         select 'dev8',
+                'a72916048583855e543c75fdd70f1317',
+                '78ef14d74c09a5f61f8989902f3182c7f7970f32c3f69afe4802c662f9fd177c'
+           from dual
+         union all
+         select 'dev9',
+                'c43ecfac55a533aa4e5ca7233492d793',
+                'a1ce90140e1ee9931a8ab64346e40b26748305fa559eee7f70ad2d647f43c9fd'
+           from dual
+         union all
+         select 'dev10',
+                '41ffe9aa08cf84ab48c1758bf5e64a63',
+                'ff9489f3b4b0522a82b96229d69fbdd0f123f98d6d695868cce0dcebf2bec0d5'
+           from dual
+         union all
+         select 'tester1',
+                '7fe69942c0dd8b9a8c7d0109e691c13e',
+                'c82a56579bdb85cc0eb948ddf2bbeba6b2c106ac59f8a6a178128134debfb6c4'
+           from dual
+         union all
+         select 'tester2',
+                '92b65790d122706e584563b840c92de0',
+                'da02203ce16bb24ecbbdf77e752855108a3a0d554175c497f3b464071109bc79'
+           from dual
+         union all
+         select 'tester3',
+                'c33fa6ae64c6397d5ae55b8e8fd826bf',
+                '4c8ad45e23c4e89400a0677ca35d29c22520016df774e57287cab55effacf929'
+           from dual
+         union all
+         select 'tester4',
+                'd92a5ba7508931ff9d919cdcd9b42ae6',
+                '50ef0e5db933166ffbb158dcaa8fcb9116b60dfa5a7aeb7272d8f5f959ff44d5'
+           from dual
+         union all
+         select 'tester5',
+                '410692becb9135a848939b8419359965',
+                '3fbd6f0569669a2b6a072648cd26a8a5d5f18082b7146392e2b82866c07b9e96'
+           from dual
       ) seed
    ) source on ( target.login_id = source.login_id )
    when matched then update
@@ -269,11 +269,11 @@ begin
                 'Demo project for ITS persistence and query flows' as description,
                 'admin' as managed_by_login_id
            from dual
-      union all
-      select 'project2',
-             'Second demo project for PL assignment separation',
-             'admin'
-        from dual
+         union all
+         select 'project2',
+                'Second demo project for PL assignment separation',
+                'admin'
+           from dual
       ) seed
    ) source on ( target.name = source.name )
    when matched then update
@@ -303,7 +303,7 @@ begin
         from projects
        where name = 'project2'
    ),
-          target.updated_at = current_timestamp
+          target.updated_at = timestamp '2026-05-01 00:00:00'
     where target.title in ( 'Dashboard statistics misses closed issues',
                             'Reopened issue keeps old assignee' )
       and target.project_id = (
@@ -497,7 +497,7 @@ begin
          select 'project2' as project_name,
                 'Dashboard statistics misses closed issues' as title,
                 'Statistics should include closed issues in status trend queries.' as description,
-                current_timestamp - interval '20' day as reported_at,
+                timestamp '2026-05-02 09:00:00' as reported_at,
                 'MAJOR' as priority,
                 'CLOSED' as status,
                 'tester4' as reporter_login,
@@ -510,7 +510,7 @@ begin
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'Reopened issues should preserve assignment history and allow reassignment.',
-                current_timestamp - interval '18' day,
+                timestamp '2026-05-04 09:00:00',
                 'CRITICAL',
                 'RESOLVED',
                 'tester5',
@@ -523,7 +523,7 @@ begin
          select 'project1',
                 'Login fails on invalid credential',
                 'Login failure message should be stable for invalid credentials.',
-                current_timestamp - interval '15' day,
+                timestamp '2026-05-07 09:00:00',
                 'MAJOR',
                 'CLOSED',
                 'tester1',
@@ -536,7 +536,7 @@ begin
          select 'project1',
                 'Search result filter returns stale status',
                 'Search filters should reflect the latest issue status and priority.',
-                current_timestamp - interval '10' day,
+                timestamp '2026-05-12 09:00:00',
                 'CRITICAL',
                 'RESOLVED',
                 'tester2',
@@ -549,7 +549,7 @@ begin
          select 'project1',
                 'Verification rejection returns to assignee',
                 'Rejected verification should send the issue back to assigned developer with comment history.',
-                current_timestamp - interval '6' day,
+                timestamp '2026-05-16 09:00:00',
                 'MAJOR',
                 'RESOLVED',
                 'tester5',
@@ -562,7 +562,7 @@ begin
          select 'project1',
                 'Assignment notification not shown',
                 'New issues should be visible to PL assignment workflow.',
-                current_timestamp - interval '3' day,
+                timestamp '2026-05-19 09:00:00',
                 'MINOR',
                 'NEW',
                 'tester1',
@@ -575,7 +575,7 @@ begin
          select 'project1',
                 'Dependency resolution flow blocked',
                 'Blocked issue should wait until its blocking issue is resolved or closed.',
-                current_timestamp - interval '2' day,
+                timestamp '2026-05-20 09:00:00',
                 'BLOCKER',
                 'ASSIGNED',
                 'tester3',
@@ -597,8 +597,8 @@ begin
       on fixer.login_id = s.fixer_login
         left join users resolver
       on resolver.login_id = s.resolver_login
-      order by s.reported_at,
-               s.title
+       order by s.reported_at,
+                s.title
    ) loop
       merge into issues target
       using (
@@ -615,47 +615,47 @@ begin
                 seed_issue.fixer_login_id as fixer_login_id,
                 seed_issue.resolver_login_id as resolver_login_id
            from dual
-   ) source on ( target.project_id = source.project_id
-      and target.title = source.title )
-   when matched then update
-   set target.issue_id = source.issue_id,
-       target.description = source.description,
-       target.reported_at = source.reported_at,
-       target.priority = source.priority,
-       target.status = source.status,
-       target.reporter_login_id = source.reporter_login_id,
-       target.assignee_login_id = source.assignee_login_id,
-       target.verifier_login_id = source.verifier_login_id,
-       target.fixer_login_id = source.fixer_login_id,
-       target.resolver_login_id = source.resolver_login_id,
-       target.updated_at = current_timestamp
-   when not matched then
-   insert (
-      project_id,
-      issue_id,
-      title,
-      description,
-      reported_at,
-      priority,
-      status,
-      reporter_login_id,
-      assignee_login_id,
-      verifier_login_id,
-      fixer_login_id,
-      resolver_login_id )
-   values
-      ( source.project_id,
-        source.issue_id,
-        source.title,
-        source.description,
-        source.reported_at,
-        source.priority,
-        source.status,
-        source.reporter_login_id,
-        source.assignee_login_id,
-        source.verifier_login_id,
-        source.fixer_login_id,
-        source.resolver_login_id );
+      ) source on ( target.project_id = source.project_id
+         and target.title = source.title )
+      when matched then update
+      set target.issue_id = source.issue_id,
+          target.description = source.description,
+          target.reported_at = source.reported_at,
+          target.priority = source.priority,
+          target.status = source.status,
+          target.reporter_login_id = source.reporter_login_id,
+          target.assignee_login_id = source.assignee_login_id,
+          target.verifier_login_id = source.verifier_login_id,
+          target.fixer_login_id = source.fixer_login_id,
+          target.resolver_login_id = source.resolver_login_id,
+          target.updated_at = source.reported_at
+      when not matched then
+      insert (
+         project_id,
+         issue_id,
+         title,
+         description,
+         reported_at,
+         priority,
+         status,
+         reporter_login_id,
+         assignee_login_id,
+         verifier_login_id,
+         fixer_login_id,
+         resolver_login_id )
+      values
+         ( source.project_id,
+           source.issue_id,
+           source.title,
+           source.description,
+           source.reported_at,
+           source.priority,
+           source.status,
+           source.reporter_login_id,
+           source.assignee_login_id,
+           source.verifier_login_id,
+           source.fixer_login_id,
+           source.resolver_login_id );
    end loop;
 end;
 /
@@ -696,252 +696,252 @@ begin
                 'Login fails on invalid credential' as issue_title,
                 'tester1' as writer_login,
                 'Initial login bug report.' as content,
-                current_timestamp - interval '15' day as created_at
+                timestamp '2026-05-07 10:00:00' as created_at
            from dual
          union all
          select 'project1',
                 'Login fails on invalid credential',
                 'pl1',
                 'Assigned to dev1 and tester2',
-                current_timestamp - interval '14' day
+                timestamp '2026-05-08 10:00:00'
            from dual
          union all
          select 'project1',
                 'Login fails on invalid credential',
                 'dev1',
                 'Fix implemented',
-                current_timestamp - interval '13' day
+                timestamp '2026-05-09 10:00:00'
            from dual
          union all
          select 'project1',
                 'Login fails on invalid credential',
                 'tester2',
                 'Fix verified',
-                current_timestamp - interval '12' day
+                timestamp '2026-05-10 10:00:00'
            from dual
          union all
          select 'project1',
                 'Login fails on invalid credential',
                 'pl1',
                 'Closed by PL',
-                current_timestamp - interval '11' day
+                timestamp '2026-05-11 10:00:00'
            from dual
          union all
          select 'project1',
                 'Search result filter returns stale status',
                 'tester2',
                 'Search status filter mismatch found during verification.',
-                current_timestamp - interval '10' day
+                timestamp '2026-05-12 10:00:00'
            from dual
          union all
          select 'project1',
                 'Search result filter returns stale status',
                 'pl1',
                 'Assigned to dev2 and tester1',
-                current_timestamp - interval '9' day
+                timestamp '2026-05-13 10:00:00'
            from dual
          union all
          select 'project1',
                 'Search result filter returns stale status',
                 'dev2',
                 'Filter corrected',
-                current_timestamp - interval '8' day
+                timestamp '2026-05-14 10:00:00'
            from dual
          union all
          select 'project1',
                 'Search result filter returns stale status',
                 'tester1',
                 'Verification complete',
-                current_timestamp - interval '7' day
+                timestamp '2026-05-15 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'tester4',
                 'Closed issue is missing from the dashboard status count.',
-                current_timestamp - interval '20' day
+                timestamp '2026-05-02 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'pl2',
                 'Assigned to dev4 and tester4',
-                current_timestamp - interval '19' day
+                timestamp '2026-05-03 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'dev4',
                 'Status aggregation query updated and ready for verification.',
-                current_timestamp - interval '18' day
+                timestamp '2026-05-04 09:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'dev4',
                 'Statistics query updated',
-                current_timestamp - interval '18' day
+                timestamp '2026-05-04 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'tester4',
                 'Closed issue count verified after dependency guard passed',
-                current_timestamp - interval '10' day
+                timestamp '2026-05-12 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'pl2',
                 'Closed after dashboard verification',
-                current_timestamp - interval '9' day
+                timestamp '2026-05-13 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'pl2',
                 'Reopened after release dashboard regression',
-                current_timestamp - interval '8' day
+                timestamp '2026-05-14 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'pl2',
                 'Reassigned to dev4 after closed issue reopened',
-                current_timestamp - interval '7' day
+                timestamp '2026-05-15 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'dev4',
                 'Follow-up statistics fix implemented',
-                current_timestamp - interval '6' day
+                timestamp '2026-05-16 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'tester4',
                 'Follow-up dashboard verification complete',
-                current_timestamp - interval '5' day
+                timestamp '2026-05-17 10:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'pl2',
                 'Reclosed after release regression verification',
-                current_timestamp - interval '4' day
+                timestamp '2026-05-18 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'tester5',
                 'Regression found after reopening an already resolved issue.',
-                current_timestamp - interval '18' day
+                timestamp '2026-05-04 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'pl2',
                 'Assigned to dev5 and tester5',
-                current_timestamp - interval '17' day
+                timestamp '2026-05-05 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'dev5',
                 'Initial reassignment fix implemented',
-                current_timestamp - interval '16' day
+                timestamp '2026-05-06 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'tester5',
                 'Initial verification complete',
-                current_timestamp - interval '15' day
+                timestamp '2026-05-07 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'pl2',
                 'Reassignment history should remain traceable after reopen.',
-                current_timestamp - interval '14' day
+                timestamp '2026-05-08 09:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'pl2',
                 'Regression reproduced after reopen',
-                current_timestamp - interval '14' day
+                timestamp '2026-05-08 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'pl2',
                 'Reassigned to dev5 for regression fix',
-                current_timestamp - interval '13' day
+                timestamp '2026-05-09 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'dev5',
                 'Regression fix implemented',
-                current_timestamp - interval '12' day
+                timestamp '2026-05-10 10:00:00'
            from dual
          union all
          select 'project2',
                 'Reopened issue keeps old assignee',
                 'tester5',
                 'Regression verification complete',
-                current_timestamp - interval '11' day
+                timestamp '2026-05-11 10:00:00'
            from dual
          union all
          select 'project1',
                 'Verification rejection returns to assignee',
                 'pl1',
                 'Assigned to dev6 and tester5',
-                current_timestamp - interval '5' day
+                timestamp '2026-05-17 10:00:00'
            from dual
          union all
          select 'project1',
                 'Verification rejection returns to assignee',
                 'dev6',
                 'Initial fix ready for verification',
-                current_timestamp - interval '4' day
+                timestamp '2026-05-18 10:00:00'
            from dual
          union all
          select 'project1',
                 'Verification rejection returns to assignee',
                 'tester5',
                 'Verification failed due to stale cache',
-                current_timestamp - interval '3' day
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
          select 'project1',
                 'Verification rejection returns to assignee',
                 'dev6',
                 'Rework completed after rejection',
-                current_timestamp - interval '2' day
+                timestamp '2026-05-20 10:00:00'
            from dual
          union all
          select 'project1',
                 'Verification rejection returns to assignee',
                 'tester5',
                 'Reverification complete',
-                current_timestamp - interval '1' day
+                timestamp '2026-05-21 10:00:00'
            from dual
          union all
          select 'project1',
                 'Dependency resolution flow blocked',
                 'pl1',
                 'Resolve only after the blocking issue is closed.',
-                current_timestamp - interval '2' day
+                timestamp '2026-05-20 10:00:00'
            from dual
          union all
          select 'project1',
                 'Dependency resolution flow blocked',
                 'pl1',
                 'Assigned to dev3 and tester3',
-                current_timestamp - interval '1' day
+                timestamp '2026-05-21 10:00:00'
            from dual
       ) s
         join projects p
@@ -951,9 +951,9 @@ begin
          and i.title = s.issue_title
         join users u
       on u.login_id = s.writer_login
-      order by s.created_at,
-               i.id,
-               s.content
+       order by s.created_at,
+                i.id,
+                s.content
    ) loop
       merge into comments target
       using (
@@ -964,28 +964,28 @@ begin
                 seed_comment.created_at as created_at,
                 seed_comment.created_at as updated_at
            from dual
-   ) source on ( target.issue_id = source.issue_id
-      and target.writer_login_id = source.writer_login_id
-      and target.content = source.content )
-   when matched then update
-   set target.purpose = source.purpose,
-       target.created_at = source.created_at,
-       target.updated_at = source.updated_at
-   when not matched then
-   insert (
-      issue_id,
-      writer_login_id,
-      content,
-      purpose,
-      created_at,
-      updated_at )
-   values
-      ( source.issue_id,
-        source.writer_login_id,
-        source.content,
-        source.purpose,
-        source.created_at,
-        source.updated_at );
+      ) source on ( target.issue_id = source.issue_id
+         and target.writer_login_id = source.writer_login_id
+         and target.created_at = source.created_at )
+      when matched then update
+      set target.content = source.content,
+          target.purpose = source.purpose,
+          target.updated_at = source.updated_at
+      when not matched then
+      insert (
+         issue_id,
+         writer_login_id,
+         content,
+         purpose,
+         created_at,
+         updated_at )
+      values
+         ( source.issue_id,
+           source.writer_login_id,
+           source.content,
+           source.purpose,
+           source.created_at,
+           source.updated_at );
    end loop;
 end;
 /
@@ -1006,7 +1006,7 @@ begin
                 cast(null as varchar2(4000 byte)) as previous_value,
                 cast('NEW' as varchar2(4000 byte)) as new_value,
                 cast('Issue created' as varchar2(4000 byte)) as message,
-                current_timestamp - interval '15' day as changed_at
+                timestamp '2026-05-07 09:00:00' as changed_at
            from dual
          union all
          select 'project1',
@@ -1016,7 +1016,7 @@ begin
                 'NEW',
                 'ASSIGNED',
                 'Assigned to dev1 and tester2',
-                current_timestamp - interval '14' day
+                timestamp '2026-05-08 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1026,7 +1026,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Fix implemented',
-                current_timestamp - interval '13' day
+                timestamp '2026-05-09 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1036,7 +1036,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Fix verified',
-                current_timestamp - interval '12' day
+                timestamp '2026-05-10 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1046,7 +1046,7 @@ begin
                 'RESOLVED',
                 'CLOSED',
                 'Closed by PL',
-                current_timestamp - interval '11' day
+                timestamp '2026-05-11 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1056,7 +1056,7 @@ begin
                 null,
                 'NEW',
                 'Issue created',
-                current_timestamp - interval '10' day
+                timestamp '2026-05-12 09:00:00'
            from dual
          union all
          select 'project1',
@@ -1066,7 +1066,7 @@ begin
                 'NEW',
                 'ASSIGNED',
                 'Assigned to dev2 and tester1',
-                current_timestamp - interval '9' day
+                timestamp '2026-05-13 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1076,7 +1076,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Filter corrected',
-                current_timestamp - interval '8' day
+                timestamp '2026-05-14 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1086,7 +1086,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Verification complete',
-                current_timestamp - interval '7' day
+                timestamp '2026-05-15 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1096,7 +1096,7 @@ begin
                 null,
                 'NEW',
                 'Issue created',
-                current_timestamp - interval '20' day
+                timestamp '2026-05-02 09:00:00'
            from dual
          union all
          select 'project2',
@@ -1106,7 +1106,7 @@ begin
                 'NEW',
                 'ASSIGNED',
                 'Assigned to dev4 and tester4',
-                current_timestamp - interval '19' day
+                timestamp '2026-05-03 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1116,7 +1116,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Statistics query updated',
-                current_timestamp - interval '18' day
+                timestamp '2026-05-04 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1126,7 +1126,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Closed issue count verified after dependency guard passed',
-                current_timestamp - interval '10' day
+                timestamp '2026-05-12 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1136,7 +1136,7 @@ begin
                 'RESOLVED',
                 'CLOSED',
                 'Closed after dashboard verification',
-                current_timestamp - interval '9' day
+                timestamp '2026-05-13 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1146,7 +1146,7 @@ begin
                 'CLOSED',
                 'REOPENED',
                 'Reopened after release dashboard regression',
-                current_timestamp - interval '8' day
+                timestamp '2026-05-14 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1156,7 +1156,7 @@ begin
                 'REOPENED',
                 'ASSIGNED',
                 'Reassigned to dev4 after closed issue reopened',
-                current_timestamp - interval '7' day
+                timestamp '2026-05-15 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1166,7 +1166,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Follow-up statistics fix implemented',
-                current_timestamp - interval '6' day
+                timestamp '2026-05-16 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1176,7 +1176,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Follow-up dashboard verification complete',
-                current_timestamp - interval '5' day
+                timestamp '2026-05-17 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1186,7 +1186,7 @@ begin
                 'RESOLVED',
                 'CLOSED',
                 'Reclosed after release regression verification',
-                current_timestamp - interval '4' day
+                timestamp '2026-05-18 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1196,7 +1196,7 @@ begin
                 null,
                 'NEW',
                 'Issue created',
-                current_timestamp - interval '18' day
+                timestamp '2026-05-04 09:00:00'
            from dual
          union all
          select 'project2',
@@ -1206,7 +1206,7 @@ begin
                 'NEW',
                 'ASSIGNED',
                 'Assigned to dev5 and tester5',
-                current_timestamp - interval '17' day
+                timestamp '2026-05-05 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1216,7 +1216,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Initial reassignment fix implemented',
-                current_timestamp - interval '16' day
+                timestamp '2026-05-06 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1226,7 +1226,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Initial verification complete',
-                current_timestamp - interval '15' day
+                timestamp '2026-05-07 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1236,7 +1236,7 @@ begin
                 'RESOLVED',
                 'REOPENED',
                 'Regression reproduced after reopen',
-                current_timestamp - interval '14' day
+                timestamp '2026-05-08 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1246,7 +1246,7 @@ begin
                 'REOPENED',
                 'ASSIGNED',
                 'Reassigned to dev5 for regression fix',
-                current_timestamp - interval '13' day
+                timestamp '2026-05-09 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1256,7 +1256,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Regression fix implemented',
-                current_timestamp - interval '12' day
+                timestamp '2026-05-10 10:00:00'
            from dual
          union all
          select 'project2',
@@ -1266,7 +1266,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Regression verification complete',
-                current_timestamp - interval '11' day
+                timestamp '2026-05-11 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1276,7 +1276,7 @@ begin
                 null,
                 'NEW',
                 'Issue created',
-                current_timestamp - interval '6' day
+                timestamp '2026-05-16 09:00:00'
            from dual
          union all
          select 'project1',
@@ -1286,7 +1286,7 @@ begin
                 'NEW',
                 'ASSIGNED',
                 'Assigned to dev6 and tester5',
-                current_timestamp - interval '5' day
+                timestamp '2026-05-17 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1296,7 +1296,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Initial fix ready for verification',
-                current_timestamp - interval '4' day
+                timestamp '2026-05-18 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1306,7 +1306,7 @@ begin
                 'FIXED',
                 'ASSIGNED',
                 'Verification failed due to stale cache',
-                current_timestamp - interval '3' day
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1316,7 +1316,7 @@ begin
                 'ASSIGNED',
                 'FIXED',
                 'Rework completed after rejection',
-                current_timestamp - interval '2' day
+                timestamp '2026-05-20 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1326,7 +1326,7 @@ begin
                 'FIXED',
                 'RESOLVED',
                 'Reverification complete',
-                current_timestamp - interval '1' day
+                timestamp '2026-05-21 10:00:00'
            from dual
          union all
          select 'project1',
@@ -1336,7 +1336,7 @@ begin
                 null,
                 'NEW',
                 'Issue created',
-                current_timestamp - interval '3' day
+                timestamp '2026-05-19 09:00:00'
            from dual
          union all
          select 'project1',
@@ -1346,7 +1346,7 @@ begin
                 null,
                 'NEW',
                 'Issue created',
-                current_timestamp - interval '2' day
+                timestamp '2026-05-20 09:00:00'
            from dual
          union all
          select 'project1',
@@ -1356,7 +1356,7 @@ begin
                 'NEW',
                 'ASSIGNED',
                 'Assigned to dev3 and tester3',
-                current_timestamp - interval '1' day
+                timestamp '2026-05-21 10:00:00'
            from dual
          union all
          select p.name,
@@ -1399,7 +1399,7 @@ begin
                       and blocked_issue.title = 'Dashboard statistics misses closed issues'
                 ),
                 'Dependency added',
-                current_timestamp - interval '11' day
+                timestamp '2026-05-11 11:00:00'
            from dual
          union all
          select 'project2',
@@ -1426,7 +1426,7 @@ begin
                       and blocked_issue.title = 'Reopened issue keeps old assignee'
                 ),
                 'Dependency added',
-                current_timestamp - interval '13' day
+                timestamp '2026-05-09 11:00:00'
            from dual
          union all
          select 'project1',
@@ -1453,20 +1453,20 @@ begin
                       and blocked_issue.title = 'Dependency resolution flow blocked'
                 ),
                 'Dependency added',
-                current_timestamp - interval '1' day
+                timestamp '2026-05-21 11:00:00'
            from dual
       ) s
         join projects p
       on p.name = s.project_name
         join issues i
       on i.project_id = p.id
-        and i.title = s.issue_title
+         and i.title = s.issue_title
         join users u
       on u.login_id = s.changed_by_login
-      order by s.changed_at,
-               i.id,
-               s.action_type,
-               s.message
+       order by s.changed_at,
+                i.id,
+                s.action_type,
+                s.message
    ) loop
       merge into issue_history target
       using (
@@ -1478,59 +1478,42 @@ begin
                 seed_history.message as message,
                 seed_history.changed_at as changed_at
            from dual
-   ) source on ( target.issue_id = source.issue_id
-      and target.action_type = source.action_type
-      and nvl(
-      target.previous_value,
-      '#'
-   ) = nvl(
-      source.previous_value,
-      '#'
-   )
-      and nvl(
-      target.new_value,
-      '#'
-   ) = nvl(
-      source.new_value,
-      '#'
-   )
-      and nvl(
-      target.message,
-      '#'
-   ) = nvl(
-      source.message,
-      '#'
-   ) )
-   when matched then update
-   set target.changed_by_login_id = source.changed_by_login_id,
-       target.changed_at = source.changed_at
-   when not matched then
-   insert (
-      issue_id,
-      changed_by_login_id,
-      action_type,
-      previous_value,
-      new_value,
-      message,
-      changed_at )
-   values
-      ( source.issue_id,
-        source.changed_by_login_id,
-        source.action_type,
-        source.previous_value,
-        source.new_value,
-        source.message,
-        source.changed_at );
+      ) source on ( target.issue_id = source.issue_id
+         and target.action_type = source.action_type
+         and target.changed_at = source.changed_at )
+      when matched then update
+      set target.changed_by_login_id = source.changed_by_login_id,
+          target.previous_value = source.previous_value,
+          target.new_value = source.new_value,
+          target.message = source.message
+      when not matched then
+      insert (
+         issue_id,
+         changed_by_login_id,
+         action_type,
+         previous_value,
+         new_value,
+         message,
+         changed_at )
+      values
+         ( source.issue_id,
+           source.changed_by_login_id,
+           source.action_type,
+           source.previous_value,
+           source.new_value,
+           source.message,
+           source.changed_at );
    end loop;
 end;
 /
 begin
    update issues target
-      set target.updated_at = (
-      select max(history.changed_at)
-        from issue_history history
-       where history.issue_id = target.id
-   )
+      set
+      target.updated_at = (
+         select max(history.changed_at)
+           from issue_history history
+          where history.issue_id = target.id
+      )
     where exists (
       select 1
         from issue_history history
@@ -1540,17 +1523,15 @@ begin
       select 1
         from projects project
        where project.id = target.project_id
-         and (
-            ( project.name = 'project1'
-              and target.title in ( 'Login fails on invalid credential',
-                                    'Search result filter returns stale status',
-                                    'Verification rejection returns to assignee',
-                                    'Assignment notification not shown',
-                                    'Dependency resolution flow blocked' ) )
-            or ( project.name = 'project2'
-                 and target.title in ( 'Dashboard statistics misses closed issues',
-                                       'Reopened issue keeps old assignee' ) )
-         )
+         and ( ( project.name = 'project1'
+         and target.title in ( 'Login fails on invalid credential',
+                               'Search result filter returns stale status',
+                               'Verification rejection returns to assignee',
+                               'Assignment notification not shown',
+                               'Dependency resolution flow blocked' ) )
+          or ( project.name = 'project2'
+         and target.title in ( 'Dashboard statistics misses closed issues',
+                               'Reopened issue keeps old assignee' ) ) )
    );
 end;
 /
@@ -1570,21 +1551,21 @@ begin
                 'Login fails on invalid credential' as blocking_title,
                 'project1' as blocked_project_name,
                 'Dependency resolution flow blocked' as blocked_title,
-                current_timestamp - interval '1' day as discovered_at
+                timestamp '2026-05-21 11:00:00' as discovered_at
            from dual
          union all
          select 'project1',
                 'Login fails on invalid credential',
                 'project2',
                 'Dashboard statistics misses closed issues',
-                current_timestamp - interval '11' day
+                timestamp '2026-05-11 11:00:00'
            from dual
          union all
          select 'project2',
                 'Dashboard statistics misses closed issues',
                 'project2',
                 'Reopened issue keeps old assignee',
-                current_timestamp - interval '13' day
+                timestamp '2026-05-09 11:00:00'
            from dual
       ) s
         join projects blocking_project
@@ -1597,9 +1578,9 @@ begin
         join issues blocked_issue
       on blocked_issue.project_id = blocked_project.id
          and blocked_issue.title = s.blocked_title
-      order by s.discovered_at,
-               blocking_issue.id,
-               blocked_issue.id
+       order by s.discovered_at,
+                blocking_issue.id,
+                blocked_issue.id
    ) loop
       merge into issue_dependencies target
       using (
@@ -1608,22 +1589,22 @@ begin
                 seed_dependency.blocked_issue_id as blocked_issue_id,
                 seed_dependency.discovered_at as discovered_at
            from dual
-   ) source on ( target.blocking_issue_id = source.blocking_issue_id
-      and target.blocked_issue_id = source.blocked_issue_id )
-   when matched then update
-   set target.dependency_id = source.dependency_id,
-       target.discovered_at = source.discovered_at
-   when not matched then
-   insert (
-      dependency_id,
-      blocking_issue_id,
-      blocked_issue_id,
-      discovered_at )
-   values
-      ( source.dependency_id,
-        source.blocking_issue_id,
-        source.blocked_issue_id,
-        source.discovered_at );
+      ) source on ( target.blocking_issue_id = source.blocking_issue_id
+         and target.blocked_issue_id = source.blocked_issue_id )
+      when matched then update
+      set target.dependency_id = source.dependency_id,
+          target.discovered_at = source.discovered_at
+      when not matched then
+      insert (
+         dependency_id,
+         blocking_issue_id,
+         blocked_issue_id,
+         discovered_at )
+      values
+         ( source.dependency_id,
+           source.blocking_issue_id,
+           source.blocked_issue_id,
+           source.discovered_at );
    end loop;
 end;
 /

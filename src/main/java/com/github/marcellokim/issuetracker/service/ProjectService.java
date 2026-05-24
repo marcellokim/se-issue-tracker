@@ -154,8 +154,8 @@ public final class ProjectService {
             return;
         }
 
-        if (!userRepository.findActiveByRole(projectId, Role.PL).isEmpty()) {
-            throw new IllegalArgumentException("Only one PL can be assigned to a project.");
+        if (!userRepository.findByRole(projectId, Role.PL).isEmpty()) {
+            throw new IllegalArgumentException("Only one PL participant can be assigned to a project, including inactive PL accounts.");
         }
     }
 

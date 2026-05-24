@@ -29,6 +29,21 @@ public final class JdbcUserRepository implements UserRepository {
             """;
     private static final String FIND_BY_LOGIN_ID_SQL = BASE_SELECT + " where u.login_id = ?";
     private static final String FIND_ALL_SQL = BASE_SELECT + " order by u.login_id";
+    private static final String FIND_BY_ROLE_SQL = """
+            select u.login_id,
+                   u.name,
+                   c.password_salt || ':' || c.password_hash as password,
+                   u.role,
+                   u.active,
+                   u.created_at,
+                   u.updated_at
+            from users u
+            join user_credentials c on c.login_id = u.login_id
+            join project_members pm on pm.user_login_id = u.login_id
+            where pm.project_id = ?
+              and u.role = ?
+            order by u.login_id
+            """;
     private static final String FIND_ACTIVE_BY_ROLE_SQL = """
             select u.login_id,
                    u.name,
@@ -70,8 +85,8 @@ public final class JdbcUserRepository implements UserRepository {
             insert (login_id, password_salt, password_hash)
             values (source.login_id, source.password_salt, source.password_hash)
             """;
-    private static final String DEACTIVATE_SQL =
-            "update users set active = 0, updated_at = current_timestamp where login_id = ?";
+    private static final String ACTIVATE_SQL = "update users set active = 1, updated_at = current_timestamp where login_id = ?";
+    private static final String DEACTIVATE_SQL = "update users set active = 0, updated_at = current_timestamp where login_id = ?";
 
     private final DatabaseConnectionProvider connectionProvider;
     private final PasswordHasher passwordHasher;
@@ -93,7 +108,7 @@ public final class JdbcUserRepository implements UserRepository {
     @Override
     public Optional<User> findByLoginId(String loginId) {
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_BY_LOGIN_ID_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_BY_LOGIN_ID_SQL)) {
             statement.setString(1, loginId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -109,8 +124,8 @@ public final class JdbcUserRepository implements UserRepository {
     @Override
     public List<User> findAll() {
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
-             ResultSet resultSet = statement.executeQuery()) {
+                PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
+                ResultSet resultSet = statement.executeQuery()) {
             List<User> users = new ArrayList<>();
             while (resultSet.next()) {
                 users.add(mapUser(resultSet));
@@ -122,9 +137,18 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     @Override
+    public List<User> findByRole(long projectId, Role role) {
+        return findProjectUsersByRole(FIND_BY_ROLE_SQL, projectId, role);
+    }
+
+    @Override
     public List<User> findActiveByRole(long projectId, Role role) {
+        return findProjectUsersByRole(FIND_ACTIVE_BY_ROLE_SQL, projectId, role);
+    }
+
+    private List<User> findProjectUsersByRole(String sql, long projectId, Role role) {
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ACTIVE_BY_ROLE_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             statement.setString(2, role.name());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -135,7 +159,7 @@ public final class JdbcUserRepository implements UserRepository {
                 return users;
             }
         } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find active users by role.", exception);
+            throw new RepositoryException("Failed to find project users by role.", exception);
         }
     }
 
@@ -148,9 +172,20 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     @Override
+    public void activate(String loginId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(ACTIVATE_SQL)) {
+            statement.setString(1, loginId);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to activate user.", exception);
+        }
+    }
+
+    @Override
     public void deactivate(String loginId) {
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(DEACTIVATE_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(DEACTIVATE_SQL)) {
             statement.setString(1, loginId);
             statement.executeUpdate();
         } catch (SQLException exception) {
@@ -170,32 +205,27 @@ public final class JdbcUserRepository implements UserRepository {
                     }
                 },
                 "Inserted user was not found.",
-                "Failed to insert user."
-        );
+                "Failed to insert user.");
     }
 
     private User update(User user) {
-        String credential = normalizedCredential(user.getPasswordHash());
         return executeUserWrite(
                 user.getLoginId(),
                 connection -> {
                     try (PreparedStatement statement = connection.prepareStatement(UPDATE_USER_SQL)) {
                         bindUserForUpdate(statement, user);
                         statement.executeUpdate();
-                        upsertCredential(connection, user.getLoginId(), credential);
                     }
                 },
                 "Updated user was not found.",
-                "Failed to update user."
-        );
+                "Failed to update user.");
     }
 
     private User executeUserWrite(
             String loginId,
             TransactionalUserWrite writeOperation,
             String notFoundMessage,
-            String failureMessage
-    ) {
+            String failureMessage) {
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
@@ -272,8 +302,7 @@ public final class JdbcUserRepository implements UserRepository {
                 Role.valueOf(resultSet.getString("role")),
                 resultSet.getInt("active") == 1,
                 JdbcSupport.nullableDateTime(resultSet, "created_at"),
-                JdbcSupport.nullableDateTime(resultSet, "updated_at")
-        );
+                JdbcSupport.nullableDateTime(resultSet, "updated_at"));
     }
 
     @FunctionalInterface

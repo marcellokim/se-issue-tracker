@@ -18,7 +18,7 @@ final class JdbcIssueRowMapper {
                 mapRequiredUser(resultSet, "reporter_login_id", "reporter"))
                 .id(resultSet.getLong("id"))
                 .issueId(resultSet.getString("issue_key"))
-                .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_date"))
+                .reportedDate(JdbcSupport.nullableDateTime(resultSet, "reported_at"))
                 .priority(Priority.valueOf(resultSet.getString("priority")))
                 .status(IssueStatus.valueOf(resultSet.getString("status")))
                 .assignee(mapNullableUser(resultSet, "assignee_login_id", "assignee"))

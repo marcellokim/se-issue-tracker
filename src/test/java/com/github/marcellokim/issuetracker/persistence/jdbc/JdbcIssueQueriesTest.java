@@ -26,7 +26,7 @@ class JdbcIssueQueriesTest {
         var query = JdbcIssueQueries.search(IssueSearchCriteria.all());
 
         assertTrue(query.sql().contains("and i.status <> 'DELETED'"));
-        assertTrue(query.sql().endsWith(" order by i.reported_date desc, i.id desc"));
+        assertTrue(query.sql().endsWith(" order by i.reported_at desc, i.id desc"));
         assertEquals(0, query.binders().size());
     }
 
@@ -109,7 +109,7 @@ class JdbcIssueQueriesTest {
         assertEquals(10, query.binders().size());
         assertTrue(query.sql().contains("and i.project_id = ?"));
         assertTrue(query.sql().contains("and i.priority = ?"));
-        assertTrue(query.sql().contains("dbms_lob.instr(lower(i.description), ?) > 0"));
+        assertTrue(query.sql().contains("lower(i.description) like ?"));
         assertEquals(List.of(
                 new BoundValue(1, 10L),
                 new BoundValue(2, "NEW"),
@@ -118,7 +118,7 @@ class JdbcIssueQueriesTest {
                 new BoundValue(5, "dev1"),
                 new BoundValue(6, "tester2"),
                 new BoundValue(7, "%login%"),
-                new BoundValue(8, "login"),
+                new BoundValue(8, "%login%"),
                 new BoundValue(9, reportedFrom),
                 new BoundValue(10, reportedTo)
         ), recorder.boundValues());

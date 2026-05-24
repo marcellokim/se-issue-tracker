@@ -9,7 +9,7 @@ import java.util.List;
 final class JdbcIssueQueries {
 
     private static final String BASE_SELECT = """
-            select i.id, i.issue_id as issue_key, i.project_id, i.title, i.description, i.reported_date, i.priority, i.status,
+            select i.id, i.issue_id as issue_key, i.project_id, i.title, i.description, i.reported_at, i.priority, i.status,
                    i.reporter_login_id, i.assignee_login_id, i.verifier_login_id, i.fixer_login_id,
                    i.resolver_login_id, i.updated_at,
                    reporter.name as reporter_name,
@@ -58,7 +58,7 @@ final class JdbcIssueQueries {
     static final String FIND_BY_PROJECT_SQL =
             BASE_SELECT + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
     static final String FIND_DELETED_BY_PROJECT_SQL =
-            BASE_SELECT + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_date desc, i.id desc";
+            BASE_SELECT + " where i.project_id = ? and i.status = 'DELETED' order by i.reported_at desc, i.id desc";
 
     private JdbcIssueQueries() {
     }
@@ -95,24 +95,24 @@ final class JdbcIssueQueries {
             binders.add((statement, index) -> statement.setString(index, criteria.verifierId()));
         }
         if (criteria.keyword() != null && !criteria.keyword().isBlank()) {
-            sql.append(" and (lower(i.title) like ? or dbms_lob.instr(lower(i.description), ?) > 0)");
+            sql.append(" and (lower(i.title) like ? or lower(i.description) like ?)");
             String keyword = criteria.keyword().toLowerCase();
             String likeKeyword = "%" + keyword + "%";
             binders.add((statement, index) -> statement.setString(index, likeKeyword));
-            binders.add((statement, index) -> statement.setString(index, keyword));
+            binders.add((statement, index) -> statement.setString(index, likeKeyword));
         }
         if (criteria.reportedFrom() != null) {
-            sql.append(" and i.reported_date >= ?");
+            sql.append(" and i.reported_at >= ?");
             binders.add(
                     (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedFrom()));
         }
         if (criteria.reportedTo() != null) {
-            sql.append(" and i.reported_date < ?");
+            sql.append(" and i.reported_at < ?");
             binders.add(
                     (statement, index) -> JdbcSupport.setNullableTimestamp(statement, index, criteria.reportedTo()));
         }
 
-        sql.append(" order by i.reported_date desc, i.id desc");
+        sql.append(" order by i.reported_at desc, i.id desc");
         return new SearchQuery(sql.toString(), List.copyOf(binders));
     }
 

@@ -36,6 +36,16 @@ class PersistenceResourceSmokeTest {
     }
 
     @Test
+    @DisplayName("Application schema script does not delete table data")
+    void schemaDoesNotDeleteTableData() throws IOException {
+        String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();
+
+        assertFalse(schema.contains("drop table"));
+        assertFalse(schema.contains("truncate"));
+        assertFalse(schema.contains("delete from"));
+    }
+
+    @Test
     @DisplayName("Users schema uses login id and separate credential hashes")
     void usersSchemaUsesLoginIdPrimaryKeyAndCredentialHashes() throws IOException {
         String schema = readResource("db/oracle/schema-oracle.sql").toLowerCase();

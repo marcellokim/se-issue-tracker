@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,40 +45,31 @@ class OracleRepositoryIntegrationTest {
     static void initializeDatabase() throws SQLException, IOException {
         connectionProvider = DriverManagerConnectionProvider.fromIntegrationTestEnvironment();
 
-        resetTestSchema();
-        DatabaseInitializer.initialize(connectionProvider);
-        DatabaseInitializer.initialize(connectionProvider);
+        assertTestSchema();
+        DatabaseInitializer.resetWithFixedSeed(connectionProvider);
+        DatabaseInitializer.initializeApplication(connectionProvider);
 
         repositories = new JdbcRepositoryFactory(connectionProvider);
     }
 
-    private static void resetTestSchema() throws SQLException {
+    private static void assertTestSchema() throws SQLException {
+        String sql = "select sys_context('USERENV', 'CURRENT_SCHEMA') from dual";
         try (var connection = connectionProvider.getConnection();
-                var statement = connection.createStatement()) {
-            connection.setAutoCommit(false);
-            try {
-                for (String tableName : List.of(
-                        "issue_dependencies",
-                        "issue_history",
-                        "comments",
-                        "issues",
-                        "project_members",
-                        "projects",
-                        "user_credentials",
-                        "users")) {
-                    statement.executeUpdate("delete from " + tableName);
-                }
-                connection.commit();
-            } catch (SQLException exception) {
-                connection.rollback();
-                throw exception;
+                var statement = connection.prepareStatement(sql);
+                var resultSet = statement.executeQuery()) {
+            resultSet.next();
+            String currentSchema = resultSet.getString(1);
+            if (currentSchema == null || !currentSchema.toUpperCase(Locale.ROOT).contains("TEST")) {
+                throw new IllegalStateException(
+                        "Oracle integration tests must run against a TEST schema. Current schema: "
+                                + currentSchema);
             }
         }
     }
 
     @Test
-    @DisplayName("repeatable seed keeps admin and demo projects stable")
-    void repeatableSeedKeepsAdminAndProjectStable() {
+    @DisplayName("seed data includes admin account and demo projects")
+    void seedDataIncludesAdminAccountAndDemoProjects() {
         var admin = repositories.users().findById("admin").orElseThrow();
         var project1 = repositories.projects().findByName("project1").orElseThrow();
         var project2 = repositories.projects().findByName("project2").orElseThrow();
@@ -346,7 +338,7 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("User repository saves, updates, finds, and deactivates users")
+    @DisplayName("User repository saves, updates, finds, deactivates, and activates users")
     void userRepositorySupportsCrudPolicy() {
         String loginId = uniqueId("crud_dev");
         LocalDateTime now = LocalDateTime.now();
@@ -373,13 +365,16 @@ class OracleRepositoryIntegrationTest {
                     created.getCreatedAt(),
                     LocalDateTime.now()));
 
-            assertTrue(new PasswordHasher().matches("UpdatedPassword!", updated.getPasswordHash()));
+            assertTrue(new PasswordHasher().matches("InitialPassword!", updated.getPasswordHash()));
             assertEquals("Repository CRUD Tester", repositories.users().findById(loginId).orElseThrow().getName());
             assertEquals(Role.TESTER, updated.getRole());
 
             repositories.users().deactivate(loginId);
 
             assertFalse(repositories.users().findById(loginId).orElseThrow().isActive());
+            repositories.users().activate(loginId);
+
+            assertTrue(repositories.users().findById(loginId).orElseThrow().isActive());
         } finally {
             deleteUser(loginId);
         }
@@ -664,15 +659,24 @@ class OracleRepositoryIntegrationTest {
         Issue blocked = createIssue(project.getId(), uniqueId("crud_blocked_issue"));
 
         try {
-            IssueDependency dependency = repositories.issueDependencies().save(IssueDependency.fromPersistence(
-                    0L,
-                    blocking.id(),
-                    blocked.id(),
-                    LocalDateTime.now()));
+            User projectLead = repositories.users().findById("pl1").orElseThrow();
+            IssueDependency newDependency = blocked.addDependency(
+                    IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                    blocking,
+                    projectLead,
+                    LocalDateTime.now());
+            IssueDependency dependency = repositories.issueDependencies().saveAndRecordIssueChange(newDependency,
+                    blocked);
 
             assertEquals(dependency.id(),
                     repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
+            assertEquals(dependency.id(),
+                    repositories.issueDependencies().findByDependencyId(dependency.getDependencyId()).orElseThrow()
+                            .id());
             assertEquals(IssueDependency.dependencyIdFor(blocking.id(), blocked.id()), dependency.getDependencyId());
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependency.getDependencyId().equals(history.newValue())));
             assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
             assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
                     .anyMatch(value -> value.id() == dependency.id()));
@@ -681,23 +685,65 @@ class OracleRepositoryIntegrationTest {
             assertTrue(repositories.issueDependencies().findByBlockedIssueId(blocked.id()).stream()
                     .anyMatch(value -> value.id() == dependency.id()));
             assertThrows(RepositoryException.class,
-                    () -> repositories.issueDependencies().save(IssueDependency.fromPersistence(
-                            0L,
-                            blocking.id(),
-                            blocked.id(),
-                            LocalDateTime.now())));
+                    () -> repositories.issueDependencies().saveAndRecordIssueChange(
+                            IssueDependency.fromPersistence(
+                                    0L,
+                                    blocking.id(),
+                                    blocked.id(),
+                                    LocalDateTime.now()),
+                            blocked));
 
-            repositories.issueDependencies().deleteById(dependency.id());
+            LocalDateTime previousUpdatedAt = repositories.issues().findById(blocked.id()).orElseThrow().updatedAt();
+            Issue blockedForRemoval = repositories.issues().findById(blocked.id()).orElseThrow();
+            blockedForRemoval.removeDependency(dependency, projectLead, previousUpdatedAt.plusSeconds(1));
+            repositories.issueDependencies().deleteByDependencyIdAndRecordIssueChange(
+                    dependency.getDependencyId(), blockedForRemoval);
             assertFalse(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
+            assertTrue(repositories.issueDependencies().findByDependencyId(dependency.getDependencyId()).isEmpty());
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependency.getDependencyId().equals(history.previousValue())
+                            && history.newValue() == null));
+            assertTrue(
+                    repositories.issues().findById(blocked.id()).orElseThrow().updatedAt().isAfter(previousUpdatedAt));
 
-            IssueDependency secondDependency = repositories.issueDependencies().save(IssueDependency.fromPersistence(
-                    0L,
-                    blocking.id(),
-                    blocked.id(),
-                    LocalDateTime.now()));
-            repositories.issueDependencies().deleteByIssueId(blocking.id());
+        } finally {
+            repositories.issues().purge(blocked.id());
+            repositories.issues().purge(blocking.id());
+        }
+    }
 
-            assertTrue(repositories.issueDependencies().findById(secondDependency.id()).isEmpty());
+    @Test
+    @DisplayName("IssueDependency repository deletes by dependency id")
+    void issueDependencyRepositoryDeletesByDependencyId() {
+        var project = repositories.projects().findByName("project1").orElseThrow();
+        Issue blocking = createIssue(project.getId(), uniqueId("dependency_id_delete_blocking"));
+        Issue blocked = createIssue(project.getId(), uniqueId("dependency_id_delete_blocked"));
+
+        try {
+            User projectLead = repositories.users().findById("pl1").orElseThrow();
+            IssueDependency dependency = repositories.issueDependencies().saveAndRecordIssueChange(
+                    blocked.addDependency(
+                            IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                            blocking,
+                            projectLead,
+                            LocalDateTime.now()),
+                    blocked);
+            String dependencyId = dependency.getDependencyId();
+            LocalDateTime previousUpdatedAt = repositories.issues().findById(blocked.id()).orElseThrow().updatedAt();
+
+            Issue blockedForRemoval = repositories.issues().findById(blocked.id()).orElseThrow();
+            blockedForRemoval.removeDependency(dependency, projectLead, previousUpdatedAt.plusSeconds(1));
+            repositories.issueDependencies().deleteByDependencyIdAndRecordIssueChange(dependencyId, blockedForRemoval);
+
+            assertTrue(repositories.issueDependencies().findByDependencyId(dependencyId).isEmpty());
+            assertFalse(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependencyId.equals(history.previousValue())
+                            && history.newValue() == null));
+            assertTrue(
+                    repositories.issues().findById(blocked.id()).orElseThrow().updatedAt().isAfter(previousUpdatedAt));
         } finally {
             repositories.issues().purge(blocked.id());
             repositories.issues().purge(blocking.id());

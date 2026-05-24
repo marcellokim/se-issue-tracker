@@ -202,7 +202,7 @@ final class JdbcIssueDeleteOperations {
                 where issue_id = ?
                   and action_type = 'STATUS_CHANGED'
                   and new_value = 'DELETED'
-                order by changed_date desc, id desc
+                order by changed_at desc, id desc
                 fetch first 1 rows only
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -223,14 +223,14 @@ final class JdbcIssueDeleteOperations {
     private static List<Long> currentDeletedIssueIdsByFifo(Connection connection, long projectId)
             throws SQLException {
         String sql = """
-                select id, changed_date, history_id
+                select id, changed_at, history_id
                 from (
                     select i.id,
-                           h.changed_date,
+                           h.changed_at,
                            h.id as history_id,
                            row_number() over (
                                partition by i.id
-                               order by h.changed_date desc, h.id desc
+                               order by h.changed_at desc, h.id desc
                            ) as rn
                     from issues i
                     join issue_history h on h.issue_id = i.id
@@ -240,7 +240,7 @@ final class JdbcIssueDeleteOperations {
                       and h.new_value = 'DELETED'
                 )
                 where rn = 1
-                order by changed_date, history_id
+                order by changed_at, history_id
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);

@@ -1,8 +1,10 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
+import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,15 +13,18 @@ public final class DeletedIssueService {
     private static final int MAX_DELETED_ISSUES_PER_PROJECT = 30;
 
     private final IssueRepository issueRepository;
+    private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
 
     public DeletedIssueService(
             IssueRepository issueRepository,
+            UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             Clock clock
     ) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -32,6 +37,7 @@ public final class DeletedIssueService {
     public Issue deleteIssue(long issueId, String comment, User actor) {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(actor, issue);
+        requireProjectLead(actor, issue.projectId());
 
         Issue deletedIssue = issueRepository.softDelete(issueId, actor.getLoginId(), comment, clock.now());
         issueRepository.purgeDeletedBeyondLimit(deletedIssue.projectId(), MAX_DELETED_ISSUES_PER_PROJECT);
@@ -41,6 +47,7 @@ public final class DeletedIssueService {
     public Issue restoreIssue(long issueId, String comment, User actor) {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(actor, issue);
+        requireProjectLead(actor, issue.projectId());
         return issueRepository.restore(issueId, actor.getLoginId(), comment, clock.now());
     }
 
@@ -61,6 +68,15 @@ public final class DeletedIssueService {
          */
         if (!permissionPolicy.verifyPermission(actor, "MANAGE_DELETED_ISSUE", projectId)) {
             throw new SecurityException("Only PL can manage deleted issues.");
+        }
+        requireProjectLead(actor, projectId);
+    }
+
+    private void requireProjectLead(User actor, long projectId) {
+        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectLead) {
+            throw new SecurityException("Only the project PL can manage deleted issues.");
         }
     }
 }

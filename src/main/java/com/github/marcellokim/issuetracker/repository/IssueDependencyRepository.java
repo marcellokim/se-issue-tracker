@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.repository;
 
+import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,8 @@ public interface IssueDependencyRepository {
 
     Optional<IssueDependency> findById(long dependencyId);
 
+    Optional<IssueDependency> findByDependencyId(String dependencyId);
+
     List<IssueDependency> findByIssueId(long issueId);
 
     List<IssueDependency> findByBlockingIssueId(long blockingIssueId);
@@ -22,9 +25,13 @@ public interface IssueDependencyRepository {
 
     boolean existsByPair(long blockingIssueId, long blockedIssueId);
 
-    IssueDependency save(IssueDependency dependency);
+    // IssueDependency save(IssueDependency dependency);
 
-    void deleteById(long dependencyId);
+    IssueDependency saveAndRecordIssueChange(IssueDependency dependency, Issue issue);
 
-    void deleteByIssueId(long issueId);
+    // void deleteById(long dependencyId);
+
+    void deleteByDependencyIdAndRecordIssueChange(String dependencyId, Issue issue);
+
+    // void deleteByIssueId(long issueId);
 }

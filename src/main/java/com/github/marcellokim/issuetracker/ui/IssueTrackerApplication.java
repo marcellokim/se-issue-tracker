@@ -38,8 +38,7 @@ public final class IssueTrackerApplication extends Application {
     private static void bindLoginAction(
             LoginView loginView,
             AuthenticationService authenticationService,
-            DemoDashboardPresenter dashboardPresenter
-    ) {
+            DemoDashboardPresenter dashboardPresenter) {
         loginView.loginButton().setOnAction(event -> {
             var result = authenticationService.login(loginView.loginId(), loginView.password());
             if (result.success()) {
