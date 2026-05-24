@@ -148,6 +148,20 @@ def oracleIntegrationTestRequested = {
             }
 }
 
+def oracleLocalPort = providers.environmentVariable('ORACLE_LOCAL_PORT').orElse('1521')
+def oracleLocalPdb = providers.environmentVariable('ORACLE_LOCAL_PDB').orElse('FREEPDB1')
+def oracleLocalUrl = providers.provider {
+    "jdbc:oracle:thin:@//localhost:${oracleLocalPort.get()}/${oracleLocalPdb.get()}"
+}
+def oracleLocalAppUser = providers.environmentVariable('ORACLE_LOCAL_APP_USER').orElse('ITS_USER')
+def oracleLocalAppPassword = providers.environmentVariable('ORACLE_LOCAL_APP_PASSWORD').orElse('ItsLocalDev2026!')
+def oracleLocalTestUser = providers.environmentVariable('ORACLE_LOCAL_TEST_USER').orElse('ITS_TEST_USER')
+def oracleLocalTestPassword = providers.environmentVariable('ORACLE_LOCAL_TEST_PASSWORD').orElse('ItsTestLocal2026!')
+def oracleLocalSqlTimeout = providers.environmentVariable('ORACLE_LOCAL_SQL_TIMEOUT').orElse('30')
+def oracleLocalSettleSeconds = providers.environmentVariable('ORACLE_LOCAL_SETTLE_SECONDS').orElse('60')
+def oracleLocalConnectRetries = providers.environmentVariable('ORACLE_LOCAL_CONNECT_RETRIES').orElse('12')
+def oracleLocalConnectRetryDelayMillis = providers.environmentVariable('ORACLE_LOCAL_CONNECT_RETRY_DELAY_MS').orElse('5000')
+
 tasks.register('oracleIntegrationTest', Test) {
     group = 'verification'
     description = 'Runs Oracle repository integration tests against an isolated test schema. Set ITS_TEST_DB_URL, ITS_TEST_DB_USER, and ITS_TEST_DB_PASSWORD.'
@@ -164,6 +178,107 @@ tasks.register('oracleIntegrationTest', Test) {
     onlyIf {
         oracleIntegrationTestRequested()
     }
+}
+
+def configureOracleLocalScriptTask = { Exec task, String action ->
+    task.group = 'verification'
+    task.description = "Runs scripts/oracle-local for the '${action}' action."
+    task.environment 'ORACLE_LOCAL_PORT', oracleLocalPort.get()
+    task.environment 'ORACLE_LOCAL_PDB', oracleLocalPdb.get()
+    task.environment 'ORACLE_LOCAL_APP_USER', oracleLocalAppUser.get()
+    task.environment 'ORACLE_LOCAL_APP_PASSWORD', oracleLocalAppPassword.get()
+    task.environment 'ORACLE_LOCAL_TEST_USER', oracleLocalTestUser.get()
+    task.environment 'ORACLE_LOCAL_TEST_PASSWORD', oracleLocalTestPassword.get()
+    task.environment 'ORACLE_LOCAL_SQL_TIMEOUT', oracleLocalSqlTimeout.get()
+    task.environment 'ORACLE_LOCAL_SETTLE_SECONDS', oracleLocalSettleSeconds.get()
+
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        task.commandLine 'powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                '-File', file('scripts/oracle-local.ps1'), action
+    } else {
+        task.commandLine 'bash', file('scripts/oracle-local.sh'), action
+    }
+}
+
+tasks.register('oracleLocalStart', Exec) {
+    configureOracleLocalScriptTask(delegate, 'start')
+}
+
+tasks.register('oracleLocalWait', Exec) {
+    configureOracleLocalScriptTask(delegate, 'wait')
+    dependsOn tasks.named('oracleLocalStart')
+}
+
+tasks.register('oracleLocalBootstrap', Exec) {
+    configureOracleLocalScriptTask(delegate, 'bootstrap')
+    dependsOn tasks.named('oracleLocalWait')
+}
+
+tasks.register('oracleLocalStabilize', Exec) {
+    configureOracleLocalScriptTask(delegate, 'settle')
+    dependsOn tasks.named('oracleLocalBootstrap')
+}
+
+tasks.register('oracleLocalStatus', Exec) {
+    configureOracleLocalScriptTask(delegate, 'status')
+}
+
+tasks.register('oracleLocalStop', Exec) {
+    configureOracleLocalScriptTask(delegate, 'stop')
+}
+
+tasks.register('oracleLocalReset', Exec) {
+    configureOracleLocalScriptTask(delegate, 'reset')
+}
+
+tasks.register('oracleLocalInitializeDatabase', JavaExec) {
+    group = 'verification'
+    description = 'Creates or migrates the Gradle-managed local Docker Oracle application schema without deleting existing data.'
+    dependsOn tasks.named('oracleLocalStabilize')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+    environment 'ITS_DB_URL', oracleLocalUrl.get()
+    environment 'ITS_DB_USER', oracleLocalAppUser.get()
+    environment 'ITS_DB_PASSWORD', oracleLocalAppPassword.get()
+}
+
+tasks.register('oracleLocalResetFixedSeed', JavaExec) {
+    group = 'verification'
+    description = 'Destructively resets the Gradle-managed local Docker Oracle application schema to the fixed demo seed.'
+    dependsOn tasks.named('oracleLocalStabilize')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.persistence.DatabaseInitializer'
+    args '--reset-fixed-seed'
+    environment 'ITS_DB_URL', oracleLocalUrl.get()
+    environment 'ITS_DB_USER', oracleLocalAppUser.get()
+    environment 'ITS_DB_PASSWORD', oracleLocalAppPassword.get()
+}
+
+tasks.register('oracleLocalIntegrationTest', Test) {
+    group = 'verification'
+    description = 'Runs Oracle repository integration tests against the Gradle-managed local Docker Oracle TEST schema.'
+    dependsOn tasks.named('oracleLocalStabilize')
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include '**/OracleRepositoryIntegrationTest.class'
+    environment 'ITS_DB_INTEGRATION_TESTS', 'true'
+    environment 'ITS_TEST_DB_URL', oracleLocalUrl.get()
+    environment 'ITS_TEST_DB_USER', oracleLocalTestUser.get()
+    environment 'ITS_TEST_DB_PASSWORD', oracleLocalTestPassword.get()
+    environment 'ITS_TEST_DB_CONNECT_RETRIES', oracleLocalConnectRetries.get()
+    environment 'ITS_TEST_DB_CONNECT_RETRY_DELAY_MS', oracleLocalConnectRetryDelayMillis.get()
+    shouldRunAfter tasks.named('oracleIntegrationTest')
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
+tasks.register('oracleLocalTest') {
+    group = 'verification'
+    description = 'Starts local Oracle, bootstraps app/test schemas, and runs Oracle repository integration tests.'
+    dependsOn tasks.named('oracleLocalIntegrationTest')
 }
 
 tasks.named('check') {

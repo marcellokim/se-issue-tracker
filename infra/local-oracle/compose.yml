@@ -1,0 +1,15 @@
+services:
+  oracle-local:
+    image: ${ORACLE_LOCAL_IMAGE:-container-registry.oracle.com/database/free:23.26.0.0-lite}
+    container_name: ${ORACLE_LOCAL_CONTAINER:-se-issue-tracker-oracle}
+    ports:
+      - "${ORACLE_LOCAL_PORT:-1521}:1521"
+    environment:
+      ORACLE_PWD: ${ORACLE_LOCAL_SYS_PASSWORD:-OracleLocal2026!}
+    volumes:
+      - se_issue_tracker_oracle_data:/opt/oracle/oradata
+    restart: unless-stopped
+
+volumes:
+  se_issue_tracker_oracle_data:
+    name: ${ORACLE_LOCAL_VOLUME:-se_issue_tracker_oracle_data}
