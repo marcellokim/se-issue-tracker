@@ -6,13 +6,11 @@ import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController.CommentView;
 import com.github.marcellokim.issuetracker.controller.IssueController.IssueWorkflowActionView;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
-import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -38,7 +36,6 @@ public final class IssueDetailView {
     private final AssignmentController assignmentController;
     private final IssueStateController issueStateController;
     private final DeletedIssueController deletedIssueController;
-    private final StatisticsController statisticsController;
     private final Runnable onBack;
     private final Consumer<String> onIssueChanged;
     private final IssueWorkflowActionView actions;
@@ -61,7 +58,6 @@ public final class IssueDetailView {
             AssignmentController assignmentController,
             IssueStateController issueStateController,
             DeletedIssueController deletedIssueController,
-            StatisticsController statisticsController,
             Runnable onBack,
             Consumer<String> onIssueChanged,
             String initialMessage
@@ -71,7 +67,6 @@ public final class IssueDetailView {
         this.assignmentController = Objects.requireNonNull(assignmentController, "assignmentController");
         this.issueStateController = Objects.requireNonNull(issueStateController, "issueStateController");
         this.deletedIssueController = Objects.requireNonNull(deletedIssueController, "deletedIssueController");
-        this.statisticsController = Objects.requireNonNull(statisticsController, "statisticsController");
         this.onBack = Objects.requireNonNull(onBack, "onBack");
         this.onIssueChanged = Objects.requireNonNull(onIssueChanged, "onIssueChanged");
         this.actions = issueController.viewAvailableActions(issue.id());
@@ -110,7 +105,7 @@ public final class IssueDetailView {
                 dependencyPanel(),
                 commentsList(),
                 addCommentPanel(),
-                deleteAndStatisticsPanel(),
+                deletePanel(),
                 outputArea,
                 backButton);
     }
@@ -315,17 +310,15 @@ public final class IssueDetailView {
         return panel;
     }
 
-    private VBox deleteAndStatisticsPanel() {
-        VBox panel = borderedPanel("Deleted / Statistics");
+    private VBox deletePanel() {
+        VBox panel = borderedPanel("Deleted");
         panel.getChildren().add(actionRow(
                 actionButton("Soft Delete", actions.canSoftDelete(), () -> {
                     var deleted = deletedIssueController.deleteIssue(
                             issue.id(),
                             requiredText(reasonArea, "reason"));
                     return "Issue deleted: " + deleted.getIssueId() + " / " + deleted.status();
-                }, true),
-                actionButton("Statistics", actions.canViewStatistics(), () ->
-                        formatStatistics(statisticsController.viewStatistics(issue.projectId())), false)));
+                }, true)));
         return panel;
     }
 
@@ -383,16 +376,6 @@ public final class IssueDetailView {
         return candidates.stream()
                 .map(candidate -> candidate.user().getLoginId() + "(" + candidate.completedIssueCount() + ")")
                 .toList();
-    }
-
-    private static String formatStatistics(StatisticsReport report) {
-        return "Status counts: " + report.statusCounts()
-                + System.lineSeparator()
-                + "Priority counts: " + report.priorityCounts()
-                + System.lineSeparator()
-                + "Daily counts: " + report.dailyCounts()
-                + System.lineSeparator()
-                + "Monthly counts: " + report.monthlyCounts();
     }
 
     private static VBox borderedPanel(String title) {

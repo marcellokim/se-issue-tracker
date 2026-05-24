@@ -216,7 +216,7 @@ public final class LoginView {
     }
 
     private void refreshDashboard(String message) {
-        currentIssues = dashboardController.viewRelatedIssues();
+        currentIssues = List.of();
         currentProjects = dashboardController.viewProjects();
         currentUsers = dashboardController.viewUsers();
         keepSelectionIfStillVisible();
@@ -261,6 +261,7 @@ public final class LoginView {
                 currentUser,
                 projectController,
                 issueController,
+                statisticsController,
                 this::selectIssue,
                 this::selectProject,
                 this::refreshDashboard,
@@ -290,13 +291,9 @@ public final class LoginView {
     }
 
     private void refreshIssueDetail(String message) {
-        currentIssues = dashboardController.viewRelatedIssues();
         if (selectedIssue != null) {
             long selectedIssueId = selectedIssue.id();
-            selectedIssue = currentIssues.stream()
-                    .filter(issue -> issue.id() == selectedIssueId)
-                    .findFirst()
-                    .orElse(null);
+            selectedIssue = issueController.viewIssue(selectedIssueId);
         }
         issueDetailMessage = valueOrBlank(message);
         if (selectedIssue == null) {
@@ -313,7 +310,6 @@ public final class LoginView {
                 assignmentController,
                 issueStateController,
                 deletedIssueController,
-                statisticsController,
                 () -> refreshDashboard(""),
                 this::refreshIssueDetail,
                 issueDetailMessage);
@@ -346,6 +342,7 @@ public final class LoginView {
                 currentUser,
                 projectController,
                 issueController,
+                statisticsController,
                 this::selectIssue,
                 this::selectProject,
                 this::refreshDashboard,

@@ -45,6 +45,13 @@ public final class AssignmentService {
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         User verifier = findUser(verifierId);
+        requireActiveProjectMember(
+                assignee,
+                issue.projectId(),
+                Role.DEV,
+                "Assignee must be an active DEV in the issue project.");
+        requireActiveProjectMember(verifier, issue.projectId(), Role.TESTER,
+                "Verifier must be an active TESTER in the issue project.");
         if (issue.status() == IssueStatus.NEW) {
             issue.assignFromNew(assignee, verifier, actor, now());
         } else if (issue.status() == IssueStatus.REOPENED) {
@@ -61,6 +68,11 @@ public final class AssignmentService {
         User actor = findUser(currentUserId);
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
+        requireActiveProjectMember(
+                assignee,
+                issue.projectId(),
+                Role.DEV,
+                "Assignee must be an active DEV in the issue project.");
         issue.reassignAssignee(assignee, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -71,6 +83,8 @@ public final class AssignmentService {
         User actor = findUser(currentUserId);
         assertCanManageAssignment(actor, issue);
         User verifier = findUser(verifierId);
+        requireActiveProjectMember(verifier, issue.projectId(), Role.TESTER,
+                "Verifier must be an active TESTER in the issue project.");
         issue.changeVerifier(verifier, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -94,6 +108,14 @@ public final class AssignmentService {
         boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
         if (!projectLead) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private void requireActiveProjectMember(User user, long projectId, Role role, String message) {
+        boolean memberWithRole = userRepository.findActiveByRole(projectId, role).stream()
+                .anyMatch(candidate -> candidate.getLoginId().equals(user.getLoginId()));
+        if (!memberWithRole) {
             throw new SecurityException(message);
         }
     }

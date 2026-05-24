@@ -5,7 +5,6 @@ import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,18 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
-        return new ArrayList<>(issues.values());
+        return issues.values().stream()
+                .filter(issue -> criteria.projectId() == null || issue.projectId() == criteria.projectId())
+                .filter(issue -> criteria.status() == null || issue.status() == criteria.status())
+                .filter(issue -> criteria.includeDeleted() || issue.status() != IssueStatus.DELETED)
+                .filter(issue -> criteria.priority() == null || issue.priority() == criteria.priority())
+                .filter(issue -> criteria.reporterId() == null || criteria.reporterId().equals(issue.reporterId()))
+                .filter(issue -> criteria.assigneeId() == null || criteria.assigneeId().equals(issue.assigneeId()))
+                .filter(issue -> criteria.verifierId() == null || criteria.verifierId().equals(issue.verifierId()))
+                .filter(issue -> matchesKeyword(issue, criteria.keyword()))
+                .filter(issue -> criteria.reportedFrom() == null || !issue.reportedDate().isBefore(criteria.reportedFrom()))
+                .filter(issue -> criteria.reportedTo() == null || issue.reportedDate().isBefore(criteria.reportedTo()))
+                .toList();
     }
 
     @Override
@@ -97,5 +107,14 @@ public final class InMemoryIssueRepository implements IssueRepository {
                 .fixer(issue.getFixer())
                 .resolver(issue.getResolver())
                 .updatedAt(issue.updatedAt()));
+    }
+
+    private static boolean matchesKeyword(Issue issue, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+        String normalizedKeyword = keyword.toLowerCase();
+        return issue.title().toLowerCase().contains(normalizedKeyword)
+                || issue.description().toLowerCase().contains(normalizedKeyword);
     }
 }

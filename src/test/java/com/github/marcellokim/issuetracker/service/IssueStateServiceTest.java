@@ -117,6 +117,30 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("assignee must belong to the issue project to mark fixed")
+    void rejectFixedTransitionByAssigneeOutsideProject() {
+        var issue = assignedIssue();
+        var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), verifier.getLoginId());
+        var service = service(new FakeIssueDependencyRepository(), users, issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("verifier must belong to the issue project to resolve")
+    void rejectResolveByVerifierOutsideProject() {
+        var issue = fixedIssue();
+        var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId());
+        var service = service(new FakeIssueDependencyRepository(), users, issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId()));
+    }
+
+    @Test
     @DisplayName("blank status change comment is rejected before lookup")
     void rejectBlankCommentBeforeLookup() {
         var issue = assignedIssue();

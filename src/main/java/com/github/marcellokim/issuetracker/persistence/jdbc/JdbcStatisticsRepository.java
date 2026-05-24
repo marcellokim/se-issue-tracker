@@ -19,6 +19,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -169,6 +170,92 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
     }
 
     @Override
+    public Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        validateMonthRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select to_char(reported_at, 'YYYY-MM') as reported_month,
+                       status,
+                       count(*) as issue_count
+                from issues
+                where project_id = ?
+                  and status <> 'DELETED'
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
+                group by to_char(reported_at, 'YYYY-MM'), status
+                order by reported_month, status
+                """;
+        Map<YearMonth, Map<IssueStatus, Integer>> counts = emptyStatusMonthRange(fromInclusive, toInclusive);
+        try (Connection connection = connectionProvider.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    YearMonth month = YearMonth.parse(resultSet.getString("reported_month"));
+                    counts.computeIfAbsent(month, ignored -> new EnumMap<>(IssueStatus.class))
+                            .put(IssueStatus.valueOf(resultSet.getString("status")), resultSet.getInt("issue_count"));
+                }
+                return freezeNestedCounts(counts);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count issues by status and month.", exception);
+        }
+    }
+
+    @Override
+    public Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        validateMonthRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select to_char(reported_at, 'YYYY-MM') as reported_month,
+                       priority,
+                       count(*) as issue_count
+                from issues
+                where project_id = ?
+                  and status <> 'DELETED'
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
+                group by to_char(reported_at, 'YYYY-MM'), priority
+                order by reported_month, priority
+                """;
+        Map<YearMonth, Map<Priority, Integer>> counts = emptyPriorityMonthRange(fromInclusive, toInclusive);
+        try (Connection connection = connectionProvider.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    YearMonth month = YearMonth.parse(resultSet.getString("reported_month"));
+                    counts.computeIfAbsent(month, ignored -> new EnumMap<>(Priority.class))
+                            .put(Priority.valueOf(resultSet.getString("priority")), resultSet.getInt("issue_count"));
+                }
+                return freezeNestedCounts(counts);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count issues by priority and month.", exception);
+        }
+    }
+
+    @Override
     public StatisticsReport buildReport(
             long projectId,
             LocalDate dailyFromInclusive,
@@ -180,7 +267,9 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 countByStatus(projectId),
                 countByPriority(projectId),
                 countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
-                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive)
+                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countByStatusByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countByPriorityByMonth(projectId, monthlyFromInclusive, monthlyToInclusive)
         );
     }
 
@@ -232,6 +321,44 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         if (fromInclusive != null && toInclusive != null && fromInclusive.isAfter(toInclusive)) {
             throw new IllegalArgumentException("fromInclusive must not be after toInclusive");
         }
+    }
+
+    private static Map<YearMonth, Map<IssueStatus, Integer>> emptyStatusMonthRange(
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        Map<YearMonth, Map<IssueStatus, Integer>> counts = new LinkedHashMap<>();
+        if (fromInclusive == null || toInclusive == null) {
+            return counts;
+        }
+        for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
+            counts.put(month, new EnumMap<>(IssueStatus.class));
+        }
+        return counts;
+    }
+
+    private static Map<YearMonth, Map<Priority, Integer>> emptyPriorityMonthRange(
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        Map<YearMonth, Map<Priority, Integer>> counts = new LinkedHashMap<>();
+        if (fromInclusive == null || toInclusive == null) {
+            return counts;
+        }
+        for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
+            counts.put(month, new EnumMap<>(Priority.class));
+        }
+        return counts;
+    }
+
+    private static <K> Map<YearMonth, Map<K, Integer>> freezeNestedCounts(
+            Map<YearMonth, Map<K, Integer>> counts
+    ) {
+        Map<YearMonth, Map<K, Integer>> frozen = new LinkedHashMap<>();
+        counts.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> frozen.put(entry.getKey(), Map.copyOf(entry.getValue())));
+        return Map.copyOf(frozen);
     }
 
     private static void setNullableDate(PreparedStatement statement, int index, LocalDate date) throws SQLException {

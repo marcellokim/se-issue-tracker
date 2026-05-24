@@ -37,6 +37,7 @@ public final class IssueWorkflowService {
     public IssueWorkflowActions viewAvailableActions(long issueId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
+        boolean projectMember = isActiveProjectMember(actor, issue.projectId());
         boolean projectLead = canProjectLead(actor, issue.projectId());
         boolean canManageAssignment = projectLead && permissionPolicy.canAssignIssue(actor, issue);
         boolean canManageDependency = projectLead && permissionPolicy.canManageDependency(actor, issue);
@@ -44,17 +45,19 @@ public final class IssueWorkflowService {
         boolean canManageDeleted = projectLead && permissionPolicy.canManageDeletedIssue(actor, issue);
 
         return new IssueWorkflowActions(
-                permissionPolicy.canUpdateIssue(actor, issue),
+                projectMember && permissionPolicy.canUpdateIssue(actor, issue),
                 projectLead && permissionPolicy.canChangePriority(actor, issue),
                 canManageAssignment && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED,
                         IssueStatus.ASSIGNED, IssueStatus.FIXED),
                 canManageAssignment && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED),
                 canManageAssignment && issue.status() == IssueStatus.ASSIGNED,
                 canManageAssignment && issue.status() == IssueStatus.FIXED,
-                permissionPolicy.canChangeStatus(actor, issue, IssueStatus.FIXED),
+                projectMember && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.FIXED),
                 issue.status() == IssueStatus.FIXED
+                        && projectMember
                         && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.ASSIGNED),
                 issue.status() == IssueStatus.FIXED
+                        && projectMember
                         && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.RESOLVED)
                         && canResolveBlockingDependencies(issue),
                 canCloseOrReopen && issue.status() == IssueStatus.RESOLVED
@@ -63,9 +66,8 @@ public final class IssueWorkflowService {
                         && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.REOPENED),
                 canManageDependency,
                 canManageDependency,
-                permissionPolicy.canAddComment(actor, issue),
-                canManageDeleted && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.DELETED),
-                permissionPolicy.canViewStatistics(actor, issue.projectId())
+                projectMember && permissionPolicy.canAddComment(actor, issue),
+                canManageDeleted && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.DELETED)
         );
     }
 
@@ -73,14 +75,18 @@ public final class IssueWorkflowService {
         Issue issue = findIssue(issueId);
         Comment comment = findComment(commentId);
         User actor = findUser(currentUserId);
-        return comment.issueId() == issue.id() && permissionPolicy.canUpdateComment(actor, comment);
+        return comment.issueId() == issue.id()
+                && isActiveProjectMember(actor, issue.projectId())
+                && permissionPolicy.canUpdateComment(actor, comment);
     }
 
     public boolean canDeleteComment(long issueId, long commentId, String currentUserId) {
         Issue issue = findIssue(issueId);
         Comment comment = findComment(commentId);
         User actor = findUser(currentUserId);
-        return comment.issueId() == issue.id() && permissionPolicy.canDeleteComment(actor, comment);
+        return comment.issueId() == issue.id()
+                && isActiveProjectMember(actor, issue.projectId())
+                && permissionPolicy.canDeleteComment(actor, comment);
     }
 
     private Issue findIssue(long issueId) {
@@ -100,6 +106,11 @@ public final class IssueWorkflowService {
 
     private boolean canProjectLead(User actor, long projectId) {
         return userRepository.findActiveByRole(projectId, Role.PL).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+    }
+
+    private boolean isActiveProjectMember(User actor, long projectId) {
+        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
     }
 

@@ -53,6 +53,7 @@ public final class IssueStateService {
 
     private void markFixed(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can change issue status.");
         LocalDateTime changedAt = now();
         issue.markFixed(actor, comment, changedAt);
         issue.addComment(
@@ -65,6 +66,7 @@ public final class IssueStateService {
 
     private void rejectFix(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can change issue status.");
         LocalDateTime changedAt = now();
         issue.rejectFix(actor, comment, changedAt);
         issue.addComment(
@@ -77,6 +79,7 @@ public final class IssueStateService {
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can change issue status.");
         rejectUnresolvedBlockingIssues(issue);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
@@ -140,6 +143,14 @@ public final class IssueStateService {
         boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
         if (!projectLead) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private void requireActiveProjectMember(User actor, long projectId, String message) {
+        boolean projectMember = userRepository.findActiveByRole(projectId, actor.getRole()).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectMember) {
             throw new SecurityException(message);
         }
     }

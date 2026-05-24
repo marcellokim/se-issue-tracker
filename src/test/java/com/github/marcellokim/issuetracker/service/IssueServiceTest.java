@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
@@ -133,6 +134,79 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("non-project members cannot register issues in that project")
+    void registerIssueRejectsNonProjectMember() {
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId());
+        var service = service(
+                new InMemoryIssueRepository(),
+                new FakeIssueDependencyRepository(),
+                new FakeCommentRepository(),
+                users);
+
+        assertThrows(SecurityException.class,
+                () -> service.registerIssue(PROJECT_ID, "Bug", "desc", Priority.MAJOR, dev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("register issue availability follows project membership")
+    void canRegisterIssueRequiresProjectMembership() {
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), tester.getLoginId());
+        var service = service(
+                new InMemoryIssueRepository(),
+                new FakeIssueDependencyRepository(),
+                new FakeCommentRepository(),
+                users);
+
+        assertTrue(service.canRegisterIssue(PROJECT_ID, tester.getLoginId()));
+        assertFalse(service.canRegisterIssue(PROJECT_ID, dev.getLoginId()));
+        assertFalse(service.canRegisterIssue(PROJECT_ID, admin.getLoginId()));
+        assertFalse(service.canRegisterIssue(PROJECT_ID, inactiveDev.getLoginId()));
+        assertFalse(service.canRegisterIssue(999L, tester.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("searches visible issues inside one project")
+    void searchProjectIssuesFiltersByProjectAndKeyword() {
+        Issue projectIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Login bug", IssueStatus.NEW);
+        Issue otherProjectIssue = persistedIssue(21L, "ISSUE-21", OTHER_PROJECT_ID, "Login bug", IssueStatus.NEW);
+        var service = service(new InMemoryIssueRepository(projectIssue, otherProjectIssue));
+
+        List<Issue> results = service.searchProjectIssues(PROJECT_ID, "login", null, null, dev.getLoginId());
+
+        assertEquals(1, results.size());
+        assertEquals(projectIssue.id(), results.getFirst().id());
+        assertThrows(SecurityException.class,
+                () -> service.searchProjectIssues(PROJECT_ID, "login", null, null, admin.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("shows related issues inside one project")
+    void viewRelatedProjectIssuesReturnsOnlyActorRelatedIssues() {
+        Issue devIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Dev issue", IssueStatus.NEW, dev);
+        Issue testerIssue = persistedIssue(12L, "ISSUE-12", PROJECT_ID, "Tester issue", IssueStatus.NEW, tester);
+        Issue otherProjectIssue = persistedIssue(21L, "ISSUE-21", OTHER_PROJECT_ID, "Other issue", IssueStatus.NEW, dev);
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, dev.getLoginId(), tester.getLoginId(), pl.getLoginId())
+                .withProjectMembers(OTHER_PROJECT_ID, dev.getLoginId());
+        var service = service(
+                new InMemoryIssueRepository(devIssue, testerIssue, otherProjectIssue),
+                new FakeIssueDependencyRepository(),
+                new FakeCommentRepository(),
+                users);
+
+        List<Issue> devResults = service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId());
+        List<Issue> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
+
+        assertEquals(1, devResults.size());
+        assertEquals(devIssue.id(), devResults.getFirst().id());
+        assertEquals(2, plResults.size());
+        assertThrows(SecurityException.class,
+                () -> service.viewRelatedProjectIssues(PROJECT_ID, admin.getLoginId()));
+    }
+
+    @Test
     @DisplayName("reporter updates title and description before assignment")
     void updateIssueSucceedsForReporterBeforeAssignment() {
         var issue = persistedIssue();
@@ -220,7 +294,7 @@ class IssueServiceTest {
         CommentResult result = service.addComment(ISSUE_ID, "Looks like a real bug", dev.getLoginId());
 
         assertEquals(CommentPurpose.GENERAL, result.purpose());
-        org.junit.jupiter.api.Assertions.assertTrue(
+        assertTrue(
                 result.commentId().startsWith("COMMENT-"),
                 "commentId should use the shared generated comment id contract"
         );
@@ -265,6 +339,22 @@ class IssueServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.addComment(ISSUE_ID, "", dev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("non-project members cannot add issue comments")
+    void addCommentRejectsNonProjectMember() {
+        var issue = persistedIssue();
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
+        var service = service(
+                new InMemoryIssueRepository(issue),
+                new FakeIssueDependencyRepository(),
+                new FakeCommentRepository(),
+                users);
+
+        assertThrows(SecurityException.class,
+                () -> service.addComment(ISSUE_ID, "Cross-project comment", dev.getLoginId()));
     }
 
     @Test
@@ -527,6 +617,23 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("comment writer must still belong to the issue project to update")
+    void updateCommentRejectsWriterOutsideProject() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var histories = new FakeIssueHistoryRepository();
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
+        var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
+                histories, users);
+
+        assertThrows(SecurityException.class,
+                () -> service.updateComment(ISSUE_ID, COMMENT_ID, "Updated", dev.getLoginId()));
+        assertEquals("Outdated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
+        assertEquals(0, histories.findByIssueId(ISSUE_ID).size());
+    }
+
+    @Test
     @DisplayName("rejects comment delete by non-writer")
     void deleteCommentRejectsNonWriter() {
         var issue = persistedIssue();
@@ -535,6 +642,24 @@ class IssueServiceTest {
 
         assertThrows(SecurityException.class,
                 () -> service.deleteComment(ISSUE_ID, COMMENT_ID, tester.getLoginId()));
+        assertNotNull(comments.findById(COMMENT_ID).orElseThrow());
+    }
+
+    @Test
+    @DisplayName("comment writer must still belong to the issue project to delete")
+    void deleteCommentRejectsWriterOutsideProject() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
+        var service = service(
+                new InMemoryIssueRepository(issue),
+                new FakeIssueDependencyRepository(),
+                comments,
+                users);
+
+        assertThrows(SecurityException.class,
+                () -> service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId()));
         assertNotNull(comments.findById(COMMENT_ID).orElseThrow());
     }
 
@@ -621,8 +746,12 @@ class IssueServiceTest {
     }
 
     private Issue persistedIssue(long id, String issueId, long projectId, String title, IssueStatus status) {
+        return persistedIssue(id, issueId, projectId, title, status, dev);
+    }
+
+    private Issue persistedIssue(long id, String issueId, long projectId, String title, IssueStatus status, User reporter) {
         return Issue.fromPersistence(
-                Issue.persistedState(projectId, title, "Description " + id, dev)
+                Issue.persistedState(projectId, title, "Description " + id, reporter)
                         .id(id)
                         .issueId(issueId)
                         .reportedDate(now)

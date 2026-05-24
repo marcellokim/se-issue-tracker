@@ -2,6 +2,8 @@ package com.github.marcellokim.issuetracker.controller;
 
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.CommentResult;
@@ -38,6 +40,26 @@ public final class IssueController {
     public IssueResult registerIssue(long projectId, String title, String description, Priority priority) {
         User user = requireCurrentUser();
         return issueService.registerIssue(projectId, title, description, priority, user.getLoginId());
+    }
+
+    public boolean canRegisterIssue(long projectId) {
+        User user = requireCurrentUser();
+        return issueService.canRegisterIssue(projectId, user.getLoginId());
+    }
+
+    public Issue viewIssue(long issueId) {
+        User user = requireCurrentUser();
+        return issueService.viewIssue(issueId, user.getLoginId());
+    }
+
+    public List<Issue> searchProjectIssues(long projectId, String keyword, IssueStatus status, Priority priority) {
+        User user = requireCurrentUser();
+        return issueService.searchProjectIssues(projectId, keyword, status, priority, user.getLoginId());
+    }
+
+    public List<Issue> viewRelatedProjectIssues(long projectId) {
+        User user = requireCurrentUser();
+        return issueService.viewRelatedProjectIssues(projectId, user.getLoginId());
     }
 
     public IssueResult updateIssue(long issueId, String title, String description) {
@@ -145,8 +167,7 @@ public final class IssueController {
             boolean canAddDependency,
             boolean canRemoveDependency,
             boolean canAddComment,
-            boolean canSoftDelete,
-            boolean canViewStatistics
+            boolean canSoftDelete
     ) {
 
         private static IssueWorkflowActionView from(IssueWorkflowActions actions) {
@@ -165,8 +186,7 @@ public final class IssueController {
                     actions.canAddDependency(),
                     actions.canRemoveDependency(),
                     actions.canAddComment(),
-                    actions.canSoftDelete(),
-                    actions.canViewStatistics());
+                    actions.canSoftDelete());
         }
     }
 }

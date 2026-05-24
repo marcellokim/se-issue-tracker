@@ -147,6 +147,74 @@ class AssignmentServiceTest {
                         otherProjectPl.getLoginId()));
     }
 
+    @Test
+    @DisplayName("assignee must be an active DEV in the issue project")
+    void rejectAssigneeOutsideIssueProject() {
+        var users = new InMemoryUserRepository(
+                reporter,
+                assignee,
+                verifier,
+                pl,
+                anotherAssignee,
+                anotherVerifier)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), verifier.getLoginId());
+        var service = service(new InMemoryIssueRepository(newIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("verifier must be an active TESTER in the issue project")
+    void rejectVerifierOutsideIssueProject() {
+        var users = new InMemoryUserRepository(
+                reporter,
+                assignee,
+                verifier,
+                pl,
+                anotherAssignee,
+                anotherVerifier)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId());
+        var service = service(new InMemoryIssueRepository(newIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("reassignment target must be an active DEV in the issue project")
+    void rejectReassignmentToAssigneeOutsideIssueProject() {
+        var users = new InMemoryUserRepository(
+                reporter,
+                assignee,
+                verifier,
+                pl,
+                anotherAssignee,
+                anotherVerifier)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId(), verifier.getLoginId());
+        var service = service(new InMemoryIssueRepository(assignedIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.reassignIssue(ISSUE_ID, anotherAssignee.getLoginId(), pl.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("new verifier must be an active TESTER in the issue project")
+    void rejectVerifierChangeToTesterOutsideIssueProject() {
+        var users = new InMemoryUserRepository(
+                reporter,
+                assignee,
+                verifier,
+                pl,
+                anotherAssignee,
+                anotherVerifier)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId(), verifier.getLoginId());
+        var service = service(new InMemoryIssueRepository(fixedIssue()), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeVerifier(ISSUE_ID, anotherVerifier.getLoginId(), pl.getLoginId()));
+    }
+
     private AssignmentService service(Issue issue) {
         return service(new InMemoryIssueRepository(issue));
     }

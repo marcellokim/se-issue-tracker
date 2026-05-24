@@ -41,6 +41,18 @@ public final class PermissionPolicy {
         }
     }
 
+    public boolean canRegisterIssue(User user, Project project) {
+        return allows(() -> assertCanRegisterIssue(user, project));
+    }
+
+    public void assertCanViewIssue(User user) {
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view issues.");
+    }
+
+    public boolean canViewIssue(User user) {
+        return allows(() -> assertCanViewIssue(user));
+    }
+
     public void assertCanAssignIssue(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requirePl(user, "Only PL can assign issue owners.");

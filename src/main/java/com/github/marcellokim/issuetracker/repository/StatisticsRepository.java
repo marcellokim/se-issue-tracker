@@ -24,6 +24,30 @@ public interface StatisticsRepository {
 
     List<MonthlyIssueCount> countReportedIssuesByMonth(long projectId, YearMonth fromInclusive, YearMonth toInclusive);
 
+    default Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(long projectId) {
+        return countByStatusByMonth(projectId, null, null);
+    }
+
+    default Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        return Map.of();
+    }
+
+    default Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(long projectId) {
+        return countByPriorityByMonth(projectId, null, null);
+    }
+
+    default Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive
+    ) {
+        return Map.of();
+    }
+
     StatisticsReport buildReport(
             long projectId,
             LocalDate dailyFromInclusive,

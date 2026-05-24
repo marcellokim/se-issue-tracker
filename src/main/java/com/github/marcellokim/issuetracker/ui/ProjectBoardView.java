@@ -3,11 +3,18 @@ package com.github.marcellokim.issuetracker.ui;
 import com.github.marcellokim.issuetracker.controller.DashboardController.DashboardProjectView;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
+import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -32,6 +39,7 @@ public final class ProjectBoardView {
     private final User currentUser;
     private final ProjectController projectController;
     private final IssueController issueController;
+    private final StatisticsController statisticsController;
     private final Consumer<Issue> onIssueSelected;
     private final Consumer<DashboardProjectView> onProjectSelected;
     private final Consumer<String> onDashboardChanged;
@@ -42,11 +50,20 @@ public final class ProjectBoardView {
     private final TextField issueTitleField = field("issue title");
     private final TextArea issueDescriptionArea = area("issue description");
     private final ComboBox<Priority> priorityBox = new ComboBox<>();
+    private final TextField issueKeywordField = field("title or description");
+    private final ComboBox<String> issueStatusFilterBox = new ComboBox<>();
+    private final ComboBox<String> issuePriorityFilterBox = new ComboBox<>();
+    private final TextField dailyFromField = field("yyyy-mm-dd");
+    private final TextField dailyToField = field("yyyy-mm-dd");
+    private final TextField monthlyFromField = field("yyyy-mm");
+    private final TextField monthlyToField = field("yyyy-mm");
+    private final TextArea statisticsOutputArea = area("");
 
     public ProjectBoardView(
             User currentUser,
             ProjectController projectController,
             IssueController issueController,
+            StatisticsController statisticsController,
             Consumer<Issue> onIssueSelected,
             Consumer<DashboardProjectView> onProjectSelected,
             Consumer<String> onDashboardChanged,
@@ -55,12 +72,17 @@ public final class ProjectBoardView {
         this.currentUser = Objects.requireNonNull(currentUser, "currentUser");
         this.projectController = Objects.requireNonNull(projectController, "projectController");
         this.issueController = Objects.requireNonNull(issueController, "issueController");
+        this.statisticsController = Objects.requireNonNull(statisticsController, "statisticsController");
         this.onIssueSelected = Objects.requireNonNull(onIssueSelected, "onIssueSelected");
         this.onProjectSelected = Objects.requireNonNull(onProjectSelected, "onProjectSelected");
         this.onDashboardChanged = Objects.requireNonNull(onDashboardChanged, "onDashboardChanged");
         this.onProjectChanged = Objects.requireNonNull(onProjectChanged, "onProjectChanged");
         priorityBox.getItems().setAll(Priority.values());
         priorityBox.setValue(Priority.MAJOR);
+        issueStatusFilterBox.getItems().setAll(filterValues(IssueStatus.values()));
+        issueStatusFilterBox.setValue("ALL");
+        issuePriorityFilterBox.getItems().setAll(filterValues(Priority.values()));
+        issuePriorityFilterBox.setValue("ALL");
     }
 
     public Parent dashboard(
@@ -70,7 +92,7 @@ public final class ProjectBoardView {
             Consumer<User> onAccountSelected,
             Node adminAccountManagement
     ) {
-        HBox lists = new HBox(16, issueList(issues), projectList(projects, users, onAccountSelected));
+        HBox lists = new HBox(16, projectList(projects, users, onAccountSelected));
         lists.setAlignment(Pos.CENTER_LEFT);
 
         VBox root = new VBox(14, lists);
@@ -121,31 +143,20 @@ public final class ProjectBoardView {
                 16,
                 title,
                 description,
-                summary,
-                projectMemberPanel(project),
-                registerIssuePanel(project),
-                messageLabel(message),
-                backButton);
+                summary);
+        if (isAdmin()) {
+            root.getChildren().add(projectMemberPanel(project));
+        } else {
+            root.getChildren().addAll(
+                    relatedProjectIssuesPanel(project),
+                    projectIssueSearchPanel(project),
+                    registerIssuePanel(project),
+                    statisticsPanel(project));
+        }
+        root.getChildren().addAll(messageLabel(message), backButton);
         root.setPadding(new Insets(24));
         root.setAlignment(Pos.CENTER_LEFT);
         return root;
-    }
-
-    private VBox issueList(List<Issue> issues) {
-        VBox list = panel(currentUser.getRole() == Role.ADMIN ? "All Issues" : "Related Issues");
-        if (issues.isEmpty()) {
-            list.getChildren().add(emptyLabel("No issues to show."));
-        }
-        for (Issue issue : issues) {
-            Button button = card("""
-                    %s
-                    id=%d / project=%d
-                    %s / %s
-                    """.formatted(issue.title(), issue.id(), issue.projectId(), issue.status(), issue.priority()));
-            button.setOnAction(event -> onIssueSelected.accept(issue));
-            list.getChildren().add(button);
-        }
-        return scrollablePanel(list);
     }
 
     private VBox projectList(
@@ -228,7 +239,7 @@ public final class ProjectBoardView {
                         "Title", issueTitleField,
                         "Description", issueDescriptionArea,
                         "Priority", priorityBox),
-                actionRow(actionButton("Register Issue", isIssueActor(), () -> {
+                actionRow(actionButton("Register Issue", issueController.canRegisterIssue(project.projectId()), () -> {
                     var issue = issueController.registerIssue(
                             project.projectId(),
                             requiredText(issueTitleField, "issueTitle"),
@@ -236,6 +247,101 @@ public final class ProjectBoardView {
                             priorityBox.getValue());
                     return "Issue registered: " + issue.issueId() + " / " + issue.status();
                 }, message -> onProjectChanged.accept(project.projectId(), message))));
+        return box;
+    }
+
+    private VBox relatedProjectIssuesPanel(DashboardProjectView project) {
+        VBox box = borderedPanel("My Related Issues");
+        try {
+            List<Issue> issues = issueController.viewRelatedProjectIssues(project.projectId());
+            if (issues.isEmpty()) {
+                box.getChildren().add(emptyLabel("No related issues in this project."));
+                return box;
+            }
+            for (Issue issue : issues) {
+                box.getChildren().add(issueCard(issue));
+            }
+        } catch (RuntimeException exception) {
+            box.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
+        }
+        return box;
+    }
+
+    private VBox projectIssueSearchPanel(DashboardProjectView project) {
+        VBox box = borderedPanel("Project Issues");
+        VBox results = new VBox(10);
+        box.getChildren().addAll(
+                fieldsGrid(
+                        "Keyword", issueKeywordField,
+                        "Status", issueStatusFilterBox,
+                        "Priority", issuePriorityFilterBox),
+                actionRow(actionButton("Search Issues", true, () -> {
+                    renderIssueSearchResults(project, results);
+                    return "Search completed.";
+                }, ignored -> { })),
+                results);
+        renderIssueSearchResults(project, results);
+        return box;
+    }
+
+    private void renderIssueSearchResults(DashboardProjectView project, VBox results) {
+        results.getChildren().clear();
+        try {
+            List<Issue> issues = issueController.searchProjectIssues(
+                    project.projectId(),
+                    text(issueKeywordField),
+                    selectedStatus(),
+                    selectedPriorityFilter());
+            if (issues.isEmpty()) {
+                results.getChildren().add(emptyLabel("No project issues match the current filters."));
+                return;
+            }
+            for (Issue issue : issues) {
+                results.getChildren().add(issueCard(issue));
+            }
+        } catch (RuntimeException exception) {
+            results.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
+        }
+    }
+
+    private Button issueCard(Issue issue) {
+        Button button = card("""
+                %s
+                id=%d / issueId=%s
+                %s / %s / reported=%s
+                """.formatted(
+                issue.title(),
+                issue.id(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.priority(),
+                issue.reportedDate()));
+        button.setOnAction(event -> onIssueSelected.accept(issue));
+        return button;
+    }
+
+    private VBox statisticsPanel(DashboardProjectView project) {
+        VBox box = borderedPanel("Statistics");
+        statisticsOutputArea.setEditable(false);
+        statisticsOutputArea.setPrefRowCount(12);
+        statisticsOutputArea.setText("Select a date/month range, then view project statistics.");
+        box.getChildren().addAll(
+                fieldsGrid(
+                        "Daily From", dailyFromField,
+                        "Daily To", dailyToField,
+                        "Monthly From", monthlyFromField,
+                        "Monthly To", monthlyToField),
+                actionRow(actionButton(
+                        "View Statistics",
+                        statisticsController.canViewStatistics(project.projectId()),
+                        () -> formatStatistics(statisticsController.viewStatistics(
+                                project.projectId(),
+                                optionalDate(dailyFromField, "dailyFrom"),
+                                optionalDate(dailyToField, "dailyTo"),
+                                optionalMonth(monthlyFromField, "monthlyFrom"),
+                                optionalMonth(monthlyToField, "monthlyTo"))),
+                        statisticsOutputArea::setText)),
+                statisticsOutputArea);
         return box;
     }
 
@@ -261,10 +367,6 @@ public final class ProjectBoardView {
 
     private boolean isAdmin() {
         return currentUser.getRole() == Role.ADMIN;
-    }
-
-    private boolean isIssueActor() {
-        return currentUser.getRole() != Role.ADMIN;
     }
 
     private static VBox borderedPanel(String title) {
@@ -379,6 +481,173 @@ public final class ProjectBoardView {
                 user.getName(),
                 user.getRole(),
                 user.isActive() ? "ACTIVE" : "INACTIVE");
+    }
+
+    private IssueStatus selectedStatus() {
+        String value = issueStatusFilterBox.getValue();
+        if (value == null || "ALL".equals(value)) {
+            return null;
+        }
+        return IssueStatus.valueOf(value);
+    }
+
+    private Priority selectedPriorityFilter() {
+        String value = issuePriorityFilterBox.getValue();
+        if (value == null || "ALL".equals(value)) {
+            return null;
+        }
+        return Priority.valueOf(value);
+    }
+
+    private static <E extends Enum<E>> List<String> filterValues(E[] values) {
+        java.util.ArrayList<String> items = new java.util.ArrayList<>();
+        items.add("ALL");
+        for (E value : values) {
+            items.add(value.name());
+        }
+        return List.copyOf(items);
+    }
+
+    private static String formatStatistics(StatisticsReport report) {
+        return """
+                Current Status Counts
+                %s
+
+                Current Priority Counts
+                %s
+
+                Daily Reported Issues
+                %s
+
+                Monthly Reported Issues
+                %s
+
+                Monthly Status Counts
+                %s
+
+                Monthly Priority Counts
+                %s
+                """.formatted(
+                formatStatusCounts(report),
+                formatPriorityCounts(report),
+                formatDailyCounts(report),
+                formatMonthlyCounts(report),
+                formatMonthlyStatusCounts(report),
+                formatMonthlyPriorityCounts(report));
+    }
+
+    private static String formatStatusCounts(StatisticsReport report) {
+        StringBuilder builder = new StringBuilder();
+        for (IssueStatus status : IssueStatus.values()) {
+            if (status == IssueStatus.DELETED) {
+                continue;
+            }
+            int count = report.statusCounts().getOrDefault(status, 0);
+            builder.append(status).append(": ").append(count).append(" ").append(bar(count)).append(System.lineSeparator());
+        }
+        return builder.toString().stripTrailing();
+    }
+
+    private static String formatPriorityCounts(StatisticsReport report) {
+        StringBuilder builder = new StringBuilder();
+        for (Priority priority : Priority.values()) {
+            int count = report.priorityCounts().getOrDefault(priority, 0);
+            builder.append(priority).append(": ").append(count).append(" ").append(bar(count)).append(System.lineSeparator());
+        }
+        return builder.toString().stripTrailing();
+    }
+
+    private static String formatDailyCounts(StatisticsReport report) {
+        if (report.dailyCounts().isEmpty()) {
+            return "No daily data.";
+        }
+        return report.dailyCounts().stream()
+                .map(count -> count.date() + ": " + count.count() + " " + bar(count.count()))
+                .reduce((first, second) -> first + System.lineSeparator() + second)
+                .orElse("No daily data.");
+    }
+
+    private static String formatMonthlyCounts(StatisticsReport report) {
+        if (report.monthlyCounts().isEmpty()) {
+            return "No monthly data.";
+        }
+        return report.monthlyCounts().stream()
+                .map(count -> count.month() + ": " + count.count() + " " + bar(count.count()))
+                .reduce((first, second) -> first + System.lineSeparator() + second)
+                .orElse("No monthly data.");
+    }
+
+    private static String formatMonthlyStatusCounts(StatisticsReport report) {
+        if (report.monthlyStatusCounts().isEmpty()) {
+            return "No monthly status data.";
+        }
+        return report.monthlyStatusCounts().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> entry.getKey() + System.lineSeparator() + formatStatusMonth(entry.getValue()))
+                .reduce((first, second) -> first + System.lineSeparator() + second)
+                .orElse("No monthly status data.");
+    }
+
+    private static String formatStatusMonth(Map<IssueStatus, Integer> counts) {
+        StringBuilder builder = new StringBuilder();
+        for (IssueStatus status : IssueStatus.values()) {
+            if (status == IssueStatus.DELETED) {
+                continue;
+            }
+            int count = counts.getOrDefault(status, 0);
+            builder.append("  ").append(status).append(": ").append(count).append(" ").append(bar(count))
+                    .append(System.lineSeparator());
+        }
+        return builder.toString().stripTrailing();
+    }
+
+    private static String formatMonthlyPriorityCounts(StatisticsReport report) {
+        if (report.monthlyPriorityCounts().isEmpty()) {
+            return "No monthly priority data.";
+        }
+        return report.monthlyPriorityCounts().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> entry.getKey() + System.lineSeparator() + formatPriorityMonth(entry.getValue()))
+                .reduce((first, second) -> first + System.lineSeparator() + second)
+                .orElse("No monthly priority data.");
+    }
+
+    private static String formatPriorityMonth(Map<Priority, Integer> counts) {
+        StringBuilder builder = new StringBuilder();
+        for (Priority priority : Priority.values()) {
+            int count = counts.getOrDefault(priority, 0);
+            builder.append("  ").append(priority).append(": ").append(count).append(" ").append(bar(count))
+                    .append(System.lineSeparator());
+        }
+        return builder.toString().stripTrailing();
+    }
+
+    private static String bar(int count) {
+        return "#".repeat(Math.min(Math.max(count, 0), 40));
+    }
+
+    private static LocalDate optionalDate(TextInputControl field, String fieldName) {
+        String value = text(field);
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException(fieldName + " must use yyyy-mm-dd");
+        }
+    }
+
+    private static YearMonth optionalMonth(TextInputControl field, String fieldName) {
+        String value = text(field);
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return YearMonth.parse(value);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException(fieldName + " must use yyyy-mm");
+        }
     }
 
     private static String valueOrBlank(String value) {
