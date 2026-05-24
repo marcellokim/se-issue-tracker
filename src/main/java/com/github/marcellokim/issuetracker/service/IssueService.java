@@ -57,7 +57,7 @@ public final class IssueService {
     }
 
     public List<IssueSummary> searchIssues(
-            Long projectId, IssueStatus status, Priority priority,
+            long projectId, IssueStatus status, Priority priority,
             String reporterId, String assigneeId, String verifierId,
             String keyword, String currentUserId) {
         User user = findUser(currentUserId);

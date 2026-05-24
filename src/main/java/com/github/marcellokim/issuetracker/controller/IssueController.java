@@ -27,7 +27,7 @@ public final class IssueController {
     }
 
     public List<IssueSummary> searchIssues(
-            Long projectId, IssueStatus status, Priority priority,
+            long projectId, IssueStatus status, Priority priority,
             String reporterId, String assigneeId, String verifierId,
             String keyword) {
         User user = requireCurrentUser();

@@ -147,9 +147,9 @@ class DomainValueObjectsTest {
     @Test
     @DisplayName("all issue search criteria defaults to active issues")
     void allIssueSearchCriteriaDefaultsToActiveIssues() {
-        IssueSearchCriteria criteria = IssueSearchCriteria.all();
+        IssueSearchCriteria criteria = IssueSearchCriteria.all(1L);
 
-        assertNull(criteria.projectId());
+        assertEquals(1L, criteria.projectId());
         assertNull(criteria.status());
         assertNull(criteria.priority());
         assertNull(criteria.reporterId());
