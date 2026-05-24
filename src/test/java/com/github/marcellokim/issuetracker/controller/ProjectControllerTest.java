@@ -262,6 +262,60 @@ class ProjectControllerTest {
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(1L, " "));
     }
 
+    @Test
+    @DisplayName("participant remove rejects assignee of assigned issue")
+    void participantRemoveRejectsAssignedIssueAssignee() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = active("dev1", Role.DEV);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, assignee.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), assignee);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.ASSIGNED, assignee, null));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, assignee.getLoginId()));
+        assertEquals(List.of(assignee.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove rejects verifier of fixed issue")
+    void participantRemoveRejectsFixedIssueVerifier() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User verifier = active("tester1", Role.TESTER);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, verifier.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), verifier);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.FIXED, null, verifier));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, verifier.getLoginId()));
+        assertEquals(List.of(verifier.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove allows resolved issue assignee and verifier")
+    void participantRemoveAllowsResolvedIssueAssigneeAndVerifier() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = active("dev1", Role.DEV);
+        User verifier = active("tester1", Role.TESTER);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, assignee.getLoginId());
+        projects.addParticipant(1L, verifier.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), assignee, verifier);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.RESOLVED, assignee, verifier));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        controller.removeProjectParticipant(1L, assignee.getLoginId());
+        controller.removeProjectParticipant(1L, verifier.getLoginId());
+
+        assertEquals(List.of(), projects.participantIds(1L));
+    }
+
     private static ProjectController controller(
             AuthFixture auth,
             FakeProjectRepository projects,
@@ -343,6 +397,27 @@ class ProjectControllerTest {
                 .updatedAt(NOW)
                 .priority(Priority.MAJOR)
                 .status(status));
+    }
+
+    private static Issue issueWithAssigneeAndVerifier(
+            long id,
+            long projectId,
+            IssueStatus status,
+            User assignee,
+            User verifier) {
+        return Issue.fromPersistence(Issue.persistedState(
+                        projectId,
+                        "Issue " + id,
+                        "Project controller test issue",
+                        user("reporter", Role.DEV, true))
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(NOW)
+                .updatedAt(NOW)
+                .priority(Priority.MAJOR)
+                .status(status)
+                .assignee(assignee)
+                .verifier(verifier));
     }
 
     private record AuthFixture(AuthenticationService service, User user) {

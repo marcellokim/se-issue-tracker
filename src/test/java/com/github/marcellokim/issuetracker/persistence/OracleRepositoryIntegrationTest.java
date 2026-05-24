@@ -127,6 +127,13 @@ class OracleRepositoryIntegrationTest {
         assertTrue(repositories.statistics().countByStatus(project2.getId()).get(IssueStatus.CLOSED) >= 1);
         assertTrue(repositories.statistics().countByStatus(project2.getId()).get(IssueStatus.RESOLVED) >= 1);
         assertFalse(repositories.statistics().countReportedIssuesByDay(project1.getId()).isEmpty());
+        assertFalse(repositories.statistics().countStatusChangesByDay(project1.getId()).isEmpty());
+        assertFalse(repositories.statistics().countCommentsByDay(project1.getId()).isEmpty());
+        var report = repositories.statistics().buildReport(project1.getId(), null, null, null, null);
+        assertFalse(report.dailyStatusChangeCounts().isEmpty());
+        assertFalse(report.monthlyStatusChangeCounts().isEmpty());
+        assertFalse(report.dailyCommentCounts().isEmpty());
+        assertFalse(report.monthlyCommentCounts().isEmpty());
         assertFalse(repositories.assignmentRecommendations().findDevAssigneeCandidates(project1.getId()).isEmpty());
         assertFalse(repositories.assignmentRecommendations().findTesterVerifierCandidates(project1.getId()).isEmpty());
     }

@@ -347,7 +347,11 @@ public final class LoginView {
                 this::selectProject,
                 this::refreshDashboard,
                 this::refreshProjectPage);
-        root.setCenter(scroll(boardView.projectDetail(project, projectDetailMessage, () -> refreshDashboard(""))));
+        root.setCenter(scroll(boardView.projectDetail(
+                project,
+                currentUsers,
+                projectDetailMessage,
+                () -> refreshDashboard(""))));
     }
 
     private static ScrollPane scroll(Node content) {

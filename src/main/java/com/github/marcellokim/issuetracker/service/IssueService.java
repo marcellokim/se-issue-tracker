@@ -132,7 +132,7 @@ public final class IssueService {
                         null,
                         null,
                         false)).stream()
-                .filter(issue -> actor.getRole() == Role.PL || isRelatedIssue(issue, actor.getLoginId()))
+                .filter(issue -> actor.getRole() == Role.PL || isAssignedParticipant(issue, actor.getLoginId()))
                 .toList();
     }
 
@@ -275,12 +275,9 @@ public final class IssueService {
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
     }
 
-    private static boolean isRelatedIssue(Issue issue, String loginId) {
-        return loginId.equals(issue.reporterId())
-                || loginId.equals(issue.assigneeId())
-                || loginId.equals(issue.verifierId())
-                || loginId.equals(issue.fixerId())
-                || loginId.equals(issue.resolverId());
+    private static boolean isAssignedParticipant(Issue issue, String loginId) {
+        return loginId.equals(issue.assigneeId())
+                || loginId.equals(issue.verifierId());
     }
 
     private void validateDependency(long blockingIssueId, long blockedIssueId) {

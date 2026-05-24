@@ -4,9 +4,12 @@ import com.github.marcellokim.issuetracker.controller.DashboardController.Dashbo
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.controller.StatisticsController;
+import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -92,8 +95,11 @@ public final class ProjectBoardView {
             Consumer<User> onAccountSelected,
             Node adminAccountManagement
     ) {
-        HBox lists = new HBox(16, projectList(projects, users, onAccountSelected));
+        HBox lists = isAdmin()
+                ? new HBox(16, projectList(projects), userList(users, onAccountSelected))
+                : new HBox(16, projectList(projects));
         lists.setAlignment(Pos.CENTER_LEFT);
+        lists.setFillHeight(true);
 
         VBox root = new VBox(14, lists);
         if (isAdmin()) {
@@ -106,8 +112,14 @@ public final class ProjectBoardView {
         return root;
     }
 
-    public Parent projectDetail(DashboardProjectView project, String message, Runnable onBack) {
+    public Parent projectDetail(
+            DashboardProjectView project,
+            List<User> users,
+            String message,
+            Runnable onBack
+    ) {
         Objects.requireNonNull(project, "project");
+        Objects.requireNonNull(users, "users");
         Objects.requireNonNull(onBack, "onBack");
         Label title = sectionLabel(project.projectName());
         title.setStyle("-fx-font-size: 32px; -fx-font-weight: bold;");
@@ -116,24 +128,7 @@ public final class ProjectBoardView {
                 : project.projectDescription());
         description.setWrapText(true);
         description.setStyle("-fx-font-size: 22px;");
-        Label summary = new Label("""
-                Project ID: %d
-                Members: %d
-                PL: %d
-                DEV: %d
-                TESTER: %d
-                Visible issues: %d
-                Deleted issues: %d
-                Status counts: %s
-                """.formatted(
-                project.projectId(),
-                project.memberCount(),
-                project.projectLeaderCount(),
-                project.developerCount(),
-                project.testerCount(),
-                project.visibleIssueCount(),
-                project.deletedIssueCount(),
-                project.statusCounts()));
+        Label summary = new Label(projectSummary(project));
         summary.setStyle("-fx-font-size: 22px;");
 
         Button backButton = new Button("Back to Dashboard");
@@ -145,7 +140,7 @@ public final class ProjectBoardView {
                 description,
                 summary);
         if (isAdmin()) {
-            root.getChildren().add(projectMemberPanel(project));
+            root.getChildren().add(projectMemberPanel(project, users));
         } else {
             root.getChildren().addAll(
                     relatedProjectIssuesPanel(project),
@@ -159,11 +154,7 @@ public final class ProjectBoardView {
         return root;
     }
 
-    private VBox projectList(
-            List<DashboardProjectView> projects,
-            List<User> users,
-            Consumer<User> onAccountSelected
-    ) {
+    private VBox projectList(List<DashboardProjectView> projects) {
         VBox list = panel(currentUser.getRole() == Role.ADMIN ? "All Projects" : "My Projects");
         if (projects.isEmpty()) {
             list.getChildren().add(emptyLabel("No projects to show."));
@@ -182,13 +173,18 @@ public final class ProjectBoardView {
             button.setOnAction(event -> onProjectSelected.accept(project));
             list.getChildren().add(button);
         }
-        if (isAdmin() && !users.isEmpty()) {
-            list.getChildren().add(sectionLabel("Users"));
-            for (User user : users) {
-                Button button = card(formatAccount(user));
-                button.setOnAction(event -> onAccountSelected.accept(user));
-                list.getChildren().add(button);
-            }
+        return scrollablePanel(list);
+    }
+
+    private VBox userList(List<User> users, Consumer<User> onAccountSelected) {
+        VBox list = panel("Users");
+        if (users.isEmpty()) {
+            list.getChildren().add(emptyLabel("No users to show."));
+        }
+        for (User user : users) {
+            Button button = card(formatAccount(user));
+            button.setOnAction(event -> onAccountSelected.accept(user));
+            list.getChildren().add(button);
         }
         return scrollablePanel(list);
     }
@@ -208,7 +204,7 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private VBox projectMemberPanel(DashboardProjectView project) {
+    private VBox projectMemberPanel(DashboardProjectView project, List<User> users) {
         VBox box = borderedPanel("Project Management");
         box.getChildren().addAll(
                 fieldsGrid("Participant Login ID", participantLoginIdField),
@@ -228,8 +224,52 @@ public final class ProjectBoardView {
                         actionButton("Delete Project", isAdmin(), () -> {
                             projectController.deleteProject(project.projectId());
                             return "Project deleted.";
-                        }, onDashboardChanged)));
+                        }, onDashboardChanged)),
+                projectParticipantsList(project, users));
         return box;
+    }
+
+    private VBox projectParticipantsList(DashboardProjectView project, List<User> users) {
+        VBox list = new VBox(8, sectionLabel("Participants"));
+        try {
+            List<ProjectMember> participants = projectController.viewProjectParticipants(project.projectId());
+            if (participants.isEmpty()) {
+                list.getChildren().add(emptyLabel("No participants."));
+                return list;
+            }
+            for (ProjectMember participant : participants) {
+                list.getChildren().add(infoCard(formatParticipant(participant, users)));
+            }
+        } catch (RuntimeException exception) {
+            list.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
+        }
+        return list;
+    }
+
+    private String projectSummary(DashboardProjectView project) {
+        String baseSummary = """
+                Project ID: %d
+                Members: %d
+                PL: %d
+                DEV: %d
+                TESTER: %d
+                """.formatted(
+                project.projectId(),
+                project.memberCount(),
+                project.projectLeaderCount(),
+                project.developerCount(),
+                project.testerCount());
+        if (isAdmin()) {
+            return baseSummary;
+        }
+        return baseSummary + """
+                Visible issues: %d
+                Deleted issues: %d
+                Status counts: %s
+                """.formatted(
+                project.visibleIssueCount(),
+                project.deletedIssueCount(),
+                project.statusCounts());
     }
 
     private VBox registerIssuePanel(DashboardProjectView project) {
@@ -280,7 +320,7 @@ public final class ProjectBoardView {
                     return "Search completed.";
                 }, ignored -> { })),
                 results);
-        renderIssueSearchResults(project, results);
+        results.getChildren().add(emptyLabel("Use search to find project issues."));
         return box;
     }
 
@@ -306,16 +346,16 @@ public final class ProjectBoardView {
 
     private Button issueCard(Issue issue) {
         Button button = card("""
+                ID=%d
                 %s
-                id=%d / issueId=%s
-                %s / %s / reported=%s
+                reporter=%s
+                %s / %s
                 """.formatted(
-                issue.title(),
                 issue.id(),
-                issue.getIssueId(),
+                issue.title(),
+                issue.reporterId(),
                 issue.status(),
-                issue.priority(),
-                issue.reportedDate()));
+                issue.priority()));
         button.setOnAction(event -> onIssueSelected.accept(issue));
         return button;
     }
@@ -323,25 +363,17 @@ public final class ProjectBoardView {
     private VBox statisticsPanel(DashboardProjectView project) {
         VBox box = borderedPanel("Statistics");
         statisticsOutputArea.setEditable(false);
-        statisticsOutputArea.setPrefRowCount(12);
-        statisticsOutputArea.setText("Select a date/month range, then view project statistics.");
-        box.getChildren().addAll(
-                fieldsGrid(
-                        "Daily From", dailyFromField,
-                        "Daily To", dailyToField,
-                        "Monthly From", monthlyFromField,
-                        "Monthly To", monthlyToField),
-                actionRow(actionButton(
-                        "View Statistics",
-                        statisticsController.canViewStatistics(project.projectId()),
-                        () -> formatStatistics(statisticsController.viewStatistics(
-                                project.projectId(),
-                                optionalDate(dailyFromField, "dailyFrom"),
-                                optionalDate(dailyToField, "dailyTo"),
-                                optionalMonth(monthlyFromField, "monthlyFrom"),
-                                optionalMonth(monthlyToField, "monthlyTo"))),
-                        statisticsOutputArea::setText)),
-                statisticsOutputArea);
+        statisticsOutputArea.setPrefRowCount(22);
+        if (!statisticsController.canViewStatistics(project.projectId())) {
+            statisticsOutputArea.setText("Statistics are not available for this account.");
+        } else {
+            try {
+                statisticsOutputArea.setText(formatStatistics(statisticsController.viewStatistics(project.projectId())));
+            } catch (RuntimeException exception) {
+                statisticsOutputArea.setText("Failed: " + exception.getMessage());
+            }
+        }
+        box.getChildren().add(statisticsOutputArea);
         return box;
     }
 
@@ -407,6 +439,7 @@ public final class ProjectBoardView {
         scrollPane.setPrefViewportHeight(420);
         VBox container = new VBox(scrollPane);
         VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
+        HBox.setHgrow(container, javafx.scene.layout.Priority.ALWAYS);
         container.setStyle("-fx-border-color: #9ca3af; -fx-border-width: 2; -fx-background-color: #f9fafb;");
         return container;
     }
@@ -423,6 +456,20 @@ public final class ProjectBoardView {
                 -fx-font-size: 20px;
                 """);
         return button;
+    }
+
+    private static Label infoCard(String text) {
+        Label label = new Label(text);
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setWrapText(true);
+        label.setStyle("""
+                -fx-background-color: white;
+                -fx-border-color: #d1d5db;
+                -fx-border-width: 1;
+                -fx-padding: 10;
+                -fx-font-size: 18px;
+                """);
+        return label;
     }
 
     private static Label sectionLabel(String text) {
@@ -483,6 +530,26 @@ public final class ProjectBoardView {
                 user.isActive() ? "ACTIVE" : "INACTIVE");
     }
 
+    private static String formatParticipant(ProjectMember participant, List<User> users) {
+        return users.stream()
+                .filter(user -> user.getLoginId().equals(participant.userId()))
+                .findFirst()
+                .map(user -> """
+                        %s / %s / %s
+                        joined=%s
+                        """.formatted(
+                        user.getLoginId(),
+                        user.getName(),
+                        user.getRole(),
+                        participant.joinedAt()))
+                .orElse("""
+                        %s / unknown / unknown
+                        joined=%s
+                        """.formatted(
+                        participant.userId(),
+                        participant.joinedAt()));
+    }
+
     private IssueStatus selectedStatus() {
         String value = issueStatusFilterBox.getValue();
         if (value == null || "ALL".equals(value)) {
@@ -510,30 +577,42 @@ public final class ProjectBoardView {
 
     private static String formatStatistics(StatisticsReport report) {
         return """
+                Daily Issue Registrations
+                %s
+
+                Monthly Issue Registrations
+                %s
+
+                Daily Status Changes
+                %s
+
+                Monthly Status Changes
+                %s
+
                 Current Status Counts
                 %s
 
                 Current Priority Counts
                 %s
 
-                Daily Reported Issues
-                %s
-
-                Monthly Reported Issues
-                %s
-
-                Monthly Status Counts
-                %s
-
                 Monthly Priority Counts
                 %s
+
+                Daily Comments
+                %s
+
+                Monthly Comments
+                %s
                 """.formatted(
-                formatStatusCounts(report),
-                formatPriorityCounts(report),
                 formatDailyCounts(report),
                 formatMonthlyCounts(report),
-                formatMonthlyStatusCounts(report),
-                formatMonthlyPriorityCounts(report));
+                formatDailyCounts(report.dailyStatusChangeCounts(), "No daily status change data."),
+                formatMonthlyCounts(report.monthlyStatusChangeCounts(), "No monthly status change data."),
+                formatStatusCounts(report),
+                formatPriorityCounts(report),
+                formatMonthlyPriorityCounts(report),
+                formatDailyCounts(report.dailyCommentCounts(), "No daily comment data."),
+                formatMonthlyCounts(report.monthlyCommentCounts(), "No monthly comment data."));
     }
 
     private static String formatStatusCounts(StatisticsReport report) {
@@ -558,23 +637,31 @@ public final class ProjectBoardView {
     }
 
     private static String formatDailyCounts(StatisticsReport report) {
-        if (report.dailyCounts().isEmpty()) {
-            return "No daily data.";
-        }
-        return report.dailyCounts().stream()
-                .map(count -> count.date() + ": " + count.count() + " " + bar(count.count()))
-                .reduce((first, second) -> first + System.lineSeparator() + second)
-                .orElse("No daily data.");
+        return formatDailyCounts(report.dailyCounts(), "No daily issue registration data.");
     }
 
     private static String formatMonthlyCounts(StatisticsReport report) {
-        if (report.monthlyCounts().isEmpty()) {
-            return "No monthly data.";
+        return formatMonthlyCounts(report.monthlyCounts(), "No monthly issue registration data.");
+    }
+
+    private static String formatDailyCounts(List<DailyIssueCount> counts, String emptyMessage) {
+        if (counts.isEmpty()) {
+            return emptyMessage;
         }
-        return report.monthlyCounts().stream()
+        return counts.stream()
+                .map(count -> count.date() + ": " + count.count() + " " + bar(count.count()))
+                .reduce((first, second) -> first + System.lineSeparator() + second)
+                .orElse(emptyMessage);
+    }
+
+    private static String formatMonthlyCounts(List<MonthlyIssueCount> counts, String emptyMessage) {
+        if (counts.isEmpty()) {
+            return emptyMessage;
+        }
+        return counts.stream()
                 .map(count -> count.month() + ": " + count.count() + " " + bar(count.count()))
                 .reduce((first, second) -> first + System.lineSeparator() + second)
-                .orElse("No monthly data.");
+                .orElse(emptyMessage);
     }
 
     private static String formatMonthlyStatusCounts(StatisticsReport report) {

@@ -1,5 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -117,6 +119,7 @@ public final class ProjectService {
             throw new IllegalArgumentException("Project participant was not found.");
         }
 
+        rejectActiveIssueAssigneeOrVerifier(projectId, participantId);
         projectRepository.removeParticipant(projectId, participantId);
     }
 
@@ -156,6 +159,17 @@ public final class ProjectService {
 
         if (!userRepository.findByRole(projectId, Role.PL).isEmpty()) {
             throw new IllegalArgumentException("Only one PL can be assigned to a project.");
+        }
+    }
+
+    private void rejectActiveIssueAssigneeOrVerifier(long projectId, String participantId) {
+        for (Issue issue : issueRepository.findByProject(projectId)) {
+            if (issue.status() == IssueStatus.ASSIGNED && participantId.equals(issue.assigneeId())) {
+                throw new IllegalArgumentException("Assigned issue assignee cannot be removed from project.");
+            }
+            if (issue.status() == IssueStatus.FIXED && participantId.equals(issue.verifierId())) {
+                throw new IllegalArgumentException("Fixed issue verifier cannot be removed from project.");
+            }
         }
     }
 

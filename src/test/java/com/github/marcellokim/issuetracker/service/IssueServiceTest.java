@@ -182,25 +182,48 @@ class IssueServiceTest {
     }
 
     @Test
-    @DisplayName("shows related issues inside one project")
+    @DisplayName("shows only assigned participant issues for DEV and TESTER")
     void viewRelatedProjectIssuesReturnsOnlyActorRelatedIssues() {
-        Issue devIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Dev issue", IssueStatus.NEW, dev);
-        Issue testerIssue = persistedIssue(12L, "ISSUE-12", PROJECT_ID, "Tester issue", IssueStatus.NEW, tester);
-        Issue otherProjectIssue = persistedIssue(21L, "ISSUE-21", OTHER_PROJECT_ID, "Other issue", IssueStatus.NEW, dev);
+        Issue reporterOnlyIssue = persistedIssue(
+                11L,
+                "ISSUE-11",
+                PROJECT_ID,
+                "Reporter only issue",
+                IssueStatus.NEW,
+                dev);
+        Issue assignedDevIssue = assignedIssue(
+                12L,
+                "ISSUE-12",
+                PROJECT_ID,
+                "Assigned dev issue",
+                tester,
+                dev,
+                tester);
+        Issue otherProjectIssue = assignedIssue(
+                21L,
+                "ISSUE-21",
+                OTHER_PROJECT_ID,
+                "Other issue",
+                dev,
+                dev,
+                tester);
         var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
                 .withProjectMembers(PROJECT_ID, dev.getLoginId(), tester.getLoginId(), pl.getLoginId())
                 .withProjectMembers(OTHER_PROJECT_ID, dev.getLoginId());
         var service = service(
-                new InMemoryIssueRepository(devIssue, testerIssue, otherProjectIssue),
+                new InMemoryIssueRepository(reporterOnlyIssue, assignedDevIssue, otherProjectIssue),
                 new FakeIssueDependencyRepository(),
                 new FakeCommentRepository(),
                 users);
 
         List<Issue> devResults = service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId());
+        List<Issue> testerResults = service.viewRelatedProjectIssues(PROJECT_ID, tester.getLoginId());
         List<Issue> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
 
         assertEquals(1, devResults.size());
-        assertEquals(devIssue.id(), devResults.getFirst().id());
+        assertEquals(assignedDevIssue.id(), devResults.getFirst().id());
+        assertEquals(1, testerResults.size());
+        assertEquals(assignedDevIssue.id(), testerResults.getFirst().id());
         assertEquals(2, plResults.size());
         assertThrows(SecurityException.class,
                 () -> service.viewRelatedProjectIssues(PROJECT_ID, admin.getLoginId()));
@@ -761,6 +784,27 @@ class IssueServiceTest {
                         .reportedDate(now)
                         .priority(Priority.MAJOR)
                         .status(status)
+                        .updatedAt(now));
+    }
+
+    private Issue assignedIssue(
+            long id,
+            String issueId,
+            long projectId,
+            String title,
+            User reporter,
+            User assignee,
+            User verifier
+    ) {
+        return Issue.fromPersistence(
+                Issue.persistedState(projectId, title, "Description " + id, reporter)
+                        .id(id)
+                        .issueId(issueId)
+                        .reportedDate(now)
+                        .priority(Priority.MAJOR)
+                        .status(IssueStatus.ASSIGNED)
+                        .assignee(assignee)
+                        .verifier(verifier)
                         .updatedAt(now));
     }
 

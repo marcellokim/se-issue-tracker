@@ -15,6 +15,10 @@ public final class StatisticsReport {
     private final List<MonthlyIssueCount> monthlyCounts;
     private final Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts;
     private final Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts;
+    private final List<DailyIssueCount> dailyStatusChangeCounts;
+    private final List<MonthlyIssueCount> monthlyStatusChangeCounts;
+    private final List<DailyIssueCount> dailyCommentCounts;
+    private final List<MonthlyIssueCount> monthlyCommentCounts;
 
     public static StatisticsReport create(
             Map<IssueStatus, Integer> statusCounts,
@@ -33,13 +37,42 @@ public final class StatisticsReport {
             Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts,
             Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts
     ) {
+        return create(
+                statusCounts,
+                priorityCounts,
+                dailyCounts,
+                monthlyCounts,
+                monthlyStatusCounts,
+                monthlyPriorityCounts,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+    }
+
+    public static StatisticsReport create(
+            Map<IssueStatus, Integer> statusCounts,
+            Map<Priority, Integer> priorityCounts,
+            List<DailyIssueCount> dailyCounts,
+            List<MonthlyIssueCount> monthlyCounts,
+            Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts,
+            Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts,
+            List<DailyIssueCount> dailyStatusChangeCounts,
+            List<MonthlyIssueCount> monthlyStatusChangeCounts,
+            List<DailyIssueCount> dailyCommentCounts,
+            List<MonthlyIssueCount> monthlyCommentCounts
+    ) {
         return new StatisticsReport(
                 statusCounts,
                 priorityCounts,
                 dailyCounts,
                 monthlyCounts,
                 monthlyStatusCounts,
-                monthlyPriorityCounts);
+                monthlyPriorityCounts,
+                dailyStatusChangeCounts,
+                monthlyStatusChangeCounts,
+                dailyCommentCounts,
+                monthlyCommentCounts);
     }
 
     private StatisticsReport(
@@ -48,7 +81,11 @@ public final class StatisticsReport {
             List<DailyIssueCount> dailyCounts,
             List<MonthlyIssueCount> monthlyCounts,
             Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts,
-            Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts
+            Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts,
+            List<DailyIssueCount> dailyStatusChangeCounts,
+            List<MonthlyIssueCount> monthlyStatusChangeCounts,
+            List<DailyIssueCount> dailyCommentCounts,
+            List<MonthlyIssueCount> monthlyCommentCounts
     ) {
         this.statusCounts = Map.copyOf(statusCounts);
         this.priorityCounts = Map.copyOf(priorityCounts);
@@ -56,6 +93,10 @@ public final class StatisticsReport {
         this.monthlyCounts = List.copyOf(monthlyCounts);
         this.monthlyStatusCounts = copyNestedCounts(monthlyStatusCounts);
         this.monthlyPriorityCounts = copyNestedCounts(monthlyPriorityCounts);
+        this.dailyStatusChangeCounts = List.copyOf(dailyStatusChangeCounts);
+        this.monthlyStatusChangeCounts = List.copyOf(monthlyStatusChangeCounts);
+        this.dailyCommentCounts = List.copyOf(dailyCommentCounts);
+        this.monthlyCommentCounts = List.copyOf(monthlyCommentCounts);
     }
 
     public Map<IssueStatus, Integer> statusCounts() {
@@ -82,6 +123,22 @@ public final class StatisticsReport {
         return monthlyPriorityCounts;
     }
 
+    public List<DailyIssueCount> dailyStatusChangeCounts() {
+        return dailyStatusChangeCounts;
+    }
+
+    public List<MonthlyIssueCount> monthlyStatusChangeCounts() {
+        return monthlyStatusChangeCounts;
+    }
+
+    public List<DailyIssueCount> dailyCommentCounts() {
+        return dailyCommentCounts;
+    }
+
+    public List<MonthlyIssueCount> monthlyCommentCounts() {
+        return monthlyCommentCounts;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -95,7 +152,11 @@ public final class StatisticsReport {
                 && Objects.equals(dailyCounts, that.dailyCounts)
                 && Objects.equals(monthlyCounts, that.monthlyCounts)
                 && Objects.equals(monthlyStatusCounts, that.monthlyStatusCounts)
-                && Objects.equals(monthlyPriorityCounts, that.monthlyPriorityCounts);
+                && Objects.equals(monthlyPriorityCounts, that.monthlyPriorityCounts)
+                && Objects.equals(dailyStatusChangeCounts, that.dailyStatusChangeCounts)
+                && Objects.equals(monthlyStatusChangeCounts, that.monthlyStatusChangeCounts)
+                && Objects.equals(dailyCommentCounts, that.dailyCommentCounts)
+                && Objects.equals(monthlyCommentCounts, that.monthlyCommentCounts);
     }
 
     @Override
@@ -106,7 +167,11 @@ public final class StatisticsReport {
                 dailyCounts,
                 monthlyCounts,
                 monthlyStatusCounts,
-                monthlyPriorityCounts);
+                monthlyPriorityCounts,
+                dailyStatusChangeCounts,
+                monthlyStatusChangeCounts,
+                dailyCommentCounts,
+                monthlyCommentCounts);
     }
 
     @Override
@@ -116,7 +181,11 @@ public final class StatisticsReport {
                 + ", dailyCounts=" + dailyCounts
                 + ", monthlyCounts=" + monthlyCounts
                 + ", monthlyStatusCounts=" + monthlyStatusCounts
-                + ", monthlyPriorityCounts=" + monthlyPriorityCounts + "]";
+                + ", monthlyPriorityCounts=" + monthlyPriorityCounts
+                + ", dailyStatusChangeCounts=" + dailyStatusChangeCounts
+                + ", monthlyStatusChangeCounts=" + monthlyStatusChangeCounts
+                + ", dailyCommentCounts=" + dailyCommentCounts
+                + ", monthlyCommentCounts=" + monthlyCommentCounts + "]";
     }
 
     private static <K> Map<YearMonth, Map<K, Integer>> copyNestedCounts(Map<YearMonth, Map<K, Integer>> counts) {
