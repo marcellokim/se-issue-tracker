@@ -5,9 +5,12 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
@@ -73,8 +76,13 @@ public final class IssueService {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanViewIssue(user);
         List<IssueDependency> dependencies = dependencyRepository.findByBlockedIssueId(issueId);
+        List<Long> blockingIds = dependencies.stream()
+                .map(dep -> dep.blockingIssueId())
+                .toList();
+        Map<Long, Issue> blockingIssues = issueRepository.findAllById(blockingIds).stream()
+                .collect(Collectors.toMap(Issue::id, Function.identity()));
         List<DependencyResult> depResults = dependencies.stream()
-                .map(dep -> toDependencyResult(dep, findIssue(dep.blockingIssueId()), issue))
+                .map(dep -> toDependencyResult(dep, blockingIssues.get(dep.blockingIssueId()), issue))
                 .toList();
         return toIssueDetailResult(issue, depResults, user);
     }

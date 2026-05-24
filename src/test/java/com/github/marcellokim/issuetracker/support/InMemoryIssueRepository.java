@@ -27,6 +27,17 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
+    public List<Issue> findAllById(List<Long> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) {
+            return List.of();
+        }
+        return issueIds.stream()
+                .map(issues::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+    }
+
+    @Override
     public List<Issue> findByProject(long projectId) {
         return issues.values().stream()
                 .filter(issue -> issue.projectId() == projectId)

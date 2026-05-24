@@ -55,6 +55,11 @@ final class JdbcIssueQueries {
             left join user_credentials resolver_credentials on resolver_credentials.login_id = resolver.login_id
             """;
     static final String FIND_BY_ID_SQL = BASE_SELECT + " where i.id = ?";
+
+    static String findAllByIdSql(int count) {
+        return BASE_SELECT + " where i.id in (" + "?,".repeat(Math.max(0, count - 1)) + "?)";
+    }
+
     static final String FIND_BY_PROJECT_SQL =
             BASE_SELECT + " where i.project_id = ? and i.status <> 'DELETED' order by i.id";
     static final String FIND_DELETED_BY_PROJECT_SQL =

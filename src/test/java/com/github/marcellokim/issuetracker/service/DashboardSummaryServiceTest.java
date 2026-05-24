@@ -154,6 +154,11 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return List.of();
+        }
+
+        @Override
         public List<Issue> findByProject(long projectId) {
             return activeIssues;
         }
