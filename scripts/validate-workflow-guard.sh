@@ -41,6 +41,67 @@ is_work_branch() {
     [[ "$branch" =~ ^(feat|fix|docs|test|ci|chore|refactor|feature)/[0-9]+-[A-Za-z0-9._-]+$ ]]
 }
 
+is_dependabot_actor() {
+    local policy_actor="$actor"
+    if [[ "$event_name" == "pull_request" || "$event_name" == "pull_request_target" ]]; then
+        policy_actor="${pr_author:-$actor}"
+    fi
+
+    [[ "$policy_actor" == "dependabot[bot]" ]]
+}
+
+is_dependabot_branch() {
+    local branch="$1"
+    [[ "$branch" == dependabot/* ]]
+}
+
+is_dependabot_dependency_file() {
+    case "$1" in
+        build.gradle|\
+        build.gradle.kts|\
+        settings.gradle|\
+        settings.gradle.kts|\
+        gradle.properties|\
+        gradle/libs.versions.toml|\
+        gradle/wrapper/gradle-wrapper.properties|\
+        gradle.lockfile|\
+        */gradle.lockfile|\
+        .github/workflows/*.yml|\
+        .github/workflows/*.yaml)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_dependabot_dependency_update_pr() {
+    local path changed_file_count=0
+
+    if [[ "$event_name" != "pull_request" && "$event_name" != "pull_request_target" ]]; then
+        return 1
+    fi
+
+    if [[ "$base_ref" != "dev" ]] || ! is_dependabot_actor || ! is_dependabot_branch "$head_ref"; then
+        return 1
+    fi
+
+    if [[ -z "$changed_files_path" || ! -f "$changed_files_path" ]]; then
+        return 1
+    fi
+
+    while IFS= read -r path; do
+        [[ -z "$path" ]] && continue
+        changed_file_count=$((changed_file_count + 1))
+        if ! is_dependabot_dependency_file "$path"; then
+            return 1
+        fi
+    done < "$changed_files_path"
+
+    [[ "$changed_file_count" -gt 0 ]]
+}
+
 is_guarded_file() {
     case "$1" in
         .github/workflows/*|\
@@ -108,6 +169,10 @@ check_guarded_file_changes() {
         return
     fi
 
+    if is_dependabot_dependency_update_pr; then
+        return
+    fi
+
     while IFS= read -r path; do
         if is_guarded_file "$path"; then
             fail "관리자 외에는 워크플로우/브랜치 보호 우회 지점을 수정할 수 없습니다: $path"
@@ -151,6 +216,10 @@ case "$event_name" in
         fi
 
         if ! is_work_branch "$head_ref"; then
+            if is_dependabot_dependency_update_pr; then
+                echo "[워크플로우-보호] Dependabot 의존성 업데이트 PR 허용: $head_ref"
+                exit 0
+            fi
             fail "작업 브랜치 형식은 feat|fix|docs|test|ci|chore|refactor/<issue>-<slug> 여야 합니다. 기존 feature/<issue>-<slug> 브랜치는 열린 PR 호환을 위해서만 허용합니다. slug에는 영문 대소문자, 숫자, '.', '_', '-'를 사용할 수 있습니다: ${head_ref:-unknown}"
         fi
 

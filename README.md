@@ -78,6 +78,14 @@ ls
 ./gradlew check
 ```
 
+Oracle DB까지 포함한 repository 통합 테스트는 Docker 기반 runbook을 따릅니다.
+
+```bash
+./gradlew oracleLocalTest --console=plain
+```
+
+세부 환경변수, 앱 DB 초기화, CI 자동 실행 계약은 [docs/local-oracle-testing.md](docs/local-oracle-testing.md)를 확인합니다.
+
 Windows에서 `python3` 대신 `python` 또는 `py`만 잡히는 경우에는 Gradle 속성으로 실행명을 지정합니다. shell 스크립트는 `python3`, `python`, `py` 순서로 자동 탐색하며, 필요하면 `PYTHON_EXECUTABLE=py`처럼 지정할 수 있습니다.
 
 ```bash
