@@ -8,6 +8,8 @@ import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -16,12 +18,21 @@ public final class IssueController {
 
     private final AuthenticationService authenticationService;
     private final IssueService issueService;
+    private final IssueWorkflowService issueWorkflowService;
 
     public IssueController(
             AuthenticationService authenticationService,
             IssueService issueService) {
+        this(authenticationService, issueService, null);
+    }
+
+    public IssueController(
+            AuthenticationService authenticationService,
+            IssueService issueService,
+            IssueWorkflowService issueWorkflowService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.issueService = Objects.requireNonNull(issueService, "issueService");
+        this.issueWorkflowService = issueWorkflowService;
     }
 
     public IssueResult registerIssue(long projectId, String title, String description, Priority priority) {
@@ -71,9 +82,32 @@ public final class IssueController {
         return CommentView.from(issueService.updateComment(issueId, commentId, content, user.getLoginId()));
     }
 
+    public IssueWorkflowActionView viewAvailableActions(long issueId) {
+        User user = requireCurrentUser();
+        return IssueWorkflowActionView.from(
+                requireIssueWorkflowService().viewAvailableActions(issueId, user.getLoginId()));
+    }
+
+    public boolean canUpdateComment(long issueId, long commentId) {
+        User user = requireCurrentUser();
+        return requireIssueWorkflowService().canUpdateComment(issueId, commentId, user.getLoginId());
+    }
+
+    public boolean canDeleteComment(long issueId, long commentId) {
+        User user = requireCurrentUser();
+        return requireIssueWorkflowService().canDeleteComment(issueId, commentId, user.getLoginId());
+    }
+
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));
+    }
+
+    private IssueWorkflowService requireIssueWorkflowService() {
+        if (issueWorkflowService == null) {
+            throw new IllegalStateException("Issue workflow service is not configured.");
+        }
+        return issueWorkflowService;
     }
 
     public record CommentView(
@@ -93,6 +127,46 @@ public final class IssueController {
                     result.writerLoginId(),
                     result.createdDate(),
                     result.updatedDate());
+        }
+    }
+
+    public record IssueWorkflowActionView(
+            boolean canUpdateIssue,
+            boolean canChangePriority,
+            boolean canStartAssignment,
+            boolean canAssign,
+            boolean canReassign,
+            boolean canChangeVerifier,
+            boolean canMarkFixed,
+            boolean canRejectFix,
+            boolean canResolve,
+            boolean canClose,
+            boolean canReopen,
+            boolean canAddDependency,
+            boolean canRemoveDependency,
+            boolean canAddComment,
+            boolean canSoftDelete,
+            boolean canViewStatistics
+    ) {
+
+        private static IssueWorkflowActionView from(IssueWorkflowActions actions) {
+            return new IssueWorkflowActionView(
+                    actions.canUpdateIssue(),
+                    actions.canChangePriority(),
+                    actions.canStartAssignment(),
+                    actions.canAssign(),
+                    actions.canReassign(),
+                    actions.canChangeVerifier(),
+                    actions.canMarkFixed(),
+                    actions.canRejectFix(),
+                    actions.canResolve(),
+                    actions.canClose(),
+                    actions.canReopen(),
+                    actions.canAddDependency(),
+                    actions.canRemoveDependency(),
+                    actions.canAddComment(),
+                    actions.canSoftDelete(),
+                    actions.canViewStatistics());
         }
     }
 }

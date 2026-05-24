@@ -151,7 +151,7 @@ class IssueServiceTest {
         var issue = persistedIssue();
         var service = service(new InMemoryIssueRepository(issue));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(SecurityException.class,
                 () -> service.updateIssue(ISSUE_ID, "Updated title", "Updated description", tester.getLoginId()));
     }
 
@@ -545,7 +545,7 @@ class IssueServiceTest {
         var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
         var service = service(new InMemoryIssueRepository(issue), comments);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(SecurityException.class,
                 () -> service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId()));
         assertNotNull(comments.findById(COMMENT_ID).orElseThrow());
     }

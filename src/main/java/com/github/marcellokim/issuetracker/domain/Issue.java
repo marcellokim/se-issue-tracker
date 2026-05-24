@@ -298,6 +298,7 @@ public class Issue {
 
         setResolver(resolver);
         changeStatusTo(IssueStatus.RESOLVED, requiredComment, resolver, changedDate);
+        clearActiveAssignment();
     }
 
     public void close(User changedBy, String comment, LocalDateTime changedDate) {

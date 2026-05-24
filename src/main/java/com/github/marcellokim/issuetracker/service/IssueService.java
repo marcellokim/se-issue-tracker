@@ -2,7 +2,6 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
-import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
@@ -43,8 +42,7 @@ public final class IssueService {
             IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock
-    ) {
+            Clock clock) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
@@ -55,7 +53,8 @@ public final class IssueService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public IssueResult registerIssue(long projectId, String title, String description, Priority priority, String currentUserId) {
+    public IssueResult registerIssue(long projectId, String title, String description, Priority priority,
+            String currentUserId) {
         Project project = findProject(projectId);
         User reporter = findUser(currentUserId);
         permissionPolicy.assertCanRegisterIssue(reporter, project);
@@ -67,8 +66,7 @@ public final class IssueService {
                 Issue.persistedState(project.getId(), title, description, reporter)
                         .priority(priority != null ? priority : Priority.MAJOR)
                         .reportedDate(now)
-                        .updatedAt(now)
-        );
+                        .updatedAt(now));
         Issue saved = issueRepository.save(issue);
         return toIssueResult(saved);
     }
@@ -76,7 +74,7 @@ public final class IssueService {
     public IssueResult updateIssue(long issueId, String title, String description, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
-        permissionPolicy.assertCanAddComment(actor, issue);
+        permissionPolicy.assertCanUpdateIssue(actor, issue);
         issue.updateTitleAndDescription(title, description, actor, now());
         Issue saved = issueRepository.save(issue);
         return toIssueResult(saved);
@@ -140,8 +138,7 @@ public final class IssueService {
         Comment comment = findComment(commentId);
         User currentUser = findUser(currentUserId);
         requireCommentBelongsToIssue(comment, issue);
-        requireCommentWriter(comment, currentUser);
-        requireGeneralComment(comment);
+        permissionPolicy.assertCanDeleteComment(currentUser, comment);
 
         issue.recordCommentDeletion(comment, currentUser, now());
         issueRepository.save(issue);
@@ -153,7 +150,7 @@ public final class IssueService {
         Comment comment = findComment(commentId);
         User currentUser = findUser(currentUserId);
         requireCommentBelongsToIssue(comment, issue);
-        requireCommentWriter(comment, currentUser);
+        permissionPolicy.assertCanUpdateComment(currentUser, comment);
 
         String previousContent = comment.content();
         LocalDateTime changedAt = now();
@@ -228,18 +225,6 @@ public final class IssueService {
         }
     }
 
-    private static void requireCommentWriter(Comment comment, User currentUser) {
-        if (!comment.writerId().equals(currentUser.getLoginId())) {
-            throw new SecurityException("Only the comment writer can delete the comment.");
-        }
-    }
-
-    private static void requireGeneralComment(Comment comment) {
-        if (comment.purpose() != CommentPurpose.GENERAL) {
-            throw new IllegalArgumentException("Only GENERAL comments can be deleted.");
-        }
-    }
-
     private LocalDateTime now() {
         return clock.now();
     }
@@ -251,8 +236,7 @@ public final class IssueService {
                 issue.priority(),
                 issue.title(),
                 issue.description(),
-                issue.getReporter()
-        );
+                issue.getReporter());
     }
 
     private static CommentResult toCommentResult(Comment comment) {
@@ -263,8 +247,7 @@ public final class IssueService {
                 comment.writerId(),
                 comment.getWriter(),
                 comment.getCreatedDate(),
-                comment.getUpdatedDate()
-        );
+                comment.getUpdatedDate());
     }
 
     private static DependencyResult toDependencyResult(IssueDependency dep, Issue blockingIssue, Issue blockedIssue) {
@@ -273,7 +256,6 @@ public final class IssueService {
                 dep.getDependencyId(),
                 blockingIssue.getIssueId(),
                 blockedIssue.getIssueId(),
-                dep.getDiscoveredDate()
-        );
+                dep.getDiscoveredDate());
     }
 }

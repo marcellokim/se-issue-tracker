@@ -154,6 +154,51 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("RESOLVED seed issues clear active assignee and verifier")
+    void resolvedSeedIssuesClearActiveAssigneeAndVerifier() {
+        var project1 = repositories.projects().findByName("project1").orElseThrow();
+        var project2 = repositories.projects().findByName("project2").orElseThrow();
+
+        List<Issue> resolvedIssues = List.of(
+                findIssueByTitle(project1.getId(), "Search result filter returns stale status"),
+                findIssueByTitle(project1.getId(), "Verification rejection returns to assignee"),
+                findIssueByTitle(project2.getId(), "Reopened issue keeps old assignee"));
+
+        for (Issue issue : resolvedIssues) {
+            assertEquals(IssueStatus.RESOLVED, issue.status());
+            assertNull(issue.assigneeId());
+            assertNull(issue.verifierId());
+            assertNotNull(issue.fixerId());
+            assertNotNull(issue.resolverId());
+        }
+    }
+
+    @Test
+    @DisplayName("seed covers FIXED and DELETED issue states")
+    void seedCoversFixedAndDeletedIssueStates() {
+        var project1 = repositories.projects().findByName("project1").orElseThrow();
+        var project2 = repositories.projects().findByName("project2").orElseThrow();
+
+        Issue fixedIssue = findIssueByTitle(project2.getId(), "Report export fails after generation");
+        Issue deletedFromNew = findIssueByTitleIncludingDeleted(project1.getId(), "Duplicate mobile login report");
+        Issue deletedFromClosed = findIssueByTitleIncludingDeleted(project2.getId(), "Retired browser support checklist");
+
+        assertEquals(IssueStatus.FIXED, fixedIssue.status());
+        assertNotNull(fixedIssue.assigneeId());
+        assertNotNull(fixedIssue.verifierId());
+        assertNotNull(fixedIssue.fixerId());
+        assertNull(fixedIssue.resolverId());
+
+        assertEquals(IssueStatus.DELETED, deletedFromNew.status());
+        assertEquals("NEW", latestDeleteHistory(deletedFromNew).previousValue());
+
+        assertEquals(IssueStatus.DELETED, deletedFromClosed.status());
+        assertEquals("CLOSED", latestDeleteHistory(deletedFromClosed).previousValue());
+        assertNotNull(deletedFromClosed.fixerId());
+        assertNotNull(deletedFromClosed.resolverId());
+    }
+
+    @Test
     @DisplayName("RESOLVED to REOPENED seed history is changed by PL")
     void reopenSeedHistoryIsChangedByPl() {
         var project = repositories.projects().findByName("project2").orElseThrow();
@@ -180,6 +225,9 @@ class OracleRepositoryIntegrationTest {
                 "ASSIGNED");
         assertStatusTransition("project2", "Reopened issue keeps old assignee", "pl2", "RESOLVED", "REOPENED");
         assertStatusTransition("project2", "Dashboard statistics misses closed issues", "pl2", "CLOSED", "REOPENED");
+        assertStatusTransition("project2", "Report export fails after generation", "dev4", "ASSIGNED", "FIXED");
+        assertStatusTransition("project1", "Duplicate mobile login report", "pl1", "NEW", "DELETED");
+        assertStatusTransition("project2", "Retired browser support checklist", "pl2", "CLOSED", "DELETED");
     }
 
     @Test
@@ -801,6 +849,18 @@ class OracleRepositoryIntegrationTest {
         return repositories.issues().findByCriteria(IssueSearchCriteria.create(
                 projectId, null, null, null, null, null, title, null, null, true)).stream()
                 .filter(issue -> issue.title().equals(title))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static Issue findIssueByTitleIncludingDeleted(long projectId, String title) {
+        return findIssueByTitle(projectId, title);
+    }
+
+    private static IssueHistory latestDeleteHistory(Issue issue) {
+        return repositories.issueHistory().findByIssueId(issue.id()).stream()
+                .filter(history -> history.actionType() == ActionType.STATUS_CHANGED)
+                .filter(history -> IssueStatus.DELETED.name().equals(history.newValue()))
                 .findFirst()
                 .orElseThrow();
     }

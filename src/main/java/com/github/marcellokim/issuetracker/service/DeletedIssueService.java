@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
@@ -37,6 +38,7 @@ public final class DeletedIssueService {
     public Issue deleteIssue(long issueId, String comment, User actor) {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(actor, issue);
+        permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED);
         requireProjectLead(actor, issue.projectId());
 
         Issue deletedIssue = issueRepository.softDelete(issueId, actor.getLoginId(), comment, clock.now());

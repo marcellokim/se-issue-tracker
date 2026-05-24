@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -46,7 +47,12 @@ class IssueFixResolveTest {
 
                 issue.resolve(verifier, "Verified", resolvedAt);
 
+                assertSame(assignee, issue.getFixer());
                 assertSame(verifier, issue.getResolver());
+                assertNull(issue.getAssignee());
+                assertNull(issue.getVerifier());
+                assertNull(issue.assigneeId());
+                assertNull(issue.verifierId());
                 assertEquals(IssueStatus.RESOLVED, issue.getStatus());
                 var history = issue.getHistories().getLast();
                 assertEquals(ActionType.STATUS_CHANGED, history.getAction());
