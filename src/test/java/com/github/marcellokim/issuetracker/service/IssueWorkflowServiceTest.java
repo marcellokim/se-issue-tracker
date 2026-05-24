@@ -163,6 +163,31 @@ class IssueWorkflowServiceTest {
         assertTrue(actions.canAddComment());
     }
 
+    @Test
+    @DisplayName("mark fixed action is disabled after issue is already fixed")
+    void markFixedActionDisablesAfterIssueIsFixed() {
+        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(CREATED_AT)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.FIXED)
+                .assignee(assignee)
+                .verifier(verifier)
+                .fixer(assignee)
+                .updatedAt(CREATED_AT));
+        var service = workflowService(
+                new InMemoryIssueRepository(issue),
+                new InMemoryUserRepository(reporter, assignee, verifier, pl)
+                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
+                                verifier.getLoginId(), pl.getLoginId()));
+
+        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, assignee.getLoginId());
+
+        assertFalse(actions.canMarkFixed());
+        assertFalse(actions.canResolve());
+    }
+
     private IssueWorkflowService workflowService(
             InMemoryIssueRepository issueRepository,
             InMemoryUserRepository userRepository

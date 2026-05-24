@@ -79,6 +79,8 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
         AccountService accountService = new AccountService(
                 permissionPolicy,
                 users,
+                projects,
+                issues,
                 new PasswordHasher(),
                 clock);
         IssueService issueService = new IssueService(

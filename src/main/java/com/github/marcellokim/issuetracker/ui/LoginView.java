@@ -27,14 +27,13 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 public final class LoginView {
 
-    private static final String LOGIN_FAILURE_MESSAGE = "\uC798\uBABB\uB41C \uB85C\uADF8\uC778 ID, \uBE44\uBC00\uBC88\uD638 \uC785\uB2C8\uB2E4.";
-    private static final String INACTIVE_ACCOUNT_MESSAGE = "\uD604\uC7AC \uADC0\uD558\uC758 \uACC4\uC815\uC774 \uBE44\uD65C\uC131\uD654 "
-            + "\uC0C1\uD0DC\uC785\uB2C8\uB2E4. admin\uC5D0\uAC8C \uBB38\uC758 "
-            + "\uBC14\uB78D\uB2C8\uB2E4.";
+    private static final String LOGIN_FAILURE_MESSAGE = "INCORRECT LOGIN ID OR PASSWORD";
+    private static final String INACTIVE_ACCOUNT_MESSAGE = "THE ACCOUNT YOU ENTERED IS NOW INACTIVE ACCOUNT";
 
     private final Label statusLabel = new Label();
     private final Label resultLabel = new Label();
@@ -42,6 +41,7 @@ public final class LoginView {
     private final PasswordField passwordField = new PasswordField();
     private final Button loginButton = new Button("Login");
     private final Button logoutButton = new Button("Logout");
+    private final Label currentUserLabel = new Label();
     private final BorderPane root = new BorderPane();
     private final GridPane loginForm = loginForm();
 
@@ -145,6 +145,9 @@ public final class LoginView {
         dashboardMessage = "";
         issueDetailMessage = "";
         projectDetailMessage = "";
+        currentUserLabel.setText("");
+        logoutButton.setVisible(false);
+        logoutButton.setManaged(false);
         loginIdField.clear();
         passwordField.clear();
         resultLabel.setText("");
@@ -168,7 +171,10 @@ public final class LoginView {
         loginIdField.setPromptText("LOGIN_ID");
         passwordField.setPromptText("password");
         loginButton.setDefaultButton(true);
+        logoutButton.setVisible(false);
+        logoutButton.setManaged(false);
         resultLabel.setMinHeight(26);
+        currentUserLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;");
     }
 
     private void configureLayout() {
@@ -178,13 +184,20 @@ public final class LoginView {
         root.setCenter(loginForm);
     }
 
-    private VBox header() {
+    private HBox header() {
         Label title = new Label("Issue Tracker");
         title.setStyle("-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;");
         statusLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: #4b5563;");
-        VBox box = new VBox(6, title, statusLabel);
-        box.setPadding(new Insets(0, 0, 18, 0));
-        return box;
+        VBox titleBox = new VBox(6, title, statusLabel);
+        HBox.setHgrow(titleBox, Priority.ALWAYS);
+
+        HBox userBox = new HBox(12, currentUserLabel, logoutButton);
+        userBox.setAlignment(Pos.CENTER_RIGHT);
+
+        HBox header = new HBox(18, titleBox, userBox);
+        header.setAlignment(Pos.TOP_LEFT);
+        header.setPadding(new Insets(0, 0, 18, 0));
+        return header;
     }
 
     private GridPane loginForm() {
@@ -240,15 +253,12 @@ public final class LoginView {
     }
 
     private VBox dashboardView() {
-        Label userInfoLabel = new Label("Login: %s / %s / %s".formatted(
+        currentUserLabel.setText("Login: %s / %s / %s".formatted(
                 currentUser.getLoginId(),
                 currentUser.getName(),
                 currentUser.getRole()));
-        userInfoLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #111827;");
-
-        HBox userBar = new HBox(16, userInfoLabel, logoutButton);
-        userBar.setAlignment(Pos.CENTER_LEFT);
-        userBar.setPadding(new Insets(0, 0, 4, 0));
+        logoutButton.setVisible(true);
+        logoutButton.setManaged(true);
 
         Node accountManagement = null;
         adminDashboardView = null;
@@ -261,6 +271,7 @@ public final class LoginView {
                 currentUser,
                 projectController,
                 issueController,
+                deletedIssueController,
                 statisticsController,
                 this::selectIssue,
                 this::selectProject,
@@ -269,7 +280,6 @@ public final class LoginView {
 
         VBox box = new VBox(
                 14,
-                userBar,
                 boardView.dashboard(currentIssues, currentProjects, currentUsers, this::selectAccount,
                         accountManagement),
                 messageLabel(dashboardMessage));
@@ -342,6 +352,7 @@ public final class LoginView {
                 currentUser,
                 projectController,
                 issueController,
+                deletedIssueController,
                 statisticsController,
                 this::selectIssue,
                 this::selectProject,

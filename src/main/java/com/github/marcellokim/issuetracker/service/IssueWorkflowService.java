@@ -52,7 +52,9 @@ public final class IssueWorkflowService {
                 canManageAssignment && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED),
                 canManageAssignment && issue.status() == IssueStatus.ASSIGNED,
                 canManageAssignment && issue.status() == IssueStatus.FIXED,
-                projectMember && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.FIXED),
+                issue.status() == IssueStatus.ASSIGNED
+                        && projectMember
+                        && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.FIXED),
                 issue.status() == IssueStatus.FIXED
                         && projectMember
                         && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.ASSIGNED),

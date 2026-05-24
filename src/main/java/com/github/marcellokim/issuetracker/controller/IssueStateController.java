@@ -14,8 +14,7 @@ public final class IssueStateController {
 
     public IssueStateController(
             AuthenticationService authenticationService,
-            IssueStateService issueStateService
-    ) {
+            IssueStateService issueStateService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.issueStateService = Objects.requireNonNull(issueStateService, "issueStateService");
     }

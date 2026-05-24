@@ -44,9 +44,6 @@ public final class IssueDetailView {
     private final ComboBox<Priority> priorityBox = new ComboBox<>();
     private final TextField assigneeLoginIdField = field("assignee DEV loginId");
     private final TextField verifierLoginIdField = field("verifier TESTER loginId");
-    private final TextField blockingIssueIdField = field("blocking issue id");
-    private final TextField blockedIssueIdField = field("blocked issue id");
-    private final TextField dependencyIdField = field("dependency id");
     private final TextArea reasonArea = area("status/delete reason");
     private final TextArea newCommentArea = area("general comment content");
     private final TextArea outputArea = area("");
@@ -84,8 +81,6 @@ public final class IssueDetailView {
         priorityBox.setValue(issue.priority());
         assigneeLoginIdField.setText(valueOrBlank(issue.assigneeId()));
         verifierLoginIdField.setText(valueOrBlank(issue.verifierId()));
-        blockingIssueIdField.setText("");
-        blockedIssueIdField.setText(String.valueOf(issue.id()));
         outputArea.setEditable(false);
         outputArea.setPrefRowCount(4);
         outputArea.setText(valueOrBlank(initialMessage));
@@ -102,7 +97,6 @@ public final class IssueDetailView {
                 editIssuePanel(),
                 assignmentPanel(),
                 statusTransitionPanel(),
-                dependencyPanel(),
                 commentsList(),
                 addCommentPanel(),
                 deletePanel(),
@@ -213,28 +207,10 @@ public final class IssueDetailView {
                                 () -> changeStatus(IssueStatus.CLOSED), true),
                         actionButton("RESOLVED/CLOSED -> REOPENED", actions.canReopen(),
                                 () -> changeStatus(IssueStatus.REOPENED), true)));
-        return panel;
-    }
-
-    private VBox dependencyPanel() {
-        VBox panel = borderedPanel("Dependency");
-        panel.getChildren().addAll(
-                fieldsGrid(
-                        "Blocking Issue ID", blockingIssueIdField,
-                        "Blocked Issue ID", blockedIssueIdField,
-                        "Dependency ID", dependencyIdField),
-                actionRow(
-                        actionButton("Add Dependency", actions.canAddDependency(), () -> {
-                            var result = issueController.addDependency(
-                                    requiredLong(blockingIssueIdField, "blockingIssueId"),
-                                    requiredLong(blockedIssueIdField, "blockedIssueId"));
-                            dependencyIdField.setText(result.dependencyId());
-                            return "Dependency added: " + result.dependencyId();
-                        }, true),
-                        actionButton("Remove Dependency", actions.canRemoveDependency(), () -> {
-                            issueController.removeDependency(requiredText(dependencyIdField, "dependencyId"));
-                            return "Dependency removed.";
-                        }, true)));
+        if (issue.status() == IssueStatus.FIXED && !actions.canResolve()) {
+            panel.getChildren().add(emptyLabel(
+                    "FIXED -> RESOLVED is unavailable until verifier permission and blocking dependencies allow it."));
+        }
         return panel;
     }
 
@@ -430,14 +406,6 @@ public final class IssueDetailView {
         Label label = new Label(text);
         label.setStyle("-fx-font-size: 18px; -fx-text-fill: #6b7280;");
         return label;
-    }
-
-    private static long requiredLong(TextField field, String fieldName) {
-        try {
-            return Long.parseLong(requiredText(field, fieldName));
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(fieldName + " must be a number");
-        }
     }
 
     private static String requiredText(TextInputControl field, String fieldName) {

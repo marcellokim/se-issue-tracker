@@ -27,16 +27,16 @@ public final class AdminDashboardView {
     private final TextField createNameField = field("new account name");
     private final PasswordField createPasswordField = new PasswordField();
     private final ComboBox<Role> createRoleBox = roleBox();
-    private final TextField updateLoginIdField = field("account loginId");
-    private final TextField updateNameField = field("updated account name");
-    private final ComboBox<Role> updateRoleBox = roleBox();
+    private final TextField renameLoginIdField = field("account loginId");
+    private final TextField renameNameField = field("updated account name");
+    private final TextField roleLoginIdField = field("account loginId");
+    private final ComboBox<Role> roleUpdateBox = roleBox();
     private final TextField activationLoginIdField = field("account loginId");
     private final VBox root = new VBox(12);
 
     public AdminDashboardView(
             AccountController accountController,
-            Consumer<String> onAccountChanged
-    ) {
+            Consumer<String> onAccountChanged) {
         this.accountController = Objects.requireNonNull(accountController, "accountController");
         this.onAccountChanged = Objects.requireNonNull(onAccountChanged, "onAccountChanged");
         configure();
@@ -48,10 +48,11 @@ public final class AdminDashboardView {
 
     public void selectAccount(User account) {
         Objects.requireNonNull(account, "account");
-        updateLoginIdField.setText(account.getLoginId());
-        updateNameField.setText(account.getName());
+        renameLoginIdField.setText(account.getLoginId());
+        renameNameField.setText(account.getName());
+        roleLoginIdField.setText(account.getLoginId());
         if (account.getRole() != Role.ADMIN) {
-            updateRoleBox.setValue(account.getRole());
+            roleUpdateBox.setValue(account.getRole());
         }
         activationLoginIdField.setText(account.getLoginId());
     }
@@ -78,18 +79,28 @@ public final class AdminDashboardView {
                     return "Account created: " + formatAccount(user);
                 })));
 
-        VBox updatePanel = panel("Update Account");
-        updatePanel.getChildren().addAll(
+        VBox renamePanel = panel("Rename Account");
+        renamePanel.getChildren().addAll(
                 fieldsGrid(
-                        "Login ID", updateLoginIdField,
-                        "Name", updateNameField,
-                        "Role", updateRoleBox),
-                actionRow(button("Update Account", () -> {
-                    User user = accountController.updateAccount(
-                            requiredText(updateLoginIdField, "loginId"),
-                            requiredText(updateNameField, "name"),
-                            updateRoleBox.getValue());
-                    return "Account updated: " + formatAccount(user);
+                        "Login ID", renameLoginIdField,
+                        "Name", renameNameField),
+                actionRow(button("Rename Account", () -> {
+                    User user = accountController.renameAccount(
+                            requiredText(renameLoginIdField, "loginId"),
+                            requiredText(renameNameField, "name"));
+                    return "Account renamed: " + formatAccount(user);
+                })));
+
+        VBox rolePanel = panel("Change Role");
+        rolePanel.getChildren().addAll(
+                fieldsGrid(
+                        "Login ID", roleLoginIdField,
+                        "Role", roleUpdateBox),
+                actionRow(button("Change Role", () -> {
+                    User user = accountController.changeAccountRole(
+                            requiredText(roleLoginIdField, "loginId"),
+                            roleUpdateBox.getValue());
+                    return "Account role changed: " + formatAccount(user);
                 })));
 
         VBox activationPanel = panel("Activation");
@@ -109,7 +120,7 @@ public final class AdminDashboardView {
 
         root.getChildren().addAll(
                 sectionLabel("Account Management"),
-                new HBox(12, createPanel, updatePanel, activationPanel));
+                new HBox(12, createPanel, renamePanel, rolePanel, activationPanel));
     }
 
     private Button button(String text, Supplier<String> action) {

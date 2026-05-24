@@ -28,6 +28,16 @@ public final class AccountController {
         return accountService.updateAccount(loginId, name, role, user.getLoginId());
     }
 
+    public User renameAccount(String loginId, String name) {
+        User user = requireCurrentUser();
+        return accountService.renameAccount(loginId, name, user.getLoginId());
+    }
+
+    public User changeAccountRole(String loginId, Role role) {
+        User user = requireCurrentUser();
+        return accountService.changeAccountRole(loginId, role, user.getLoginId());
+    }
+
     public User activateAccount(String loginId) {
         User user = requireCurrentUser();
         return accountService.activateAccount(loginId, user.getLoginId());

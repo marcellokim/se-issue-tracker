@@ -16,7 +16,7 @@ public final class IssueTrackerApplication extends Application {
         LoginView loginView = new LoginView();
         initializeLoginFlow(loginView);
 
-        Scene scene = new Scene(loginView.root(), 1240, 1040);
+        Scene scene = new Scene(loginView.root(), 1320, 820);
         stage.setTitle("ITS Login");
         stage.setScene(scene);
         stage.show();
