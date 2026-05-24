@@ -360,6 +360,26 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("detail includes dependency with blocking issue key")
+    void viewIssueDetailIncludesDependencyWithBlockingIssueKey() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps);
+
+        service.addDependency(1L, 2L, pl.getLoginId());
+
+        IssueDetailResult result = service.viewIssueDetail(2L, dev.getLoginId());
+
+        assertEquals(1, result.dependencies().size());
+        DependencyResult dep = result.dependencies().get(0);
+        assertEquals(1L, dep.blockingIssueId());
+        assertEquals("ISSUE-1", dep.blockingIssueKey());
+        assertEquals(2L, dep.blockedIssueId());
+        assertEquals("ISSUE-2", dep.blockedIssueKey());
+    }
+
+    @Test
     @DisplayName("detail rejects nonexistent issue")
     void viewIssueDetailRejectsUnknownIssue() {
         var service = service(new InMemoryIssueRepository());

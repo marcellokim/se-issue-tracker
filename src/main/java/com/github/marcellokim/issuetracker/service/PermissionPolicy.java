@@ -115,6 +115,10 @@ public final class PermissionPolicy {
         }
     }
 
+    public void assertCanViewIssue(User user) {
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view issues.");
+    }
+
     public void assertCanViewStatistics(User user, Object filters) {
         if (!verifyPermission(user, VIEW_STATISTICS, filters)) {
             throw new SecurityException("Only active PL, DEV, or TESTER users can view statistics.");
