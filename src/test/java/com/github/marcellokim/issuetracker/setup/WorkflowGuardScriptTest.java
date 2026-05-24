@@ -94,6 +94,57 @@ class WorkflowGuardScriptTest {
         assertAllowed(pullRequest("dev", "feature/12-issue-search-ui", "teammate"));
     }
 
+    @Test
+    @DisplayName("Dependabot Gradle 의존성 업데이트 PR을 허용한다")
+    void allowsDependabotGradleDependencyPullRequestToDev() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-dependabot", ".txt");
+        Files.writeString(changedFiles, "build.gradle\n");
+
+        Map<String, String> environment = pullRequest(
+                "dev",
+                "dependabot/gradle/dev/org.junit-junit-bom-6.1.0",
+                "dependabot[bot]");
+        environment.put("GITHUB_EVENT_NAME", "pull_request_target");
+        environment.put("PR_AUTHOR", "dependabot[bot]");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertAllowed(environment);
+    }
+
+    @Test
+    @DisplayName("Dependabot GitHub Actions 업데이트 PR은 워크플로우 파일 변경을 허용한다")
+    void allowsDependabotGithubActionsPullRequestToDev() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-dependabot", ".txt");
+        Files.writeString(changedFiles, ".github/workflows/gradle.yml\n");
+
+        Map<String, String> environment = pullRequest(
+                "dev",
+                "dependabot/github_actions/dev/actions-checkout-6",
+                "dependabot[bot]");
+        environment.put("GITHUB_EVENT_NAME", "pull_request_target");
+        environment.put("PR_AUTHOR", "dependabot[bot]");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertAllowed(environment);
+    }
+
+    @Test
+    @DisplayName("Dependabot 브랜치라도 의존성 업데이트 파일이 아니면 차단한다")
+    void blocksDependabotBranchWhenUnexpectedFilesChange() throws IOException, InterruptedException {
+        Path changedFiles = Files.createTempFile("workflow-guard-dependabot", ".txt");
+        Files.writeString(changedFiles, "src/main/java/com/github/marcellokim/issuetracker/Main.java\n");
+
+        Map<String, String> environment = pullRequest(
+                "dev",
+                "dependabot/gradle/dev/org.junit-junit-bom-6.1.0",
+                "dependabot[bot]");
+        environment.put("GITHUB_EVENT_NAME", "pull_request_target");
+        environment.put("PR_AUTHOR", "dependabot[bot]");
+        environment.put("CHANGED_FILES_PATH", changedFiles.toString());
+
+        assertBlocked(environment);
+    }
+
     private void assertAllowed(Map<String, String> environment) throws IOException, InterruptedException {
         var result = runGuard(environment);
 
