@@ -161,6 +161,28 @@ class DriverManagerConnectionProviderTest {
     }
 
     @Test
+    @DisplayName("retries transient Oracle listener messages case-insensitively")
+    void retriesTransientOracleListenerMessagesCaseInsensitively() throws SQLException {
+        AtomicInteger attempts = new AtomicInteger();
+        Connection expectedConnection = connectionProxy();
+        DriverManagerConnectionProvider provider = new DriverManagerConnectionProvider(
+                "jdbc:oracle:thin:@//localhost:1521/FREEPDB1",
+                "ITS_TEST_USER",
+                "secret",
+                1,
+                0,
+                (url, user, password) -> {
+                    if (attempts.incrementAndGet() == 1) {
+                        throw new SQLException("ora-12514: listener does not currently know of service requested");
+                    }
+                    return expectedConnection;
+                });
+
+        assertSame(expectedConnection, provider.getConnection());
+        assertEquals(2, attempts.get());
+    }
+
+    @Test
     @DisplayName("walks exception causes to find retryable Oracle listener errors")
     void walksExceptionCausesToFindRetryableOracleListenerErrors() throws SQLException {
         AtomicInteger attempts = new AtomicInteger();

@@ -81,6 +81,13 @@ function Invoke-SystemSqlPlus {
     $SqlText | & docker exec -i $Container timeout "${SqlTimeoutSeconds}s" sqlplus -s /nolog
 }
 
+function Get-SystemConnectSql {
+@"
+set define off
+connect system/"$SysPassword"@//localhost:1521/$Pdb
+"@
+}
+
 function Start-OracleLocal {
     Require-Docker
     Write-Host "[시작] 로컬 Oracle 컨테이너를 기동합니다: $Container"
@@ -102,14 +109,14 @@ function Wait-OracleLocal {
             Write-Error "[오류] Oracle 준비 대기 시간이 초과되었습니다.`n로그 확인: ./scripts/oracle-local.ps1 logs"
         }
 
-        $logs = & docker logs $Container 2>&1
+        $logs = & docker logs --tail 100 $Container 2>&1
         if ($logs -match "DATABASE IS READY TO USE") {
             $logReady = $true
         }
 
         if ($logReady) {
             $sql = @"
-connect system/$SysPassword@//localhost:1521/$Pdb
+$(Get-SystemConnectSql)
 set heading off feedback off pagesize 0 verify off
 select 1 from dual;
 exit
@@ -139,7 +146,7 @@ function Invoke-Bootstrap {
     }
 
     $sql = @"
-connect system/$SysPassword@//localhost:1521/$Pdb
+$(Get-SystemConnectSql)
 @/tmp/bootstrap.sql "$AppUser" "$AppPassword" "$TestUser" "$TestPassword"
 "@
     Invoke-SystemSqlPlus -SqlText $sql

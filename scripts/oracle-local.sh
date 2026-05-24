@@ -74,6 +74,12 @@ sqlplus_system() {
     docker exec -i "$ORACLE_LOCAL_CONTAINER" timeout "${ORACLE_LOCAL_SQL_TIMEOUT}s" sqlplus -s /nolog
 }
 
+system_connect_sql() {
+    printf 'set define off\nconnect system/"%s"@//localhost:1521/%s\n' \
+        "$ORACLE_LOCAL_SYS_PASSWORD" \
+        "$ORACLE_LOCAL_PDB"
+}
+
 wait_for_ready() {
     require_docker
     echo "[대기] Oracle 준비 상태를 확인합니다. 제한 시간: ${ORACLE_LOCAL_TIMEOUT}초"
@@ -92,12 +98,12 @@ wait_for_ready() {
             exit 1
         fi
 
-        if [[ "$(docker logs "$ORACLE_LOCAL_CONTAINER" 2>&1)" == *"DATABASE IS READY TO USE"* ]]; then
+        if [[ "$(docker logs --tail 100 "$ORACLE_LOCAL_CONTAINER" 2>&1)" == *"DATABASE IS READY TO USE"* ]]; then
             log_ready=1
         fi
 
         if [[ "$log_ready" -eq 1 ]] && {
-            printf 'connect system/%s@//localhost:1521/%s\n' "$ORACLE_LOCAL_SYS_PASSWORD" "$ORACLE_LOCAL_PDB"
+            system_connect_sql
             printf '%s\n' \
                 "set heading off feedback off pagesize 0 verify off" \
                 "select 1 from dual;" \
@@ -121,7 +127,7 @@ bootstrap() {
     echo "[초기화] 애플리케이션/테스트 계정을 준비합니다."
     docker cp "$BOOTSTRAP_SQL" "$ORACLE_LOCAL_CONTAINER:/tmp/bootstrap.sql"
     {
-        printf 'connect system/%s@//localhost:1521/%s\n' "$ORACLE_LOCAL_SYS_PASSWORD" "$ORACLE_LOCAL_PDB"
+        system_connect_sql
         printf '@/tmp/bootstrap.sql "%s" "%s" "%s" "%s"\n' \
             "$ORACLE_LOCAL_APP_USER" \
             "$ORACLE_LOCAL_APP_PASSWORD" \

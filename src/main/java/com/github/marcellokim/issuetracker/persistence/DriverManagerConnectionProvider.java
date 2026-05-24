@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -167,7 +168,8 @@ public final class DriverManagerConnectionProvider implements DatabaseConnection
             return true;
         }
         String message = exception.getMessage();
-        return message != null && RETRYABLE_ORACLE_ERRORS.stream().anyMatch(message::contains);
+        String normalizedMessage = message == null ? "" : message.toUpperCase(Locale.ROOT);
+        return RETRYABLE_ORACLE_ERRORS.stream().anyMatch(normalizedMessage::contains);
     }
 
     private void sleepBeforeRetry() throws SQLException {
