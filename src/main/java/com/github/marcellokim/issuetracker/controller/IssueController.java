@@ -1,12 +1,16 @@
 package com.github.marcellokim.issuetracker.controller;
 
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
+import java.util.List;
 import java.util.Objects;
 
 public final class IssueController {
@@ -20,6 +24,22 @@ public final class IssueController {
     ) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.issueService = Objects.requireNonNull(issueService, "issueService");
+    }
+
+    public List<IssueSummary> searchIssues(
+            Long projectId, IssueStatus status, Priority priority,
+            String reporterId, String assigneeId, String verifierId,
+            String keyword) {
+        User user = requireCurrentUser();
+        return issueService.searchIssues(
+                projectId, status, priority,
+                reporterId, assigneeId, verifierId,
+                keyword, user.getLoginId());
+    }
+
+    public IssueDetailResult viewIssueDetail(long issueId) {
+        User user = requireCurrentUser();
+        return issueService.viewIssueDetail(issueId, user.getLoginId());
     }
 
     public IssueResult registerIssue(long projectId, String title, String description, Priority priority) {

@@ -4,6 +4,8 @@ import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
+import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -15,7 +17,9 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
@@ -46,6 +50,29 @@ public final class IssueService {
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    public List<IssueSummary> searchIssues(
+            Long projectId, IssueStatus status, Priority priority,
+            String reporterId, String assigneeId, String verifierId,
+            String keyword, String currentUserId) {
+        User user = findUser(currentUserId);
+        permissionPolicy.assertCanViewStatistics(user, null);
+        IssueSearchCriteria criteria = IssueSearchCriteria.create(
+                projectId, status, priority,
+                reporterId, assigneeId, verifierId,
+                keyword, null, null, false);
+        return issueRepository.findByCriteria(criteria).stream()
+                .map(issue -> toIssueSummary(issue))
+                .toList();
+    }
+
+    public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
+        User user = findUser(currentUserId);
+        Issue issue = findIssue(issueId);
+        permissionPolicy.assertCanViewStatistics(user, null);
+        List<IssueDependency> dependencies = dependencyRepository.findByBlockedIssueId(issueId);
+        return toIssueDetailResult(issue, dependencies, user);
     }
 
     public IssueResult registerIssue(long projectId, String title, String description, Priority priority, String currentUserId) {
@@ -218,5 +245,118 @@ public final class IssueService {
                 blockedIssue.getIssueId(),
                 dep.getDiscoveredDate()
         );
+    }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt()
+        );
+    }
+
+    private IssueDetailResult toIssueDetailResult(Issue issue, List<IssueDependency> dependencies, User currentUser) {
+        List<CommentResult> comments = issue.getComments().stream()
+                .map(comment -> toCommentResult(comment))
+                .toList();
+        List<HistoryResult> histories = issue.getHistories().stream()
+                .map(history -> toHistoryResult(history))
+                .toList();
+        List<DependencyResult> depResults = dependencies.stream()
+                .map(dep -> toDependencyResult(dep, issue))
+                .toList();
+        List<String> actions = computeAvailableActions(issue, currentUser);
+        return new IssueDetailResult(
+                issue.id(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.description(),
+                issue.getReporter(),
+                issue.getAssignee(),
+                issue.getVerifier(),
+                issue.getFixer(),
+                issue.getResolver(),
+                issue.reportedDate(),
+                issue.updatedAt(),
+                comments,
+                histories,
+                depResults,
+                actions
+        );
+    }
+
+    private static HistoryResult toHistoryResult(com.github.marcellokim.issuetracker.domain.IssueHistory history) {
+        return new HistoryResult(
+                history.getHistoryId(),
+                history.getAction(),
+                history.getPreviousValue(),
+                history.getNewValue(),
+                history.getMessage(),
+                history.getChangedBy(),
+                history.getChangedDate()
+        );
+    }
+
+    private static DependencyResult toDependencyResult(IssueDependency dep, Issue contextIssue) {
+        return new DependencyResult(
+                dep.id(),
+                dep.getDependencyId(),
+                dep.blockingIssueId(),
+                null,
+                dep.blockedIssueId(),
+                contextIssue.getIssueId(),
+                dep.getDiscoveredDate()
+        );
+    }
+
+    private static List<String> computeAvailableActions(Issue issue, User user) {
+        List<String> actions = new ArrayList<>();
+        Role role = user.getRole();
+        IssueStatus status = issue.status();
+
+        if (role == Role.PL) {
+            if (status == IssueStatus.NEW) {
+                actions.add("ASSIGN");
+            }
+            if (status == IssueStatus.RESOLVED) {
+                actions.add("CLOSE");
+            }
+            if (status == IssueStatus.CLOSED) {
+                actions.add("REOPEN");
+            }
+            if (status == IssueStatus.NEW || status == IssueStatus.CLOSED) {
+                actions.add("DELETE");
+            }
+            actions.add("ADD_COMMENT");
+            actions.add("MANAGE_DEPENDENCY");
+        }
+
+        if (role == Role.DEV && status == IssueStatus.ASSIGNED
+                && user.getLoginId().equals(issue.assigneeId())) {
+            actions.add("FIX");
+        }
+
+        if (role == Role.TESTER && user.getLoginId().equals(issue.verifierId())) {
+            if (status == IssueStatus.FIXED) {
+                actions.add("RESOLVE");
+                actions.add("REJECT_FIX");
+            }
+        }
+
+        if ((role == Role.PL || role == Role.DEV || role == Role.TESTER)
+                && !actions.contains("ADD_COMMENT")) {
+            actions.add("ADD_COMMENT");
+        }
+
+        return List.copyOf(actions);
     }
 }

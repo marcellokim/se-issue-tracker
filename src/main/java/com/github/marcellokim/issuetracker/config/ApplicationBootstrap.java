@@ -5,10 +5,8 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
-import com.github.marcellokim.issuetracker.ui.DemoDashboardPresenter;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -46,12 +44,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
     public ApplicationContext startUiContext() throws IOException, SQLException {
         var repositories = context().repositories();
         return new ApplicationContext(
-                new AuthenticationService(repositories.users()),
-                new DemoDashboardPresenter(new DashboardSummaryService(
-                        repositories.projects(),
-                        repositories.issues(),
-                        repositories.statistics(),
-                        repositories.users())));
+                new AuthenticationService(repositories.users()));
     }
 
     private synchronized RepositoryContext context() throws IOException, SQLException {
