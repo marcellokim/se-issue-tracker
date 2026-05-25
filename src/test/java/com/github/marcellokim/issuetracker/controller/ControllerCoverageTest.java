@@ -311,6 +311,66 @@ class ControllerCoverageTest {
     }
 
     @Test
+    @DisplayName("account controller creates account through service after auth")
+    void accountControllerCreatesAccount() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository();
+        FakeIssueRepository issues = new FakeIssueRepository();
+        PasswordHasher hasher = new PasswordHasher();
+        AccountController controller = new AccountController(
+                auth.service(),
+                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher));
+
+        UserResult result = controller.createAccount("newdev", "New Dev", "pass123", Role.DEV);
+
+        assertEquals("newdev", result.loginId());
+        assertEquals(Role.DEV, result.role());
+        assertTrue(result.active());
+    }
+
+    @Test
+    @DisplayName("account controller updates, renames, changes role, activates, and deactivates")
+    void accountControllerManagesAccounts() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User target = user("target1", Role.DEV);
+        auth.users().save(target);
+        FakeProjectRepository projects = new FakeProjectRepository();
+        FakeIssueRepository issues = new FakeIssueRepository();
+        PasswordHasher hasher = new PasswordHasher();
+        AccountController controller = new AccountController(
+                auth.service(),
+                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher));
+
+        UserResult renamed = controller.renameAccount("target1", "Renamed");
+        assertEquals("Renamed", renamed.name());
+
+        UserResult roleChanged = controller.changeAccountRole("target1", Role.TESTER);
+        assertEquals(Role.TESTER, roleChanged.role());
+
+        UserResult deactivated = controller.deactivateAccount("target1");
+        assertFalse(deactivated.active());
+
+        UserResult activated = controller.activateAccount("target1");
+        assertTrue(activated.active());
+
+        UserResult updated = controller.updateAccount("target1", "Full Update", Role.PL);
+        assertEquals("Full Update", updated.name());
+        assertEquals(Role.PL, updated.role());
+    }
+
+    @Test
+    @DisplayName("account controller rejects anonymous users")
+    void accountControllerRejectsAnonymous() {
+        AccountController controller = new AccountController(
+                anonymousAuth(),
+                new AccountService(new PermissionPolicy(), new FakeUserRepository(),
+                        new FakeProjectRepository(), new FakeIssueRepository(), new PasswordHasher()));
+
+        assertThrows(SecurityException.class,
+                () -> controller.createAccount("x", "X", "pass", Role.DEV));
+    }
+
+    @Test
     @DisplayName("stub controllers keep DCD layer dependencies injectable")
     void stubControllersAcceptLayerDependencies() {
         AuthFixture auth = authenticated(Role.ADMIN);

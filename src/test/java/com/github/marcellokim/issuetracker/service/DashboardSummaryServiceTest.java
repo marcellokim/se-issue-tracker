@@ -100,6 +100,48 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
+    @DisplayName("admin sees all issues across all projects via relatedIssuesFor")
+    void adminSeesAllRelatedIssues() {
+        User admin = user("admin", Role.ADMIN);
+        User dev = user("dev", Role.DEV);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Issue issue1 = issue(101L, IssueStatus.NEW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(project1, List.of(
+                        ProjectMember.create(project1.getId(), dev.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(issue1), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(admin, dev)),
+                new PermissionPolicy());
+
+        List<IssueSummary> issues = service.relatedIssuesFor(admin);
+
+        assertEquals(1, issues.size());
+        assertEquals(101L, issues.getFirst().id());
+    }
+
+    @Test
+    @DisplayName("dev sees only related issues in participating projects via relatedIssuesFor")
+    void devSeesOnlyRelatedIssues() {
+        User dev = user("dev", Role.DEV);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Issue issue1 = issue(101L, IssueStatus.NEW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(project1, List.of(
+                        ProjectMember.create(project1.getId(), dev.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(issue1), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(dev)),
+                new PermissionPolicy());
+
+        List<IssueSummary> issues = service.relatedIssuesFor(dev);
+
+        assertEquals(0, issues.size());
+    }
+
+    @Test
     @DisplayName("non-admin dashboard includes only participating projects")
     void nonAdminDashboardIncludesOnlyParticipatingProjects() {
         User dev = user("dev", Role.DEV);

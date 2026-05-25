@@ -14,6 +14,7 @@ import java.util.Objects;
 
 public final class IssueStateService {
 
+    private static final String PROJECT_MEMBER_REQUIRED = "Only project members can change issue status.";
     private final IssueRepository issueRepository;
     private final IssueDependencyRepository dependencyRepository;
     private final UserRepository userRepository;
@@ -53,7 +54,7 @@ public final class IssueStateService {
 
     private void markFixed(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED);
-        requireActiveProjectMember(actor, issue.projectId(), "Only project members can change issue status.");
+        requireActiveProjectMember(actor, issue.projectId(), PROJECT_MEMBER_REQUIRED);
         LocalDateTime changedAt = now();
         issue.markFixed(actor, comment, changedAt);
         issue.addComment(
@@ -66,7 +67,7 @@ public final class IssueStateService {
 
     private void rejectFix(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED);
-        requireActiveProjectMember(actor, issue.projectId(), "Only project members can change issue status.");
+        requireActiveProjectMember(actor, issue.projectId(), PROJECT_MEMBER_REQUIRED);
         LocalDateTime changedAt = now();
         issue.rejectFix(actor, comment, changedAt);
         issue.addComment(
@@ -79,7 +80,7 @@ public final class IssueStateService {
 
     private void resolve(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED);
-        requireActiveProjectMember(actor, issue.projectId(), "Only project members can change issue status.");
+        requireActiveProjectMember(actor, issue.projectId(), PROJECT_MEMBER_REQUIRED);
         rejectUnresolvedBlockingIssues(issue);
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);

@@ -11,6 +11,7 @@ import java.util.Objects;
 
 public final class AccountService {
 
+    private static final String ROLE_REQUIRED = "role must not be null";
     private final PermissionPolicy permissionPolicy;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
@@ -50,7 +51,7 @@ public final class AccountService {
             User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        Role newRole = Objects.requireNonNull(role, "role must not be null");
+        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
         requireNonAdminAccount(loginId, newRole);
         if (userRepository.findByLoginId(loginId).isPresent()) {
             throw new IllegalArgumentException("Account already exists: " + loginId);
@@ -71,7 +72,7 @@ public final class AccountService {
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
-        Role newRole = Objects.requireNonNull(role, "role must not be null");
+        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
         requireNonAdminTarget(target);
         requireNonAdminAccount(loginId, newRole);
         rejectRoleChangeWithProjectResponsibility(target, newRole);
@@ -96,7 +97,7 @@ public final class AccountService {
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
-        Role newRole = Objects.requireNonNull(role, "role must not be null");
+        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
         requireNonAdminTarget(target);
         requireNonAdminAccount(loginId, newRole);
         rejectRoleChangeWithProjectResponsibility(target, newRole);

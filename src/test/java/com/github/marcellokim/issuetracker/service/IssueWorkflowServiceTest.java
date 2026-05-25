@@ -164,6 +164,114 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
+    @DisplayName("PL can start assignment, assign, manage dependency on NEW issue")
+    void plActionsOnNewIssue() {
+        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "New issue", "desc", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(CREATED_AT)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.NEW)
+                .updatedAt(CREATED_AT));
+        var service = workflowService(
+                new InMemoryIssueRepository(issue),
+                new InMemoryUserRepository(reporter, assignee, verifier, pl)
+                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
+                                verifier.getLoginId(), pl.getLoginId()));
+
+        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, pl.getLoginId());
+
+        assertTrue(actions.canStartAssignment());
+        assertTrue(actions.canAssign());
+        assertTrue(actions.canAddDependency());
+        assertTrue(actions.canRemoveDependency());
+        assertTrue(actions.canChangePriority());
+        assertTrue(actions.canSoftDelete());
+        assertFalse(actions.canReassign());
+        assertFalse(actions.canClose());
+        assertFalse(actions.canReopen());
+    }
+
+    @Test
+    @DisplayName("PL can close resolved issue and reopen closed issue")
+    void plCloseAndReopenActions() {
+        var resolvedIssue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Resolved", "desc", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(CREATED_AT)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.RESOLVED)
+                .assignee(assignee)
+                .verifier(verifier)
+                .fixer(assignee)
+                .resolver(verifier)
+                .updatedAt(CREATED_AT));
+        var service = workflowService(
+                new InMemoryIssueRepository(resolvedIssue),
+                new InMemoryUserRepository(reporter, assignee, verifier, pl)
+                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
+                                verifier.getLoginId(), pl.getLoginId()));
+
+        IssueWorkflowActions resolvedActions = service.viewAvailableActions(ISSUE_ID, pl.getLoginId());
+
+        assertTrue(resolvedActions.canClose());
+        assertTrue(resolvedActions.canReopen());
+    }
+
+    @Test
+    @DisplayName("verifier can resolve and reject fix on FIXED issue")
+    void verifierActionsOnFixedIssue() {
+        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Fixed issue", "desc", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(CREATED_AT)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.FIXED)
+                .assignee(assignee)
+                .verifier(verifier)
+                .fixer(assignee)
+                .updatedAt(CREATED_AT));
+        var service = workflowService(
+                new InMemoryIssueRepository(issue),
+                new InMemoryUserRepository(reporter, assignee, verifier, pl)
+                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
+                                verifier.getLoginId(), pl.getLoginId()));
+
+        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, verifier.getLoginId());
+
+        assertTrue(actions.canResolve());
+        assertTrue(actions.canRejectFix());
+    }
+
+    @Test
+    @DisplayName("comment update and delete allowed for writer who is project member")
+    void commentActionsEnabledForProjectMemberWriter() {
+        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "desc", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(CREATED_AT)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.NEW)
+                .updatedAt(CREATED_AT));
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
+                100L,
+                ISSUE_ID,
+                reporter.getLoginId(),
+                "My note",
+                CommentPurpose.GENERAL,
+                CREATED_AT,
+                CREATED_AT));
+        var service = workflowService(
+                new InMemoryIssueRepository(issue),
+                comments,
+                new InMemoryUserRepository(reporter, assignee, verifier, pl)
+                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
+
+        assertTrue(service.canUpdateComment(ISSUE_ID, 100L, reporter.getLoginId()));
+        assertTrue(service.canDeleteComment(ISSUE_ID, 100L, reporter.getLoginId()));
+    }
+
+    @Test
     @DisplayName("mark fixed action is disabled after issue is already fixed")
     void markFixedActionDisablesAfterIssueIsFixed() {
         var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)

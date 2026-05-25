@@ -89,8 +89,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             long projectId,
             LocalDate fromInclusive,
             LocalDate toInclusive) {
-        validateDateRange(fromInclusive, toInclusive);
-
         String sql = """
                 select trunc(reported_at) as reported_day, count(*) as issue_count
                 from issues
@@ -101,26 +99,8 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 group by trunc(reported_at)
                 order by reported_day
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
-            setNullableDate(statement, 2, fromInclusive);
-            setNullableDate(statement, 3, fromInclusive);
-            setNullableDate(statement, 4, toExclusive);
-            setNullableDate(statement, 5, toExclusive);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Map<LocalDate, Integer> countByDate = new HashMap<>();
-                while (resultSet.next()) {
-                    Date date = resultSet.getDate("reported_day");
-                    LocalDate localDate = date.toLocalDate();
-                    countByDate.put(localDate, resultSet.getInt("issue_count"));
-                }
-                return fillDailyRange(countByDate, fromInclusive, toInclusive);
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to count reported issues by day.", exception);
-        }
+        return executeDailyQuery(sql, projectId, fromInclusive, toInclusive,
+                "reported_day", "issue_count", "Failed to count reported issues by day.");
     }
 
     @Override
@@ -133,8 +113,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
-        validateMonthRange(fromInclusive, toInclusive);
-
         String sql = """
                 select to_char(reported_at, 'YYYY-MM') as reported_month, count(*) as issue_count
                 from issues
@@ -145,26 +123,8 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 group by to_char(reported_at, 'YYYY-MM')
                 order by reported_month
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
-            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
-            setNullableDate(statement, 2, fromDate);
-            setNullableDate(statement, 3, fromDate);
-            setNullableDate(statement, 4, toExclusive);
-            setNullableDate(statement, 5, toExclusive);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Map<YearMonth, Integer> countByMonth = new HashMap<>();
-                while (resultSet.next()) {
-                    YearMonth month = YearMonth.parse(resultSet.getString("reported_month"));
-                    countByMonth.put(month, resultSet.getInt("issue_count"));
-                }
-                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to count reported issues by month.", exception);
-        }
+        return executeMonthlyQuery(sql, projectId, fromInclusive, toInclusive,
+                "reported_month", "issue_count", "Failed to count reported issues by month.");
     }
 
     @Override
@@ -172,8 +132,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             long projectId,
             LocalDate fromInclusive,
             LocalDate toInclusive) {
-        validateDateRange(fromInclusive, toInclusive);
-
         String sql = """
                 select trunc(h.changed_at) as changed_day, count(*) as change_count
                 from issue_history h
@@ -186,25 +144,8 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 group by trunc(h.changed_at)
                 order by changed_day
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
-            setNullableDate(statement, 2, fromInclusive);
-            setNullableDate(statement, 3, fromInclusive);
-            setNullableDate(statement, 4, toExclusive);
-            setNullableDate(statement, 5, toExclusive);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Map<LocalDate, Integer> countByDate = new HashMap<>();
-                while (resultSet.next()) {
-                    Date date = resultSet.getDate("changed_day");
-                    countByDate.put(date.toLocalDate(), resultSet.getInt("change_count"));
-                }
-                return fillDailyRange(countByDate, fromInclusive, toInclusive);
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to count status changes by day.", exception);
-        }
+        return executeDailyQuery(sql, projectId, fromInclusive, toInclusive,
+                "changed_day", "change_count", "Failed to count status changes by day.");
     }
 
     @Override
@@ -212,8 +153,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
-        validateMonthRange(fromInclusive, toInclusive);
-
         String sql = """
                 select to_char(h.changed_at, 'YYYY-MM') as changed_month, count(*) as change_count
                 from issue_history h
@@ -226,26 +165,8 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 group by to_char(h.changed_at, 'YYYY-MM')
                 order by changed_month
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
-            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
-            setNullableDate(statement, 2, fromDate);
-            setNullableDate(statement, 3, fromDate);
-            setNullableDate(statement, 4, toExclusive);
-            setNullableDate(statement, 5, toExclusive);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Map<YearMonth, Integer> countByMonth = new HashMap<>();
-                while (resultSet.next()) {
-                    YearMonth month = YearMonth.parse(resultSet.getString("changed_month"));
-                    countByMonth.put(month, resultSet.getInt("change_count"));
-                }
-                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to count status changes by month.", exception);
-        }
+        return executeMonthlyQuery(sql, projectId, fromInclusive, toInclusive,
+                "changed_month", "change_count", "Failed to count status changes by month.");
     }
 
     @Override
@@ -253,8 +174,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             long projectId,
             LocalDate fromInclusive,
             LocalDate toInclusive) {
-        validateDateRange(fromInclusive, toInclusive);
-
         String sql = """
                 select trunc(c.created_at) as commented_day, count(*) as comment_count
                 from comments c
@@ -266,25 +185,8 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 group by trunc(c.created_at)
                 order by commented_day
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
-            setNullableDate(statement, 2, fromInclusive);
-            setNullableDate(statement, 3, fromInclusive);
-            setNullableDate(statement, 4, toExclusive);
-            setNullableDate(statement, 5, toExclusive);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Map<LocalDate, Integer> countByDate = new HashMap<>();
-                while (resultSet.next()) {
-                    Date date = resultSet.getDate("commented_day");
-                    countByDate.put(date.toLocalDate(), resultSet.getInt("comment_count"));
-                }
-                return fillDailyRange(countByDate, fromInclusive, toInclusive);
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to count comments by day.", exception);
-        }
+        return executeDailyQuery(sql, projectId, fromInclusive, toInclusive,
+                "commented_day", "comment_count", "Failed to count comments by day.");
     }
 
     @Override
@@ -292,8 +194,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
-        validateMonthRange(fromInclusive, toInclusive);
-
         String sql = """
                 select to_char(c.created_at, 'YYYY-MM') as commented_month, count(*) as comment_count
                 from comments c
@@ -305,26 +205,8 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 group by to_char(c.created_at, 'YYYY-MM')
                 order by commented_month
                 """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
-            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
-            setNullableDate(statement, 2, fromDate);
-            setNullableDate(statement, 3, fromDate);
-            setNullableDate(statement, 4, toExclusive);
-            setNullableDate(statement, 5, toExclusive);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Map<YearMonth, Integer> countByMonth = new HashMap<>();
-                while (resultSet.next()) {
-                    YearMonth month = YearMonth.parse(resultSet.getString("commented_month"));
-                    countByMonth.put(month, resultSet.getInt("comment_count"));
-                }
-                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to count comments by month.", exception);
-        }
+        return executeMonthlyQuery(sql, projectId, fromInclusive, toInclusive,
+                "commented_month", "comment_count", "Failed to count comments by month.");
     }
 
     @Override
@@ -429,6 +311,55 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 countStatusChangesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
                 countCommentsByDay(projectId, dailyFromInclusive, dailyToInclusive),
                 countCommentsByMonth(projectId, monthlyFromInclusive, monthlyToInclusive));
+    }
+
+    private List<DailyIssueCount> executeDailyQuery(
+            String sql, long projectId, LocalDate fromInclusive, LocalDate toInclusive,
+            String dateColumn, String countColumn, String errorMessage) {
+        validateDateRange(fromInclusive, toInclusive);
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
+            setNullableDate(statement, 2, fromInclusive);
+            setNullableDate(statement, 3, fromInclusive);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Map<LocalDate, Integer> countByDate = new HashMap<>();
+                while (resultSet.next()) {
+                    countByDate.put(resultSet.getDate(dateColumn).toLocalDate(), resultSet.getInt(countColumn));
+                }
+                return fillDailyRange(countByDate, fromInclusive, toInclusive);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException(errorMessage, exception);
+        }
+    }
+
+    private List<MonthlyIssueCount> executeMonthlyQuery(
+            String sql, long projectId, YearMonth fromInclusive, YearMonth toInclusive,
+            String monthColumn, String countColumn, String errorMessage) {
+        validateMonthRange(fromInclusive, toInclusive);
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Map<YearMonth, Integer> countByMonth = new HashMap<>();
+                while (resultSet.next()) {
+                    countByMonth.put(YearMonth.parse(resultSet.getString(monthColumn)), resultSet.getInt(countColumn));
+                }
+                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException(errorMessage, exception);
+        }
     }
 
     private static List<DailyIssueCount> fillDailyRange(

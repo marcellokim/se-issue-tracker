@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
@@ -22,8 +23,12 @@ import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -133,6 +138,197 @@ class IssueControllerTest {
     }
 
     @Test
+    @DisplayName("authenticated user checks canRegisterIssue")
+    void canRegisterIssue() {
+        var controller = authenticatedController(dev);
+
+        assertTrue(controller.canRegisterIssue(PROJECT_ID));
+    }
+
+    @Test
+    @DisplayName("authenticated user views issue detail")
+    void viewIssueDetail() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        IssueDetailResult detail = controller.viewIssueDetail(ISSUE_ID);
+
+        assertEquals(ISSUE_ID, detail.id());
+        assertEquals("Issue 1", detail.title());
+        assertEquals(IssueStatus.NEW, detail.status());
+    }
+
+    @Test
+    @DisplayName("authenticated user searches issues")
+    void searchIssues() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        List<IssueSummary> results = controller.searchIssues(PROJECT_ID, null, null, null);
+
+        assertEquals(1, results.size());
+        assertEquals(ISSUE_ID, results.getFirst().id());
+    }
+
+    @Test
+    @DisplayName("authenticated user searches issues with extended filters")
+    void searchIssuesWithFilters() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        List<IssueSummary> results = controller.searchIssues(
+                PROJECT_ID, "Issue", IssueStatus.NEW, Priority.MAJOR, null, null, null);
+
+        assertEquals(1, results.size());
+    }
+
+    @Test
+    @DisplayName("authenticated user views related project issues")
+    void viewRelatedProjectIssues() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        List<IssueSummary> results = controller.viewRelatedProjectIssues(PROJECT_ID);
+
+        assertNotNull(results);
+    }
+
+    @Test
+    @DisplayName("authenticated reporter updates issue")
+    void updateIssue() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        IssueResult result = controller.updateIssue(ISSUE_ID, "Updated Title", "Updated desc");
+
+        assertEquals("Updated Title", result.title());
+    }
+
+    @Test
+    @DisplayName("authenticated PL changes priority")
+    void changePriority() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(pl, issue);
+
+        IssueResult result = controller.changePriority(ISSUE_ID, Priority.CRITICAL);
+
+        assertEquals(Priority.CRITICAL, result.priority());
+    }
+
+    @Test
+    @DisplayName("authenticated user views project dependencies")
+    void viewProjectDependencies() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var controller = authenticatedController(dev, issueA, issueB);
+
+        List<DependencyResult> results = controller.viewProjectDependencies(PROJECT_ID);
+
+        assertNotNull(results);
+    }
+
+    @Test
+    @DisplayName("authenticated PL removes dependency")
+    void removeDependency() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var controller = authenticatedController(pl, issueA, issueB);
+        controller.addDependency(1L, 2L);
+
+        controller.removeDependency("1:2");
+
+        assertEquals(0, controller.viewProjectDependencies(PROJECT_ID).size());
+    }
+
+    @Test
+    @DisplayName("authenticated writer updates comment")
+    void updateComment() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
+                COMMENT_ID,
+                ISSUE_ID,
+                dev.getLoginId(),
+                "Original text",
+                CommentPurpose.GENERAL,
+                now,
+                now));
+        var controller = authenticatedController(dev, comments, issue);
+
+        CommentResult result = controller.updateComment(ISSUE_ID, COMMENT_ID, "Edited text");
+
+        assertEquals("Edited text", result.content());
+    }
+
+    @Test
+    @DisplayName("viewIssueDetail with workflow service includes available actions")
+    void viewIssueDetailWithWorkflow() {
+        var issue = persistedIssue();
+        var controller = authenticatedControllerWithWorkflow(pl, issue);
+
+        IssueDetailResult detail = controller.viewIssueDetail(ISSUE_ID);
+
+        assertNotNull(detail.availableActions());
+    }
+
+    @Test
+    @DisplayName("viewAvailableActions delegates to workflow service")
+    void viewAvailableActions() {
+        var issue = persistedIssue();
+        var controller = authenticatedControllerWithWorkflow(pl, issue);
+
+        IssueWorkflowActions actions = controller.viewAvailableActions(ISSUE_ID);
+
+        assertNotNull(actions);
+    }
+
+    @Test
+    @DisplayName("canUpdateComment delegates to workflow service")
+    void canUpdateComment() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
+                COMMENT_ID,
+                ISSUE_ID,
+                dev.getLoginId(),
+                "Note",
+                CommentPurpose.GENERAL,
+                now,
+                now));
+        var controller = authenticatedControllerWithWorkflow(dev, comments, issue);
+
+        boolean result = controller.canUpdateComment(ISSUE_ID, COMMENT_ID);
+
+        assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("canDeleteComment delegates to workflow service")
+    void canDeleteComment() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
+                COMMENT_ID,
+                ISSUE_ID,
+                dev.getLoginId(),
+                "Note",
+                CommentPurpose.GENERAL,
+                now,
+                now));
+        var controller = authenticatedControllerWithWorkflow(dev, comments, issue);
+
+        boolean result = controller.canDeleteComment(ISSUE_ID, COMMENT_ID);
+
+        assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("viewAvailableActions throws without workflow service")
+    void viewAvailableActionsThrowsWithoutWorkflow() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        assertThrows(IllegalStateException.class, () -> controller.viewAvailableActions(ISSUE_ID));
+    }
+
+    @Test
     @DisplayName("unauthenticated user is rejected")
     void rejectUnauthenticated() {
         var controller = unauthenticatedController();
@@ -164,6 +360,33 @@ class IssueControllerTest {
                 new PermissionPolicy(),
                 new Clock());
         return new IssueController(authService, issueService);
+    }
+
+    private IssueController authenticatedControllerWithWorkflow(User user, Issue... issues) {
+        return authenticatedControllerWithWorkflow(user, new FakeCommentRepository(), issues);
+    }
+
+    private IssueController authenticatedControllerWithWorkflow(User user, FakeCommentRepository comments, Issue... issues) {
+        var users = new InMemoryUserRepository(user)
+                .withProjectMembers(PROJECT_ID, user.getLoginId());
+        var sessionStore = new SessionStore();
+        var authService = new AuthenticationService(users, hasher, sessionStore);
+        authService.login(user.getLoginId(), PASSWORD);
+        var issueRepo = new InMemoryIssueRepository(issues);
+        var depRepo = new FakeIssueDependencyRepository();
+        var policy = new PermissionPolicy();
+        var issueService = new IssueService(
+                new FakeProjectRepository(project),
+                issueRepo,
+                depRepo,
+                comments,
+                new FakeIssueHistoryRepository(),
+                users,
+                policy,
+                new Clock());
+        var workflowService = new IssueWorkflowService(
+                issueRepo, depRepo, comments, users, policy);
+        return new IssueController(authService, issueService, workflowService);
     }
 
     private IssueController unauthenticatedController() {
