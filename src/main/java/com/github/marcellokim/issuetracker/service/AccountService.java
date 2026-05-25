@@ -1,8 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
@@ -24,13 +21,6 @@ public final class AccountService {
     public AccountService(
             PermissionPolicy permissionPolicy,
             UserRepository userRepository,
-            PasswordHasher passwordHasher) {
-        this(permissionPolicy, userRepository, null, null, passwordHasher, new Clock());
-    }
-
-    public AccountService(
-            PermissionPolicy permissionPolicy,
-            UserRepository userRepository,
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
             PasswordHasher passwordHasher) {
@@ -46,8 +36,8 @@ public final class AccountService {
             Clock clock) {
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
-        this.projectRepository = projectRepository;
-        this.issueRepository = issueRepository;
+        this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
+        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -57,8 +47,8 @@ public final class AccountService {
             String name,
             String password,
             Role role,
-            String currentUserId) {
-        User actor = findUser(currentUserId);
+            User actor) {
+        requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         Role newRole = Objects.requireNonNull(role, "role must not be null");
         requireNonAdminAccount(loginId, newRole);
@@ -76,10 +66,10 @@ public final class AccountService {
         return userRepository.save(user);
     }
 
-    public User updateAccount(String loginId, String name, Role role, String currentUserId) {
-        User actor = findUser(currentUserId);
+    public User updateAccount(String loginId, String name, Role role, User actor) {
+        requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, currentUserId);
+        requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         Role newRole = Objects.requireNonNull(role, "role must not be null");
         requireNonAdminTarget(target);
@@ -91,20 +81,20 @@ public final class AccountService {
         return userRepository.save(target);
     }
 
-    public User renameAccount(String loginId, String name, String currentUserId) {
-        User actor = findUser(currentUserId);
+    public User renameAccount(String loginId, String name, User actor) {
+        requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, currentUserId);
+        requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         target.rename(name, clock.now());
         return userRepository.save(target);
     }
 
-    public User changeAccountRole(String loginId, Role role, String currentUserId) {
-        User actor = findUser(currentUserId);
+    public User changeAccountRole(String loginId, Role role, User actor) {
+        requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, currentUserId);
+        requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         Role newRole = Objects.requireNonNull(role, "role must not be null");
         requireNonAdminTarget(target);
@@ -114,20 +104,20 @@ public final class AccountService {
         return userRepository.save(target);
     }
 
-    public User activateAccount(String loginId, String currentUserId) {
-        User actor = findUser(currentUserId);
+    public User activateAccount(String loginId, User actor) {
+        requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, currentUserId);
+        requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         target.activate(clock.now());
         return userRepository.save(target);
     }
 
-    public User deactivateAccount(String loginId, String currentUserId) {
-        User actor = findUser(currentUserId);
+    public User deactivateAccount(String loginId, User actor) {
+        requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, currentUserId);
+        requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         target.deactivate(clock.now());
@@ -156,42 +146,22 @@ public final class AccountService {
         if (target.getRole() == newRole) {
             return;
         }
-        if (projectRepository == null || issueRepository == null) {
-            return;
+        if (projectRepository.existsByParticipant(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account role can be changed only when the user has no project membership.");
         }
-
-        for (Project project : projectRepository.findAll()) {
-            if (isProjectParticipant(project.getId(), target.getLoginId())) {
-                throw new IllegalArgumentException(
-                        "Account role can be changed only when the user has no project membership.");
-            }
-            if (isIssueOwner(project.getId(), target.getLoginId())) {
-                throw new IllegalArgumentException(
-                        "Account role can be changed only when the user has no assigned issue responsibility.");
-            }
+        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account role can be changed only when the user has no assigned issue responsibility.");
         }
-    }
-
-    private boolean isProjectParticipant(long projectId, String loginId) {
-        return projectRepository.findParticipants(projectId).stream()
-                .map(ProjectMember::userId)
-                .anyMatch(loginId::equals);
-    }
-
-    private boolean isIssueOwner(long projectId, String loginId) {
-        return issueRepository.findByProject(projectId).stream()
-                .anyMatch(issue -> isIssueOwner(issue, loginId));
-    }
-
-    private static boolean isIssueOwner(Issue issue, String loginId) {
-        return Objects.equals(loginId, issue.assigneeId())
-                || Objects.equals(loginId, issue.verifierId())
-                || Objects.equals(loginId, issue.fixerId())
-                || Objects.equals(loginId, issue.resolverId());
     }
 
     private static boolean isAdminLoginId(String loginId) {
         return loginId != null && "admin".equalsIgnoreCase(loginId.trim());
+    }
+
+    private static void requireActor(User actor) {
+        Objects.requireNonNull(actor, "actor must not be null");
     }
 
     private User findUser(String loginId) {

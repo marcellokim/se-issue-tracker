@@ -95,6 +95,34 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
+    public boolean existsByResponsibleUser(String userLoginId) {
+        String sql = """
+                select 1
+                from issues
+                where status <> 'DELETED'
+                  and (
+                      assignee_login_id = ?
+                      or verifier_login_id = ?
+                      or fixer_login_id = ?
+                      or resolver_login_id = ?
+                  )
+                  and rownum = 1
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, userLoginId);
+            statement.setString(2, userLoginId);
+            statement.setString(3, userLoginId);
+            statement.setString(4, userLoginId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue responsibility existence.", exception);
+        }
+    }
+
+    @Override
     public Issue save(Issue issue) {
         if (issue.id() == 0L) {
             return insert(issue);

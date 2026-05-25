@@ -64,6 +64,16 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
+    public boolean existsByResponsibleUser(String userLoginId) {
+        return issues.values().stream()
+                .filter(issue -> issue.status() != IssueStatus.DELETED)
+                .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                        || userLoginId.equals(issue.verifierId())
+                        || userLoginId.equals(issue.fixerId())
+                        || userLoginId.equals(issue.resolverId()));
+    }
+
+    @Override
     public Issue save(Issue issue) {
         Issue saved = issue.id() == 0L ? persistNew(issue) : issue;
         issues.put(saved.id(), saved);

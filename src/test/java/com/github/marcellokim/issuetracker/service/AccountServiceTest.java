@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,7 +37,7 @@ class AccountServiceTest {
         InMemoryUserRepository users = new InMemoryUserRepository(admin());
         AccountService service = service(users);
 
-        User created = service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, "admin");
+        User created = service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, actor(users, "admin"));
 
         assertEquals("dev11", created.getLoginId());
         assertEquals("Dev 11", created.getName());
@@ -55,7 +56,7 @@ class AccountServiceTest {
         AccountService service = service(users);
 
         assertThrows(SecurityException.class,
-                () -> service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, "pl1"));
+                () -> service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, actor(users, "pl1")));
     }
 
     @Test
@@ -66,7 +67,7 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User updated = service.updateAccount("dev1", "Tester 1", Role.TESTER, "admin");
+        User updated = service.updateAccount("dev1", "Tester 1", Role.TESTER, actor(users, "admin"));
 
         assertEquals("Tester 1", updated.getName());
         assertEquals(Role.TESTER, updated.getRole());
@@ -81,7 +82,7 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User updated = service.renameAccount("dev1", "Dev One", "admin");
+        User updated = service.renameAccount("dev1", "Dev One", actor(users, "admin"));
 
         assertEquals("Dev One", updated.getName());
         assertEquals(Role.DEV, updated.getRole());
@@ -95,7 +96,7 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User updated = service.changeAccountRole("dev1", Role.TESTER, "admin");
+        User updated = service.changeAccountRole("dev1", Role.TESTER, actor(users, "admin"));
 
         assertEquals("DEV1", updated.getName());
         assertEquals(Role.TESTER, updated.getRole());
@@ -113,7 +114,7 @@ class AccountServiceTest {
         AccountService service = service(users, projects, new InMemoryIssueRepository());
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.changeAccountRole("dev1", Role.TESTER, "admin"));
+                () -> service.changeAccountRole("dev1", Role.TESTER, actor(users, "admin")));
     }
 
     @Test
@@ -128,7 +129,7 @@ class AccountServiceTest {
         AccountService service = service(users, projects, issues);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.changeAccountRole("dev1", Role.TESTER, "admin"));
+                () -> service.changeAccountRole("dev1", Role.TESTER, actor(users, "admin")));
     }
 
     @Test
@@ -139,10 +140,10 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User inactive = service.deactivateAccount("dev1", "admin");
+        User inactive = service.deactivateAccount("dev1", actor(users, "admin"));
         assertFalse(inactive.isActive());
 
-        User active = service.activateAccount("dev1", "admin");
+        User active = service.activateAccount("dev1", actor(users, "admin"));
         assertTrue(active.isActive());
     }
 
@@ -155,7 +156,7 @@ class AccountServiceTest {
         AccountService service = service(users);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.createAccount("dev1", "Other Dev", "TempPassword1!", Role.DEV, "admin"));
+                () -> service.createAccount("dev1", "Other Dev", "TempPassword1!", Role.DEV, actor(users, "admin")));
     }
 
     @Test
@@ -165,7 +166,7 @@ class AccountServiceTest {
         AccountService service = service(users);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.deactivateAccount("admin", "admin"));
+                () -> service.deactivateAccount("admin", actor(users, "admin")));
     }
 
     @Test
@@ -177,15 +178,35 @@ class AccountServiceTest {
         AccountService service = service(users);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.createAccount("second-admin", "Second Admin", "TempPassword1!", Role.ADMIN, "admin"));
+                () -> service.createAccount("second-admin", "Second Admin", "TempPassword1!", Role.ADMIN,
+                        actor(users, "admin")));
         assertThrows(IllegalArgumentException.class,
-                () -> service.createAccount(" admin ", "Admin Clone", "TempPassword1!", Role.DEV, "admin"));
+                () -> service.createAccount(" admin ", "Admin Clone", "TempPassword1!", Role.DEV,
+                        actor(users, "admin")));
         assertThrows(IllegalArgumentException.class,
-                () -> service.updateAccount("dev1", "Promoted Admin", Role.ADMIN, "admin"));
+                () -> service.updateAccount("dev1", "Promoted Admin", Role.ADMIN, actor(users, "admin")));
+    }
+
+    @Test
+    @DisplayName("account service requires project and issue repositories for policy checks")
+    void accountServiceRequiresPolicyRepositories() {
+        InMemoryUserRepository users = new InMemoryUserRepository(admin());
+        PermissionPolicy policy = new PermissionPolicy();
+
+        assertThrows(NullPointerException.class,
+                () -> new AccountService(policy, users, null, new InMemoryIssueRepository(), PASSWORD_HASHER));
+        assertThrows(NullPointerException.class,
+                () -> new AccountService(policy, users, new FakeProjectRepository(), null, PASSWORD_HASHER));
+        assertNotNull(new AccountService(
+                policy,
+                users,
+                new FakeProjectRepository(),
+                new InMemoryIssueRepository(),
+                PASSWORD_HASHER));
     }
 
     private static AccountService service(InMemoryUserRepository users) {
-        return new AccountService(new PermissionPolicy(), users, PASSWORD_HASHER);
+        return service(users, new FakeProjectRepository(), new InMemoryIssueRepository());
     }
 
     private static AccountService service(
@@ -193,6 +214,10 @@ class AccountServiceTest {
             ProjectRepository projects,
             InMemoryIssueRepository issues) {
         return new AccountService(new PermissionPolicy(), users, projects, issues, PASSWORD_HASHER);
+    }
+
+    private static User actor(InMemoryUserRepository users, String loginId) {
+        return users.findByLoginId(loginId).orElseThrow();
     }
 
     private static User admin() {
@@ -289,6 +314,14 @@ class AccountServiceTest {
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
             return List.copyOf(participants.getOrDefault(projectId, List.of()));
+        }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return participants.values().stream()
+                    .flatMap(List::stream)
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
         }
     }
 }

@@ -18,34 +18,34 @@ public final class AccountController {
         this.accountService = Objects.requireNonNull(accountService, "accountService");
     }
 
-    public User createAccount(String loginId, String name, String password, Role role) {
+    public UserResponse createAccount(String loginId, String name, String password, Role role) {
         User user = requireCurrentUser();
-        return accountService.createAccount(loginId, name, password, role, user.getLoginId());
+        return UserResponse.from(accountService.createAccount(loginId, name, password, role, user));
     }
 
-    public User updateAccount(String loginId, String name, Role role) {
+    public UserResponse updateAccount(String loginId, String name, Role role) {
         User user = requireCurrentUser();
-        return accountService.updateAccount(loginId, name, role, user.getLoginId());
+        return UserResponse.from(accountService.updateAccount(loginId, name, role, user));
     }
 
-    public User renameAccount(String loginId, String name) {
+    public UserResponse renameAccount(String loginId, String name) {
         User user = requireCurrentUser();
-        return accountService.renameAccount(loginId, name, user.getLoginId());
+        return UserResponse.from(accountService.renameAccount(loginId, name, user));
     }
 
-    public User changeAccountRole(String loginId, Role role) {
+    public UserResponse changeAccountRole(String loginId, Role role) {
         User user = requireCurrentUser();
-        return accountService.changeAccountRole(loginId, role, user.getLoginId());
+        return UserResponse.from(accountService.changeAccountRole(loginId, role, user));
     }
 
-    public User activateAccount(String loginId) {
+    public UserResponse activateAccount(String loginId) {
         User user = requireCurrentUser();
-        return accountService.activateAccount(loginId, user.getLoginId());
+        return UserResponse.from(accountService.activateAccount(loginId, user));
     }
 
-    public User deactivateAccount(String loginId) {
+    public UserResponse deactivateAccount(String loginId) {
         User user = requireCurrentUser();
-        return accountService.deactivateAccount(loginId, user.getLoginId());
+        return UserResponse.from(accountService.deactivateAccount(loginId, user));
     }
 
     private User requireCurrentUser() {

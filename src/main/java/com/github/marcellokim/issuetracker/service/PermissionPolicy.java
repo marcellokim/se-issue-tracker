@@ -41,6 +41,7 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 버튼 관련
     public boolean canRegisterIssue(User user, Project project) {
         return allows(() -> assertCanRegisterIssue(user, project));
     }
@@ -49,6 +50,7 @@ public final class PermissionPolicy {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view issues.");
     }
 
+    // UI 버튼 관련
     public boolean canViewIssue(User user) {
         return allows(() -> assertCanViewIssue(user));
     }
@@ -58,6 +60,7 @@ public final class PermissionPolicy {
         requirePl(user, "Only PL can assign issue owners.");
     }
 
+    // UI 버튼 관련
     public boolean canAssignIssue(User user, Issue issue) {
         return allows(() -> assertCanAssignIssue(user, issue));
     }
@@ -67,6 +70,7 @@ public final class PermissionPolicy {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can add issue comments.");
     }
 
+    // UI 버튼 관련
     public boolean canAddComment(User user, Issue issue) {
         return allows(() -> assertCanAddComment(user, issue));
     }
@@ -82,6 +86,7 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 관련
     public boolean canUpdateIssue(User user, Issue issue) {
         return allows(() -> assertCanUpdateIssue(user, issue));
     }
@@ -120,6 +125,7 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 버튼 관련
     public boolean canChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
         return allows(() -> assertCanChangeStatus(user, issue, targetStatus));
     }
@@ -131,6 +137,7 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 버튼 관련
     public boolean canManageDeletedIssue(User user, Issue issue) {
         return allows(() -> assertCanManageDeletedIssue(user, issue));
     }
@@ -140,6 +147,7 @@ public final class PermissionPolicy {
         requirePl(user, "Only PL can manage dependencies.");
     }
 
+    // UI 버튼 관련
     public boolean canManageDependency(User user, Issue issue) {
         return allows(() -> assertCanManageDependency(user, issue));
     }

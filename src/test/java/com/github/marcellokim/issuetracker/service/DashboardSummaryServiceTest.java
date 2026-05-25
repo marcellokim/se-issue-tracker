@@ -197,6 +197,14 @@ class DashboardSummaryServiceTest {
         public List<ProjectMember> findParticipants(long projectId) {
             return membersByProjectId.getOrDefault(projectId, List.of());
         }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return membersByProjectId.values().stream()
+                    .flatMap(List::stream)
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
+        }
     }
 
     private static final class FakeIssueRepository implements IssueRepository {
@@ -237,6 +245,16 @@ class DashboardSummaryServiceTest {
                     .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title))
                     || deletedIssues.stream()
                     .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return activeIssues.stream()
+                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId())
+                            || userLoginId.equals(issue.fixerId())
+                            || userLoginId.equals(issue.resolverId()));
         }
 
         @Override

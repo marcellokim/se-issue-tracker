@@ -315,7 +315,7 @@ class ControllerCoverageTest {
 
         assertDoesNotThrow(() -> new AccountController(
                 auth.service(),
-                new AccountService(policy, users, new PasswordHasher())));
+                new AccountService(policy, users, projects, issues, new PasswordHasher())));
         assertDoesNotThrow(() -> new IssueController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueService(
@@ -443,6 +443,16 @@ class ControllerCoverageTest {
         }
 
         @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return issuesById.values().stream()
+                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId())
+                            || userLoginId.equals(issue.fixerId())
+                            || userLoginId.equals(issue.resolverId()));
+        }
+
+        @Override
         public Issue save(Issue issue) {
             issuesById.put(issue.id(), issue);
             return issue;
@@ -528,6 +538,11 @@ class ControllerCoverageTest {
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
             return List.of();
+        }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return false;
         }
     }
 

@@ -18,6 +18,8 @@ public interface IssueRepository {
 
     boolean existsByProjectIdAndTitle(long projectId, String title);
 
+    boolean existsByResponsibleUser(String userLoginId);
+
     Issue save(Issue issue);
 
     Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate);

@@ -520,6 +520,14 @@ class ProjectControllerTest {
             return List.copyOf(membersByProjectId.getOrDefault(projectId, List.of()));
         }
 
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return membersByProjectId.values().stream()
+                    .flatMap(List::stream)
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
+        }
+
         private List<String> participantIds(long projectId) {
             return findParticipants(projectId).stream()
                     .map(ProjectMember::userId)
@@ -646,6 +654,16 @@ class ProjectControllerTest {
         public boolean existsByProjectIdAndTitle(long projectId, String title) {
             return issuesById.values().stream()
                     .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return issuesById.values().stream()
+                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId())
+                            || userLoginId.equals(issue.fixerId())
+                            || userLoginId.equals(issue.resolverId()));
         }
 
         @Override

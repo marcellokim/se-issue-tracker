@@ -244,6 +244,11 @@ class IssueControllerTest {
         public List<ProjectMember> findParticipants(long projectId) {
             return List.of();
         }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return false;
+        }
     }
 
     private static final class FakeCommentRepository implements CommentRepository {

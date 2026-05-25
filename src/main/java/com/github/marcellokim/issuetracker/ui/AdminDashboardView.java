@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.ui;
 
 import com.github.marcellokim.issuetracker.controller.AccountController;
+import com.github.marcellokim.issuetracker.controller.UserResponse;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import java.util.Objects;
@@ -70,7 +71,7 @@ public final class AdminDashboardView {
                         "Password", createPasswordField,
                         "Role", createRoleBox),
                 actionRow(button("Create Account", () -> {
-                    User user = accountController.createAccount(
+                    UserResponse user = accountController.createAccount(
                             requiredText(createLoginIdField, "loginId"),
                             requiredText(createNameField, "name"),
                             requiredText(createPasswordField, "password"),
@@ -85,7 +86,7 @@ public final class AdminDashboardView {
                         "Login ID", renameLoginIdField,
                         "Name", renameNameField),
                 actionRow(button("Rename Account", () -> {
-                    User user = accountController.renameAccount(
+                    UserResponse user = accountController.renameAccount(
                             requiredText(renameLoginIdField, "loginId"),
                             requiredText(renameNameField, "name"));
                     return "Account renamed: " + formatAccount(user);
@@ -97,7 +98,7 @@ public final class AdminDashboardView {
                         "Login ID", roleLoginIdField,
                         "Role", roleUpdateBox),
                 actionRow(button("Change Role", () -> {
-                    User user = accountController.changeAccountRole(
+                    UserResponse user = accountController.changeAccountRole(
                             requiredText(roleLoginIdField, "loginId"),
                             roleUpdateBox.getValue());
                     return "Account role changed: " + formatAccount(user);
@@ -108,12 +109,12 @@ public final class AdminDashboardView {
                 fieldsGrid("Login ID", activationLoginIdField),
                 actionRow(
                         button("Activate", () -> {
-                            User user = accountController.activateAccount(
+                            UserResponse user = accountController.activateAccount(
                                     requiredText(activationLoginIdField, "loginId"));
                             return "Account activated: " + formatAccount(user);
                         }),
                         button("Deactivate", () -> {
-                            User user = accountController.deactivateAccount(
+                            UserResponse user = accountController.deactivateAccount(
                                     requiredText(activationLoginIdField, "loginId"));
                             return "Account deactivated: " + formatAccount(user);
                         })));
@@ -191,11 +192,11 @@ public final class AdminDashboardView {
         return value.trim();
     }
 
-    private static String formatAccount(User user) {
+    private static String formatAccount(UserResponse user) {
         return "%s / %s / %s / %s".formatted(
-                user.getLoginId(),
-                user.getName(),
-                user.getRole(),
-                user.isActive() ? "ACTIVE" : "INACTIVE");
+                user.loginId(),
+                user.name(),
+                user.role(),
+                user.active() ? "ACTIVE" : "INACTIVE");
     }
 }
