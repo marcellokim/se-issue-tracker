@@ -609,8 +609,8 @@ class IssueServiceTest {
     }
 
     @Test
-    @DisplayName("blocked issue project PL can add cross-project dependency")
-    void addDependencyAllowsBlockedProjectLeadForCrossProjectDependency() {
+    @DisplayName("rejects cross-project dependency")
+    void addDependencyRejectsCrossProjectDependency() {
         var blockingIssue = persistedIssue(1L, "ISSUE-1", OTHER_PROJECT_ID);
         var blockedIssue = persistedIssue(2L, "ISSUE-2", PROJECT_ID);
         var deps = new FakeIssueDependencyRepository();
@@ -620,14 +620,12 @@ class IssueServiceTest {
         var service = service(new InMemoryIssueRepository(blockingIssue, blockedIssue), deps,
                 new FakeCommentRepository(), users);
 
-        DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
-
-        assertEquals(1L, result.blockingIssueId());
-        assertEquals("ISSUE-1", result.blockingIssueKey());
-        assertEquals(2L, result.blockedIssueId());
-        assertEquals("ISSUE-2", result.blockedIssueKey());
-        assertEquals(ActionType.DEPENDENCY_CHANGED, blockedIssue.getHistories().getLast().actionType());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.addDependency(1L, 2L, pl.getLoginId()));
+        assertEquals("Dependencies are allowed only within the same project.", exception.getMessage());
+        assertFalse(deps.existsByPair(1L, 2L));
         assertEquals(0, blockingIssue.getHistories().size());
+        assertEquals(0, blockedIssue.getHistories().size());
     }
 
     @Test

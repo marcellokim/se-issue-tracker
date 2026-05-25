@@ -28,13 +28,15 @@ class IssueStateServiceTest {
     private static final long ISSUE_ID = 1L;
     private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(),
             createdAt());
-    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, createdAt(),
+            createdAt());
     private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
             createdAt());
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
     private final User otherProjectPl = User.fromPersistence("pl2", "PL Two", "hash", Role.PL, true, createdAt(),
             createdAt());
-    private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(),
+            createdAt());
 
     @Test
     @DisplayName("assignee marks assigned issue fixed")
@@ -49,7 +51,8 @@ class IssueStateServiceTest {
         assertEquals(1, issue.getComments().size());
         assertEquals("Fix completed", issue.getComments().getFirst().getContent());
         assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
-        org.junit.jupiter.api.Assertions.assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
+        org.junit.jupiter.api.Assertions
+                .assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -240,7 +243,8 @@ class IssueStateServiceTest {
         var unresolvedBlocking = newIssue(3L, "ISSUE-3");
         var depRepo = new FakeIssueDependencyRepository();
         depRepo.addFixture(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
-        depRepo.addFixture(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(
+                IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
         var service = service(depRepo, blockedIssue, resolvedBlocking, unresolvedBlocking);
 
         var exception = assertThrows(IllegalStateException.class,
@@ -256,19 +260,19 @@ class IssueStateServiceTest {
         return service(depRepo, new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev), issues);
     }
 
-    private IssueStateService service(FakeIssueDependencyRepository depRepo, InMemoryUserRepository users, Issue... issues) {
+    private IssueStateService service(FakeIssueDependencyRepository depRepo, InMemoryUserRepository users,
+            Issue... issues) {
         return new IssueStateService(
                 new InMemoryIssueRepository(issues),
                 depRepo,
                 users,
                 new PermissionPolicy(),
-                new Clock()
-        );
+                new Clock());
     }
 
-    private Issue newIssue() {
-        return newIssue(ISSUE_ID, "ISSUE-1");
-    }
+    // private Issue newIssue() {
+    // return newIssue(ISSUE_ID, "ISSUE-1");
+    // }
 
     private Issue newIssue(long id, String issueId) {
         return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)

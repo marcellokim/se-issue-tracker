@@ -201,6 +201,7 @@ public final class IssueService {
     public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
         Issue blockingIssue = findIssue(blockingIssueId);
         Issue blockedIssue = findIssue(blockedIssueId);
+        requireSameProjectDependency(blockingIssue, blockedIssue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
@@ -345,6 +346,12 @@ public final class IssueService {
     private static boolean isAssignedParticipant(Issue issue, String loginId) {
         return loginId.equals(issue.assigneeId())
                 || loginId.equals(issue.verifierId());
+    }
+
+    private static void requireSameProjectDependency(Issue blockingIssue, Issue blockedIssue) {
+        if (blockingIssue.projectId() != blockedIssue.projectId()) {
+            throw new IllegalArgumentException("Dependencies are allowed only within the same project.");
+        }
     }
 
     private void validateDependency(long blockingIssueId, long blockedIssueId) {

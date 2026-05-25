@@ -48,6 +48,11 @@ import javafx.scene.layout.VBox;
 
 public final class ProjectBoardView {
 
+    private static final String PROJECT_MEMBER_MESSAGE_PREFIX = "project-member:";
+    private static final String REGISTER_ISSUE_MESSAGE_PREFIX = "register-issue:";
+    private static final String DEPENDENCY_MESSAGE_PREFIX = "dependency:";
+    private static final String DELETED_ISSUE_MESSAGE_PREFIX = "deleted-issue:";
+
     private final UserResult currentUser;
     private final ProjectController projectController;
     private final IssueController issueController;
@@ -156,17 +161,17 @@ public final class ProjectBoardView {
                 description,
                 summary);
         if (isAdmin()) {
-            root.getChildren().add(projectMemberPanel(project, users, message));
+            root.getChildren().add(projectMemberPanel(project, users, panelMessage(message, PROJECT_MEMBER_MESSAGE_PREFIX)));
         } else {
             root.getChildren().addAll(
                     relatedProjectIssuesPanel(project),
                     projectIssueSearchPanel(project),
-                    registerIssuePanel(project, message),
+                    registerIssuePanel(project, panelMessage(message, REGISTER_ISSUE_MESSAGE_PREFIX)),
                     statisticsPanel(project));
             if (isProjectLead()) {
                 root.getChildren().addAll(
-                        dependencyManagementPanel(project, message),
-                        deletedIssueManagementPanel(project, message));
+                        dependencyManagementPanel(project, panelMessage(message, DEPENDENCY_MESSAGE_PREFIX)),
+                        deletedIssueManagementPanel(project, panelMessage(message, DELETED_ISSUE_MESSAGE_PREFIX)));
             }
         }
         root.setPadding(new Insets(24));
@@ -236,13 +241,17 @@ public final class ProjectBoardView {
                                     project.projectId(),
                                     requiredText(participantLoginIdField, "participant"));
                             return "Project participant added.";
-                        }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage)),
+                        }, resultMessage -> onProjectChanged.accept(
+                                project.projectId(),
+                                scopedMessage(PROJECT_MEMBER_MESSAGE_PREFIX, resultMessage))),
                         actionButton("Remove Member", isAdmin(), () -> {
                             projectController.removeProjectParticipant(
                                     project.projectId(),
                                     requiredText(participantLoginIdField, "participant"));
                             return "Project participant removed.";
-                        }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage)),
+                        }, resultMessage -> onProjectChanged.accept(
+                                project.projectId(),
+                                scopedMessage(PROJECT_MEMBER_MESSAGE_PREFIX, resultMessage))),
                         actionButton("Delete Project", isAdmin(), () -> {
                             projectController.deleteProject(project.projectId());
                             return "Project deleted.";
@@ -299,7 +308,9 @@ public final class ProjectBoardView {
                             requiredText(issueDescriptionArea, "issueDescription"),
                             priorityBox.getValue());
                     return "Issue registered: " + issue.issueId() + " / " + issue.status();
-                }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage))));
+                }, resultMessage -> onProjectChanged.accept(
+                        project.projectId(),
+                        scopedMessage(REGISTER_ISSUE_MESSAGE_PREFIX, resultMessage)))));
         return box;
     }
 
@@ -360,11 +371,15 @@ public final class ProjectBoardView {
                                     blockedIssueId);
                             dependencyIdField.setText(displayDependencyId(dependency));
                             return "Dependency added: " + displayDependencyId(dependency);
-                        }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage)),
+                        }, resultMessage -> onProjectChanged.accept(
+                                project.projectId(),
+                                scopedMessage(DEPENDENCY_MESSAGE_PREFIX, resultMessage))),
                         actionButton("Remove Dependency", isProjectLead(), () -> {
                             removeDependencyFromInputs();
                             return "Dependency removed.";
-                        }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage))));
+                        }, resultMessage -> onProjectChanged.accept(
+                                project.projectId(),
+                                scopedMessage(DEPENDENCY_MESSAGE_PREFIX, resultMessage)))));
         HBox content = new HBox(24, controls, dependencyList(project));
         content.setAlignment(Pos.TOP_LEFT);
         box.getChildren().add(content);
@@ -424,7 +439,9 @@ public final class ProjectBoardView {
         box.getChildren().add(actionRow(actionButton("Purge Overflow", isProjectLead(), () -> {
             int purged = deletedIssueController.purgeOverflow(project.projectId());
             return "Deleted issue overflow purged: " + purged;
-        }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage))));
+        }, resultMessage -> onProjectChanged.accept(
+                project.projectId(),
+                scopedMessage(DELETED_ISSUE_MESSAGE_PREFIX, resultMessage)))));
         try {
             List<IssueSummary> deletedIssues = deletedIssueController.viewDeletedIssues(project.projectId());
             if (deletedIssues.isEmpty()) {
@@ -460,7 +477,9 @@ public final class ProjectBoardView {
                     issue.id(),
                     requiredText(deletedIssueReasonArea, "reason"));
             return "Issue restored: " + restored.issueId() + " / " + restored.status();
-        }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage));
+        }, resultMessage -> onProjectChanged.accept(
+                project.projectId(),
+                scopedMessage(DELETED_ISSUE_MESSAGE_PREFIX, resultMessage)));
         HBox row = new HBox(12, detail, restoreButton);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
@@ -666,6 +685,31 @@ public final class ProjectBoardView {
                 ? "-fx-text-fill: #b91c1c; -fx-font-size: 17px;"
                 : "-fx-text-fill: #111827; -fx-font-size: 17px;");
         return label;
+    }
+
+    private static String scopedMessage(String prefix, String message) {
+        return prefix + valueOrBlank(message);
+    }
+
+    private static String panelMessage(String message, String prefix) {
+        String requiredMessage = valueOrBlank(message);
+        if (requiredMessage.isBlank()) {
+            return "";
+        }
+        if (!isScopedMessage(requiredMessage)) {
+            return requiredMessage;
+        }
+        if (requiredMessage.startsWith(prefix)) {
+            return requiredMessage.substring(prefix.length());
+        }
+        return "";
+    }
+
+    private static boolean isScopedMessage(String message) {
+        return message.startsWith(PROJECT_MEMBER_MESSAGE_PREFIX)
+                || message.startsWith(REGISTER_ISSUE_MESSAGE_PREFIX)
+                || message.startsWith(DEPENDENCY_MESSAGE_PREFIX)
+                || message.startsWith(DELETED_ISSUE_MESSAGE_PREFIX);
     }
 
     private static TextField field(String prompt) {
