@@ -37,13 +37,13 @@ class AccountServiceTest {
         InMemoryUserRepository users = new InMemoryUserRepository(admin());
         AccountService service = service(users);
 
-        User created = service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, actor(users, "admin"));
+        UserResult created = service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, actor(users, "admin"));
 
-        assertEquals("dev11", created.getLoginId());
-        assertEquals("Dev 11", created.getName());
-        assertEquals(Role.DEV, created.getRole());
-        assertTrue(created.isActive());
-        assertTrue(PASSWORD_HASHER.isHashed(created.getPasswordHash()));
+        assertEquals("dev11", created.loginId());
+        assertEquals("Dev 11", created.name());
+        assertEquals(Role.DEV, created.role());
+        assertTrue(created.active());
+        assertTrue(PASSWORD_HASHER.isHashed(users.findByLoginId("dev11").orElseThrow().getPasswordHash()));
         assertTrue(users.findByLoginId("dev11").isPresent());
     }
 
@@ -67,11 +67,11 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User updated = service.updateAccount("dev1", "Tester 1", Role.TESTER, actor(users, "admin"));
+        UserResult updated = service.updateAccount("dev1", "Tester 1", Role.TESTER, actor(users, "admin"));
 
-        assertEquals("Tester 1", updated.getName());
-        assertEquals(Role.TESTER, updated.getRole());
-        assertTrue(updated.isActive());
+        assertEquals("Tester 1", updated.name());
+        assertEquals(Role.TESTER, updated.role());
+        assertTrue(updated.active());
     }
 
     @Test
@@ -82,10 +82,10 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User updated = service.renameAccount("dev1", "Dev One", actor(users, "admin"));
+        UserResult updated = service.renameAccount("dev1", "Dev One", actor(users, "admin"));
 
-        assertEquals("Dev One", updated.getName());
-        assertEquals(Role.DEV, updated.getRole());
+        assertEquals("Dev One", updated.name());
+        assertEquals(Role.DEV, updated.role());
     }
 
     @Test
@@ -96,10 +96,10 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User updated = service.changeAccountRole("dev1", Role.TESTER, actor(users, "admin"));
+        UserResult updated = service.changeAccountRole("dev1", Role.TESTER, actor(users, "admin"));
 
-        assertEquals("DEV1", updated.getName());
-        assertEquals(Role.TESTER, updated.getRole());
+        assertEquals("DEV1", updated.name());
+        assertEquals(Role.TESTER, updated.role());
     }
 
     @Test
@@ -140,11 +140,11 @@ class AccountServiceTest {
                 user("dev1", Role.DEV, true));
         AccountService service = service(users);
 
-        User inactive = service.deactivateAccount("dev1", actor(users, "admin"));
-        assertFalse(inactive.isActive());
+        UserResult inactive = service.deactivateAccount("dev1", actor(users, "admin"));
+        assertFalse(inactive.active());
 
-        User active = service.activateAccount("dev1", actor(users, "admin"));
-        assertTrue(active.isActive());
+        UserResult active = service.activateAccount("dev1", actor(users, "admin"));
+        assertTrue(active.active());
     }
 
     @Test

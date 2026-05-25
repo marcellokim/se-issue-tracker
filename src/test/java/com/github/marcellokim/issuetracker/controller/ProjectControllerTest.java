@@ -20,8 +20,11 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectDetail;
+import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
+import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
@@ -68,24 +71,28 @@ class ProjectControllerTest {
         FakeIssueRepository issues = new FakeIssueRepository(
                 issue(101L, 1L, IssueStatus.NEW),
                 issue(102L, 2L, IssueStatus.ASSIGNED));
-        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()), issues);
+        ProjectController controller = controller(
+                auth,
+                projects,
+                new FakeUserRepository(auth.user(), active("pl1", Role.PL), active("dev1", Role.DEV)),
+                issues);
 
-        List<Project> viewedProjects = controller.viewProjects();
-        Project viewedProject = controller.viewProject(1L);
-        List<ProjectMember> viewedParticipants = controller.viewProjectParticipants(1L);
+        List<ProjectResult> viewedProjects = controller.viewProjects();
+        ProjectResult viewedProject = controller.viewProject(1L);
+        List<ProjectMemberResult> viewedParticipants = controller.viewProjectParticipants(1L);
         ProjectDetail viewedDetail = controller.viewProjectDetail(1L);
 
         assertEquals(2, viewedProjects.size());
-        assertEquals("project-one", viewedProject.getName());
+        assertEquals("project-one", viewedProject.name());
         assertEquals(List.of("pl1", "dev1"), viewedParticipants.stream()
-                .map(ProjectMember::userId)
+                .map(ProjectMemberResult::userId)
                 .toList());
-        assertEquals("project-one", viewedDetail.project().getName());
+        assertEquals("project-one", viewedDetail.project().name());
         assertEquals(List.of("pl1", "dev1"), viewedDetail.participants().stream()
-                .map(ProjectMember::userId)
+                .map(ProjectMemberResult::userId)
                 .toList());
         assertEquals(List.of(101L), viewedDetail.issues().stream()
-                .map(Issue::id)
+                .map(IssueSummary::id)
                 .toList());
         assertThrows(IllegalArgumentException.class, () -> controller.viewProject(404L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(404L));
@@ -99,15 +106,15 @@ class ProjectControllerTest {
         FakeProjectRepository projects = new FakeProjectRepository();
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
-        Project created = controller.createProject(" project-alpha ", "first project");
+        ProjectResult created = controller.createProject(" project-alpha ", "first project");
 
-        assertTrue(created.getId() > 0L);
-        assertEquals("project-alpha", created.getName());
-        assertEquals("first project", created.getDescription());
-        assertEquals("admin", created.getManagedByLoginId());
-        assertNotNull(created.getCreatedDate());
-        assertNotNull(created.getUpdatedAt());
-        assertTrue(projects.findById(created.getId()).isPresent());
+        assertTrue(created.id() > 0L);
+        assertEquals("project-alpha", created.name());
+        assertEquals("first project", created.description());
+        assertEquals("admin", created.managedByLoginId());
+        assertNotNull(created.createdDate());
+        assertNotNull(created.updatedAt());
+        assertTrue(projects.findById(created.id()).isPresent());
     }
 
     @Test

@@ -29,6 +29,7 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AccountService;
+import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
@@ -37,7 +38,9 @@ import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
+import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
+import com.github.marcellokim.issuetracker.service.UserResult;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDate;
@@ -88,7 +91,7 @@ class ControllerCoverageTest {
         assertEquals(1, controller.viewProjects().size());
         assertEquals(1, controller.viewRelatedIssues().size());
         assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
-                .map(User::getLoginId)
+                .map(UserResult::loginId)
                 .toList());
     }
 
@@ -118,7 +121,7 @@ class ControllerCoverageTest {
                 auth.service(),
                 new StatisticsService(new PermissionPolicy(), statistics));
 
-        StatisticsReport actualReport = controller.viewStatistics(
+        StatisticsReportResult actualReport = controller.viewStatistics(
                 PROJECT_ID,
                 LocalDate.of(2026, 5, 1),
                 LocalDate.of(2026, 5, 31),
@@ -268,7 +271,7 @@ class ControllerCoverageTest {
                         recommendationService,
                         new Clock()));
 
-        AssignmentOptions options = controller.startAssignment(issue.id());
+        AssignmentOptionsResult options = controller.startAssignment(issue.id());
 
         assertEquals(1, options.devAssigneeCandidates().size());
         assertEquals(1, options.testerVerifierCandidates().size());

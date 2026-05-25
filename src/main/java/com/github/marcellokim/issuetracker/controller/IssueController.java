@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.controller;
 
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
@@ -13,7 +12,6 @@ import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -98,21 +96,24 @@ public final class IssueController {
         return issueService.changePriority(issueId, priority, user.getLoginId());
     }
 
-    public CommentView addComment(long issueId, String content) {
+    public CommentResult addComment(long issueId, String content) {
         User user = requireCurrentUser();
-        return CommentView.from(issueService.addComment(issueId, content, user.getLoginId()));
+        return issueService.addComment(issueId, content, user.getLoginId());
     }
 
-    public List<CommentView> viewComments(long issueId) {
+    public List<CommentResult> viewComments(long issueId) {
         User user = requireCurrentUser();
-        return issueService.viewComments(issueId, user.getLoginId()).stream()
-                .map(CommentView::from)
-                .toList();
+        return issueService.viewComments(issueId, user.getLoginId());
     }
 
     public DependencyResult addDependency(long blockingIssueId, long blockedIssueId) {
         User user = requireCurrentUser();
         return issueService.addDependency(blockingIssueId, blockedIssueId, user.getLoginId());
+    }
+
+    public List<DependencyResult> viewProjectDependencies(long projectId) {
+        User user = requireCurrentUser();
+        return issueService.viewProjectDependencies(projectId, user.getLoginId());
     }
 
     public void removeDependency(String dependencyId) {
@@ -125,15 +126,14 @@ public final class IssueController {
         issueService.deleteComment(issueId, commentId, user.getLoginId());
     }
 
-    public CommentView updateComment(long issueId, long commentId, String content) {
+    public CommentResult updateComment(long issueId, long commentId, String content) {
         User user = requireCurrentUser();
-        return CommentView.from(issueService.updateComment(issueId, commentId, content, user.getLoginId()));
+        return issueService.updateComment(issueId, commentId, content, user.getLoginId());
     }
 
-    public IssueWorkflowActionView viewAvailableActions(long issueId) {
+    public IssueWorkflowActions viewAvailableActions(long issueId) {
         User user = requireCurrentUser();
-        return IssueWorkflowActionView.from(
-                requireIssueWorkflowService().viewAvailableActions(issueId, user.getLoginId()));
+        return requireIssueWorkflowService().viewAvailableActions(issueId, user.getLoginId());
     }
 
     public boolean canUpdateComment(long issueId, long commentId) {
@@ -208,60 +208,4 @@ public final class IssueController {
         return List.copyOf(names);
     }
 
-    public record CommentView(
-            String commentId,
-            String content,
-            CommentPurpose purpose,
-            String writerLoginId,
-            LocalDateTime createdDate,
-            LocalDateTime updatedDate) {
-
-        private static CommentView from(CommentResult result) {
-            Objects.requireNonNull(result, "result");
-            return new CommentView(
-                    result.commentId(),
-                    result.content(),
-                    result.purpose(),
-                    result.writerLoginId(),
-                    result.createdDate(),
-                    result.updatedDate());
-        }
-    }
-
-    public record IssueWorkflowActionView(
-            boolean canUpdateIssue,
-            boolean canChangePriority,
-            boolean canStartAssignment,
-            boolean canAssign,
-            boolean canReassign,
-            boolean canChangeVerifier,
-            boolean canMarkFixed,
-            boolean canRejectFix,
-            boolean canResolve,
-            boolean canClose,
-            boolean canReopen,
-            boolean canAddDependency,
-            boolean canRemoveDependency,
-            boolean canAddComment,
-            boolean canSoftDelete) {
-
-        private static IssueWorkflowActionView from(IssueWorkflowActions actions) {
-            return new IssueWorkflowActionView(
-                    actions.canUpdateIssue(),
-                    actions.canChangePriority(),
-                    actions.canStartAssignment(),
-                    actions.canAssign(),
-                    actions.canReassign(),
-                    actions.canChangeVerifier(),
-                    actions.canMarkFixed(),
-                    actions.canRejectFix(),
-                    actions.canResolve(),
-                    actions.canClose(),
-                    actions.canReopen(),
-                    actions.canAddDependency(),
-                    actions.canRemoveDependency(),
-                    actions.canAddComment(),
-                    actions.canSoftDelete());
-        }
-    }
 }

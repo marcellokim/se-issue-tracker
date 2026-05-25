@@ -35,7 +35,7 @@ class AuthenticationServiceTest {
 
         assertTrue(result.success());
         assertNotNull(result.user());
-        assertEquals(Role.ADMIN, result.user().getRole());
+        assertEquals(Role.ADMIN, result.user().role());
     }
 
     @Test

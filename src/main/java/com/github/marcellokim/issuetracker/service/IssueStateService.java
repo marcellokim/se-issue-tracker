@@ -171,10 +171,14 @@ public final class IssueStateService {
                 issue.id(),
                 issue.getIssueId(),
                 issue.status(),
-                issue.getAssignee(),
-                issue.getVerifier(),
-                issue.getFixer(),
-                issue.getResolver()
+                toUserResult(issue.getAssignee()),
+                toUserResult(issue.getVerifier()),
+                toUserResult(issue.getFixer()),
+                toUserResult(issue.getResolver())
         );
+    }
+
+    private static UserResult toUserResult(User user) {
+        return user == null ? null : UserResult.from(user);
     }
 }

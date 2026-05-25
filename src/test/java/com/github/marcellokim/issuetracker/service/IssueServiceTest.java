@@ -385,7 +385,7 @@ class IssueServiceTest {
         assertNotNull(result.commentId());
         assertEquals(CommentPurpose.GENERAL, result.purpose());
         assertEquals("Looks like a real bug", result.content());
-        assertEquals(dev.getLoginId(), result.writer().getLoginId());
+        assertEquals(dev.getLoginId(), result.writer().loginId());
         assertNotNull(result.createdDate());
     }
 
@@ -559,7 +559,7 @@ class IssueServiceTest {
 
         DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
 
-        service.removeDependency(result.dependencyId(), pl.getLoginId());
+        service.removeDependency(sourceDependencyId(result), pl.getLoginId());
 
         assertFalse(deps.findById(result.id()).isPresent());
         assertFalse(deps.findByDependencyId(result.dependencyId()).isPresent());
@@ -568,6 +568,10 @@ class IssueServiceTest {
         assertEquals(result.dependencyId(), history.previousValue());
         assertNull(history.newValue());
         assertEquals("Dependency removed", history.message());
+    }
+
+    private static String sourceDependencyId(DependencyResult dependency) {
+        return dependency.blockingIssueId() + ":" + dependency.blockedIssueId();
     }
 
     @Test

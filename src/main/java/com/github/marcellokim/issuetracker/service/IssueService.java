@@ -19,8 +19,10 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
@@ -85,14 +87,8 @@ public final class IssueService {
         }
     }
 
-    public Issue viewIssue(long issueId, String currentUserId) {
-        User actor = findUser(currentUserId);
-        permissionPolicy.assertCanViewIssue(actor);
-        return findIssue(issueId);
-    }
-
     public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
-        Issue issue = viewIssue(issueId, currentUserId);
+        Issue issue = findIssueDetail(issueId, currentUserId);
         List<CommentResult> comments = commentRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toCommentResult)
                 .toList();
@@ -216,15 +212,53 @@ public final class IssueService {
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
+    public List<DependencyResult> viewProjectDependencies(long projectId, String currentUserId) {
+        findProject(projectId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        Map<String, IssueDependency> dependenciesById = new LinkedHashMap<>();
+        for (Issue issue : issueRepository.findByProject(projectId)) {
+            for (IssueDependency dependency : dependencyRepository.findByIssueId(issue.id())) {
+                dependenciesById.putIfAbsent(dependency.getDependencyId(), dependency);
+            }
+        }
+        return dependenciesById.values().stream()
+                .map(IssueService::toDependencyResult)
+                .toList();
+    }
+
     public void removeDependency(String dependencyId, String currentUserId) {
-        IssueDependency dependency = dependencyRepository.findByDependencyId(dependencyId)
+        String hashedDependencyId = hashedDependencyId(dependencyId);
+        IssueDependency dependency = dependencyRepository.findByDependencyId(hashedDependencyId)
                 .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         blockedIssue.removeDependency(dependency, actor, now());
-        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(dependencyId, blockedIssue);
+        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(hashedDependencyId, blockedIssue);
+    }
+
+    private static String hashedDependencyId(String dependencyId) {
+        String[] parts = requireDependencySource(dependencyId).split(":", 2);
+        try {
+            long blockingIssueId = Long.parseLong(parts[0].trim());
+            long blockedIssueId = Long.parseLong(parts[1].trim());
+            return IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("dependencyId must be blockingIssueId:blockedIssueId");
+        }
+    }
+
+    private static String requireDependencySource(String dependencyId) {
+        if (dependencyId == null || dependencyId.isBlank()) {
+            throw new IllegalArgumentException("dependencyId must not be blank");
+        }
+        String trimmed = dependencyId.trim();
+        if (!trimmed.contains(":")) {
+            throw new IllegalArgumentException("dependencyId must be blockingIssueId:blockedIssueId");
+        }
+        return trimmed;
     }
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {
@@ -271,6 +305,12 @@ public final class IssueService {
     private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
+    }
+
+    private Issue findIssueDetail(long issueId, String currentUserId) {
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        return findIssue(issueId);
     }
 
     private Comment findComment(long commentId) {
@@ -356,7 +396,7 @@ public final class IssueService {
                 issue.priority(),
                 issue.title(),
                 issue.description(),
-                issue.getReporter());
+                toUserResult(issue.getReporter()));
     }
 
     private static IssueSummary toIssueSummary(Issue issue) {
@@ -387,11 +427,11 @@ public final class IssueService {
                 issue.priority(),
                 issue.title(),
                 issue.description(),
-                issue.getReporter(),
-                issue.getAssignee(),
-                issue.getVerifier(),
-                issue.getFixer(),
-                issue.getResolver(),
+                toUserResult(issue.getReporter()),
+                toUserResult(issue.getAssignee()),
+                toUserResult(issue.getVerifier()),
+                toUserResult(issue.getFixer()),
+                toUserResult(issue.getResolver()),
                 issue.reportedDate(),
                 issue.updatedAt(),
                 comments,
@@ -406,9 +446,13 @@ public final class IssueService {
                 comment.getContent(),
                 comment.getPurpose(),
                 comment.writerId(),
-                comment.getWriter(),
+                toUserResult(comment.getWriter()),
                 comment.getCreatedDate(),
                 comment.getUpdatedDate());
+    }
+
+    private static UserResult toUserResult(User user) {
+        return user == null ? null : UserResult.from(user);
     }
 
     private static HistoryResult toHistoryResult(IssueHistory history) {

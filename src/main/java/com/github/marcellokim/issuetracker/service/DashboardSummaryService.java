@@ -47,12 +47,14 @@ public final class DashboardSummaryService {
                 .toList();
     }
 
-    public List<User> usersFor(User user) {
+    public List<UserResult> usersFor(User user) {
         Objects.requireNonNull(user, "user");
         if (user.getRole() != Role.ADMIN) {
             return List.of();
         }
-        return userRepository.findAll();
+        return userRepository.findAll().stream()
+                .map(UserResult::from)
+                .toList();
     }
 
     public List<IssueSummary> relatedIssuesFor(User user) {

@@ -1,20 +1,21 @@
 package com.github.marcellokim.issuetracker.ui;
 
-import com.github.marcellokim.issuetracker.controller.DashboardController.DashboardProjectView;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.controller.StatisticsController;
-import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
-import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.DailyCountResult;
+import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
+import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.MonthlyCountResult;
+import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
+import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
+import com.github.marcellokim.issuetracker.service.UserResult;
 // import java.time.LocalDate;
 import java.time.YearMonth;
 // import java.time.format.DateTimeParseException;
@@ -47,13 +48,13 @@ import javafx.scene.layout.VBox;
 
 public final class ProjectBoardView {
 
-    private final User currentUser;
+    private final UserResult currentUser;
     private final ProjectController projectController;
     private final IssueController issueController;
     private final DeletedIssueController deletedIssueController;
     private final StatisticsController statisticsController;
     private final Consumer<IssueDetailResult> onIssueSelected;
-    private final Consumer<DashboardProjectView> onProjectSelected;
+    private final Consumer<DashboardProjectSummary> onProjectSelected;
     private final Consumer<String> onDashboardChanged;
     private final BiConsumer<Long, String> onProjectChanged;
     private final TextField projectNameField = field("new project name");
@@ -78,13 +79,13 @@ public final class ProjectBoardView {
     // private final TextField monthlyToField = field("yyyy-mm");
 
     public ProjectBoardView(
-            User currentUser,
+            UserResult currentUser,
             ProjectController projectController,
             IssueController issueController,
             DeletedIssueController deletedIssueController,
             StatisticsController statisticsController,
             Consumer<IssueDetailResult> onIssueSelected,
-            Consumer<DashboardProjectView> onProjectSelected,
+            Consumer<DashboardProjectSummary> onProjectSelected,
             Consumer<String> onDashboardChanged,
             BiConsumer<Long, String> onProjectChanged) {
         this.currentUser = Objects.requireNonNull(currentUser, "currentUser");
@@ -106,9 +107,9 @@ public final class ProjectBoardView {
 
     public Parent dashboard(
             List<IssueSummary> issues,
-            List<DashboardProjectView> projects,
-            List<User> users,
-            Consumer<User> onAccountSelected,
+            List<DashboardProjectSummary> projects,
+            List<UserResult> users,
+            Consumer<UserResult> onAccountSelected,
             Node adminAccountManagement) {
         HBox lists = isAdmin()
                 ? new HBox(16, projectList(projects), userList(users, onAccountSelected))
@@ -128,8 +129,8 @@ public final class ProjectBoardView {
     }
 
     public Parent projectDetail(
-            DashboardProjectView project,
-            List<User> users,
+            DashboardProjectSummary project,
+            List<UserResult> users,
             String message,
             Runnable onBack) {
         Objects.requireNonNull(project, "project");
@@ -173,12 +174,12 @@ public final class ProjectBoardView {
         return root;
     }
 
-    private VBox projectList(List<DashboardProjectView> projects) {
-        VBox list = panel(currentUser.getRole() == Role.ADMIN ? "All Projects" : "My Projects");
+    private VBox projectList(List<DashboardProjectSummary> projects) {
+        VBox list = panel(currentUser.role() == Role.ADMIN ? "All Projects" : "My Projects");
         if (projects.isEmpty()) {
             list.getChildren().add(emptyLabel("No projects to show."));
         }
-        for (DashboardProjectView project : projects) {
+        for (DashboardProjectSummary project : projects) {
             Button button = card("""
                     %s
                     projectId=%d
@@ -195,12 +196,12 @@ public final class ProjectBoardView {
         return scrollablePanel(list);
     }
 
-    private VBox userList(List<User> users, Consumer<User> onAccountSelected) {
+    private VBox userList(List<UserResult> users, Consumer<UserResult> onAccountSelected) {
         VBox list = panel("Users");
         if (users.isEmpty()) {
             list.getChildren().add(emptyLabel("No users to show."));
         }
-        for (User user : users) {
+        for (UserResult user : users) {
             Button button = card(formatAccount(user));
             button.setOnAction(event -> onAccountSelected.accept(user));
             list.getChildren().add(button);
@@ -218,12 +219,12 @@ public final class ProjectBoardView {
                     var project = projectController.createProject(
                             requiredText(projectNameField, "projectName"),
                             text(projectDescriptionField));
-                    return "Project created: " + project.getId() + " / " + project.getName();
+                    return "Project created: " + project.id() + " / " + project.name();
                 }, onDashboardChanged)));
         return box;
     }
 
-    private VBox projectMemberPanel(DashboardProjectView project, List<User> users, String message) {
+    private VBox projectMemberPanel(DashboardProjectSummary project, List<UserResult> users, String message) {
         VBox box = borderedPanel("Project Management");
         box.getChildren().addAll(
                 inputWithMessage(
@@ -250,16 +251,16 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private VBox projectParticipantsList(DashboardProjectView project, List<User> users) {
+    private VBox projectParticipantsList(DashboardProjectSummary project, List<UserResult> users) {
         VBox list = new VBox(8, sectionLabel("Participants"));
         try {
-            List<ProjectMember> participants = projectController.viewProjectParticipants(project.projectId());
+            List<ProjectMemberResult> participants = projectController.viewProjectParticipants(project.projectId());
             if (participants.isEmpty()) {
                 list.getChildren().add(emptyLabel("No participants."));
                 return list;
             }
-            for (ProjectMember participant : participants) {
-                list.getChildren().add(infoCard(formatParticipant(participant, users)));
+            for (ProjectMemberResult participant : participants) {
+                list.getChildren().add(infoCard(formatParticipant(participant)));
             }
         } catch (RuntimeException exception) {
             list.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
@@ -267,7 +268,7 @@ public final class ProjectBoardView {
         return list;
     }
 
-    private String projectMembershipSummary(DashboardProjectView project) {
+    private String projectMembershipSummary(DashboardProjectSummary project) {
         return """
                 Project ID: %d
                 Members: %d
@@ -282,7 +283,7 @@ public final class ProjectBoardView {
                 project.testerCount());
     }
 
-    private VBox registerIssuePanel(DashboardProjectView project, String message) {
+    private VBox registerIssuePanel(DashboardProjectSummary project, String message) {
         VBox box = borderedPanel("Register Issue");
         box.getChildren().addAll(
                 inputWithMessage(
@@ -302,7 +303,7 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private VBox relatedProjectIssuesPanel(DashboardProjectView project) {
+    private VBox relatedProjectIssuesPanel(DashboardProjectSummary project) {
         VBox box = borderedPanel("My Related Issues");
         try {
             List<IssueSummary> issues = issueController.viewRelatedProjectIssues(project.projectId());
@@ -319,7 +320,7 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private VBox projectIssueSearchPanel(DashboardProjectView project) {
+    private VBox projectIssueSearchPanel(DashboardProjectSummary project) {
         VBox box = borderedPanel("Project Issues");
         VBox results = new VBox(10);
         box.getChildren().addAll(
@@ -340,31 +341,82 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private VBox dependencyManagementPanel(DashboardProjectView project, String message) {
+    private VBox dependencyManagementPanel(DashboardProjectSummary project, String message) {
         VBox box = borderedPanel("Dependency Management");
-        box.getChildren().addAll(
+        VBox controls = new VBox(
+                10,
                 inputWithMessage(
-                        fieldsGrid(
-                                "Blocking Issue ID", blockingIssueIdField,
-                                "Blocked Issue ID", blockedIssueIdField,
-                                "Dependency ID", dependencyIdField),
+                                fieldsGrid(
+                                        "Blocking Issue ID", blockingIssueIdField,
+                                        "Blocked Issue ID", blockedIssueIdField,
+                                "Dependency ID (Remove)", dependencyIdField),
                         message),
                 actionRow(
                         actionButton("Add Dependency", isProjectLead(), () -> {
+                            long blockingIssueId = requiredLong(blockingIssueIdField, "blockingIssueId");
+                            long blockedIssueId = requiredLong(blockedIssueIdField, "blockedIssueId");
                             var dependency = issueController.addDependency(
-                                    requiredLong(blockingIssueIdField, "blockingIssueId"),
-                                    requiredLong(blockedIssueIdField, "blockedIssueId"));
-                            dependencyIdField.setText(dependency.dependencyId());
-                            return "Dependency added: " + dependency.dependencyId();
+                                    blockingIssueId,
+                                    blockedIssueId);
+                            dependencyIdField.setText(displayDependencyId(dependency));
+                            return "Dependency added: " + displayDependencyId(dependency);
                         }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage)),
                         actionButton("Remove Dependency", isProjectLead(), () -> {
-                            issueController.removeDependency(requiredText(dependencyIdField, "dependencyId"));
+                            removeDependencyFromInputs();
                             return "Dependency removed.";
                         }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage))));
+        HBox content = new HBox(24, controls, dependencyList(project));
+        content.setAlignment(Pos.TOP_LEFT);
+        box.getChildren().add(content);
         return box;
     }
 
-    private VBox deletedIssueManagementPanel(DashboardProjectView project, String message) {
+    private ScrollPane dependencyList(DashboardProjectSummary project) {
+        VBox list = new VBox(8, new Label("Current Dependencies"));
+        list.setPadding(new Insets(6));
+        try {
+            List<DependencyResult> dependencies = issueController.viewProjectDependencies(project.projectId());
+            if (dependencies.isEmpty()) {
+                list.getChildren().add(emptyLabel("No dependencies in this project."));
+            } else {
+                for (DependencyResult dependency : dependencies) {
+                    list.getChildren().add(dependencyCard(dependency));
+                }
+            }
+        } catch (RuntimeException exception) {
+            list.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
+        }
+        ScrollPane scrollPane = new ScrollPane(list);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefViewportWidth(460);
+        scrollPane.setPrefViewportHeight(170);
+        return scrollPane;
+    }
+
+    private static Label dependencyCard(DependencyResult dependency) {
+        Label label = new Label("""
+                Dependency ID: %s
+                Blocking Issue ID: %d
+                Blocked Issue ID: %d
+                """.formatted(
+                displayDependencyId(dependency),
+                dependency.blockingIssueId(),
+                dependency.blockedIssueId()));
+        label.setWrapText(true);
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setStyle("-fx-font-size: 16px; -fx-border-color: #d1d5db; -fx-padding: 8; -fx-background-color: #f9fafb;");
+        return label;
+    }
+
+    private void removeDependencyFromInputs() {
+        issueController.removeDependency(requiredText(dependencyIdField, "dependencyId"));
+    }
+
+    private static String displayDependencyId(DependencyResult dependency) {
+        return dependency.blockingIssueId() + ":" + dependency.blockedIssueId();
+    }
+
+    private VBox deletedIssueManagementPanel(DashboardProjectSummary project, String message) {
         VBox box = borderedPanel("Deleted Issue Management");
         box.getChildren().add(inputWithMessage(
                 fieldsGrid("Reason", deletedIssueReasonArea),
@@ -388,7 +440,7 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private HBox deletedIssueCard(DashboardProjectView project, IssueSummary issue) {
+    private HBox deletedIssueCard(DashboardProjectSummary project, IssueSummary issue) {
         Label detail = infoCard("""
                 ID=%d / issueId=%s
                 %s
@@ -414,7 +466,7 @@ public final class ProjectBoardView {
         return row;
     }
 
-    private void renderIssueSearchResults(DashboardProjectView project, VBox results) {
+    private void renderIssueSearchResults(DashboardProjectSummary project, VBox results) {
         results.getChildren().clear();
         try {
             List<IssueSummary> issues = issueController.searchIssues(
@@ -469,7 +521,7 @@ public final class ProjectBoardView {
         return button;
     }
 
-    private VBox statisticsPanel(DashboardProjectView project) {
+    private VBox statisticsPanel(DashboardProjectSummary project) {
         VBox box = borderedPanel("Statistics");
         if (!statisticsController.canViewStatistics(project.projectId())) {
             box.getChildren().add(emptyLabel("Statistics are not available for this account."));
@@ -505,11 +557,11 @@ public final class ProjectBoardView {
     }
 
     private boolean isAdmin() {
-        return currentUser.getRole() == Role.ADMIN;
+        return currentUser.role() == Role.ADMIN;
     }
 
     private boolean isProjectLead() {
-        return currentUser.getRole() == Role.PL;
+        return currentUser.role() == Role.PL;
     }
 
     private static VBox borderedPanel(String title) {
@@ -652,32 +704,24 @@ public final class ProjectBoardView {
         return field.getText() == null ? "" : field.getText().trim();
     }
 
-    private static String formatAccount(User user) {
+    private static String formatAccount(UserResult user) {
         return "%s / %s / %s / %s".formatted(
-                user.getLoginId(),
-                user.getName(),
-                user.getRole(),
-                user.isActive() ? "ACTIVE" : "INACTIVE");
+                user.loginId(),
+                user.name(),
+                user.role(),
+                user.active() ? "ACTIVE" : "INACTIVE");
     }
 
-    private static String formatParticipant(ProjectMember participant, List<User> users) {
-        return users.stream()
-                .filter(user -> user.getLoginId().equals(participant.userId()))
-                .findFirst()
-                .map(user -> """
-                        %s / %s / %s
-                        joined=%s
-                        """.formatted(
-                        user.getLoginId(),
-                        user.getName(),
-                        user.getRole(),
-                        participant.joinedAt()))
-                .orElse("""
-                        %s / unknown / unknown
-                        joined=%s
-                        """.formatted(
-                        participant.userId(),
-                        participant.joinedAt()));
+    private static String formatParticipant(ProjectMemberResult participant) {
+        return """
+                %s / %s / %s / %s
+                joined=%s
+                """.formatted(
+                participant.userId(),
+                participant.userName(),
+                participant.role(),
+                participant.active() ? "ACTIVE" : "INACTIVE",
+                participant.joinedAt());
     }
 
     private IssueStatus selectedStatus() {
@@ -705,7 +749,7 @@ public final class ProjectBoardView {
         return List.copyOf(items);
     }
 
-    private static VBox statisticsCharts(StatisticsReport report, int deletedIssueCount) {
+    private static VBox statisticsCharts(StatisticsReportResult report, int deletedIssueCount) {
         VBox charts = new VBox(16);
         charts.getChildren().add(summaryCards(report, deletedIssueCount));
         charts.getChildren().addAll(
@@ -727,7 +771,7 @@ public final class ProjectBoardView {
         return charts;
     }
 
-    private static HBox summaryCards(StatisticsReport report, int deletedIssueCount) {
+    private static HBox summaryCards(StatisticsReportResult report, int deletedIssueCount) {
         HBox row = new HBox(12);
         row.getChildren().addAll(
                 metricCard("Total Issues", totalVisibleIssues(report)),
@@ -756,15 +800,15 @@ public final class ProjectBoardView {
         return row;
     }
 
-    private static int totalVisibleIssues(StatisticsReport report) {
+    private static int totalVisibleIssues(StatisticsReportResult report) {
         return report.statusCounts().values().stream()
                 .mapToInt(Integer::intValue)
                 .sum();
     }
 
-    private static int totalDailyCounts(List<DailyIssueCount> counts) {
+    private static int totalDailyCounts(List<DailyCountResult> counts) {
         return counts.stream()
-                .mapToInt(DailyIssueCount::count)
+                .mapToInt(DailyCountResult::count)
                 .sum();
     }
 
@@ -784,7 +828,7 @@ public final class ProjectBoardView {
         return chart;
     }
 
-    private static List<PieChart.Data> statusPieData(StatisticsReport report, int deletedIssueCount) {
+    private static List<PieChart.Data> statusPieData(StatisticsReportResult report, int deletedIssueCount) {
         List<PieChart.Data> data = new ArrayList<>();
         for (IssueStatus status : IssueStatus.values()) {
             int count = status == IssueStatus.DELETED
@@ -797,7 +841,7 @@ public final class ProjectBoardView {
         return data;
     }
 
-    private static List<PieChart.Data> priorityPieData(StatisticsReport report) {
+    private static List<PieChart.Data> priorityPieData(StatisticsReportResult report) {
         List<PieChart.Data> data = new ArrayList<>();
         for (Priority priority : Priority.values()) {
             int count = report.priorityCounts().getOrDefault(priority, 0);
@@ -812,19 +856,19 @@ public final class ProjectBoardView {
         return label + ": " + count;
     }
 
-    private static BarChart<String, Number> dailyBarChart(String title, List<DailyIssueCount> counts) {
+    private static BarChart<String, Number> dailyBarChart(String title, List<DailyCountResult> counts) {
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Count");
-        for (DailyIssueCount count : counts) {
+        for (DailyCountResult count : counts) {
             series.getData().add(new XYChart.Data<>(count.date().toString(), count.count()));
         }
         return singleSeriesBarChart(title, series);
     }
 
-    private static BarChart<String, Number> monthlyBarChart(String title, List<MonthlyIssueCount> counts) {
+    private static BarChart<String, Number> monthlyBarChart(String title, List<MonthlyCountResult> counts) {
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Count");
-        for (MonthlyIssueCount count : counts) {
+        for (MonthlyCountResult count : counts) {
             series.getData().add(new XYChart.Data<>(count.month().toString(), count.count()));
         }
         return singleSeriesBarChart(title, series);
@@ -842,7 +886,7 @@ public final class ProjectBoardView {
         return chart;
     }
 
-    private static BarChart<String, Number> monthlyStatusBarChart(StatisticsReport report) {
+    private static BarChart<String, Number> monthlyStatusBarChart(StatisticsReportResult report) {
         BarChart<String, Number> chart = barChart("Monthly Status Counts");
         for (IssueStatus status : IssueStatus.values()) {
             if (status == IssueStatus.DELETED) {
@@ -863,7 +907,7 @@ public final class ProjectBoardView {
         return chart;
     }
 
-    private static BarChart<String, Number> monthlyPriorityBarChart(StatisticsReport report) {
+    private static BarChart<String, Number> monthlyPriorityBarChart(StatisticsReportResult report) {
         BarChart<String, Number> chart = barChart("Monthly Priority Counts");
         for (Priority priority : Priority.values()) {
             XYChart.Series<String, Number> series = new XYChart.Series<>();

@@ -1,10 +1,11 @@
 package com.github.marcellokim.issuetracker.ui;
 
 import com.github.marcellokim.issuetracker.controller.DashboardController;
-import com.github.marcellokim.issuetracker.controller.DashboardController.DashboardProjectView;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -17,13 +18,13 @@ public final class DemoDashboardPresenter {
         this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
     }
 
-    public String buildSummary(User user) {
+    public String buildSummary(UserResult user) {
         Objects.requireNonNull(user, "user");
         StringBuilder summary = new StringBuilder();
         summary.append("Logged in as ")
-                .append(user.getLoginId())
+                .append(user.loginId())
                 .append(" / ")
-                .append(user.getRole())
+                .append(user.role())
                 .append(System.lineSeparator())
                 .append(System.lineSeparator());
 
@@ -49,17 +50,17 @@ public final class DemoDashboardPresenter {
                     .append(System.lineSeparator());
         }
 
-        if (user.getRole() == com.github.marcellokim.issuetracker.domain.Role.ADMIN) {
+        if (user.role() == Role.ADMIN) {
             summary.append("Users").append(System.lineSeparator());
             summary.append("=====").append(System.lineSeparator());
             for (var account : dashboardController.viewUsers()) {
-                summary.append(account.getLoginId())
+                summary.append(account.loginId())
                         .append(" / ")
-                        .append(account.getName())
+                        .append(account.name())
                         .append(" / ")
-                        .append(account.getRole())
+                        .append(account.role())
                         .append(" / ")
-                        .append(account.isActive() ? "ACTIVE" : "INACTIVE")
+                        .append(account.active() ? "ACTIVE" : "INACTIVE")
                         .append(System.lineSeparator());
             }
         }
@@ -71,11 +72,11 @@ public final class DemoDashboardPresenter {
         return dashboardController.viewRelatedIssues();
     }
 
-    public List<DashboardProjectView> projectSummaries() {
+    public List<DashboardProjectSummary> projectSummaries() {
         return dashboardController.viewProjects();
     }
 
-    public List<User> users() {
+    public List<UserResult> users() {
         return dashboardController.viewUsers();
     }
 }

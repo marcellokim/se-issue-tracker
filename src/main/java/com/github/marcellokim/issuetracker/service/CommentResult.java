@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
-import com.github.marcellokim.issuetracker.domain.User;
 import java.time.LocalDateTime;
 
 public record CommentResult(
@@ -9,7 +8,7 @@ public record CommentResult(
         String content,
         CommentPurpose purpose,
         String writerLoginId,
-        User writer,
+        UserResult writer,
         LocalDateTime createdDate,
         LocalDateTime updatedDate
 ) {

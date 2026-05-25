@@ -1,36 +1,39 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import java.util.List;
 import java.util.Objects;
 
 public final class ProjectDetail {
 
-    private final Project project;
-    private final List<ProjectMember> participants;
-    private final List<Issue> issues;
+    private final ProjectResult project;
+    private final List<ProjectMemberResult> participants;
+    private final List<IssueSummary> issues;
 
-    private ProjectDetail(Project project, List<ProjectMember> participants, List<Issue> issues) {
+    private ProjectDetail(
+            ProjectResult project,
+            List<ProjectMemberResult> participants,
+            List<IssueSummary> issues) {
         this.project = Objects.requireNonNull(project, "project");
         this.participants = List.copyOf(participants);
         this.issues = List.copyOf(issues);
     }
 
-    public static ProjectDetail create(Project project, List<ProjectMember> participants, List<Issue> issues) {
+    public static ProjectDetail create(
+            ProjectResult project,
+            List<ProjectMemberResult> participants,
+            List<IssueSummary> issues) {
         return new ProjectDetail(project, participants, issues);
     }
 
-    public Project project() {
+    public ProjectResult project() {
         return project;
     }
 
-    public List<ProjectMember> participants() {
+    public List<ProjectMemberResult> participants() {
         return participants;
     }
 
-    public List<Issue> issues() {
+    public List<IssueSummary> issues() {
         return issues;
     }
 }

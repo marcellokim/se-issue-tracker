@@ -42,7 +42,7 @@ public final class AccountService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public User createAccount(
+    public UserResult createAccount(
             String loginId,
             String name,
             String password,
@@ -63,10 +63,10 @@ public final class AccountService {
                 passwordHasher.hash(password),
                 newRole,
                 now);
-        return userRepository.save(user);
+        return UserResult.from(userRepository.save(user));
     }
 
-    public User updateAccount(String loginId, String name, Role role, User actor) {
+    public UserResult updateAccount(String loginId, String name, Role role, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
@@ -78,20 +78,20 @@ public final class AccountService {
         LocalDateTime now = clock.now();
         target.rename(name, now);
         target.changeRole(newRole, now);
-        return userRepository.save(target);
+        return UserResult.from(userRepository.save(target));
     }
 
-    public User renameAccount(String loginId, String name, User actor) {
+    public UserResult renameAccount(String loginId, String name, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         target.rename(name, clock.now());
-        return userRepository.save(target);
+        return UserResult.from(userRepository.save(target));
     }
 
-    public User changeAccountRole(String loginId, Role role, User actor) {
+    public UserResult changeAccountRole(String loginId, Role role, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
@@ -101,27 +101,27 @@ public final class AccountService {
         requireNonAdminAccount(loginId, newRole);
         rejectRoleChangeWithProjectResponsibility(target, newRole);
         target.changeRole(newRole, clock.now());
-        return userRepository.save(target);
+        return UserResult.from(userRepository.save(target));
     }
 
-    public User activateAccount(String loginId, User actor) {
+    public UserResult activateAccount(String loginId, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         target.activate(clock.now());
-        return userRepository.save(target);
+        return UserResult.from(userRepository.save(target));
     }
 
-    public User deactivateAccount(String loginId, User actor) {
+    public UserResult deactivateAccount(String loginId, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         target.deactivate(clock.now());
-        return userRepository.save(target);
+        return UserResult.from(userRepository.save(target));
     }
 
     private static void requireNonAdminAccount(String loginId, Role role) {

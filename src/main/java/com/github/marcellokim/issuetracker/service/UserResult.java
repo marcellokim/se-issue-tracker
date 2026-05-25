@@ -1,11 +1,11 @@
-package com.github.marcellokim.issuetracker.controller;
+package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-public record UserResponse(
+public record UserResult(
         String loginId,
         String name,
         Role role,
@@ -14,21 +14,19 @@ public record UserResponse(
         LocalDateTime updatedAt
 ) {
 
-    public UserResponse {
+    public UserResult {
         if (loginId == null || loginId.isBlank()) {
             throw new IllegalArgumentException("loginId must not be blank");
         }
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
-        Objects.requireNonNull(role, "role");
-        Objects.requireNonNull(createdAt, "createdAt");
-        Objects.requireNonNull(updatedAt, "updatedAt");
+        role = Objects.requireNonNull(role, "role");
     }
 
-    public static UserResponse from(User user) {
+    public static UserResult from(User user) {
         Objects.requireNonNull(user, "user");
-        return new UserResponse(
+        return new UserResult(
                 user.getLoginId(),
                 user.getName(),
                 user.getRole(),

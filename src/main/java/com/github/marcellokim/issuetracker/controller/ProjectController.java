@@ -1,10 +1,10 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.ProjectDetail;
+import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
+import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import java.util.List;
 import java.util.Objects;
@@ -28,17 +28,17 @@ public final class ProjectController {
         this.projectService = Objects.requireNonNull(projectService, "projectService");
     }
 
-    public List<Project> viewProjects() {
+    public List<ProjectResult> viewProjects() {
         User user = requireCurrentUser();
         return projectService.viewProjects(user.getLoginId());
     }
 
-    public Project viewProject(long projectId) {
+    public ProjectResult viewProject(long projectId) {
         User user = requireCurrentUser();
         return projectService.viewProject(projectId, user.getLoginId());
     }
 
-    public List<ProjectMember> viewProjectParticipants(long projectId) {
+    public List<ProjectMemberResult> viewProjectParticipants(long projectId) {
         User user = requireCurrentUser();
         return projectService.viewProjectParticipants(projectId, user.getLoginId());
     }
@@ -48,7 +48,7 @@ public final class ProjectController {
         return projectService.viewProjectDetail(projectId, user.getLoginId());
     }
 
-    public Project createProject(String name, String description) {
+    public ProjectResult createProject(String name, String description) {
         User user = requireCurrentUser();
         return projectService.createProject(name, description, user.getLoginId());
     }

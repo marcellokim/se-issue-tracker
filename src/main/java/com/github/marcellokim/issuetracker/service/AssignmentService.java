@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -23,8 +22,7 @@ public final class AssignmentService {
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             AssignmentRecommendationService recommendationService,
-            Clock clock
-    ) {
+            Clock clock) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
@@ -32,7 +30,7 @@ public final class AssignmentService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public AssignmentOptions startAssignment(long issueId, String currentUserId) {
+    public AssignmentOptionsResult startAssignment(long issueId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
         assertCanStartAssignment(actor, issue);
@@ -139,7 +137,11 @@ public final class AssignmentService {
                 issue.id(),
                 issue.getIssueId(),
                 issue.status(),
-                issue.getAssignee(),
-                issue.getVerifier());
+                toUserResult(issue.getAssignee()),
+                toUserResult(issue.getVerifier()));
+    }
+
+    private static UserResult toUserResult(User user) {
+        return user == null ? null : UserResult.from(user);
     }
 }

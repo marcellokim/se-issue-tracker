@@ -2,7 +2,6 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.User;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,11 +13,11 @@ public record IssueDetailResult(
         Priority priority,
         String title,
         String description,
-        User reporter,
-        User assignee,
-        User verifier,
-        User fixer,
-        User resolver,
+        UserResult reporter,
+        UserResult assignee,
+        UserResult verifier,
+        UserResult fixer,
+        UserResult resolver,
         LocalDateTime reportedDate,
         LocalDateTime updatedAt,
         List<CommentResult> comments,

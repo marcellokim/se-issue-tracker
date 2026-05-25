@@ -1,9 +1,8 @@
 package com.github.marcellokim.issuetracker.ui;
 
 import com.github.marcellokim.issuetracker.controller.AccountController;
-import com.github.marcellokim.issuetracker.controller.UserResponse;
 import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -47,15 +46,15 @@ public final class AdminDashboardView {
         return root;
     }
 
-    public void selectAccount(User account) {
+    public void selectAccount(UserResult account) {
         Objects.requireNonNull(account, "account");
-        renameLoginIdField.setText(account.getLoginId());
-        renameNameField.setText(account.getName());
-        roleLoginIdField.setText(account.getLoginId());
-        if (account.getRole() != Role.ADMIN) {
-            roleUpdateBox.setValue(account.getRole());
+        renameLoginIdField.setText(account.loginId());
+        renameNameField.setText(account.name());
+        roleLoginIdField.setText(account.loginId());
+        if (account.role() != Role.ADMIN) {
+            roleUpdateBox.setValue(account.role());
         }
-        activationLoginIdField.setText(account.getLoginId());
+        activationLoginIdField.setText(account.loginId());
     }
 
     private void configure() {
@@ -71,7 +70,7 @@ public final class AdminDashboardView {
                         "Password", createPasswordField,
                         "Role", createRoleBox),
                 actionRow(button("Create Account", () -> {
-                    UserResponse user = accountController.createAccount(
+                    UserResult user = accountController.createAccount(
                             requiredText(createLoginIdField, "loginId"),
                             requiredText(createNameField, "name"),
                             requiredText(createPasswordField, "password"),
@@ -86,7 +85,7 @@ public final class AdminDashboardView {
                         "Login ID", renameLoginIdField,
                         "Name", renameNameField),
                 actionRow(button("Rename Account", () -> {
-                    UserResponse user = accountController.renameAccount(
+                    UserResult user = accountController.renameAccount(
                             requiredText(renameLoginIdField, "loginId"),
                             requiredText(renameNameField, "name"));
                     return "Account renamed: " + formatAccount(user);
@@ -98,7 +97,7 @@ public final class AdminDashboardView {
                         "Login ID", roleLoginIdField,
                         "Role", roleUpdateBox),
                 actionRow(button("Change Role", () -> {
-                    UserResponse user = accountController.changeAccountRole(
+                    UserResult user = accountController.changeAccountRole(
                             requiredText(roleLoginIdField, "loginId"),
                             roleUpdateBox.getValue());
                     return "Account role changed: " + formatAccount(user);
@@ -109,12 +108,12 @@ public final class AdminDashboardView {
                 fieldsGrid("Login ID", activationLoginIdField),
                 actionRow(
                         button("Activate", () -> {
-                            UserResponse user = accountController.activateAccount(
+                            UserResult user = accountController.activateAccount(
                                     requiredText(activationLoginIdField, "loginId"));
                             return "Account activated: " + formatAccount(user);
                         }),
                         button("Deactivate", () -> {
-                            UserResponse user = accountController.deactivateAccount(
+                            UserResult user = accountController.deactivateAccount(
                                     requiredText(activationLoginIdField, "loginId"));
                             return "Account deactivated: " + formatAccount(user);
                         })));
@@ -192,7 +191,7 @@ public final class AdminDashboardView {
         return value.trim();
     }
 
-    private static String formatAccount(UserResponse user) {
+    private static String formatAccount(UserResult user) {
         return "%s / %s / %s / %s".formatted(
                 user.loginId(),
                 user.name(),

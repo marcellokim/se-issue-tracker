@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.github.marcellokim.issuetracker.controller.IssueController.CommentView;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -21,6 +20,7 @@ import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
@@ -69,7 +69,7 @@ class IssueControllerTest {
         var issue = persistedIssue();
         var controller = authenticatedController(dev, issue);
 
-        CommentView result = controller.addComment(ISSUE_ID, "Confirmed this bug");
+        CommentResult result = controller.addComment(ISSUE_ID, "Confirmed this bug");
 
         assertEquals("Confirmed this bug", result.content());
         assertEquals(dev.getLoginId(), result.writerLoginId());
@@ -89,7 +89,7 @@ class IssueControllerTest {
                 now));
         var controller = authenticatedController(dev, comments, issue);
 
-        List<CommentView> results = controller.viewComments(ISSUE_ID);
+        List<CommentResult> results = controller.viewComments(ISSUE_ID);
 
         assertEquals(1, results.size());
         assertEquals(String.valueOf(COMMENT_ID), results.getFirst().commentId());

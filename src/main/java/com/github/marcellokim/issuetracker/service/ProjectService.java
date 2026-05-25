@@ -43,43 +43,49 @@ public final class ProjectService {
         return new ProjectService(projectRepository, issueRepository, userRepository, permissionPolicy, clock);
     }
 
-    public List<Project> viewProjects(String currentUserId) {
+    public List<ProjectResult> viewProjects(String currentUserId) {
         requireProjectAdmin(currentUserId);
-        return projectRepository.findAll();
+        return projectRepository.findAll().stream()
+                .map(ProjectResult::from)
+                .toList();
     }
 
-    public Project viewProject(long projectId, String currentUserId) {
+    public ProjectResult viewProject(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
-        return findProject(projectId);
+        return ProjectResult.from(findProject(projectId));
     }
 
-    public List<ProjectMember> viewProjectParticipants(long projectId, String currentUserId) {
+    public List<ProjectMemberResult> viewProjectParticipants(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
         findProject(projectId);
-        return projectRepository.findParticipants(projectId);
+        return participantResults(projectId);
     }
 
     public ProjectDetail viewProjectDetail(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
         Project project = findProject(projectId);
-        List<ProjectMember> participants = projectRepository.findParticipants(projectId);
-        return ProjectDetail.create(project, participants, issueRepository.findByProject(projectId));
+        return ProjectDetail.create(
+                ProjectResult.from(project),
+                participantResults(projectId),
+                issueRepository.findByProject(projectId).stream()
+                        .map(ProjectService::toIssueSummary)
+                        .toList());
     }
 
-    public Project createProject(String name, String description, String currentUserId) {
+    public ProjectResult createProject(String name, String description, String currentUserId) {
         User admin = requireProjectAdmin(currentUserId);
         String projectName = requireProjectName(name);
         rejectDuplicateProjectName(projectName);
 
         LocalDateTime now = clock.now();
-        return projectRepository.save(Project.create(
+        return ProjectResult.from(projectRepository.save(Project.create(
                 projectName,
                 description,
                 admin.getLoginId(),
-                now));
+                now)));
     }
 
     public void deleteProject(long projectId, String currentUserId) {
@@ -138,6 +144,12 @@ public final class ProjectService {
         String requiredLoginId = requireText(loginId, "loginId");
         return userRepository.findById(requiredLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+    }
+
+    private List<ProjectMemberResult> participantResults(long projectId) {
+        return projectRepository.findParticipants(projectId).stream()
+                .map(member -> ProjectMemberResult.from(member, findUser(member.userId())))
+                .toList();
     }
 
     private void rejectDuplicateProjectName(String projectName) {
@@ -199,6 +211,21 @@ public final class ProjectService {
         return participants.stream()
                 .map(ProjectMember::userId)
                 .anyMatch(loginId::equals);
+    }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.projectId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt());
     }
 
 }

@@ -4,16 +4,16 @@ import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
-import com.github.marcellokim.issuetracker.controller.DashboardController.DashboardProjectView;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.List;
 import java.util.Objects;
 import javafx.geometry.Insets;
@@ -46,7 +46,7 @@ public final class LoginView {
     private final BorderPane root = new BorderPane();
     private final GridPane loginForm = loginForm();
 
-    private User currentUser;
+    private UserResult currentUser;
     private AuthenticationController authenticationController;
     private AccountController accountController;
     private DashboardController dashboardController;
@@ -57,10 +57,10 @@ public final class LoginView {
     private DeletedIssueController deletedIssueController;
     private StatisticsController statisticsController;
     private List<IssueSummary> currentIssues = List.of();
-    private List<DashboardProjectView> currentProjects = List.of();
-    private List<User> currentUsers = List.of();
+    private List<DashboardProjectSummary> currentProjects = List.of();
+    private List<UserResult> currentUsers = List.of();
     private IssueDetailResult selectedIssue;
-    private DashboardProjectView selectedProject;
+    private DashboardProjectSummary selectedProject;
     private String dashboardMessage = "";
     private String issueDetailMessage = "";
     private String projectDetailMessage = "";
@@ -127,7 +127,7 @@ public final class LoginView {
         statusLabel.setText(message);
     }
 
-    public void showSuccess(User user) {
+    public void showSuccess(UserResult user) {
         currentUser = user;
         selectedIssue = null;
         selectedProject = null;
@@ -249,15 +249,15 @@ public final class LoginView {
 
     private VBox dashboardView() {
         currentUserLabel.setText("Login: %s / %s / %s".formatted(
-                currentUser.getLoginId(),
-                currentUser.getName(),
-                currentUser.getRole()));
+                currentUser.loginId(),
+                currentUser.name(),
+                currentUser.role()));
         logoutButton.setVisible(true);
         logoutButton.setManaged(true);
 
         Node accountManagement = null;
         adminDashboardView = null;
-        if (currentUser.getRole() == Role.ADMIN) {
+        if (currentUser.role() == Role.ADMIN) {
             adminDashboardView = new AdminDashboardView(accountController, this::refreshDashboard);
             accountManagement = adminDashboardView.root();
         }
@@ -282,7 +282,7 @@ public final class LoginView {
         return box;
     }
 
-    private void selectAccount(User account) {
+    private void selectAccount(UserResult account) {
         if (adminDashboardView != null) {
             adminDashboardView.selectAccount(account);
         }
@@ -321,7 +321,7 @@ public final class LoginView {
         root.setCenter(scroll(detailView.root()));
     }
 
-    private void selectProject(DashboardProjectView project) {
+    private void selectProject(DashboardProjectSummary project) {
         selectedProject = project;
         selectedIssue = null;
         projectDetailMessage = "";
@@ -342,7 +342,7 @@ public final class LoginView {
         showProjectPage(selectedProject);
     }
 
-    private void showProjectPage(DashboardProjectView project) {
+    private void showProjectPage(DashboardProjectSummary project) {
         ProjectBoardView boardView = new ProjectBoardView(
                 currentUser,
                 projectController,

@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import java.time.LocalDate;
@@ -19,7 +18,7 @@ public final class StatisticsService {
         this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
     }
 
-    public StatisticsReport viewStatistics(
+    public StatisticsReportResult viewStatistics(
             long projectId,
             LocalDate dailyFromInclusive,
             LocalDate dailyToInclusive,
@@ -34,12 +33,12 @@ public final class StatisticsService {
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
-        return statisticsRepository.buildReport(
+        return StatisticsReportResult.from(statisticsRepository.buildReport(
                 projectId,
                 dailyFromInclusive,
                 dailyToInclusive,
                 monthlyFromInclusive,
-                monthlyToInclusive);
+                monthlyToInclusive));
     }
 
     public boolean canViewStatistics(long projectId, User actor) {
