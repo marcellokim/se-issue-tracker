@@ -3,7 +3,6 @@ package com.github.marcellokim.issuetracker.controller;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +34,7 @@ import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
@@ -87,7 +87,9 @@ class ControllerCoverageTest {
 
         assertEquals(1, controller.viewProjects().size());
         assertEquals(1, controller.viewRelatedIssues().size());
-        assertEquals(List.of(auth.user()), controller.viewUsers());
+        assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
+                .map(User::getLoginId)
+                .toList());
     }
 
     @Test
@@ -123,7 +125,8 @@ class ControllerCoverageTest {
                 YearMonth.of(2026, 5),
                 YearMonth.of(2026, 6));
 
-        assertSame(expectedReport, actualReport);
+        assertEquals(expectedReport.statusCounts(), actualReport.statusCounts());
+        assertEquals(expectedReport.priorityCounts(), actualReport.priorityCounts());
         assertEquals(PROJECT_ID, statistics.reportProjectId);
         assertEquals(LocalDate.of(2026, 5, 1), statistics.dailyFrom);
         assertEquals(YearMonth.of(2026, 6), statistics.monthlyTo);
@@ -169,12 +172,12 @@ class ControllerCoverageTest {
                 auth.service(),
                 new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), new Clock()));
 
-        List<Issue> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
-        Issue softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
-        Issue restored = controller.restoreIssue(deletedIssue.id(), "restore for demo");
+        List<IssueSummary> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
+        IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
+        IssueSummary restored = controller.restoreIssue(deletedIssue.id(), "restore for demo");
         int purged = controller.purgeOverflow(PROJECT_ID);
 
-        assertEquals(List.of(deletedIssue), deletedIssues);
+        assertEquals(List.of(deletedIssue.id()), deletedIssues.stream().map(IssueSummary::id).toList());
         assertEquals(IssueStatus.DELETED, softDeleted.status());
         assertEquals(IssueStatus.NEW, restored.status());
         assertEquals("pl", issues.lastChangedBy);

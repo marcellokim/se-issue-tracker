@@ -14,6 +14,6 @@ public record AuthenticationResult(
     }
 
     public static AuthenticationResult failure(String message) {
-        return new AuthenticationResult(false, null, message);
+        return new AuthenticationResult(false, null, Objects.requireNonNull(message, "message"));
     }
 }

@@ -111,6 +111,18 @@ public final class IssueService {
             IssueStatus status,
             Priority priority,
             String currentUserId) {
+        return searchIssues(projectId, keyword, status, priority, null, null, null, currentUserId);
+    }
+
+    public List<IssueSummary> searchIssues(
+            long projectId,
+            String keyword,
+            IssueStatus status,
+            Priority priority,
+            String reporterId,
+            String assigneeId,
+            String verifierId,
+            String currentUserId) {
         findProject(projectId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
@@ -118,9 +130,9 @@ public final class IssueService {
                 projectId,
                 status,
                 priority,
-                null,
-                null,
-                null,
+                optionalText(reporterId),
+                optionalText(assigneeId),
+                optionalText(verifierId),
                 keyword,
                 null,
                 null,
@@ -130,7 +142,7 @@ public final class IssueService {
                 .toList();
     }
 
-    public List<Issue> viewRelatedProjectIssues(long projectId, String currentUserId) {
+    public List<IssueSummary> viewRelatedProjectIssues(long projectId, String currentUserId) {
         findProject(projectId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
@@ -147,6 +159,7 @@ public final class IssueService {
                 null,
                 false)).stream()
                 .filter(issue -> actor.getRole() == Role.PL || isAssignedParticipant(issue, actor.getLoginId()))
+                .map(IssueService::toIssueSummary)
                 .toList();
     }
 
@@ -322,6 +335,13 @@ public final class IssueService {
         if (comment.issueId() != issue.id()) {
             throw new IllegalArgumentException("Comment does not belong to the issue.");
         }
+    }
+
+    private static String optionalText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private LocalDateTime now() {

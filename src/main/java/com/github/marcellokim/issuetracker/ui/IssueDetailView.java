@@ -302,7 +302,7 @@ public final class IssueDetailView {
                     var deleted = deletedIssueController.deleteIssue(
                             issue.id(),
                             requiredText(reasonArea, "reason"));
-                    return "Issue deleted: " + deleted.getIssueId() + " / " + deleted.status();
+                    return "Issue deleted: " + deleted.issueId() + " / " + deleted.status();
                 }, true)));
         return panel;
     }

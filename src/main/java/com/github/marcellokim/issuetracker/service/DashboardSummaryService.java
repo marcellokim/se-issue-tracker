@@ -55,7 +55,7 @@ public final class DashboardSummaryService {
         return userRepository.findAll();
     }
 
-    public List<Issue> relatedIssuesFor(User user) {
+    public List<IssueSummary> relatedIssuesFor(User user) {
         Objects.requireNonNull(user, "user");
         return projectRepository.findAll().stream()
                 .filter(project -> user.getRole() == Role.ADMIN || isParticipant(project.getId(), user.getLoginId()))
@@ -63,6 +63,7 @@ public final class DashboardSummaryService {
                 .filter(issue -> user.getRole() == Role.ADMIN
                         || user.getRole() == Role.PL
                         || isRelatedIssue(issue, user.getLoginId()))
+                .map(DashboardSummaryService::toIssueSummary)
                 .toList();
     }
 
@@ -91,5 +92,20 @@ public final class DashboardSummaryService {
                 || loginId.equals(issue.verifierId())
                 || loginId.equals(issue.fixerId())
                 || loginId.equals(issue.resolverId());
+    }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.projectId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt());
     }
 }

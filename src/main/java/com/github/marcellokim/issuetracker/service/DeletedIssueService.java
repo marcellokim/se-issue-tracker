@@ -30,12 +30,14 @@ public final class DeletedIssueService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public List<Issue> viewDeletedIssues(long projectId, User actor) {
+    public List<IssueSummary> viewDeletedIssues(long projectId, User actor) {
         requireDeletedIssuePermission(actor, projectId);
-        return issueRepository.findDeletedByProject(projectId);
+        return issueRepository.findDeletedByProject(projectId).stream()
+                .map(DeletedIssueService::toIssueSummary)
+                .toList();
     }
 
-    public Issue deleteIssue(long issueId, String comment, User actor) {
+    public IssueSummary deleteIssue(long issueId, String comment, User actor) {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(actor, issue);
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED);
@@ -43,14 +45,14 @@ public final class DeletedIssueService {
 
         Issue deletedIssue = issueRepository.softDelete(issueId, actor.getLoginId(), comment, clock.now());
         issueRepository.purgeDeletedBeyondLimit(deletedIssue.projectId(), MAX_DELETED_ISSUES_PER_PROJECT);
-        return deletedIssue;
+        return toIssueSummary(deletedIssue);
     }
 
-    public Issue restoreIssue(long issueId, String comment, User actor) {
+    public IssueSummary restoreIssue(long issueId, String comment, User actor) {
         Issue issue = findIssue(issueId);
         permissionPolicy.assertCanManageDeletedIssue(actor, issue);
         requireProjectLead(actor, issue.projectId());
-        return issueRepository.restore(issueId, actor.getLoginId(), comment, clock.now());
+        return toIssueSummary(issueRepository.restore(issueId, actor.getLoginId(), comment, clock.now()));
     }
 
     public int purgeOverflow(long projectId, User actor) {
@@ -80,5 +82,20 @@ public final class DeletedIssueService {
         if (!projectLead) {
             throw new SecurityException("Only the project PL can manage deleted issues.");
         }
+    }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.projectId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt());
     }
 }

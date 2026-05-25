@@ -6,7 +6,6 @@ import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -64,6 +63,9 @@ public final class ProjectBoardView {
     private final TextArea issueDescriptionArea = area("issue description");
     private final ComboBox<Priority> priorityBox = new ComboBox<>();
     private final TextField issueKeywordField = field("title or description");
+    private final TextField issueReporterFilterField = field("reporter loginId");
+    private final TextField issueAssigneeFilterField = field("assignee loginId");
+    private final TextField issueVerifierFilterField = field("verifier loginId");
     private final ComboBox<String> issueStatusFilterBox = new ComboBox<>();
     private final ComboBox<String> issuePriorityFilterBox = new ComboBox<>();
     private final TextField blockingIssueIdField = field("blocking issue id");
@@ -103,7 +105,7 @@ public final class ProjectBoardView {
     }
 
     public Parent dashboard(
-            List<Issue> issues,
+            List<IssueSummary> issues,
             List<DashboardProjectView> projects,
             List<User> users,
             Consumer<User> onAccountSelected,
@@ -303,12 +305,12 @@ public final class ProjectBoardView {
     private VBox relatedProjectIssuesPanel(DashboardProjectView project) {
         VBox box = borderedPanel("My Related Issues");
         try {
-            List<Issue> issues = issueController.viewRelatedProjectIssues(project.projectId());
+            List<IssueSummary> issues = issueController.viewRelatedProjectIssues(project.projectId());
             if (issues.isEmpty()) {
                 box.getChildren().add(emptyLabel("No related issues in this project."));
                 return box;
             }
-            for (Issue issue : issues) {
+            for (IssueSummary issue : issues) {
                 box.getChildren().add(issueCard(issue));
             }
         } catch (RuntimeException exception) {
@@ -324,7 +326,10 @@ public final class ProjectBoardView {
                 fieldsGrid(
                         "Keyword", issueKeywordField,
                         "Status", issueStatusFilterBox,
-                        "Priority", issuePriorityFilterBox),
+                        "Priority", issuePriorityFilterBox,
+                        "Reporter", issueReporterFilterField,
+                        "Assignee", issueAssigneeFilterField,
+                        "Verifier", issueVerifierFilterField),
                 actionRow(actionButton("Search Issues", true, () -> {
                     renderIssueSearchResults(project, results);
                     return "Search completed.";
@@ -369,12 +374,12 @@ public final class ProjectBoardView {
             return "Deleted issue overflow purged: " + purged;
         }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage))));
         try {
-            List<Issue> deletedIssues = deletedIssueController.viewDeletedIssues(project.projectId());
+            List<IssueSummary> deletedIssues = deletedIssueController.viewDeletedIssues(project.projectId());
             if (deletedIssues.isEmpty()) {
                 box.getChildren().add(emptyLabel("No deleted issues in this project."));
                 return box;
             }
-            for (Issue issue : deletedIssues) {
+            for (IssueSummary issue : deletedIssues) {
                 box.getChildren().add(deletedIssueCard(project, issue));
             }
         } catch (RuntimeException exception) {
@@ -383,7 +388,7 @@ public final class ProjectBoardView {
         return box;
     }
 
-    private HBox deletedIssueCard(DashboardProjectView project, Issue issue) {
+    private HBox deletedIssueCard(DashboardProjectView project, IssueSummary issue) {
         Label detail = infoCard("""
                 ID=%d / issueId=%s
                 %s
@@ -391,7 +396,7 @@ public final class ProjectBoardView {
                 %s / %s / updated=%s
                 """.formatted(
                 issue.id(),
-                issue.getIssueId(),
+                issue.issueId(),
                 issue.title(),
                 issue.reporterId(),
                 issue.status(),
@@ -399,10 +404,10 @@ public final class ProjectBoardView {
                 issue.updatedAt()));
         HBox.setHgrow(detail, javafx.scene.layout.Priority.ALWAYS);
         Button restoreButton = actionButton("Restore", isProjectLead(), () -> {
-            Issue restored = deletedIssueController.restoreIssue(
+            IssueSummary restored = deletedIssueController.restoreIssue(
                     issue.id(),
                     requiredText(deletedIssueReasonArea, "reason"));
-            return "Issue restored: " + restored.getIssueId() + " / " + restored.status();
+            return "Issue restored: " + restored.issueId() + " / " + restored.status();
         }, resultMessage -> onProjectChanged.accept(project.projectId(), resultMessage));
         HBox row = new HBox(12, detail, restoreButton);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -416,7 +421,10 @@ public final class ProjectBoardView {
                     project.projectId(),
                     text(issueKeywordField),
                     selectedStatus(),
-                    selectedPriorityFilter());
+                    selectedPriorityFilter(),
+                    text(issueReporterFilterField),
+                    text(issueAssigneeFilterField),
+                    text(issueVerifierFilterField));
             if (issues.isEmpty()) {
                 results.getChildren().add(emptyLabel("No project issues match the current filters."));
                 return;
@@ -429,7 +437,7 @@ public final class ProjectBoardView {
         }
     }
 
-    private Button issueCard(Issue issue) {
+    private Button issueCard(IssueSummary issue) {
         Button button = card("""
                 ID=%d
                 %s

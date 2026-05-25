@@ -2,7 +2,6 @@ package com.github.marcellokim.issuetracker.controller;
 
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
@@ -61,11 +60,30 @@ public final class IssueController {
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
             Priority priority) {
-        User user = requireCurrentUser();
-        return issueService.searchIssues(projectId, keyword, status, priority, user.getLoginId());
+        return searchIssues(projectId, keyword, status, priority, null, null, null);
     }
 
-    public List<Issue> viewRelatedProjectIssues(long projectId) {
+    public List<IssueSummary> searchIssues(
+            long projectId,
+            String keyword,
+            IssueStatus status,
+            Priority priority,
+            String reporterId,
+            String assigneeId,
+            String verifierId) {
+        User user = requireCurrentUser();
+        return issueService.searchIssues(
+                projectId,
+                keyword,
+                status,
+                priority,
+                reporterId,
+                assigneeId,
+                verifierId,
+                user.getLoginId());
+    }
+
+    public List<IssueSummary> viewRelatedProjectIssues(long projectId) {
         User user = requireCurrentUser();
         return issueService.viewRelatedProjectIssues(projectId, user.getLoginId());
     }

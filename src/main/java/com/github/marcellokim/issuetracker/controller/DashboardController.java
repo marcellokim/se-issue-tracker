@@ -1,11 +1,11 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +23,7 @@ public final class DashboardController {
         this.dashboardSummaryService = Objects.requireNonNull(dashboardSummaryService, "dashboardSummaryService");
     }
 
-    public List<Issue> viewRelatedIssues() {
+    public List<IssueSummary> viewRelatedIssues() {
         return dashboardSummaryService.relatedIssuesFor(requireCurrentUser());
     }
 

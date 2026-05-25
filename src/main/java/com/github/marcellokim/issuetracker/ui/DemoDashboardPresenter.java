@@ -3,8 +3,8 @@ package com.github.marcellokim.issuetracker.ui;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.DashboardController.DashboardProjectView;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ public final class DemoDashboardPresenter {
         return summary.toString();
     }
 
-    public List<Issue> relatedIssues() {
+    public List<IssueSummary> relatedIssues() {
         return dashboardController.viewRelatedIssues();
     }
 

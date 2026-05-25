@@ -187,6 +187,61 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("searches project issues by reporter, assignee, and verifier")
+    void searchProjectIssuesFiltersByParticipants() {
+        User tester2 = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, now, now);
+        Issue matchingIssue = assignedIssue(
+                11L,
+                "ISSUE-11",
+                PROJECT_ID,
+                "Login participant match",
+                tester,
+                dev,
+                tester);
+        Issue differentReporter = assignedIssue(
+                12L,
+                "ISSUE-12",
+                PROJECT_ID,
+                "Login participant match",
+                pl,
+                dev,
+                tester);
+        Issue differentAssignee = assignedIssue(
+                13L,
+                "ISSUE-13",
+                PROJECT_ID,
+                "Login participant match",
+                tester,
+                inactiveDev,
+                tester);
+        Issue differentVerifier = assignedIssue(
+                14L,
+                "ISSUE-14",
+                PROJECT_ID,
+                "Login participant match",
+                tester,
+                dev,
+                tester2);
+        var service = service(new InMemoryIssueRepository(
+                matchingIssue,
+                differentReporter,
+                differentAssignee,
+                differentVerifier));
+
+        List<IssueSummary> results = service.searchIssues(
+                PROJECT_ID,
+                "login",
+                null,
+                null,
+                tester.getLoginId(),
+                dev.getLoginId(),
+                tester.getLoginId(),
+                dev.getLoginId());
+
+        assertEquals(List.of(matchingIssue.id()), results.stream().map(IssueSummary::id).toList());
+    }
+
+    @Test
     @DisplayName("shows only assigned participant issues for DEV and TESTER")
     void viewRelatedProjectIssuesReturnsOnlyActorRelatedIssues() {
         Issue reporterOnlyIssue = persistedIssue(
@@ -221,9 +276,9 @@ class IssueServiceTest {
                 new FakeCommentRepository(),
                 users);
 
-        List<Issue> devResults = service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId());
-        List<Issue> testerResults = service.viewRelatedProjectIssues(PROJECT_ID, tester.getLoginId());
-        List<Issue> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
+        List<IssueSummary> devResults = service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId());
+        List<IssueSummary> testerResults = service.viewRelatedProjectIssues(PROJECT_ID, tester.getLoginId());
+        List<IssueSummary> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
 
         assertEquals(1, devResults.size());
         assertEquals(assignedDevIssue.id(), devResults.getFirst().id());
@@ -330,7 +385,7 @@ class IssueServiceTest {
         assertNotNull(result.commentId());
         assertEquals(CommentPurpose.GENERAL, result.purpose());
         assertEquals("Looks like a real bug", result.content());
-        assertEquals(dev, result.writer());
+        assertEquals(dev.getLoginId(), result.writer().getLoginId());
         assertNotNull(result.createdDate());
     }
 

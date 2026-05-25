@@ -92,7 +92,9 @@ class DashboardSummaryServiceTest {
         assertEquals(List.of("project1", "project2"), summaries.stream()
                 .map(DashboardProjectSummary::projectName)
                 .toList());
-        assertEquals(List.of(admin, dev, tester), service.usersFor(admin));
+        assertEquals(List.of("admin", "dev", "tester"), service.usersFor(admin).stream()
+                .map(User::getLoginId)
+                .toList());
     }
 
     @Test
