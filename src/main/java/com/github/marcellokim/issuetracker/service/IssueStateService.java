@@ -77,6 +77,13 @@ public final class IssueStateService {
 
     private void rejectFix(Issue issue, User actor, String comment) {
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED);
+        if (issue.status() == IssueStatus.FIXED) {
+            requireActiveProjectMemberWithRole(
+                    actor,
+                    issue.projectId(),
+                    Role.TESTER,
+                    "Only the active TESTER verifier can reject a fixed issue.");
+        }
         LocalDateTime changedAt = now();
         issue.rejectFix(actor, comment, changedAt);
         issue.addComment(
@@ -126,6 +133,14 @@ public final class IssueStateService {
         boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
         if (!projectLead) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private void requireActiveProjectMemberWithRole(User actor, long projectId, Role role, String message) {
+        boolean projectMember = userRepository.findActiveByRole(projectId, role).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        if (!projectMember) {
             throw new SecurityException(message);
         }
     }

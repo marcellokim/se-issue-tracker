@@ -153,6 +153,24 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("reject fix requires verifier to belong to the issue project")
+    void rejectFixRequiresVerifierProjectMembership() {
+        var issue = fixedIssue();
+        int commentCount = issue.getComments().size();
+        int historyCount = issue.getHistories().size();
+        var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev)
+                .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(), pl.getLoginId());
+        var service = service(new FakeIssueDependencyRepository(), users, issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Needs more work",
+                        verifier.getLoginId()));
+
+        assertEquals(commentCount, issue.getComments().size());
+        assertEquals(historyCount, issue.getHistories().size());
+    }
+
+    @Test
     @DisplayName("reject fix requires fixed issue status")
     void rejectFixRequiresFixedIssueStatus() {
         var issue = assignedIssue();
