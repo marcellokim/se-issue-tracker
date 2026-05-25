@@ -120,7 +120,7 @@ class ControllerCoverageTest {
 
         StatisticsController controller = new StatisticsController(
                 auth.service(),
-                new StatisticsService(new PermissionPolicy(), statistics));
+                new StatisticsService(new PermissionPolicy(), statistics, auth.users()));
 
         StatisticsReportResult actualReport = controller.viewStatistics(
                 PROJECT_ID,
@@ -141,12 +141,13 @@ class ControllerCoverageTest {
     void statisticsControllerRejectsInvalidAccessOrRange() {
         StatisticsController anonymousController = new StatisticsController(
                 anonymousAuth(),
-                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository()));
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), new FakeUserRepository()));
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
         StatisticsController controller = new StatisticsController(
                 authenticated(Role.PL).service(),
-                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository()));
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), new FakeUserRepository(
+                        user("pl", Role.PL))));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> controller.viewStatistics(
@@ -520,11 +521,9 @@ class ControllerCoverageTest {
         @Override
         public boolean existsByResponsibleUser(String userLoginId) {
             return issuesById.values().stream()
-                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
                     .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
-                            || userLoginId.equals(issue.verifierId())
-                            || userLoginId.equals(issue.fixerId())
-                            || userLoginId.equals(issue.resolverId()));
+                            || userLoginId.equals(issue.verifierId()));
         }
 
         @Override

@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
+import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Objects;
@@ -10,12 +11,15 @@ public final class StatisticsService {
 
     private final PermissionPolicy permissionPolicy;
     private final StatisticsRepository statisticsRepository;
+    private final UserRepository userRepository;
 
     public StatisticsService(
             PermissionPolicy permissionPolicy,
-            StatisticsRepository statisticsRepository) {
+            StatisticsRepository statisticsRepository,
+            UserRepository userRepository) {
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
     }
 
     public StatisticsReportResult viewStatistics(
@@ -30,6 +34,7 @@ public final class StatisticsService {
          * repository query input은 service 한 곳에서 보호.
          */
         permissionPolicy.assertCanViewStatistics(actor, projectId);
+        requireActiveProjectMember(actor, projectId);
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
@@ -42,7 +47,18 @@ public final class StatisticsService {
     }
 
     public boolean canViewStatistics(long projectId, User actor) {
-        return permissionPolicy.canViewStatistics(actor, projectId);
+        return permissionPolicy.canViewStatistics(actor, projectId) && isActiveProjectMember(actor, projectId);
+    }
+
+    private void requireActiveProjectMember(User actor, long projectId) {
+        if (!isActiveProjectMember(actor, projectId)) {
+            throw new SecurityException("Only project members can view statistics.");
+        }
+    }
+
+    private boolean isActiveProjectMember(User actor, long projectId) {
+        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
     }
 
     private static <T extends Comparable<T>> void requireOrderedRange(

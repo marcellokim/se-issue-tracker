@@ -121,7 +121,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 users,
                 permissionPolicy,
                 clock);
-        StatisticsService statisticsService = new StatisticsService(permissionPolicy, statistics);
+        StatisticsService statisticsService = new StatisticsService(permissionPolicy, statistics, users);
         DashboardSummaryService dashboardSummaryService = new DashboardSummaryService(
                 projects,
                 issues,

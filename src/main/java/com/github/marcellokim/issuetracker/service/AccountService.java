@@ -121,6 +121,7 @@ public final class AccountService {
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
+        rejectDeactivationWithProjectResponsibility(target);
         target.deactivate(clock.now());
         return UserResult.from(userRepository.save(target));
     }
@@ -153,7 +154,18 @@ public final class AccountService {
         }
         if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
             throw new IllegalArgumentException(
-                    "Account role can be changed only when the user has no assigned issue responsibility.");
+                "Account role can be changed only when the user has no assigned issue responsibility.");
+        }
+    }
+
+    private void rejectDeactivationWithProjectResponsibility(User target) {
+        if (projectRepository.existsByParticipant(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account can be deactivated only when the user has no project membership.");
+        }
+        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account can be deactivated only when the user has no assigned issue responsibility.");
         }
     }
 

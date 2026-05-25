@@ -625,6 +625,38 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("project member can view project dependencies")
+    void viewProjectDependenciesAllowsProjectMember() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        deps.addFixture(IssueDependency.fromPersistence(1L, "dep-1", issueA.id(), issueB.id(), now));
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(PROJECT_ID, dev.getLoginId());
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps, new FakeCommentRepository(), users);
+
+        List<DependencyResult> results = service.viewProjectDependencies(PROJECT_ID, dev.getLoginId());
+
+        assertEquals(1, results.size());
+        assertEquals("dep-1", results.getFirst().dependencyId());
+    }
+
+    @Test
+    @DisplayName("non project member cannot view project dependencies")
+    void viewProjectDependenciesRejectsNonProjectMember() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var issueB = persistedIssue(2L, "ISSUE-2");
+        var deps = new FakeIssueDependencyRepository();
+        deps.addFixture(IssueDependency.fromPersistence(1L, "dep-1", issueA.id(), issueB.id(), now));
+        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                .withProjectMembers(OTHER_PROJECT_ID, dev.getLoginId());
+        var service = service(new InMemoryIssueRepository(issueA, issueB), deps, new FakeCommentRepository(), users);
+
+        assertThrows(SecurityException.class,
+                () -> service.viewProjectDependencies(PROJECT_ID, dev.getLoginId()));
+    }
+
+    @Test
     @DisplayName("deletes writer-owned general comment and records comment history")
     void deleteCommentSucceeds() {
         var issue = persistedIssue();
