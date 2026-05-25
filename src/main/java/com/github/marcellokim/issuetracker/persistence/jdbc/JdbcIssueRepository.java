@@ -103,8 +103,6 @@ public final class JdbcIssueRepository implements IssueRepository {
                   and (
                       assignee_login_id = ?
                       or verifier_login_id = ?
-                      or fixer_login_id = ?
-                      or resolver_login_id = ?
                   )
                   and rownum = 1
                 """;
@@ -112,8 +110,6 @@ public final class JdbcIssueRepository implements IssueRepository {
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, userLoginId);
             statement.setString(2, userLoginId);
-            statement.setString(3, userLoginId);
-            statement.setString(4, userLoginId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
             }

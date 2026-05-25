@@ -50,15 +50,16 @@ public final class AccountService {
             User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
+        String normalizedLoginId = normalizeLoginId(loginId);
         Role newRole = Objects.requireNonNull(role, "role must not be null");
-        requireNonAdminAccount(loginId, newRole);
-        if (userRepository.findByLoginId(loginId).isPresent()) {
-            throw new IllegalArgumentException("Account already exists: " + loginId);
+        requireNonAdminAccount(normalizedLoginId, newRole);
+        if (userRepository.findByLoginId(normalizedLoginId).isPresent()) {
+            throw new IllegalArgumentException("Account already exists: " + normalizedLoginId);
         }
 
         LocalDateTime now = clock.now();
         User user = User.create(
-                loginId,
+                normalizedLoginId,
                 name,
                 passwordHasher.hash(password),
                 newRole,
@@ -69,11 +70,12 @@ public final class AccountService {
     public UserResult updateAccount(String loginId, String name, Role role, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, actor.getLoginId());
-        User target = findUser(loginId);
+        String normalizedLoginId = normalizeLoginId(loginId);
+        requireDifferentAccount(normalizedLoginId, actor.getLoginId());
+        User target = findUser(normalizedLoginId);
         Role newRole = Objects.requireNonNull(role, "role must not be null");
         requireNonAdminTarget(target);
-        requireNonAdminAccount(loginId, newRole);
+        requireNonAdminAccount(normalizedLoginId, newRole);
         rejectRoleChangeWithProjectResponsibility(target, newRole);
         LocalDateTime now = clock.now();
         target.rename(name, now);
@@ -84,8 +86,9 @@ public final class AccountService {
     public UserResult renameAccount(String loginId, String name, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, actor.getLoginId());
-        User target = findUser(loginId);
+        String normalizedLoginId = normalizeLoginId(loginId);
+        requireDifferentAccount(normalizedLoginId, actor.getLoginId());
+        User target = findUser(normalizedLoginId);
         requireNonAdminTarget(target);
         target.rename(name, clock.now());
         return UserResult.from(userRepository.save(target));
@@ -94,11 +97,12 @@ public final class AccountService {
     public UserResult changeAccountRole(String loginId, Role role, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, actor.getLoginId());
-        User target = findUser(loginId);
+        String normalizedLoginId = normalizeLoginId(loginId);
+        requireDifferentAccount(normalizedLoginId, actor.getLoginId());
+        User target = findUser(normalizedLoginId);
         Role newRole = Objects.requireNonNull(role, "role must not be null");
         requireNonAdminTarget(target);
-        requireNonAdminAccount(loginId, newRole);
+        requireNonAdminAccount(normalizedLoginId, newRole);
         rejectRoleChangeWithProjectResponsibility(target, newRole);
         target.changeRole(newRole, clock.now());
         return UserResult.from(userRepository.save(target));
@@ -107,8 +111,9 @@ public final class AccountService {
     public UserResult activateAccount(String loginId, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, actor.getLoginId());
-        User target = findUser(loginId);
+        String normalizedLoginId = normalizeLoginId(loginId);
+        requireDifferentAccount(normalizedLoginId, actor.getLoginId());
+        User target = findUser(normalizedLoginId);
         requireNonAdminTarget(target);
         target.activate(clock.now());
         return UserResult.from(userRepository.save(target));
@@ -117,9 +122,11 @@ public final class AccountService {
     public UserResult deactivateAccount(String loginId, User actor) {
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, actor.getLoginId());
-        User target = findUser(loginId);
+        String normalizedLoginId = normalizeLoginId(loginId);
+        requireDifferentAccount(normalizedLoginId, actor.getLoginId());
+        User target = findUser(normalizedLoginId);
         requireNonAdminTarget(target);
+        rejectDeactivationWithProjectResponsibility(target);
         target.deactivate(clock.now());
         return UserResult.from(userRepository.save(target));
     }
@@ -156,8 +163,26 @@ public final class AccountService {
         }
     }
 
+    private void rejectDeactivationWithProjectResponsibility(User target) {
+        if (projectRepository.existsByParticipant(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account can be deactivated only when the user has no project membership.");
+        }
+        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account can be deactivated only when the user has no assigned issue responsibility.");
+        }
+    }
+
     private static boolean isAdminLoginId(String loginId) {
         return loginId != null && "admin".equalsIgnoreCase(loginId.trim());
+    }
+
+    private static String normalizeLoginId(String loginId) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new IllegalArgumentException("loginId must not be blank");
+        }
+        return loginId.trim();
     }
 
     private static void requireActor(User actor) {
@@ -165,7 +190,8 @@ public final class AccountService {
     }
 
     private User findUser(String loginId) {
-        return userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + loginId));
+        String normalizedLoginId = normalizeLoginId(loginId);
+        return userRepository.findByLoginId(normalizedLoginId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + normalizedLoginId));
     }
 }

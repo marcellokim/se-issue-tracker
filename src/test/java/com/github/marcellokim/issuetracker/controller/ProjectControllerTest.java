@@ -668,9 +668,7 @@ class ProjectControllerTest {
             return issuesById.values().stream()
                     .filter(issue -> issue.status() != IssueStatus.DELETED)
                     .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
-                            || userLoginId.equals(issue.verifierId())
-                            || userLoginId.equals(issue.fixerId())
-                            || userLoginId.equals(issue.resolverId()));
+                            || userLoginId.equals(issue.verifierId()));
         }
 
         @Override

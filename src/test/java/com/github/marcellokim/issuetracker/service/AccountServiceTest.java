@@ -54,9 +54,10 @@ class AccountServiceTest {
                 admin(),
                 user("pl1", Role.PL, true));
         AccountService service = service(users);
+        User actor = actor(users, "pl1");
 
         assertThrows(SecurityException.class,
-                () -> service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, actor(users, "pl1")));
+                () -> service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV, actor));
     }
 
     @Test
@@ -160,6 +161,27 @@ class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("account login ids are normalized before create and lookup")
+    void accountLoginIdsAreNormalizedBeforeCreateAndLookup() {
+        InMemoryUserRepository users = new InMemoryUserRepository(
+                admin(),
+                user("dev1", Role.DEV, true));
+        AccountService service = service(users);
+
+        UserResult created = service.createAccount(" dev11 ", "Dev 11", "TempPassword1!", Role.DEV,
+                actor(users, "admin"));
+        UserResult renamed = service.renameAccount(" dev11 ", "Dev Eleven", actor(users, "admin"));
+
+        assertEquals("dev11", created.loginId());
+        assertTrue(users.findByLoginId("dev11").isPresent());
+        assertTrue(users.findByLoginId(" dev11 ").isEmpty());
+        assertEquals("Dev Eleven", renamed.name());
+        assertThrows(IllegalArgumentException.class,
+                () -> service.createAccount(" dev1 ", "Duplicate Dev", "TempPassword1!", Role.DEV,
+                        actor(users, "admin")));
+    }
+
+    @Test
     @DisplayName("admin cannot deactivate own account")
     void adminCannotDeactivateOwnAccount() {
         InMemoryUserRepository users = new InMemoryUserRepository(admin());
@@ -203,6 +225,52 @@ class AccountServiceTest {
                 new FakeProjectRepository(),
                 new InMemoryIssueRepository(),
                 PASSWORD_HASHER));
+    }
+
+    @Test
+    @DisplayName("account role change ignores completed issue audit fields")
+    void accountRoleChangeIgnoresCompletedIssueAuditFields() {
+        User dev = user("dev1", Role.DEV, true);
+        User tester = user("tester1", Role.TESTER, true);
+        InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(completedIssue(dev, tester));
+        AccountService service = service(users, new FakeProjectRepository(), issues);
+
+        UserResult updated = service.changeAccountRole("dev1", Role.TESTER, actor(users, "admin"));
+
+        assertEquals(Role.TESTER, updated.role());
+    }
+
+    @Test
+    @DisplayName("account deactivation requires no project membership")
+    void accountDeactivationRequiresNoProjectMembership() {
+        InMemoryUserRepository users = new InMemoryUserRepository(
+                admin(),
+                user("pl1", Role.PL, true));
+        FakeProjectRepository projects = new FakeProjectRepository()
+                .withProject(project(1L, "project1"))
+                .withParticipant(1L, "pl1");
+        AccountService service = service(users, projects, new InMemoryIssueRepository());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.deactivateAccount("pl1", actor(users, "admin")));
+    }
+
+    @Test
+    @DisplayName("account deactivation requires no assigned issue responsibility")
+    void accountDeactivationRequiresNoAssignedIssueResponsibility() {
+        User dev = user("dev1", Role.DEV, true);
+        User tester = user("tester1", Role.TESTER, true);
+        InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
+        FakeProjectRepository projects = new FakeProjectRepository()
+                .withProject(project(1L, "project1"));
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(assignedIssue(dev, tester));
+        AccountService service = service(users, projects, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.deactivateAccount("dev1", actor(users, "admin")));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.deactivateAccount("tester1", actor(users, "admin")));
     }
 
     private static AccountService service(InMemoryUserRepository users) {
@@ -252,6 +320,19 @@ class AccountServiceTest {
                 .status(IssueStatus.ASSIGNED)
                 .assignee(assignee)
                 .verifier(verifier)
+                .updatedAt(now));
+    }
+
+    private static Issue completedIssue(User fixer, User resolver) {
+        LocalDateTime now = LocalDateTime.of(2026, 5, 2, 0, 0);
+        return Issue.fromPersistence(Issue.persistedState(1L, "Completed issue", "description", resolver)
+                .id(2L)
+                .issueId("ISSUE-2")
+                .reportedDate(now)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.CLOSED)
+                .fixer(fixer)
+                .resolver(resolver)
                 .updatedAt(now));
     }
 
