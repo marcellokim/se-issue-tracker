@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -175,19 +174,10 @@ public final class ProjectService {
     }
 
     private void rejectActiveIssueAssigneeOrVerifier(long projectId, String participantId) {
-        for (Issue issue : issueRepository.findByProject(projectId)) {
-            if (!hasActiveAssignment(issue)) {
-                continue;
-            }
-            if (participantId.equals(issue.assigneeId()) || participantId.equals(issue.verifierId())) {
-                throw new IllegalArgumentException(
-                        "Issue assignee or verifier cannot be removed while assignment is active.");
-            }
+        if (issueRepository.existsActiveAssignmentByProjectAndUser(projectId, participantId)) {
+            throw new IllegalArgumentException(
+                    "Issue assignee or verifier cannot be removed while assignment is active.");
         }
-    }
-
-    private static boolean hasActiveAssignment(Issue issue) {
-        return issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED;
     }
 
     private static void requireProjectId(long projectId) {

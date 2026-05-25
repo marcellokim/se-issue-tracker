@@ -321,7 +321,8 @@ public final class IssueService {
     }
 
     private static boolean isAssignedParticipant(Issue issue, String loginId) {
-        return loginId.equals(issue.assigneeId())
+        return loginId.equals(issue.reporterId())
+                || loginId.equals(issue.assigneeId())
                 || loginId.equals(issue.verifierId());
     }
 

@@ -288,6 +288,12 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+            throw new UnsupportedOperationException(
+                    "existsActiveAssignmentByProjectAndUser is not needed by RepositoryDemoSummaryServiceTest.");
+        }
+
+        @Override
         public Issue save(Issue issue) {
             throw new UnsupportedOperationException("save is not needed by RepositoryDemoSummaryServiceTest.");
         }

@@ -280,8 +280,7 @@ class IssueServiceTest {
         List<IssueSummary> testerResults = service.viewRelatedProjectIssues(PROJECT_ID, tester.getLoginId());
         List<IssueSummary> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
 
-        assertEquals(1, devResults.size());
-        assertEquals(assignedDevIssue.id(), devResults.getFirst().id());
+        assertEquals(2, devResults.size());
         assertEquals(1, testerResults.size());
         assertEquals(assignedDevIssue.id(), testerResults.getFirst().id());
         assertEquals(2, plResults.size());

@@ -82,6 +82,14 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
+    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+        return issues.values().stream()
+                .filter(issue -> issue.projectId() == projectId)
+                .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
+                .anyMatch(issue -> loginId.equals(issue.assigneeId()) || loginId.equals(issue.verifierId()));
+    }
+
+    @Override
     public Issue save(Issue issue) {
         Issue saved = issue.id() == 0L ? persistNew(issue) : issue;
         issues.put(saved.id(), saved);

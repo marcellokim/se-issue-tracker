@@ -140,6 +140,29 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
+    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+        String sql = """
+                select 1
+                from issues
+                where project_id = ?
+                  and status in ('ASSIGNED', 'FIXED')
+                  and (assignee_login_id = ? or verifier_login_id = ?)
+                  and rownum = 1
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, loginId);
+            statement.setString(3, loginId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check active issue assignment.", exception);
+        }
+    }
+
+    @Override
     public Issue save(Issue issue) {
         if (issue.id() == 0L) {
             return insert(issue);
