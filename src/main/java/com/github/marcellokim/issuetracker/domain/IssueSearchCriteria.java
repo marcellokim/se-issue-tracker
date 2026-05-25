@@ -5,7 +5,7 @@ import java.util.Objects;
 
 public final class IssueSearchCriteria {
 
-    private final Long projectId;
+    private final long projectId;
     private final IssueStatus status;
     private final Priority priority;
     private final String reporterId;
@@ -17,7 +17,7 @@ public final class IssueSearchCriteria {
     private final boolean includeDeleted;
 
     public static IssueSearchCriteria create(
-            Long projectId,
+            long projectId,
             IssueStatus status,
             Priority priority,
             String reporterId,
@@ -26,8 +26,7 @@ public final class IssueSearchCriteria {
             String keyword,
             LocalDateTime reportedFrom,
             LocalDateTime reportedTo,
-            boolean includeDeleted
-    ) {
+            boolean includeDeleted) {
         return new IssueSearchCriteria(
                 projectId,
                 status,
@@ -38,16 +37,15 @@ public final class IssueSearchCriteria {
                 keyword,
                 reportedFrom,
                 reportedTo,
-                includeDeleted
-        );
+                includeDeleted);
     }
 
-    public static IssueSearchCriteria all() {
-        return create(null, null, null, null, null, null, null, null, null, false);
+    public static IssueSearchCriteria all(long projectId) {
+        return create(projectId, null, null, null, null, null, null, null, null, false);
     }
 
     private IssueSearchCriteria(
-            Long projectId,
+            long projectId,
             IssueStatus status,
             Priority priority,
             String reporterId,
@@ -56,8 +54,7 @@ public final class IssueSearchCriteria {
             String keyword,
             LocalDateTime reportedFrom,
             LocalDateTime reportedTo,
-            boolean includeDeleted
-    ) {
+            boolean includeDeleted) {
         this.projectId = projectId;
         this.status = status;
         this.priority = priority;
@@ -70,7 +67,7 @@ public final class IssueSearchCriteria {
         this.includeDeleted = includeDeleted;
     }
 
-    public Long projectId() {
+    public long projectId() {
         return projectId;
     }
 
@@ -119,7 +116,7 @@ public final class IssueSearchCriteria {
             return false;
         }
         return includeDeleted == that.includeDeleted
-                && Objects.equals(projectId, that.projectId)
+                && projectId == that.projectId
                 && status == that.status
                 && priority == that.priority
                 && Objects.equals(reporterId, that.reporterId)
@@ -142,8 +139,7 @@ public final class IssueSearchCriteria {
                 keyword,
                 reportedFrom,
                 reportedTo,
-                includeDeleted
-        );
+                includeDeleted);
     }
 
     @Override

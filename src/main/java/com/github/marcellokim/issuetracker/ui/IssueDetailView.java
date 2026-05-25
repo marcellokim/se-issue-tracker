@@ -8,9 +8,10 @@ import com.github.marcellokim.issuetracker.controller.IssueController.IssueWorkf
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -31,7 +32,7 @@ import javafx.scene.layout.VBox;
 
 public final class IssueDetailView {
 
-    private final Issue issue;
+    private final IssueDetailResult issue;
     private final IssueController issueController;
     private final AssignmentController assignmentController;
     private final IssueStateController issueStateController;
@@ -50,7 +51,7 @@ public final class IssueDetailView {
     private final VBox root = new VBox(16);
 
     public IssueDetailView(
-            Issue issue,
+            IssueDetailResult issue,
             IssueController issueController,
             AssignmentController assignmentController,
             IssueStateController issueStateController,
@@ -79,8 +80,8 @@ public final class IssueDetailView {
         descriptionArea.setText(issue.description());
         priorityBox.getItems().setAll(Priority.values());
         priorityBox.setValue(issue.priority());
-        assigneeLoginIdField.setText(valueOrBlank(issue.assigneeId()));
-        verifierLoginIdField.setText(valueOrBlank(issue.verifierId()));
+        assigneeLoginIdField.setText(valueOrBlank(loginId(issue.assignee())));
+        verifierLoginIdField.setText(valueOrBlank(loginId(issue.verifier())));
         outputArea.setEditable(false);
         outputArea.setPrefRowCount(4);
         outputArea.setText(valueOrBlank(initialMessage));
@@ -122,18 +123,18 @@ public final class IssueDetailView {
                 Updated At: %s
                 """.formatted(
                 issue.id(),
-                issue.getIssueId(),
+                issue.issueId(),
                 issue.projectId(),
                 issue.title(),
                 issue.description(),
                 issue.reportedDate(),
                 issue.priority(),
                 issue.status(),
-                valueOrBlank(issue.reporterId()),
-                valueOrBlank(issue.assigneeId()),
-                valueOrBlank(issue.verifierId()),
-                valueOrBlank(issue.fixerId()),
-                valueOrBlank(issue.resolverId()),
+                valueOrBlank(loginId(issue.reporter())),
+                valueOrBlank(loginId(issue.assignee())),
+                valueOrBlank(loginId(issue.verifier())),
+                valueOrBlank(loginId(issue.fixer())),
+                valueOrBlank(loginId(issue.resolver())),
                 issue.updatedAt()));
         body.setStyle("-fx-font-size: 22px;");
         return body;
@@ -216,7 +217,15 @@ public final class IssueDetailView {
 
     private VBox commentsList() {
         VBox panel = borderedPanel("Comment List");
-        List<CommentView> comments = issueController.viewComments(issue.id());
+        List<CommentView> comments = issue.comments().stream()
+                .map(comment -> new CommentView(
+                        comment.commentId(),
+                        comment.content(),
+                        comment.purpose(),
+                        comment.writerLoginId(),
+                        comment.createdDate(),
+                        comment.updatedDate()))
+                .toList();
         if (comments.isEmpty()) {
             panel.getChildren().add(emptyLabel("No comments."));
             return panel;
@@ -418,6 +427,10 @@ public final class IssueDetailView {
 
     private static String valueOrBlank(String value) {
         return value == null ? "" : value;
+    }
+
+    private static String loginId(User user) {
+        return user == null ? null : user.getLoginId();
     }
 
     private static String messageStyle(String message) {

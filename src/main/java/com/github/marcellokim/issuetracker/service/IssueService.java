@@ -91,6 +91,20 @@ public final class IssueService {
         return findIssue(issueId);
     }
 
+    public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
+        Issue issue = viewIssue(issueId, currentUserId);
+        List<CommentResult> comments = commentRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toCommentResult)
+                .toList();
+        List<HistoryResult> histories = issueHistoryRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toHistoryResult)
+                .toList();
+        List<DependencyResult> dependencies = dependencyRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toDependencyResult)
+                .toList();
+        return toIssueDetailResult(issue, comments, histories, dependencies);
+    }
+
     public List<IssueSummary> searchIssues(
             long projectId,
             String keyword,
@@ -340,6 +354,32 @@ public final class IssueService {
                 issue.updatedAt());
     }
 
+    private static IssueDetailResult toIssueDetailResult(
+            Issue issue,
+            List<CommentResult> comments,
+            List<HistoryResult> histories,
+            List<DependencyResult> dependencies) {
+        return new IssueDetailResult(
+                issue.id(),
+                issue.projectId(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.description(),
+                issue.getReporter(),
+                issue.getAssignee(),
+                issue.getVerifier(),
+                issue.getFixer(),
+                issue.getResolver(),
+                issue.reportedDate(),
+                issue.updatedAt(),
+                comments,
+                histories,
+                dependencies,
+                List.of());
+    }
+
     private static CommentResult toCommentResult(Comment comment) {
         return new CommentResult(
                 comment.getCommentId(),
@@ -349,6 +389,29 @@ public final class IssueService {
                 comment.getWriter(),
                 comment.getCreatedDate(),
                 comment.getUpdatedDate());
+    }
+
+    private static HistoryResult toHistoryResult(IssueHistory history) {
+        return new HistoryResult(
+                history.id(),
+                history.issueId(),
+                history.changedById(),
+                history.actionType(),
+                history.previousValue(),
+                history.newValue(),
+                history.message(),
+                history.changedDate());
+    }
+
+    private static DependencyResult toDependencyResult(IssueDependency dep) {
+        return new DependencyResult(
+                dep.id(),
+                dep.getDependencyId(),
+                dep.blockingIssueId(),
+                "id=" + dep.blockingIssueId(),
+                dep.blockedIssueId(),
+                "id=" + dep.blockedIssueId(),
+                dep.getDiscoveredDate());
     }
 
     private static DependencyResult toDependencyResult(IssueDependency dep, Issue blockingIssue, Issue blockedIssue) {

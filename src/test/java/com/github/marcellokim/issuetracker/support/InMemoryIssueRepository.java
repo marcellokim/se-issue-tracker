@@ -44,7 +44,7 @@ public final class InMemoryIssueRepository implements IssueRepository {
     @Override
     public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
         return issues.values().stream()
-                .filter(issue -> criteria.projectId() == null || issue.projectId() == criteria.projectId())
+                .filter(issue -> issue.projectId() == criteria.projectId())
                 .filter(issue -> criteria.status() == null || issue.status() == criteria.status())
                 .filter(issue -> criteria.includeDeleted() || issue.status() != IssueStatus.DELETED)
                 .filter(issue -> criteria.priority() == null || issue.priority() == criteria.priority())

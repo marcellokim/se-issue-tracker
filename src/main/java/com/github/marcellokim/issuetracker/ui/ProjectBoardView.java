@@ -14,6 +14,7 @@ import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 // import java.time.LocalDate;
 import java.time.YearMonth;
@@ -52,7 +53,7 @@ public final class ProjectBoardView {
     private final IssueController issueController;
     private final DeletedIssueController deletedIssueController;
     private final StatisticsController statisticsController;
-    private final Consumer<Issue> onIssueSelected;
+    private final Consumer<IssueDetailResult> onIssueSelected;
     private final Consumer<DashboardProjectView> onProjectSelected;
     private final Consumer<String> onDashboardChanged;
     private final BiConsumer<Long, String> onProjectChanged;
@@ -80,7 +81,7 @@ public final class ProjectBoardView {
             IssueController issueController,
             DeletedIssueController deletedIssueController,
             StatisticsController statisticsController,
-            Consumer<Issue> onIssueSelected,
+            Consumer<IssueDetailResult> onIssueSelected,
             Consumer<DashboardProjectView> onProjectSelected,
             Consumer<String> onDashboardChanged,
             BiConsumer<Long, String> onProjectChanged) {
@@ -440,7 +441,7 @@ public final class ProjectBoardView {
                 issue.reporterId(),
                 issue.status(),
                 issue.priority()));
-        button.setOnAction(event -> onIssueSelected.accept(issue));
+        button.setOnAction(event -> onIssueSelected.accept(issueController.viewIssueDetail(issue.id())));
         return button;
     }
 
@@ -456,7 +457,7 @@ public final class ProjectBoardView {
                 issue.reporterId(),
                 issue.status(),
                 issue.priority()));
-        button.setOnAction(event -> onIssueSelected.accept(issueController.viewIssue(issue.id())));
+        button.setOnAction(event -> onIssueSelected.accept(issueController.viewIssueDetail(issue.id())));
         return button;
     }
 

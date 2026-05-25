@@ -8,6 +8,7 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
@@ -48,9 +49,14 @@ public final class IssueController {
         return issueService.canRegisterIssue(projectId, user.getLoginId());
     }
 
-    public Issue viewIssue(long issueId) {
+    public IssueDetailResult viewIssueDetail(long issueId) {
         User user = requireCurrentUser();
-        return issueService.viewIssue(issueId, user.getLoginId());
+        IssueDetailResult detail = issueService.viewIssueDetail(issueId, user.getLoginId());
+        if (issueWorkflowService == null) {
+            return detail;
+        }
+        return detail.withAvailableActions(availableActionNames(
+                issueWorkflowService.viewAvailableActions(issueId, user.getLoginId())));
     }
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
@@ -132,6 +138,56 @@ public final class IssueController {
             throw new IllegalStateException("Issue workflow service is not configured.");
         }
         return issueWorkflowService;
+    }
+
+    private static List<String> availableActionNames(IssueWorkflowActions actions) {
+        java.util.ArrayList<String> names = new java.util.ArrayList<>();
+        if (actions.canUpdateIssue()) {
+            names.add("UPDATE_ISSUE");
+        }
+        if (actions.canChangePriority()) {
+            names.add("CHANGE_PRIORITY");
+        }
+        if (actions.canStartAssignment()) {
+            names.add("START_ASSIGNMENT");
+        }
+        if (actions.canAssign()) {
+            names.add("ASSIGN");
+        }
+        if (actions.canReassign()) {
+            names.add("REASSIGN_DEV");
+        }
+        if (actions.canChangeVerifier()) {
+            names.add("CHANGE_TESTER");
+        }
+        if (actions.canMarkFixed()) {
+            names.add("MARK_FIXED");
+        }
+        if (actions.canRejectFix()) {
+            names.add("REJECT_FIX");
+        }
+        if (actions.canResolve()) {
+            names.add("RESOLVE");
+        }
+        if (actions.canClose()) {
+            names.add("CLOSE");
+        }
+        if (actions.canReopen()) {
+            names.add("REOPEN");
+        }
+        if (actions.canAddDependency()) {
+            names.add("ADD_DEPENDENCY");
+        }
+        if (actions.canRemoveDependency()) {
+            names.add("REMOVE_DEPENDENCY");
+        }
+        if (actions.canAddComment()) {
+            names.add("ADD_COMMENT");
+        }
+        if (actions.canSoftDelete()) {
+            names.add("SOFT_DELETE");
+        }
+        return List.copyOf(names);
     }
 
     public record CommentView(

@@ -75,10 +75,8 @@ final class JdbcIssueQueries {
         List<SqlBinder> binders = new ArrayList<>();
         sql.append(" where 1 = 1");
 
-        if (criteria.projectId() != null) {
-            sql.append(" and i.project_id = ?");
-            binders.add((statement, index) -> statement.setLong(index, criteria.projectId()));
-        }
+        sql.append(" and i.project_id = ?");
+        binders.add((statement, index) -> statement.setLong(index, criteria.projectId()));
         if (criteria.status() != null) {
             sql.append(" and i.status = ?");
             binders.add((statement, index) -> statement.setString(index, criteria.status().name()));

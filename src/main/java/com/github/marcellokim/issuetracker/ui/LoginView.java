@@ -13,6 +13,7 @@ import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import java.util.List;
 import java.util.Objects;
 import javafx.geometry.Insets;
@@ -58,7 +59,7 @@ public final class LoginView {
     private List<Issue> currentIssues = List.of();
     private List<DashboardProjectView> currentProjects = List.of();
     private List<User> currentUsers = List.of();
-    private Issue selectedIssue;
+    private IssueDetailResult selectedIssue;
     private DashboardProjectView selectedProject;
     private String dashboardMessage = "";
     private String issueDetailMessage = "";
@@ -238,12 +239,6 @@ public final class LoginView {
     }
 
     private void keepSelectionIfStillVisible() {
-        if (selectedIssue != null) {
-            selectedIssue = currentIssues.stream()
-                    .filter(issue -> issue.id() == selectedIssue.id())
-                    .findFirst()
-                    .orElse(null);
-        }
         if (selectedProject != null) {
             selectedProject = currentProjects.stream()
                     .filter(project -> project.projectId() == selectedProject.projectId())
@@ -293,7 +288,7 @@ public final class LoginView {
         }
     }
 
-    private void selectIssue(Issue issue) {
+    private void selectIssue(IssueDetailResult issue) {
         selectedIssue = issue;
         selectedProject = null;
         issueDetailMessage = "";
@@ -303,7 +298,7 @@ public final class LoginView {
     private void refreshIssueDetail(String message) {
         if (selectedIssue != null) {
             long selectedIssueId = selectedIssue.id();
-            selectedIssue = issueController.viewIssue(selectedIssueId);
+            selectedIssue = issueController.viewIssueDetail(selectedIssueId);
         }
         issueDetailMessage = valueOrBlank(message);
         if (selectedIssue == null) {
@@ -313,7 +308,7 @@ public final class LoginView {
         showIssueDetail(selectedIssue);
     }
 
-    private void showIssueDetail(Issue issue) {
+    private void showIssueDetail(IssueDetailResult issue) {
         IssueDetailView detailView = new IssueDetailView(
                 issue,
                 issueController,

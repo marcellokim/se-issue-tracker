@@ -235,6 +235,44 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("issue detail result includes comments histories and dependencies")
+    void viewIssueDetailIncludesAssociatedData() {
+        var issue = persistedIssue();
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var histories = new FakeIssueHistoryRepository();
+        histories.addFixture(IssueHistory.fromPersistence(
+                200L,
+                ISSUE_ID,
+                dev.getLoginId(),
+                ActionType.COMMENTED,
+                null,
+                "Outdated investigation note",
+                "Outdated investigation note",
+                now));
+        var dependencies = new FakeIssueDependencyRepository();
+        dependencies.addFixture(IssueDependency.fromPersistence(300L, "dep-1", 99L, ISSUE_ID, now));
+        var service = service(
+                new InMemoryIssueRepository(issue),
+                dependencies,
+                comments,
+                histories,
+                new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
+
+        IssueDetailResult detail = service.viewIssueDetail(ISSUE_ID, dev.getLoginId());
+
+        assertEquals(issue.id(), detail.id());
+        assertEquals(issue.projectId(), detail.projectId());
+        assertEquals(issue.getIssueId(), detail.issueId());
+        assertEquals(1, detail.comments().size());
+        assertEquals(String.valueOf(COMMENT_ID), detail.comments().getFirst().commentId());
+        assertEquals(1, detail.histories().size());
+        assertEquals(ActionType.COMMENTED, detail.histories().getFirst().actionType());
+        assertEquals(1, detail.dependencies().size());
+        assertEquals("dep-1", detail.dependencies().getFirst().dependencyId());
+        assertTrue(detail.availableActions().isEmpty());
+    }
+
+    @Test
     @DisplayName("reporter updates title and description before assignment")
     void updateIssueSucceedsForReporterBeforeAssignment() {
         var issue = persistedIssue();
