@@ -1,5 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -41,43 +43,49 @@ public final class ProjectService {
         return new ProjectService(projectRepository, issueRepository, userRepository, permissionPolicy, clock);
     }
 
-    public List<Project> viewProjects(String currentUserId) {
+    public List<ProjectResult> viewProjects(String currentUserId) {
         requireProjectAdmin(currentUserId);
-        return projectRepository.findAll();
+        return projectRepository.findAll().stream()
+                .map(ProjectResult::from)
+                .toList();
     }
 
-    public Project viewProject(long projectId, String currentUserId) {
+    public ProjectResult viewProject(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
-        return findProject(projectId);
+        return ProjectResult.from(findProject(projectId));
     }
 
-    public List<ProjectMember> viewProjectParticipants(long projectId, String currentUserId) {
+    public List<ProjectMemberResult> viewProjectParticipants(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
         findProject(projectId);
-        return projectRepository.findParticipants(projectId);
+        return participantResults(projectId);
     }
 
     public ProjectDetail viewProjectDetail(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
         Project project = findProject(projectId);
-        List<ProjectMember> participants = projectRepository.findParticipants(projectId);
-        return ProjectDetail.create(project, participants, issueRepository.findByProject(projectId));
+        return ProjectDetail.create(
+                ProjectResult.from(project),
+                participantResults(projectId),
+                issueRepository.findByProject(projectId).stream()
+                        .map(ProjectService::toIssueSummary)
+                        .toList());
     }
 
-    public Project createProject(String name, String description, String currentUserId) {
+    public ProjectResult createProject(String name, String description, String currentUserId) {
         User admin = requireProjectAdmin(currentUserId);
         String projectName = requireProjectName(name);
         rejectDuplicateProjectName(projectName);
 
         LocalDateTime now = clock.now();
-        return projectRepository.save(Project.create(
+        return ProjectResult.from(projectRepository.save(Project.create(
                 projectName,
                 description,
                 admin.getLoginId(),
-                now));
+                now)));
     }
 
     public void deleteProject(long projectId, String currentUserId) {
@@ -117,6 +125,7 @@ public final class ProjectService {
             throw new IllegalArgumentException("Project participant was not found.");
         }
 
+        rejectActiveIssueAssigneeOrVerifier(projectId, participantId);
         projectRepository.removeParticipant(projectId, participantId);
     }
 
@@ -137,6 +146,12 @@ public final class ProjectService {
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
     }
 
+    private List<ProjectMemberResult> participantResults(long projectId) {
+        return projectRepository.findParticipants(projectId).stream()
+                .map(member -> ProjectMemberResult.from(member, findUser(member.userId())))
+                .toList();
+    }
+
     private void rejectDuplicateProjectName(String projectName) {
         projectRepository.findByName(projectName).ifPresent(existingProject -> {
             throw new IllegalArgumentException("Project name already exists.");
@@ -155,8 +170,24 @@ public final class ProjectService {
         }
 
         if (!userRepository.findByRole(projectId, Role.PL).isEmpty()) {
-            throw new IllegalArgumentException("Only one PL participant can be assigned to a project, including inactive PL accounts.");
+            throw new IllegalArgumentException("Only one PL can be assigned to a project.");
         }
+    }
+
+    private void rejectActiveIssueAssigneeOrVerifier(long projectId, String participantId) {
+        for (Issue issue : issueRepository.findByProject(projectId)) {
+            if (!hasActiveAssignment(issue)) {
+                continue;
+            }
+            if (participantId.equals(issue.assigneeId()) || participantId.equals(issue.verifierId())) {
+                throw new IllegalArgumentException(
+                        "Issue assignee or verifier cannot be removed while assignment is active.");
+            }
+        }
+    }
+
+    private static boolean hasActiveAssignment(Issue issue) {
+        return issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED;
     }
 
     private static void requireProjectId(long projectId) {
@@ -181,4 +212,20 @@ public final class ProjectService {
                 .map(ProjectMember::userId)
                 .anyMatch(loginId::equals);
     }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.projectId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt());
+    }
+
 }

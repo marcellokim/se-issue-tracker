@@ -28,13 +28,15 @@ class IssueStateServiceTest {
     private static final long ISSUE_ID = 1L;
     private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, createdAt(),
             createdAt());
-    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, createdAt(),
+            createdAt());
     private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, createdAt(),
             createdAt());
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, createdAt(), createdAt());
     private final User otherProjectPl = User.fromPersistence("pl2", "PL Two", "hash", Role.PL, true, createdAt(),
             createdAt());
-    private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(), createdAt());
+    private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, createdAt(),
+            createdAt());
 
     @Test
     @DisplayName("assignee marks assigned issue fixed")
@@ -49,7 +51,8 @@ class IssueStateServiceTest {
         assertEquals(1, issue.getComments().size());
         assertEquals("Fix completed", issue.getComments().getFirst().getContent());
         assertEquals(CommentPurpose.STATUS_CHANGE, issue.getComments().getFirst().getPurpose());
-        org.junit.jupiter.api.Assertions.assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
+        org.junit.jupiter.api.Assertions
+                .assertTrue(issue.getComments().getFirst().getCommentId().startsWith("COMMENT-"));
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
         assertStatusChangedThenCommented(issue);
     }
@@ -117,6 +120,30 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("assignee must belong to the issue project to mark fixed")
+    void rejectFixedTransitionByAssigneeOutsideProject() {
+        var issue = assignedIssue();
+        var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), verifier.getLoginId());
+        var service = service(new FakeIssueDependencyRepository(), users, issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("verifier must belong to the issue project to resolve")
+    void rejectResolveByVerifierOutsideProject() {
+        var issue = fixedIssue();
+        var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
+                .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId());
+        var service = service(new FakeIssueDependencyRepository(), users, issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId()));
+    }
+
+    @Test
     @DisplayName("blank status change comment is rejected before lookup")
     void rejectBlankCommentBeforeLookup() {
         var issue = assignedIssue();
@@ -127,17 +154,46 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unsupported status change targets remain feature gaps")
-    void rejectUnsupportedTargetStatus() {
+    @DisplayName("verifier rejects fixed issue back to assigned")
+    void rejectFixedIssueBackToAssigned() {
         var fixed = fixedIssue();
         var fixedService = service(fixed);
-        assertThrows(UnsupportedOperationException.class,
-                () -> fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId()));
 
+        var result = fixedService.changeStatus(ISSUE_ID, IssueStatus.ASSIGNED, "Reject fix", verifier.getLoginId());
+
+        assertEquals(IssueStatus.ASSIGNED, result.status());
+        assertEquals(1, fixed.getComments().size());
+        assertEquals("Reject fix", fixed.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE, fixed.getComments().getFirst().getPurpose());
+        assertStatusChangedThenCommented(fixed);
+    }
+
+    @Test
+    @DisplayName("project PL reopens resolved issue")
+    void reopenResolvedIssue() {
         var resolved = resolvedIssue();
         var resolvedService = service(resolved);
+
+        var result = resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId());
+
+        assertEquals(IssueStatus.REOPENED, result.status());
+        assertNull(resolved.getAssignee());
+        assertNull(resolved.getVerifier());
+        assertEquals(1, resolved.getComments().size());
+        assertEquals("Needs more work", resolved.getComments().getFirst().getContent());
+        assertEquals(CommentPurpose.STATUS_CHANGE, resolved.getComments().getFirst().getPurpose());
+        assertStatusChangedThenCommented(resolved);
+    }
+
+    @Test
+    @DisplayName("unsupported status change target remains a feature gap")
+    void rejectUnsupportedTargetStatus() {
+        var issue = assignedIssue();
+        var service = service(issue);
+
         assertThrows(UnsupportedOperationException.class,
-                () -> resolvedService.changeStatus(ISSUE_ID, IssueStatus.REOPENED, "Needs more work", pl.getLoginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.DELETED, "Delete through state service",
+                        pl.getLoginId()));
     }
 
     @Test
@@ -187,7 +243,8 @@ class IssueStateServiceTest {
         var unresolvedBlocking = newIssue(3L, "ISSUE-3");
         var depRepo = new FakeIssueDependencyRepository();
         depRepo.addFixture(IssueDependency.fromPersistence(1L, resolvedBlocking.id(), blockedIssue.id(), createdAt()));
-        depRepo.addFixture(IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
+        depRepo.addFixture(
+                IssueDependency.fromPersistence(2L, unresolvedBlocking.id(), blockedIssue.id(), createdAt()));
         var service = service(depRepo, blockedIssue, resolvedBlocking, unresolvedBlocking);
 
         var exception = assertThrows(IllegalStateException.class,
@@ -203,19 +260,19 @@ class IssueStateServiceTest {
         return service(depRepo, new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev), issues);
     }
 
-    private IssueStateService service(FakeIssueDependencyRepository depRepo, InMemoryUserRepository users, Issue... issues) {
+    private IssueStateService service(FakeIssueDependencyRepository depRepo, InMemoryUserRepository users,
+            Issue... issues) {
         return new IssueStateService(
                 new InMemoryIssueRepository(issues),
                 depRepo,
                 users,
                 new PermissionPolicy(),
-                new Clock()
-        );
+                new Clock());
     }
 
-    private Issue newIssue() {
-        return newIssue(ISSUE_ID, "ISSUE-1");
-    }
+    // private Issue newIssue() {
+    // return newIssue(ISSUE_ID, "ISSUE-1");
+    // }
 
     private Issue newIssue(long id, String issueId) {
         return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)

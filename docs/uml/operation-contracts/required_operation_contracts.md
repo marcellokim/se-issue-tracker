@@ -34,7 +34,7 @@ Use Case: UC1 Register Issue
   - 새로운 `Issue` instance가 생성되었다.
   - `actionType=CREATED`인 새로운 `IssueHistory` instance가 생성되었다.
 - Association 형성
-  - 선택된 `Project`와 새 `Issue` 사이에 `contains` association이 형성되었다.
+  - 새 `Issue.projectId`가 선택된 `Project`의 식별자를 참조한다. `Project` 객체 내부에 `Issue` collection을 추가하지 않는다.
   - 현재 `User`와 새 `Issue` 사이에 `reports` association이 형성되었다.
   - 새 `Issue`와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `User`와 새 `IssueHistory` 사이에 `changes` association이 형성되었다.

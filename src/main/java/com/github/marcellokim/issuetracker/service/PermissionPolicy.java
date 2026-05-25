@@ -1,5 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -39,14 +41,54 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 버튼 관련
+    public boolean canRegisterIssue(User user, Project project) {
+        return allows(() -> assertCanRegisterIssue(user, project));
+    }
+
+    public void assertCanViewIssue(User user) {
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view issues.");
+    }
+
+    // UI 버튼 관련
+    public boolean canViewIssue(User user) {
+        return allows(() -> assertCanViewIssue(user));
+    }
+
     public void assertCanAssignIssue(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requirePl(user, "Only PL can assign issue owners.");
     }
 
+    // UI 버튼 관련
+    public boolean canAssignIssue(User user, Issue issue) {
+        return allows(() -> assertCanAssignIssue(user, issue));
+    }
+
     public void assertCanAddComment(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can add issue comments.");
+    }
+
+    // UI 버튼 관련
+    public boolean canAddComment(User user, Issue issue) {
+        return allows(() -> assertCanAddComment(user, issue));
+    }
+
+    public void assertCanUpdateIssue(User user, Issue issue) {
+        Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can update issues.");
+        if (!Objects.equals(user.getLoginId(), targetIssue.reporterId())) {
+            throw new SecurityException("Only the issue reporter can update title and description.");
+        }
+        if (targetIssue.status() != IssueStatus.NEW && targetIssue.status() != IssueStatus.REOPENED) {
+            throw new SecurityException("Only NEW or REOPENED issues can update title and description.");
+        }
+    }
+
+    // UI 관련
+    public boolean canUpdateIssue(User user, Issue issue) {
+        return allows(() -> assertCanUpdateIssue(user, issue));
     }
 
     public void assertCanChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
@@ -83,6 +125,11 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 버튼 관련
+    public boolean canChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
+        return allows(() -> assertCanChangeStatus(user, issue, targetStatus));
+    }
+
     public void assertCanManageDeletedIssue(User user, Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
         if (!verifyPermission(user, MANAGE_DELETED_ISSUE, targetIssue.projectId())) {
@@ -90,9 +137,19 @@ public final class PermissionPolicy {
         }
     }
 
+    // UI 버튼 관련
+    public boolean canManageDeletedIssue(User user, Issue issue) {
+        return allows(() -> assertCanManageDeletedIssue(user, issue));
+    }
+
     public void assertCanManageDependency(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requirePl(user, "Only PL can manage dependencies.");
+    }
+
+    // UI 버튼 관련
+    public boolean canManageDependency(User user, Issue issue) {
+        return allows(() -> assertCanManageDependency(user, issue));
     }
 
     public void assertCanChangePriority(User user, Issue issue) {
@@ -105,8 +162,44 @@ public final class PermissionPolicy {
         assertCanChangePriority(user, issue);
     }
 
+    public boolean canChangePriority(User user, Issue issue) {
+        return allows(() -> assertCanChangePriority(user, issue));
+    }
+
+    public boolean canChangePriority(User user, Issue issue, Priority newPriority) {
+        return allows(() -> assertCanChangePriority(user, issue, newPriority));
+    }
+
+    public void assertCanUpdateComment(User user, Comment comment) {
+        Comment targetComment = Objects.requireNonNull(comment, "comment");
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can update comments.");
+        if (!Objects.equals(user.getLoginId(), targetComment.writerId())) {
+            throw new SecurityException("Only the comment writer can update the comment.");
+        }
+    }
+
+    public boolean canUpdateComment(User user, Comment comment) {
+        return allows(() -> assertCanUpdateComment(user, comment));
+    }
+
+    public void assertCanDeleteComment(User user, Comment comment) {
+        Comment targetComment = Objects.requireNonNull(comment, "comment");
+        assertCanUpdateComment(user, targetComment);
+        if (targetComment.purpose() != CommentPurpose.GENERAL) {
+            throw new SecurityException("Only GENERAL comments can be deleted.");
+        }
+    }
+
+    public boolean canDeleteComment(User user, Comment comment) {
+        return allows(() -> assertCanDeleteComment(user, comment));
+    }
+
     public void assertCanManageAccount(User user) {
         requireAdmin(user, "Only ADMIN can manage accounts.");
+    }
+
+    public boolean canManageAccount(User user) {
+        return allows(() -> assertCanManageAccount(user));
     }
 
     public void assertCanManageProject(User user) {
@@ -115,9 +208,26 @@ public final class PermissionPolicy {
         }
     }
 
+    public boolean canManageProject(User user) {
+        return allows(() -> assertCanManageProject(user));
+    }
+
     public void assertCanViewStatistics(User user, Object filters) {
         if (!verifyPermission(user, VIEW_STATISTICS, filters)) {
             throw new SecurityException("Only active PL, DEV, or TESTER users can view statistics.");
+        }
+    }
+
+    public boolean canViewStatistics(User user, Object filters) {
+        return allows(() -> assertCanViewStatistics(user, filters));
+    }
+
+    private static boolean allows(Runnable check) {
+        try {
+            check.run();
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
         }
     }
 

@@ -22,4 +22,6 @@ public interface ProjectRepository {
     void removeParticipant(long projectId, String userLoginId);
 
     List<ProjectMember> findParticipants(long projectId);
+
+    boolean existsByParticipant(String userLoginId);
 }

@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.cli;
 
 import com.github.marcellokim.issuetracker.config.ApplicationRuntime;
-import com.github.marcellokim.issuetracker.ui.IssueTrackerApplication;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -28,7 +27,8 @@ public final class CommandLineEntryPoint {
             return;
         }
 
-        IssueTrackerApplication.launchApp(args);
+        output.println("UI layer is not included in this branch.");
+        output.println("Use --cli-demo or --login-check for repository/application diagnostics.");
     }
 
     private static boolean isCliDemo(String[] args) {

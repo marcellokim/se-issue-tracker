@@ -20,8 +20,11 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectDetail;
+import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
+import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
@@ -68,24 +71,28 @@ class ProjectControllerTest {
         FakeIssueRepository issues = new FakeIssueRepository(
                 issue(101L, 1L, IssueStatus.NEW),
                 issue(102L, 2L, IssueStatus.ASSIGNED));
-        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()), issues);
+        ProjectController controller = controller(
+                auth,
+                projects,
+                new FakeUserRepository(auth.user(), active("pl1", Role.PL), active("dev1", Role.DEV)),
+                issues);
 
-        List<Project> viewedProjects = controller.viewProjects();
-        Project viewedProject = controller.viewProject(1L);
-        List<ProjectMember> viewedParticipants = controller.viewProjectParticipants(1L);
+        List<ProjectResult> viewedProjects = controller.viewProjects();
+        ProjectResult viewedProject = controller.viewProject(1L);
+        List<ProjectMemberResult> viewedParticipants = controller.viewProjectParticipants(1L);
         ProjectDetail viewedDetail = controller.viewProjectDetail(1L);
 
         assertEquals(2, viewedProjects.size());
-        assertEquals("project-one", viewedProject.getName());
+        assertEquals("project-one", viewedProject.name());
         assertEquals(List.of("pl1", "dev1"), viewedParticipants.stream()
-                .map(ProjectMember::userId)
+                .map(ProjectMemberResult::userId)
                 .toList());
-        assertEquals("project-one", viewedDetail.project().getName());
+        assertEquals("project-one", viewedDetail.project().name());
         assertEquals(List.of("pl1", "dev1"), viewedDetail.participants().stream()
-                .map(ProjectMember::userId)
+                .map(ProjectMemberResult::userId)
                 .toList());
         assertEquals(List.of(101L), viewedDetail.issues().stream()
-                .map(Issue::id)
+                .map(IssueSummary::id)
                 .toList());
         assertThrows(IllegalArgumentException.class, () -> controller.viewProject(404L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(404L));
@@ -99,15 +106,15 @@ class ProjectControllerTest {
         FakeProjectRepository projects = new FakeProjectRepository();
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
-        Project created = controller.createProject(" project-alpha ", "first project");
+        ProjectResult created = controller.createProject(" project-alpha ", "first project");
 
-        assertTrue(created.getId() > 0L);
-        assertEquals("project-alpha", created.getName());
-        assertEquals("first project", created.getDescription());
-        assertEquals("admin", created.getManagedByLoginId());
-        assertNotNull(created.getCreatedDate());
-        assertNotNull(created.getUpdatedAt());
-        assertTrue(projects.findById(created.getId()).isPresent());
+        assertTrue(created.id() > 0L);
+        assertEquals("project-alpha", created.name());
+        assertEquals("first project", created.description());
+        assertEquals("admin", created.managedByLoginId());
+        assertNotNull(created.createdDate());
+        assertNotNull(created.updatedAt());
+        assertTrue(projects.findById(created.id()).isPresent());
     }
 
     @Test
@@ -231,7 +238,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    @DisplayName("participant add rejects another PL even when the existing PL is inactive")
+    @DisplayName("participant add rejects another PL when existing PL is inactive")
     void participantAddRejectsSecondProjectLeadEvenWhenExistingLeadIsInactive() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User inactivePl = inactive("pl1", Role.PL);
@@ -260,6 +267,94 @@ class ProjectControllerTest {
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(1L, "dev1"));
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(404L, "dev1"));
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(1L, " "));
+    }
+
+    @Test
+    @DisplayName("participant remove rejects assignee of assigned issue")
+    void participantRemoveRejectsAssignedIssueAssignee() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = active("dev1", Role.DEV);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, assignee.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), assignee);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.ASSIGNED, assignee, null));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, assignee.getLoginId()));
+        assertEquals(List.of(assignee.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove rejects verifier of fixed issue")
+    void participantRemoveRejectsFixedIssueVerifier() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User verifier = active("tester1", Role.TESTER);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, verifier.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), verifier);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.FIXED, null, verifier));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, verifier.getLoginId()));
+        assertEquals(List.of(verifier.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove rejects assignee of fixed issue")
+    void participantRemoveRejectsFixedIssueAssignee() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = active("dev1", Role.DEV);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, assignee.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), assignee);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.FIXED, assignee, null));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, assignee.getLoginId()));
+        assertEquals(List.of(assignee.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove rejects verifier of assigned issue")
+    void participantRemoveRejectsAssignedIssueVerifier() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User verifier = active("tester1", Role.TESTER);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, verifier.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), verifier);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.ASSIGNED, null, verifier));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(1L, verifier.getLoginId()));
+        assertEquals(List.of(verifier.getLoginId()), projects.participantIds(1L));
+    }
+
+    @Test
+    @DisplayName("participant remove allows resolved issue assignee and verifier")
+    void participantRemoveAllowsResolvedIssueAssigneeAndVerifier() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = active("dev1", Role.DEV);
+        User verifier = active("tester1", Role.TESTER);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        projects.addParticipant(1L, assignee.getLoginId());
+        projects.addParticipant(1L, verifier.getLoginId());
+        FakeUserRepository users = new FakeUserRepository(auth.user(), assignee, verifier);
+        FakeIssueRepository issues = new FakeIssueRepository(
+                issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.RESOLVED, assignee, verifier));
+        ProjectController controller = controller(auth, projects, users, issues);
+
+        controller.removeProjectParticipant(1L, assignee.getLoginId());
+        controller.removeProjectParticipant(1L, verifier.getLoginId());
+
+        assertEquals(List.of(), projects.participantIds(1L));
     }
 
     private static ProjectController controller(
@@ -345,6 +440,27 @@ class ProjectControllerTest {
                 .status(status));
     }
 
+    private static Issue issueWithAssigneeAndVerifier(
+            long id,
+            long projectId,
+            IssueStatus status,
+            User assignee,
+            User verifier) {
+        return Issue.fromPersistence(Issue.persistedState(
+                        projectId,
+                        "Issue " + id,
+                        "Project controller test issue",
+                        user("reporter", Role.DEV, true))
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(NOW)
+                .updatedAt(NOW)
+                .priority(Priority.MAJOR)
+                .status(status)
+                .assignee(assignee)
+                .verifier(verifier));
+    }
+
     private record AuthFixture(AuthenticationService service, User user) {
     }
 
@@ -409,6 +525,14 @@ class ProjectControllerTest {
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
             return List.copyOf(membersByProjectId.getOrDefault(projectId, List.of()));
+        }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return membersByProjectId.values().stream()
+                    .flatMap(List::stream)
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
         }
 
         private List<String> participantIds(long projectId) {
@@ -531,6 +655,20 @@ class ProjectControllerTest {
         @Override
         public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
             return new ArrayList<>(issuesById.values());
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return issuesById.values().stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return issuesById.values().stream()
+                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId()));
         }
 
         @Override

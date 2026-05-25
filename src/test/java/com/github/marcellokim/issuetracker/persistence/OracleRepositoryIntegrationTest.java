@@ -127,6 +127,13 @@ class OracleRepositoryIntegrationTest {
         assertTrue(repositories.statistics().countByStatus(project2.getId()).get(IssueStatus.CLOSED) >= 1);
         assertTrue(repositories.statistics().countByStatus(project2.getId()).get(IssueStatus.RESOLVED) >= 1);
         assertFalse(repositories.statistics().countReportedIssuesByDay(project1.getId()).isEmpty());
+        assertFalse(repositories.statistics().countStatusChangesByDay(project1.getId()).isEmpty());
+        assertFalse(repositories.statistics().countCommentsByDay(project1.getId()).isEmpty());
+        var report = repositories.statistics().buildReport(project1.getId(), null, null, null, null);
+        assertFalse(report.dailyStatusChangeCounts().isEmpty());
+        assertFalse(report.monthlyStatusChangeCounts().isEmpty());
+        assertFalse(report.dailyCommentCounts().isEmpty());
+        assertFalse(report.monthlyCommentCounts().isEmpty());
         assertFalse(repositories.assignmentRecommendations().findDevAssigneeCandidates(project1.getId()).isEmpty());
         assertFalse(repositories.assignmentRecommendations().findTesterVerifierCandidates(project1.getId()).isEmpty());
     }
@@ -151,6 +158,51 @@ class OracleRepositoryIntegrationTest {
         assertNull(statisticsClosedIssue.verifierId());
         assertNotNull(statisticsClosedIssue.fixerId());
         assertNotNull(statisticsClosedIssue.resolverId());
+    }
+
+    @Test
+    @DisplayName("RESOLVED seed issues clear active assignee and verifier")
+    void resolvedSeedIssuesClearActiveAssigneeAndVerifier() {
+        var project1 = repositories.projects().findByName("project1").orElseThrow();
+        var project2 = repositories.projects().findByName("project2").orElseThrow();
+
+        List<Issue> resolvedIssues = List.of(
+                findIssueByTitle(project1.getId(), "Search result filter returns stale status"),
+                findIssueByTitle(project1.getId(), "Verification rejection returns to assignee"),
+                findIssueByTitle(project2.getId(), "Reopened issue keeps old assignee"));
+
+        for (Issue issue : resolvedIssues) {
+            assertEquals(IssueStatus.RESOLVED, issue.status());
+            assertNull(issue.assigneeId());
+            assertNull(issue.verifierId());
+            assertNotNull(issue.fixerId());
+            assertNotNull(issue.resolverId());
+        }
+    }
+
+    @Test
+    @DisplayName("seed covers FIXED and DELETED issue states")
+    void seedCoversFixedAndDeletedIssueStates() {
+        var project1 = repositories.projects().findByName("project1").orElseThrow();
+        var project2 = repositories.projects().findByName("project2").orElseThrow();
+
+        Issue fixedIssue = findIssueByTitle(project2.getId(), "Report export fails after generation");
+        Issue deletedFromNew = findIssueByTitleIncludingDeleted(project1.getId(), "Duplicate mobile login report");
+        Issue deletedFromClosed = findIssueByTitleIncludingDeleted(project2.getId(), "Retired browser support checklist");
+
+        assertEquals(IssueStatus.FIXED, fixedIssue.status());
+        assertNotNull(fixedIssue.assigneeId());
+        assertNotNull(fixedIssue.verifierId());
+        assertNotNull(fixedIssue.fixerId());
+        assertNull(fixedIssue.resolverId());
+
+        assertEquals(IssueStatus.DELETED, deletedFromNew.status());
+        assertEquals("NEW", latestDeleteHistory(deletedFromNew).previousValue());
+
+        assertEquals(IssueStatus.DELETED, deletedFromClosed.status());
+        assertEquals("CLOSED", latestDeleteHistory(deletedFromClosed).previousValue());
+        assertNotNull(deletedFromClosed.fixerId());
+        assertNotNull(deletedFromClosed.resolverId());
     }
 
     @Test
@@ -180,6 +232,9 @@ class OracleRepositoryIntegrationTest {
                 "ASSIGNED");
         assertStatusTransition("project2", "Reopened issue keeps old assignee", "pl2", "RESOLVED", "REOPENED");
         assertStatusTransition("project2", "Dashboard statistics misses closed issues", "pl2", "CLOSED", "REOPENED");
+        assertStatusTransition("project2", "Report export fails after generation", "dev4", "ASSIGNED", "FIXED");
+        assertStatusTransition("project1", "Duplicate mobile login report", "pl1", "NEW", "DELETED");
+        assertStatusTransition("project2", "Retired browser support checklist", "pl2", "CLOSED", "DELETED");
     }
 
     @Test
@@ -215,7 +270,7 @@ class OracleRepositoryIntegrationTest {
         var admin = repositories.users().findById("admin").orElseThrow();
         purgeIssuesByTitle(project.getId(), "Temporary deleted issue for repository policy test");
 
-        Issue deletedIssue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+        Issue deletedIssue = repositories.issues().save(Issue.create(Issue.persistedState(
                 project.getId(),
                 "Temporary deleted issue for repository policy test",
                 "Deleted issues should stay out of normal browse and statistics.",
@@ -414,7 +469,7 @@ class OracleRepositoryIntegrationTest {
             assertFalse(repositories.projects().findParticipants(project.getId()).stream()
                     .anyMatch(member -> member.userId().equals("dev1")));
 
-            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     uniqueId("crud_project_composition_issue"),
                     "Issue should be removed when its owning project is deleted.",
@@ -451,7 +506,7 @@ class OracleRepositoryIntegrationTest {
         Issue saved = null;
 
         try {
-            saved = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            saved = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     title,
                     "Issue repository CRUD test.",
@@ -462,6 +517,7 @@ class OracleRepositoryIntegrationTest {
                     .updatedAt(LocalDateTime.now())));
 
             assertEquals(title, repositories.issues().findById(saved.id()).orElseThrow().title());
+            assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
             long savedIssueId = saved.id();
             assertTrue(repositories.issues().findByCriteria(IssueSearchCriteria.create(
                     project.getId(), IssueStatus.NEW, Priority.MINOR, "dev1", null, null, "crud_issue",
@@ -504,6 +560,7 @@ class OracleRepositoryIntegrationTest {
                     .anyMatch(issue -> issue.id() == deleted.id()));
             assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
                     .anyMatch(issue -> issue.id() == deleted.id()));
+            assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
 
             repositories.issues().purge(deleted.id());
             saved = null;
@@ -525,7 +582,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     title,
                     "Aggregate root save should persist audit children.",
@@ -534,6 +591,11 @@ class OracleRepositoryIntegrationTest {
                     .priority(Priority.MAJOR)
                     .status(IssueStatus.NEW)
                     .updatedAt(LocalDateTime.now())));
+
+            assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.CREATED
+                            && history.previousValue() == null
+                            && IssueStatus.NEW.name().equals(history.newValue())));
 
             issue.assignFromNew(user("dev2"), user("tester1"), user("pl1"), LocalDateTime.now());
             issue.addComment("aggregate-audit-comment", "Assignment audit comment.", user("pl1"), LocalDateTime.now());
@@ -763,7 +825,7 @@ class OracleRepositoryIntegrationTest {
         Issue issue = null;
 
         try {
-            issue = repositories.issues().save(Issue.newForPersistence(Issue.persistedState(
+            issue = repositories.issues().save(Issue.create(Issue.persistedState(
                     project.getId(),
                     uniqueId("crud_stats_issue"),
                     "Resolved issue for statistics and recommendation CRUD test.",
@@ -794,6 +856,18 @@ class OracleRepositoryIntegrationTest {
         return repositories.issues().findByCriteria(IssueSearchCriteria.create(
                 projectId, null, null, null, null, null, title, null, null, true)).stream()
                 .filter(issue -> issue.title().equals(title))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static Issue findIssueByTitleIncludingDeleted(long projectId, String title) {
+        return findIssueByTitle(projectId, title);
+    }
+
+    private static IssueHistory latestDeleteHistory(Issue issue) {
+        return repositories.issueHistory().findByIssueId(issue.id()).stream()
+                .filter(history -> history.actionType() == ActionType.STATUS_CHANGED)
+                .filter(history -> IssueStatus.DELETED.name().equals(history.newValue()))
                 .findFirst()
                 .orElseThrow();
     }
@@ -851,7 +925,7 @@ class OracleRepositoryIntegrationTest {
             state.resolver(user("tester1"));
         }
 
-        return repositories.issues().save(Issue.newForPersistence(state));
+        return repositories.issues().save(Issue.create(state));
     }
 
     private static User user(String loginId) {

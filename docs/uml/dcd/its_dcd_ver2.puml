@@ -39,10 +39,8 @@ class Project {
   - description : Text
   - createdDate : DateTime
   --
-  + registerIssue(title, description, priority, reporter, now)
-  + addIssue(issue)
-  + addParticipant(user)
-  + removeParticipant(user)
+  + rename(newName, updatedAt)
+  + changeDescription(newDescription, updatedAt)
 }
 
 class IssueController {
@@ -110,8 +108,8 @@ class Issue {
   - priority : Priority
   - status : IssueStatus
   --
-  + createWithDefaultPriority(title, description, priority, reporter, now)
-  + recordCreation(changedBy, now)
+  + create(state)
+  + fromPersistence(state)
   + addComment(content, writer, now)
   + addHistory(history)
   + verifyPriorityChange(newPriority)
@@ -208,7 +206,7 @@ enum ActionType {
   COMMENTED
 }
 
-IssueController ..> Project : currentProject
+IssueController ..> Project : selectedProject
 IssueController ..> Issue : targetIssue
 IssueController ..> PermissionPolicy : policy
 
@@ -222,7 +220,7 @@ IssueStateController ..> PermissionPolicy : policy
 DeletedIssueController ..> Issue : deletedIssue
 DeletedIssueController ..> PermissionPolicy : policy
 
-Project "1" *-- "0..*" Issue : contains
+Project "1" -- "0..*" Issue : referenced by\nIssue.projectId
 User "*" -- "*" Project : participates in
 User "1" -- "0..*" Project : manages\n(Admin only)
 

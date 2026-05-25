@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -23,8 +22,7 @@ public final class AssignmentService {
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
             AssignmentRecommendationService recommendationService,
-            Clock clock
-    ) {
+            Clock clock) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
@@ -32,7 +30,7 @@ public final class AssignmentService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public AssignmentOptions startAssignment(long issueId, String currentUserId) {
+    public AssignmentOptionsResult startAssignment(long issueId, String currentUserId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
         assertCanStartAssignment(actor, issue);
@@ -45,16 +43,13 @@ public final class AssignmentService {
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         User verifier = findUser(verifierId);
-        requireActiveProjectMemberWithRole(
+        requireActiveProjectMember(
                 assignee,
                 issue.projectId(),
                 Role.DEV,
-                "Assignee must be an active DEV member of the issue project.");
-        requireActiveProjectMemberWithRole(
-                verifier,
-                issue.projectId(),
-                Role.TESTER,
-                "Verifier must be an active TESTER member of the issue project.");
+                "Assignee must be an active DEV in the issue project.");
+        requireActiveProjectMember(verifier, issue.projectId(), Role.TESTER,
+                "Verifier must be an active TESTER in the issue project.");
         if (issue.status() == IssueStatus.NEW) {
             issue.assignFromNew(assignee, verifier, actor, now());
         } else if (issue.status() == IssueStatus.REOPENED) {
@@ -71,11 +66,11 @@ public final class AssignmentService {
         User actor = findUser(currentUserId);
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
-        requireActiveProjectMemberWithRole(
+        requireActiveProjectMember(
                 assignee,
                 issue.projectId(),
                 Role.DEV,
-                "Assignee must be an active DEV member of the issue project.");
+                "Assignee must be an active DEV in the issue project.");
         issue.reassignAssignee(assignee, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -86,11 +81,8 @@ public final class AssignmentService {
         User actor = findUser(currentUserId);
         assertCanManageAssignment(actor, issue);
         User verifier = findUser(verifierId);
-        requireActiveProjectMemberWithRole(
-                verifier,
-                issue.projectId(),
-                Role.TESTER,
-                "Verifier must be an active TESTER member of the issue project.");
+        requireActiveProjectMember(verifier, issue.projectId(), Role.TESTER,
+                "Verifier must be an active TESTER in the issue project.");
         issue.changeVerifier(verifier, actor, now());
         issueRepository.save(issue);
         return toResult(issue);
@@ -118,10 +110,10 @@ public final class AssignmentService {
         }
     }
 
-    private void requireActiveProjectMemberWithRole(User candidate, long projectId, Role role, String message) {
-        boolean projectMember = userRepository.findActiveByRole(projectId, role).stream()
-                .anyMatch(user -> user.getLoginId().equals(candidate.getLoginId()));
-        if (!projectMember) {
+    private void requireActiveProjectMember(User user, long projectId, Role role, String message) {
+        boolean memberWithRole = userRepository.findActiveByRole(projectId, role).stream()
+                .anyMatch(candidate -> candidate.getLoginId().equals(user.getLoginId()));
+        if (!memberWithRole) {
             throw new SecurityException(message);
         }
     }
@@ -145,7 +137,11 @@ public final class AssignmentService {
                 issue.id(),
                 issue.getIssueId(),
                 issue.status(),
-                issue.getAssignee(),
-                issue.getVerifier());
+                toUserResult(issue.getAssignee()),
+                toUserResult(issue.getVerifier()));
+    }
+
+    private static UserResult toUserResult(User user) {
+        return user == null ? null : UserResult.from(user);
     }
 }

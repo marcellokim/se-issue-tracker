@@ -174,6 +174,25 @@ public final class JdbcProjectRepository implements ProjectRepository {
         }
     }
 
+    @Override
+    public boolean existsByParticipant(String userLoginId) {
+        String sql = """
+                select 1
+                from project_members
+                where user_login_id = ?
+                  and rownum = 1
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, userLoginId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check project participant existence.", exception);
+        }
+    }
+
     private Project insert(Project project) {
         String sql = """
                 insert into projects (name, description, managed_by_login_id, created_at,
@@ -256,7 +275,8 @@ public final class JdbcProjectRepository implements ProjectRepository {
     }
 
     static Project mapProject(ResultSet resultSet) throws SQLException {
-        // JDBC mappers reconstruct persisted rows rather than creating new domain objects.
+        // JDBC mappers reconstruct persisted rows rather than creating new domain
+        // objects.
         return Project.fromPersistence(
                 resultSet.getLong("id"),
                 resultSet.getString("name"),

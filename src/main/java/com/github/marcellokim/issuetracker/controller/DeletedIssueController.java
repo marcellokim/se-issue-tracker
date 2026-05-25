@@ -1,9 +1,9 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,17 +20,17 @@ public final class DeletedIssueController {
         this.deletedIssueService = Objects.requireNonNull(deletedIssueService, "deletedIssueService");
     }
 
-    public List<Issue> viewDeletedIssues(long projectId) {
+    public List<IssueSummary> viewDeletedIssues(long projectId) {
         User user = requireCurrentUser();
         return deletedIssueService.viewDeletedIssues(projectId, user);
     }
 
-    public Issue deleteIssue(long issueId, String comment) {
+    public IssueSummary deleteIssue(long issueId, String comment) {
         User user = requireCurrentUser();
         return deletedIssueService.deleteIssue(issueId, comment, user);
     }
 
-    public Issue restoreIssue(long issueId, String comment) {
+    public IssueSummary restoreIssue(long issueId, String comment) {
         User user = requireCurrentUser();
         return deletedIssueService.restoreIssue(issueId, comment, user);
     }

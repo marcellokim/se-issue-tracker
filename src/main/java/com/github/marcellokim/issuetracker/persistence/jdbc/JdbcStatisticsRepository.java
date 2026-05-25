@@ -19,6 +19,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +42,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 """;
         Map<IssueStatus, Integer> counts = new EnumMap<>(IssueStatus.class);
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -65,7 +66,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 """;
         Map<Priority, Integer> counts = new EnumMap<>(Priority.class);
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -87,8 +88,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
     public List<DailyIssueCount> countReportedIssuesByDay(
             long projectId,
             LocalDate fromInclusive,
-            LocalDate toInclusive
-    ) {
+            LocalDate toInclusive) {
         validateDateRange(fromInclusive, toInclusive);
 
         String sql = """
@@ -102,7 +102,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 order by reported_day
                 """;
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
             setNullableDate(statement, 2, fromInclusive);
@@ -132,8 +132,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
     public List<MonthlyIssueCount> countReportedIssuesByMonth(
             long projectId,
             YearMonth fromInclusive,
-            YearMonth toInclusive
-    ) {
+            YearMonth toInclusive) {
         validateMonthRange(fromInclusive, toInclusive);
 
         String sql = """
@@ -147,7 +146,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 order by reported_month
                 """;
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
             LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
@@ -169,26 +168,273 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
     }
 
     @Override
+    public List<DailyIssueCount> countStatusChangesByDay(
+            long projectId,
+            LocalDate fromInclusive,
+            LocalDate toInclusive) {
+        validateDateRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select trunc(h.changed_at) as changed_day, count(*) as change_count
+                from issue_history h
+                join issues i on i.id = h.issue_id
+                where i.project_id = ?
+                  and i.status <> 'DELETED'
+                  and h.action_type = 'STATUS_CHANGED'
+                  and (? is null or h.changed_at >= ?)
+                  and (? is null or h.changed_at < ?)
+                group by trunc(h.changed_at)
+                order by changed_day
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
+            setNullableDate(statement, 2, fromInclusive);
+            setNullableDate(statement, 3, fromInclusive);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Map<LocalDate, Integer> countByDate = new HashMap<>();
+                while (resultSet.next()) {
+                    Date date = resultSet.getDate("changed_day");
+                    countByDate.put(date.toLocalDate(), resultSet.getInt("change_count"));
+                }
+                return fillDailyRange(countByDate, fromInclusive, toInclusive);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count status changes by day.", exception);
+        }
+    }
+
+    @Override
+    public List<MonthlyIssueCount> countStatusChangesByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive) {
+        validateMonthRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select to_char(h.changed_at, 'YYYY-MM') as changed_month, count(*) as change_count
+                from issue_history h
+                join issues i on i.id = h.issue_id
+                where i.project_id = ?
+                  and i.status <> 'DELETED'
+                  and h.action_type = 'STATUS_CHANGED'
+                  and (? is null or h.changed_at >= ?)
+                  and (? is null or h.changed_at < ?)
+                group by to_char(h.changed_at, 'YYYY-MM')
+                order by changed_month
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Map<YearMonth, Integer> countByMonth = new HashMap<>();
+                while (resultSet.next()) {
+                    YearMonth month = YearMonth.parse(resultSet.getString("changed_month"));
+                    countByMonth.put(month, resultSet.getInt("change_count"));
+                }
+                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count status changes by month.", exception);
+        }
+    }
+
+    @Override
+    public List<DailyIssueCount> countCommentsByDay(
+            long projectId,
+            LocalDate fromInclusive,
+            LocalDate toInclusive) {
+        validateDateRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select trunc(c.created_at) as commented_day, count(*) as comment_count
+                from comments c
+                join issues i on i.id = c.issue_id
+                where i.project_id = ?
+                  and i.status <> 'DELETED'
+                  and (? is null or c.created_at >= ?)
+                  and (? is null or c.created_at < ?)
+                group by trunc(c.created_at)
+                order by commented_day
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
+            setNullableDate(statement, 2, fromInclusive);
+            setNullableDate(statement, 3, fromInclusive);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Map<LocalDate, Integer> countByDate = new HashMap<>();
+                while (resultSet.next()) {
+                    Date date = resultSet.getDate("commented_day");
+                    countByDate.put(date.toLocalDate(), resultSet.getInt("comment_count"));
+                }
+                return fillDailyRange(countByDate, fromInclusive, toInclusive);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count comments by day.", exception);
+        }
+    }
+
+    @Override
+    public List<MonthlyIssueCount> countCommentsByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive) {
+        validateMonthRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select to_char(c.created_at, 'YYYY-MM') as commented_month, count(*) as comment_count
+                from comments c
+                join issues i on i.id = c.issue_id
+                where i.project_id = ?
+                  and i.status <> 'DELETED'
+                  and (? is null or c.created_at >= ?)
+                  and (? is null or c.created_at < ?)
+                group by to_char(c.created_at, 'YYYY-MM')
+                order by commented_month
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Map<YearMonth, Integer> countByMonth = new HashMap<>();
+                while (resultSet.next()) {
+                    YearMonth month = YearMonth.parse(resultSet.getString("commented_month"));
+                    countByMonth.put(month, resultSet.getInt("comment_count"));
+                }
+                return fillMonthlyRange(countByMonth, fromInclusive, toInclusive);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count comments by month.", exception);
+        }
+    }
+
+    @Override
+    public Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive) {
+        validateMonthRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select to_char(reported_at, 'YYYY-MM') as reported_month,
+                       status,
+                       count(*) as issue_count
+                from issues
+                where project_id = ?
+                  and status <> 'DELETED'
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
+                group by to_char(reported_at, 'YYYY-MM'), status
+                order by reported_month, status
+                """;
+        Map<YearMonth, Map<IssueStatus, Integer>> counts = emptyStatusMonthRange(fromInclusive, toInclusive);
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    YearMonth month = YearMonth.parse(resultSet.getString("reported_month"));
+                    counts.computeIfAbsent(month, ignored -> new EnumMap<>(IssueStatus.class))
+                            .put(IssueStatus.valueOf(resultSet.getString("status")), resultSet.getInt("issue_count"));
+                }
+                return freezeNestedCounts(counts);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count issues by status and month.", exception);
+        }
+    }
+
+    @Override
+    public Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(
+            long projectId,
+            YearMonth fromInclusive,
+            YearMonth toInclusive) {
+        validateMonthRange(fromInclusive, toInclusive);
+
+        String sql = """
+                select to_char(reported_at, 'YYYY-MM') as reported_month,
+                       priority,
+                       count(*) as issue_count
+                from issues
+                where project_id = ?
+                  and status <> 'DELETED'
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
+                group by to_char(reported_at, 'YYYY-MM'), priority
+                order by reported_month, priority
+                """;
+        Map<YearMonth, Map<Priority, Integer>> counts = emptyPriorityMonthRange(fromInclusive, toInclusive);
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            LocalDate fromDate = fromInclusive == null ? null : fromInclusive.atDay(1);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusMonths(1).atDay(1);
+            setNullableDate(statement, 2, fromDate);
+            setNullableDate(statement, 3, fromDate);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    YearMonth month = YearMonth.parse(resultSet.getString("reported_month"));
+                    counts.computeIfAbsent(month, ignored -> new EnumMap<>(Priority.class))
+                            .put(Priority.valueOf(resultSet.getString("priority")), resultSet.getInt("issue_count"));
+                }
+                return freezeNestedCounts(counts);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to count issues by priority and month.", exception);
+        }
+    }
+
+    @Override
     public StatisticsReport buildReport(
             long projectId,
             LocalDate dailyFromInclusive,
             LocalDate dailyToInclusive,
             YearMonth monthlyFromInclusive,
-            YearMonth monthlyToInclusive
-    ) {
+            YearMonth monthlyToInclusive) {
         return StatisticsReport.create(
                 countByStatus(projectId),
                 countByPriority(projectId),
                 countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
-                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive)
-        );
+                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countByStatusByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countByPriorityByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countStatusChangesByDay(projectId, dailyFromInclusive, dailyToInclusive),
+                countStatusChangesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countCommentsByDay(projectId, dailyFromInclusive, dailyToInclusive),
+                countCommentsByMonth(projectId, monthlyFromInclusive, monthlyToInclusive));
     }
 
     private static List<DailyIssueCount> fillDailyRange(
             Map<LocalDate, Integer> countByDate,
             LocalDate fromInclusive,
-            LocalDate toInclusive
-    ) {
+            LocalDate toInclusive) {
         if (fromInclusive == null || toInclusive == null) {
             return countByDate.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
@@ -206,8 +452,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
     private static List<MonthlyIssueCount> fillMonthlyRange(
             Map<YearMonth, Integer> countByMonth,
             YearMonth fromInclusive,
-            YearMonth toInclusive
-    ) {
+            YearMonth toInclusive) {
         if (fromInclusive == null || toInclusive == null) {
             return countByMonth.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
@@ -232,6 +477,41 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         if (fromInclusive != null && toInclusive != null && fromInclusive.isAfter(toInclusive)) {
             throw new IllegalArgumentException("fromInclusive must not be after toInclusive");
         }
+    }
+
+    private static Map<YearMonth, Map<IssueStatus, Integer>> emptyStatusMonthRange(
+            YearMonth fromInclusive,
+            YearMonth toInclusive) {
+        Map<YearMonth, Map<IssueStatus, Integer>> counts = new LinkedHashMap<>();
+        if (fromInclusive == null || toInclusive == null) {
+            return counts;
+        }
+        for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
+            counts.put(month, new EnumMap<>(IssueStatus.class));
+        }
+        return counts;
+    }
+
+    private static Map<YearMonth, Map<Priority, Integer>> emptyPriorityMonthRange(
+            YearMonth fromInclusive,
+            YearMonth toInclusive) {
+        Map<YearMonth, Map<Priority, Integer>> counts = new LinkedHashMap<>();
+        if (fromInclusive == null || toInclusive == null) {
+            return counts;
+        }
+        for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
+            counts.put(month, new EnumMap<>(Priority.class));
+        }
+        return counts;
+    }
+
+    private static <K> Map<YearMonth, Map<K, Integer>> freezeNestedCounts(
+            Map<YearMonth, Map<K, Integer>> counts) {
+        Map<YearMonth, Map<K, Integer>> frozen = new LinkedHashMap<>();
+        counts.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> frozen.put(entry.getKey(), Map.copyOf(entry.getValue())));
+        return Map.copyOf(frozen);
     }
 
     private static void setNullableDate(PreparedStatement statement, int index, LocalDate date) throws SQLException {

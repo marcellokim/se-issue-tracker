@@ -56,7 +56,8 @@ public final class JdbcIssueRepository implements IssueRepository {
     @Override
     public List<Issue> findDeletedByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
+                PreparedStatement statement = connection
+                        .prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
         } catch (SQLException exception) {
@@ -75,6 +76,45 @@ public final class JdbcIssueRepository implements IssueRepository {
             return executeIssueList(statement);
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to search issues.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsByProjectIdAndTitle(long projectId, String title) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        JdbcIssueQueries.EXISTS_BY_PROJECT_ID_AND_TITLE_SQL)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, title);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue title duplication.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsByResponsibleUser(String userLoginId) {
+        String sql = """
+                select 1
+                from issues
+                where status <> 'DELETED'
+                  and (
+                      assignee_login_id = ?
+                      or verifier_login_id = ?
+                  )
+                  and rownum = 1
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, userLoginId);
+            statement.setString(2, userLoginId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue responsibility existence.", exception);
         }
     }
 

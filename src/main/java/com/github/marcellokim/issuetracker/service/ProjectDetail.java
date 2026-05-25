@@ -1,46 +1,39 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import java.util.List;
 import java.util.Objects;
 
-/*
- * Project 관리 조회용 application read model.
- * Project aggregate에 participants/issues collection을 넣지 않고 service가 repository 조회 결과를 조합함.
- */
 public final class ProjectDetail {
 
-    private final Project project;
-    private final List<ProjectMember> participants;
-    private final List<Issue> issues;
+    private final ProjectResult project;
+    private final List<ProjectMemberResult> participants;
+    private final List<IssueSummary> issues;
 
     private ProjectDetail(
-            Project project,
-            List<ProjectMember> participants,
-            List<Issue> issues) {
+            ProjectResult project,
+            List<ProjectMemberResult> participants,
+            List<IssueSummary> issues) {
         this.project = Objects.requireNonNull(project, "project");
-        this.participants = List.copyOf(Objects.requireNonNull(participants, "participants"));
-        this.issues = List.copyOf(Objects.requireNonNull(issues, "issues"));
+        this.participants = List.copyOf(participants);
+        this.issues = List.copyOf(issues);
     }
 
     public static ProjectDetail create(
-            Project project,
-            List<ProjectMember> participants,
-            List<Issue> issues) {
+            ProjectResult project,
+            List<ProjectMemberResult> participants,
+            List<IssueSummary> issues) {
         return new ProjectDetail(project, participants, issues);
     }
 
-    public Project project() {
+    public ProjectResult project() {
         return project;
     }
 
-    public List<ProjectMember> participants() {
+    public List<ProjectMemberResult> participants() {
         return participants;
     }
 
-    public List<Issue> issues() {
+    public List<IssueSummary> issues() {
         return issues;
     }
 }

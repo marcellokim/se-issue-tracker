@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import java.time.LocalDate;
@@ -14,20 +13,18 @@ public final class StatisticsService {
 
     public StatisticsService(
             PermissionPolicy permissionPolicy,
-            StatisticsRepository statisticsRepository
-    ) {
+            StatisticsRepository statisticsRepository) {
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
     }
 
-    public StatisticsReport viewStatistics(
+    public StatisticsReportResult viewStatistics(
             long projectId,
             LocalDate dailyFromInclusive,
             LocalDate dailyToInclusive,
             YearMonth monthlyFromInclusive,
             YearMonth monthlyToInclusive,
-            User actor
-    ) {
+            User actor) {
         /*
          * 기간 검증은 statistics use-case 경계 책임.
          * repository query input은 service 한 곳에서 보호.
@@ -36,21 +33,23 @@ public final class StatisticsService {
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
-        return statisticsRepository.buildReport(
+        return StatisticsReportResult.from(statisticsRepository.buildReport(
                 projectId,
                 dailyFromInclusive,
                 dailyToInclusive,
                 monthlyFromInclusive,
-                monthlyToInclusive
-        );
+                monthlyToInclusive));
+    }
+
+    public boolean canViewStatistics(long projectId, User actor) {
+        return permissionPolicy.canViewStatistics(actor, projectId);
     }
 
     private static <T extends Comparable<T>> void requireOrderedRange(
             T fromInclusive,
             T toInclusive,
             String fromName,
-            String toName
-    ) {
+            String toName) {
         if (fromInclusive != null && toInclusive != null && fromInclusive.compareTo(toInclusive) > 0) {
             throw new IllegalArgumentException(fromName + " must be <= " + toName);
         }

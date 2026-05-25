@@ -6,7 +6,8 @@ hide footbox
 
 actor "Auth User" as User
 participant "issueController:IssueController" as IC
-participant "currentProject:Project" as Project
+participant "issueService:IssueService" as IS
+participant "targetProject:Project" as Project
 
 User -> IC : registerIssue(title, description, priority)
 
@@ -17,19 +18,23 @@ else invalid title or description
 else valid and authorized
   note right of IC
   issueController는 UC1의 SSD system operation을 수신한다.
-  UI, 권한 정책, 현재 사용자/프로젝트 조회,
-  현재 시각, 영속성 처리는 lifeline으로 펼치지 않고
-  Logical Architecture의 contextual service로 간주한다.
+  Controller는 현재 사용자 확인 후 application service에 위임하고,
+  권한 정책, 프로젝트 조회, 현재 시각, 영속성 처리는
+  IssueService 협력으로 조정한다.
   end note
 
-  IC -> Project : registerIssue(title, description, priority,\ncurrentUser, now)
+  IC -> IS : registerIssue(projectId, title, description,\npriority, currentUserId)
+  activate IS
+
+  IS -> Project : verify selected project exists\nand can receive issue
   activate Project
+  Project --> IS : projectId
+  deactivate Project
 
   create "newIssue:Issue" as Issue
-  Project --> Issue : createWithDefaultPriority(title, description, priority,\nstatus=NEW, reporter=currentUser,\nreportedDate=now)
+  IS --> Issue : create(PersistedState(projectId, title,\ndescription, reporter)\n.priority(priority or MAJOR)\n.reportedDate(now))
   activate Issue
 
-  Project -> Issue : recordCreation(currentUser, now)
   create "createdHistory:IssueHistory" as CreatedHistory
   Issue --> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
   Issue -> Issue : addHistory(createdHistory)
@@ -45,18 +50,19 @@ else valid and authorized
     User-IssueHistory changes association 형성을 의미
   end note
 
-  Issue --> Project : creationRecorded
+  Issue --> IS : createdWithHistory
   deactivate Issue
 
-  Project -> Project : addIssue(newIssue)
-  Project --> IC : newIssue
-  deactivate Project
+  IS -> IS : saveIssue(newIssue)
+  IS --> IC : issueResult
+  deactivate IS
 
-  note over Project
+  note over IS, Issue
   Creator / Information Expert:
-  Project.registerIssue는 Issue 생성,
-  priority 기본값 적용, CREATED history 기록, contains 등록을
-  하나의 원자적 도메인 작업으로 캡슐화한다.
+  Project는 Issue collection을 소유하지 않는다.
+  IssueService가 Project 존재/권한을 확인하고,
+  Issue.create(...)가 priority 기본값 적용과 CREATED history 기록을 담당한다.
+  프로젝트 관계는 Issue.projectId로 표현한다.
   end note
 
   IC --> User : issueRegistered(issueId,\nstatus=NEW,\nconfirmation)

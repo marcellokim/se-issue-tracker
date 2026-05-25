@@ -39,13 +39,32 @@ class DeletedIssueServiceTest {
                 () -> service.viewDeletedIssues(PROJECT_ID, otherProjectPl));
     }
 
+    @Test
+    @DisplayName("delete transition accepts only NEW or CLOSED issues")
+    void rejectDeleteTransitionFromNonDeletableStatus() {
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                new InMemoryIssueRepository(issueWithStatus(IssueStatus.ASSIGNED)),
+                users,
+                new PermissionPolicy(),
+                new Clock());
+
+        assertThrows(SecurityException.class,
+                () -> service.deleteIssue(ISSUE_ID, "delete rejected", projectPl));
+    }
+
     private Issue deletedIssue() {
+        return issueWithStatus(IssueStatus.DELETED);
+    }
+
+    private Issue issueWithStatus(IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Deleted issue", "Deleted description", reporter)
                 .id(ISSUE_ID)
                 .issueId("ISSUE-1")
                 .reportedDate(NOW)
                 .priority(Priority.MAJOR)
-                .status(IssueStatus.DELETED)
+                .status(status)
                 .updatedAt(NOW));
     }
 }
