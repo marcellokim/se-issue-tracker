@@ -560,7 +560,7 @@ class IssueServiceTest {
 
         DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
 
-        service.removeDependency(sourceDependencyId(result), pl.getLoginId());
+        service.removeDependency(result.blockingIssueId(), result.blockedIssueId(), pl.getLoginId());
 
         assertFalse(deps.findById(result.id()).isPresent());
         assertFalse(deps.findByDependencyId(result.dependencyId()).isPresent());
@@ -571,17 +571,13 @@ class IssueServiceTest {
         assertEquals("Dependency removed", history.message());
     }
 
-    private static String sourceDependencyId(DependencyResult dependency) {
-        return dependency.blockingIssueId() + ":" + dependency.blockedIssueId();
-    }
-
     @Test
     @DisplayName("rejects removing nonexistent dependency")
     void removeDependencyRejectsUnknown() {
         var service = service(new InMemoryIssueRepository());
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.removeDependency("missing-dependency-id", pl.getLoginId()));
+                () -> service.removeDependency(999L, 998L, pl.getLoginId()));
     }
 
     @Test

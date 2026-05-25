@@ -116,9 +116,9 @@ public final class IssueController {
         return issueService.viewProjectDependencies(projectId, user.getLoginId());
     }
 
-    public void removeDependency(String dependencyId) {
+    public void removeDependency(long blockingIssueId, long blockedIssueId) {
         User user = requireCurrentUser();
-        issueService.removeDependency(dependencyId, user.getLoginId());
+        issueService.removeDependency(blockingIssueId, blockedIssueId, user.getLoginId());
     }
 
     public void deleteComment(long issueId, long commentId) {

@@ -19,10 +19,8 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
@@ -122,6 +120,7 @@ public final class IssueService {
         findProject(projectId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
+        requireActiveProjectMember(actor, projectId, "Only project members can search issues.");
         return issueRepository.findByCriteria(IssueSearchCriteria.create(
                 projectId,
                 status,
@@ -194,6 +193,7 @@ public final class IssueService {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can view comments.");
         return commentRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toCommentResult)
                 .toList();
@@ -218,49 +218,23 @@ public final class IssueService {
         findProject(projectId);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
-        Map<String, IssueDependency> dependenciesById = new LinkedHashMap<>();
-        for (Issue issue : issueRepository.findByProject(projectId)) {
-            for (IssueDependency dependency : dependencyRepository.findByIssueId(issue.id())) {
-                dependenciesById.putIfAbsent(dependency.getDependencyId(), dependency);
-            }
-        }
-        return dependenciesById.values().stream()
+        requireActiveProjectMember(actor, projectId, "Only project members can view project dependencies.");
+        return dependencyRepository.findByProjectId(projectId).stream()
                 .map(IssueService::toDependencyResult)
                 .toList();
     }
 
-    public void removeDependency(String dependencyId, String currentUserId) {
-        String hashedDependencyId = hashedDependencyId(dependencyId);
+    public void removeDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
+        String hashedDependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
         IssueDependency dependency = dependencyRepository.findByDependencyId(hashedDependencyId)
-                .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Dependency not found: " + blockingIssueId + " -> " + blockedIssueId));
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         blockedIssue.removeDependency(dependency, actor, now());
         dependencyRepository.deleteByDependencyIdAndRecordIssueChange(hashedDependencyId, blockedIssue);
-    }
-
-    private static String hashedDependencyId(String dependencyId) {
-        String[] parts = requireDependencySource(dependencyId).split(":", 2);
-        try {
-            long blockingIssueId = Long.parseLong(parts[0].trim());
-            long blockedIssueId = Long.parseLong(parts[1].trim());
-            return IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("dependencyId must be blockingIssueId:blockedIssueId");
-        }
-    }
-
-    private static String requireDependencySource(String dependencyId) {
-        if (dependencyId == null || dependencyId.isBlank()) {
-            throw new IllegalArgumentException("dependencyId must not be blank");
-        }
-        String trimmed = dependencyId.trim();
-        if (!trimmed.contains(":")) {
-            throw new IllegalArgumentException("dependencyId must be blockingIssueId:blockedIssueId");
-        }
-        return trimmed;
     }
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {
@@ -312,7 +286,9 @@ public final class IssueService {
     private Issue findIssueDetail(long issueId, String currentUserId) {
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
-        return findIssue(issueId);
+        Issue issue = findIssue(issueId);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can view issue details.");
+        return issue;
     }
 
     private Comment findComment(long commentId) {

@@ -107,6 +107,25 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
+    public List<IssueDependency> findByProjectId(long projectId) {
+        String sql = """
+                select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at
+                from issue_dependencies
+                where blocking_issue_id in (select id from issues where project_id = ?)
+                   or blocked_issue_id in (select id from issues where project_id = ?)
+                order by id
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            statement.setLong(2, projectId);
+            return executeDependencyList(statement);
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to list dependencies by project.", exception);
+        }
+    }
+
+    @Override
     public boolean existsByPair(long blockingIssueId, long blockedIssueId) {
         String sql = """
                 select count(*)

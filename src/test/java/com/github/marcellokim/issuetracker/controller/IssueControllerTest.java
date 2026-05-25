@@ -235,7 +235,7 @@ class IssueControllerTest {
         var controller = authenticatedController(pl, issueA, issueB);
         controller.addDependency(1L, 2L);
 
-        controller.removeDependency("1:2");
+        controller.removeDependency(1L, 2L);
 
         assertEquals(0, controller.viewProjectDependencies(PROJECT_ID).size());
     }
