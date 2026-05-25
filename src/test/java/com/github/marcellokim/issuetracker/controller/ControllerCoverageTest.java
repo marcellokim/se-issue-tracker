@@ -86,7 +86,7 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
         DashboardController controller = new DashboardController(
                 auth.service(),
-                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users()));
+                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(), new PermissionPolicy()));
 
         assertEquals(1, controller.viewProjects().size());
         assertEquals(1, controller.viewRelatedIssues().size());
@@ -104,7 +104,8 @@ class ControllerCoverageTest {
                         new FakeProjectRepository(),
                         new FakeIssueRepository(),
                         new FakeStatisticsRepository(),
-                        new FakeUserRepository()));
+                        new FakeUserRepository(),
+                        new PermissionPolicy()));
 
         assertThrows(SecurityException.class, controller::viewProjects);
     }
@@ -420,6 +421,14 @@ class ControllerCoverageTest {
         @Override
         public Optional<Issue> findById(long issueId) {
             return Optional.ofNullable(issuesById.get(issueId));
+        }
+
+        @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return issueIds.stream()
+                    .map(issuesById::get)
+                    .filter(issue -> issue != null)
+                    .toList();
         }
 
         @Override

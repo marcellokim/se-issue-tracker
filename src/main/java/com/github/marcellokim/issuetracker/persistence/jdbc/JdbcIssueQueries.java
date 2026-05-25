@@ -70,6 +70,10 @@ final class JdbcIssueQueries {
     private JdbcIssueQueries() {
     }
 
+    static String findAllByIdSql(int count) {
+        return BASE_SELECT + " where i.id in (" + "?,".repeat(Math.max(0, count - 1)) + "?)";
+    }
+
     static SearchQuery search(IssueSearchCriteria criteria) {
         StringBuilder sql = new StringBuilder(BASE_SELECT);
         List<SqlBinder> binders = new ArrayList<>();
@@ -100,8 +104,8 @@ final class JdbcIssueQueries {
             binders.add((statement, index) -> statement.setString(index, criteria.verifierId()));
         }
         if (criteria.keyword() != null && !criteria.keyword().isBlank()) {
-            sql.append(" and (lower(i.title) like ? or lower(i.description) like ?)");
-            String keyword = criteria.keyword().toLowerCase();
+            sql.append(" and (lower(i.title) like ? escape '\\' or lower(i.description) like ? escape '\\')");
+            String keyword = escapeLikeWildcards(criteria.keyword().toLowerCase());
             String likeKeyword = "%" + keyword + "%";
             binders.add((statement, index) -> statement.setString(index, likeKeyword));
             binders.add((statement, index) -> statement.setString(index, likeKeyword));
@@ -122,6 +126,12 @@ final class JdbcIssueQueries {
     }
 
     record SearchQuery(String sql, List<SqlBinder> binders) {
+    }
+
+    private static String escapeLikeWildcards(String value) {
+        return value.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 
     @FunctionalInterface

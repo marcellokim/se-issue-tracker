@@ -248,6 +248,13 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return issues.stream()
+                    .filter(issue -> issueIds.contains(issue.id()))
+                    .toList();
+        }
+
+        @Override
         public List<Issue> findByProject(long projectId) {
             return issues.stream()
                     .filter(issue -> issue.projectId() == projectId)

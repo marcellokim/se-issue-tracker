@@ -126,7 +126,8 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 projects,
                 issues,
                 statistics,
-                users);
+                users,
+                permissionPolicy);
         return new ApplicationContext(
                 new AuthenticationController(authenticationService),
                 new AccountController(authenticationService, accountService),

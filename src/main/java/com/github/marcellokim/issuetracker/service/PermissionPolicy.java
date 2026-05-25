@@ -212,6 +212,18 @@ public final class PermissionPolicy {
         return allows(() -> assertCanManageProject(user));
     }
 
+    public boolean canViewAllProjects(User user) {
+        return isAdmin(user);
+    }
+
+    public boolean canViewAllUsers(User user) {
+        return isAdmin(user);
+    }
+
+    public boolean canViewAllProjectIssues(User user) {
+        return isActiveUser(user) && (user.getRole() == Role.ADMIN || user.getRole() == Role.PL);
+    }
+
     public void assertCanViewStatistics(User user, Object filters) {
         if (!verifyPermission(user, VIEW_STATISTICS, filters)) {
             throw new SecurityException("Only active PL, DEV, or TESTER users can view statistics.");

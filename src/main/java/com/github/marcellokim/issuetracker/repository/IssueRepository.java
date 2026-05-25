@@ -10,6 +10,8 @@ public interface IssueRepository {
 
     Optional<Issue> findById(long issueId);
 
+    List<Issue> findAllById(List<Long> issueIds);
+
     List<Issue> findByProject(long projectId);
 
     List<Issue> findDeletedByProject(long projectId);

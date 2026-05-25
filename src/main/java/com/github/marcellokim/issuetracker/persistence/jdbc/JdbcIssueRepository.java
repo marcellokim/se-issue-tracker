@@ -43,6 +43,23 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
+    public List<Issue> findAllById(List<Long> issueIds) {
+        if (issueIds.isEmpty()) {
+            return List.of();
+        }
+        String sql = JdbcIssueQueries.findAllByIdSql(issueIds.size());
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < issueIds.size(); i++) {
+                statement.setLong(i + 1, issueIds.get(i));
+            }
+            return executeIssueList(statement);
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to find issues by ids.", exception);
+        }
+    }
+
+    @Override
     public List<Issue> findByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_PROJECT_SQL)) {

@@ -17,16 +17,19 @@ public final class DashboardSummaryService {
     private final IssueRepository issueRepository;
     private final StatisticsRepository statisticsRepository;
     private final UserRepository userRepository;
+    private final PermissionPolicy permissionPolicy;
 
     public DashboardSummaryService(
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
             StatisticsRepository statisticsRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            PermissionPolicy permissionPolicy) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
+        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
     }
 
     public List<DashboardProjectSummary> projectSummaries() {
@@ -42,14 +45,14 @@ public final class DashboardSummaryService {
          */
         Objects.requireNonNull(user, "user");
         return projectRepository.findAll().stream()
-                .filter(project -> user.getRole() == Role.ADMIN || isParticipant(project.getId(), user.getLoginId()))
+                .filter(project -> permissionPolicy.canViewAllProjects(user) || isParticipant(project.getId(), user.getLoginId()))
                 .map(this::summarizeProject)
                 .toList();
     }
 
     public List<UserResult> usersFor(User user) {
         Objects.requireNonNull(user, "user");
-        if (user.getRole() != Role.ADMIN) {
+        if (!permissionPolicy.canViewAllUsers(user)) {
             return List.of();
         }
         return userRepository.findAll().stream()
@@ -60,10 +63,9 @@ public final class DashboardSummaryService {
     public List<IssueSummary> relatedIssuesFor(User user) {
         Objects.requireNonNull(user, "user");
         return projectRepository.findAll().stream()
-                .filter(project -> user.getRole() == Role.ADMIN || isParticipant(project.getId(), user.getLoginId()))
+                .filter(project -> permissionPolicy.canViewAllProjects(user) || isParticipant(project.getId(), user.getLoginId()))
                 .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
-                .filter(issue -> user.getRole() == Role.ADMIN
-                        || user.getRole() == Role.PL
+                .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
                         || isRelatedIssue(issue, user.getLoginId()))
                 .map(DashboardSummaryService::toIssueSummary)
                 .toList();

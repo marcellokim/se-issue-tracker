@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.cli;
 
 import com.github.marcellokim.issuetracker.config.ApplicationRuntime;
-import com.github.marcellokim.issuetracker.ui.IssueTrackerApplication;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -28,7 +27,7 @@ public final class CommandLineEntryPoint {
             return;
         }
 
-        IssueTrackerApplication.launchApp(args);
+        output.println("UI is not available. Use --cli-demo or --login-check.");
     }
 
     private static boolean isCliDemo(String[] args) {

@@ -293,6 +293,7 @@ class IssueServiceTest {
     @DisplayName("issue detail result includes comments histories and dependencies")
     void viewIssueDetailIncludesAssociatedData() {
         var issue = persistedIssue();
+        var blockingIssue = persistedIssue(99L, "ISSUE-99");
         var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
         var histories = new FakeIssueHistoryRepository();
         histories.addFixture(IssueHistory.fromPersistence(
@@ -307,7 +308,7 @@ class IssueServiceTest {
         var dependencies = new FakeIssueDependencyRepository();
         dependencies.addFixture(IssueDependency.fromPersistence(300L, "dep-1", 99L, ISSUE_ID, now));
         var service = service(
-                new InMemoryIssueRepository(issue),
+                new InMemoryIssueRepository(issue, blockingIssue),
                 dependencies,
                 comments,
                 histories,

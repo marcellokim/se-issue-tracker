@@ -192,7 +192,8 @@ public final class IssueService {
 
     public List<CommentResult> viewComments(long issueId, String currentUserId) {
         Issue issue = findIssue(issueId);
-        findUser(currentUserId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
         return commentRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toCommentResult)
                 .toList();

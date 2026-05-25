@@ -53,7 +53,8 @@ class DashboardSummaryServiceTest {
                         ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))),
                 new FakeIssueRepository(List.of(activeIssue), List.of(deletedIssue)),
                 new FakeStatisticsRepository(statusCounts),
-                new FakeUserRepository(List.of(pl, dev, tester)));
+                new FakeUserRepository(List.of(pl, dev, tester)),
+                new PermissionPolicy());
 
         DashboardProjectSummary summary = service.projectSummaries().getFirst();
 
@@ -85,7 +86,8 @@ class DashboardSummaryServiceTest {
                         )),
                 new FakeIssueRepository(List.of(), List.of()),
                 new FakeStatisticsRepository(Map.of()),
-                new FakeUserRepository(List.of(admin, dev, tester)));
+                new FakeUserRepository(List.of(admin, dev, tester)),
+                new PermissionPolicy());
 
         List<DashboardProjectSummary> summaries = service.projectSummariesFor(admin);
 
@@ -114,7 +116,8 @@ class DashboardSummaryServiceTest {
                         )),
                 new FakeIssueRepository(List.of(), List.of()),
                 new FakeStatisticsRepository(Map.of()),
-                new FakeUserRepository(List.of(dev, tester)));
+                new FakeUserRepository(List.of(dev, tester)),
+                new PermissionPolicy());
 
         List<DashboardProjectSummary> summaries = service.projectSummariesFor(dev);
 
@@ -224,6 +227,13 @@ class DashboardSummaryServiceTest {
             return activeIssues.stream()
                     .filter(issue -> issue.id() == issueId)
                     .findFirst();
+        }
+
+        @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return activeIssues.stream()
+                    .filter(issue -> issueIds.contains(issue.id()))
+                    .toList();
         }
 
         @Override
