@@ -231,7 +231,8 @@ public final class ProjectBoardView {
 
     private VBox projectMemberPanel(DashboardProjectSummary project, List<UserResult> users, String message) {
         VBox box = borderedPanel("Project Management");
-        box.getChildren().addAll(
+        VBox management = new VBox(
+                10,
                 inputWithMessage(
                         fieldsGrid("Participant Login ID", participantLoginIdField),
                         message),
@@ -256,11 +257,14 @@ public final class ProjectBoardView {
                             projectController.deleteProject(project.projectId());
                             return "Project deleted.";
                         }, onDashboardChanged)),
-                projectParticipantsList(project, users));
+                projectParticipantsList(project));
+        HBox content = new HBox(24, management, allUsersList(users));
+        content.setAlignment(Pos.TOP_LEFT);
+        box.getChildren().add(content);
         return box;
     }
 
-    private VBox projectParticipantsList(DashboardProjectSummary project, List<UserResult> users) {
+    private VBox projectParticipantsList(DashboardProjectSummary project) {
         VBox list = new VBox(8, sectionLabel("Participants"));
         try {
             List<ProjectMemberResult> participants = projectController.viewProjectParticipants(project.projectId());
@@ -275,6 +279,25 @@ public final class ProjectBoardView {
             list.getChildren().add(messageLabel("Failed: " + exception.getMessage()));
         }
         return list;
+    }
+
+    private ScrollPane allUsersList(List<UserResult> users) {
+        VBox list = new VBox(8, sectionLabel("All Users"));
+        list.setPadding(new Insets(8));
+        if (users.isEmpty()) {
+            list.getChildren().add(emptyLabel("No users to show."));
+        } else {
+            for (UserResult user : users) {
+                list.getChildren().add(infoCard(formatUserSummary(user)));
+            }
+        }
+        ScrollPane scrollPane = new ScrollPane(list);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefViewportWidth(420);
+        scrollPane.setPrefViewportHeight(260);
+        HBox.setHgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
+        scrollPane.setStyle("-fx-border-color: #d1d5db; -fx-border-width: 1; -fx-background-color: #f9fafb;");
+        return scrollPane;
     }
 
     private String projectMembershipSummary(DashboardProjectSummary project) {
@@ -754,6 +777,13 @@ public final class ProjectBoardView {
                 user.name(),
                 user.role(),
                 user.active() ? "ACTIVE" : "INACTIVE");
+    }
+
+    private static String formatUserSummary(UserResult user) {
+        return "%s / %s / %s".formatted(
+                user.loginId(),
+                user.name(),
+                user.role());
     }
 
     private static String formatParticipant(ProjectMemberResult participant) {
