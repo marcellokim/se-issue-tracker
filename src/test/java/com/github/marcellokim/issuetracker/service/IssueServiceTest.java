@@ -786,7 +786,7 @@ class IssueServiceTest {
         assertEquals(ActionType.COMMENTED, history.actionType());
         assertEquals("Outdated investigation note", history.previousValue());
         assertNull(history.newValue());
-        assertNull(history.message());
+        assertEquals("comment deleted", history.message());
         assertEquals(dev.getLoginId(), history.changedById());
     }
 
@@ -864,28 +864,22 @@ class IssueServiceTest {
     }
 
     @Test
-    @DisplayName("writer updates own status-change comment content")
-    void updateStatusChangeCommentSucceedsForWriter() {
+    @DisplayName("writer cannot update status-change comment content")
+    void updateStatusChangeCommentRejectsForWriter() {
         var issue = persistedIssue();
         var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
         var histories = new FakeIssueHistoryRepository();
         var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
                 histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
 
-        CommentResult result = service.updateComment(
+        assertThrows(SecurityException.class, () -> service.updateComment(
                 ISSUE_ID,
                 COMMENT_ID,
                 "Updated status transition reason",
-                dev.getLoginId());
+                dev.getLoginId()));
 
-        assertEquals(CommentPurpose.STATUS_CHANGE, result.purpose());
-        assertEquals("Updated status transition reason", result.content());
-        assertEquals("Updated status transition reason", comments.findById(COMMENT_ID).orElseThrow().content());
-        IssueHistory history = histories.findByIssueId(ISSUE_ID).getFirst();
-        assertEquals(ActionType.COMMENTED, history.actionType());
-        assertEquals("Outdated investigation note", history.previousValue());
-        assertEquals("Updated status transition reason", history.newValue());
-        assertEquals("Updated status transition reason", history.message());
+        assertEquals("Outdated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
+        assertTrue(histories.findByIssueId(ISSUE_ID).isEmpty());
     }
 
     @Test
@@ -1004,6 +998,7 @@ class IssueServiceTest {
             FakeCommentRepository comments,
             FakeIssueHistoryRepository histories,
             InMemoryUserRepository users) {
+        comments.recordHistoriesIn(histories);
         return new IssueService(
                 new FakeProjectRepository(project, otherProject),
                 issues,
@@ -1134,11 +1129,16 @@ class IssueServiceTest {
     private static final class FakeCommentRepository implements CommentRepository {
 
         private final Map<Long, Comment> comments = new LinkedHashMap<>();
+        private FakeIssueHistoryRepository histories;
 
         private FakeCommentRepository(Comment... comments) {
             for (Comment comment : comments) {
                 this.comments.put(comment.id(), comment);
             }
+        }
+
+        private void recordHistoriesIn(FakeIssueHistoryRepository histories) {
+            this.histories = histories;
         }
 
         @Override
@@ -1160,6 +1160,15 @@ class IssueServiceTest {
         }
 
         @Override
+        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+            Comment saved = save(comment);
+            if (histories != null) {
+                histories.save(history);
+            }
+            return saved;
+        }
+
+        @Override
         public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
             Comment comment = comments.get(commentId);
             if (comment == null
@@ -1171,6 +1180,18 @@ class IssueServiceTest {
                                 + "or is not a GENERAL comment.");
             }
             comments.remove(commentId);
+        }
+
+        @Override
+        public void deleteGeneralByIdAndRecordIssueChange(
+                long issueId,
+                long commentId,
+                String writerLoginId,
+                IssueHistory history) {
+            deleteGeneralById(issueId, commentId, writerLoginId);
+            if (histories != null) {
+                histories.save(history);
+            }
         }
     }
 }

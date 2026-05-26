@@ -259,8 +259,12 @@ public final class IssueService {
         requireActiveProjectMember(currentUser, issue.projectId(), "Only project members can delete issue comments.");
 
         issue.recordCommentDeletion(comment, currentUser, now());
-        issueRepository.save(issue);
-        commentRepository.deleteGeneralById(issue.id(), comment.id(), currentUser.getLoginId());
+        IssueHistory history = issue.getHistories().getLast();
+        commentRepository.deleteGeneralByIdAndRecordIssueChange(
+                issue.id(),
+                comment.id(),
+                currentUser.getLoginId(),
+                historyForPersistence(issue.id(), history));
     }
 
     public CommentResult updateComment(long issueId, long commentId, String content, String currentUserId) {
@@ -275,15 +279,15 @@ public final class IssueService {
         String previousContent = comment.content();
         LocalDateTime changedAt = now();
         comment.changeContent(content, changedAt);
-        Comment saved = commentRepository.save(comment);
-        issueHistoryRepository.save(IssueHistory.newForPersistence(
+        IssueHistory history = IssueHistory.newForPersistence(
                 issue.id(),
                 currentUser.getLoginId(),
                 ActionType.COMMENTED,
                 previousContent,
-                saved.content(),
-                saved.content(),
-                changedAt));
+                comment.content(),
+                comment.content(),
+                changedAt);
+        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
         return toCommentResult(saved);
     }
 
@@ -381,6 +385,17 @@ public final class IssueService {
         if (comment.issueId() != issue.id()) {
             throw new IllegalArgumentException("Comment does not belong to the issue.");
         }
+    }
+
+    private static IssueHistory historyForPersistence(long issueId, IssueHistory history) {
+        return IssueHistory.newForPersistence(
+                issueId,
+                history.changedById(),
+                history.actionType(),
+                history.previousValue(),
+                history.newValue(),
+                history.message(),
+                history.changedDate());
     }
 
     private static String optionalText(String value) {
