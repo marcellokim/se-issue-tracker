@@ -172,9 +172,9 @@ public final class PermissionPolicy {
 
     public void assertCanUpdateComment(User user, Comment comment) {
         Comment targetComment = Objects.requireNonNull(comment, "comment");
-        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can update comments.");
-        if (!Objects.equals(user.getLoginId(), targetComment.writerId())) {
-            throw new SecurityException("Only the comment writer can update the comment.");
+        requireCommentWriter(user, targetComment, "Only the comment writer can update the comment.");
+        if (targetComment.purpose() != CommentPurpose.GENERAL) {
+            throw new SecurityException("Only GENERAL comments can be updated.");
         }
     }
 
@@ -184,7 +184,7 @@ public final class PermissionPolicy {
 
     public void assertCanDeleteComment(User user, Comment comment) {
         Comment targetComment = Objects.requireNonNull(comment, "comment");
-        assertCanUpdateComment(user, targetComment);
+        requireCommentWriter(user, targetComment, "Only the comment writer can delete the comment.");
         if (targetComment.purpose() != CommentPurpose.GENERAL) {
             throw new SecurityException("Only GENERAL comments can be deleted.");
         }
@@ -257,6 +257,13 @@ public final class PermissionPolicy {
 
     private static void requireAuthenticatedUserRole(User user, String message) {
         if (!isActiveUser(user) || !isAuthUserRole(user)) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private static void requireCommentWriter(User user, Comment comment, String message) {
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can manage comments.");
+        if (!Objects.equals(user.getLoginId(), comment.writerId())) {
             throw new SecurityException(message);
         }
     }

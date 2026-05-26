@@ -11,6 +11,7 @@ public class Issue {
 
     private static final String CREATED_PREVIOUS_VALUE = null;
     private static final String COMMENT_FIELD = "comment";
+    private static final String COMMENT_DELETED_MESSAGE = "comment deleted";
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
     private static final String ISSUE_ID_PREFIX = "ISSUE-";
@@ -395,7 +396,7 @@ public class Issue {
         Objects.requireNonNull(comment, "comment must not be null");
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
-        recordHistory(ActionType.COMMENTED, comment.content(), null, null, changedBy, changedDate);
+        recordHistory(ActionType.COMMENTED, comment.content(), null, COMMENT_DELETED_MESSAGE, changedBy, changedDate);
     }
 
     public void changePriority(Priority newPriority, User changedBy, LocalDateTime changedDate) {

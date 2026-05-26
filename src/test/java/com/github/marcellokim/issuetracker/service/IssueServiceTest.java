@@ -330,6 +330,18 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("general issue detail rejects deleted issues")
+    void viewIssueDetailRejectsDeletedIssue() {
+        var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue", IssueStatus.DELETED);
+        var service = service(new InMemoryIssueRepository(deletedIssue));
+
+        SecurityException exception = assertThrows(SecurityException.class,
+                () -> service.viewIssueDetail(ISSUE_ID, dev.getLoginId()));
+
+        assertEquals("Deleted issues must be managed through deleted issue workflow.", exception.getMessage());
+    }
+
+    @Test
     @DisplayName("reporter updates title and description before assignment")
     void updateIssueSucceedsForReporterBeforeAssignment() {
         var issue = persistedIssue();
@@ -340,6 +352,56 @@ class IssueServiceTest {
         assertEquals("Updated title", result.title());
         assertEquals("Updated description", result.description());
         assertEquals(ActionType.TITLE_DESCRIPTION_UPDATED, issue.getHistories().getLast().actionType());
+    }
+
+    @Test
+    @DisplayName("reporter can keep the same title while updating description")
+    void updateIssueAllowsKeepingOwnTitle() {
+        var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Issue 1", IssueStatus.NEW);
+        var service = service(new InMemoryIssueRepository(issue));
+
+        IssueResult result = service.updateIssue(ISSUE_ID, "Issue 1", "Updated description", dev.getLoginId());
+
+        assertEquals("Issue 1", result.title());
+        assertEquals("Updated description", result.description());
+    }
+
+    @Test
+    @DisplayName("rejects duplicate title update in same project including deleted issues")
+    void updateIssueRejectsDuplicateTitleInSameProjectIncludingDeletedIssue() {
+        var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Editable title", IssueStatus.NEW);
+        var deletedIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Duplicated title", IssueStatus.DELETED);
+        var service = service(new InMemoryIssueRepository(issue, deletedIssue));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateIssue(ISSUE_ID, "Duplicated title", "Updated description", dev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("allows duplicate title update in different project")
+    void updateIssueAllowsDuplicateTitleInDifferentProject() {
+        var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Editable title", IssueStatus.NEW);
+        var otherProjectIssue = persistedIssue(
+                21L,
+                "ISSUE-21",
+                OTHER_PROJECT_ID,
+                "Shared title",
+                IssueStatus.NEW);
+        var service = service(new InMemoryIssueRepository(issue, otherProjectIssue));
+
+        IssueResult result = service.updateIssue(ISSUE_ID, "Shared title", "Updated description", dev.getLoginId());
+
+        assertEquals("Shared title", result.title());
+    }
+
+    @Test
+    @DisplayName("general issue update rejects deleted issues")
+    void updateIssueRejectsDeletedIssue() {
+        var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue", IssueStatus.DELETED);
+        var service = service(new InMemoryIssueRepository(deletedIssue));
+
+        assertThrows(SecurityException.class,
+                () -> service.updateIssue(ISSUE_ID, "Updated title", "Updated description", dev.getLoginId()));
     }
 
     @Test
@@ -367,6 +429,16 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("priority change rejects deleted issues")
+    void changePriorityRejectsDeletedIssue() {
+        var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue", IssueStatus.DELETED);
+        var service = service(new InMemoryIssueRepository(deletedIssue));
+
+        assertThrows(SecurityException.class,
+                () -> service.changePriority(ISSUE_ID, Priority.CRITICAL, pl.getLoginId()));
+    }
+
+    @Test
     @DisplayName("non-PL cannot change issue priority")
     void changePriorityRejectsNonPl() {
         var issue = persistedIssue();
@@ -389,6 +461,19 @@ class IssueServiceTest {
         assertEquals("Looks like a real bug", result.content());
         assertEquals(dev.getLoginId(), result.writer().loginId());
         assertNotNull(result.createdDate());
+    }
+
+    @Test
+    @DisplayName("comment add and view reject deleted issues")
+    void addAndViewCommentRejectDeletedIssue() {
+        var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue", IssueStatus.DELETED);
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(deletedIssue), comments);
+
+        assertThrows(SecurityException.class,
+                () -> service.addComment(ISSUE_ID, "comment", dev.getLoginId()));
+        assertThrows(SecurityException.class,
+                () -> service.viewComments(ISSUE_ID, dev.getLoginId()));
     }
 
     @Test
@@ -498,6 +583,17 @@ class IssueServiceTest {
     }
 
     @Test
+    @DisplayName("dependency add rejects deleted issues")
+    void addDependencyRejectsDeletedIssue() {
+        var deletedBlockingIssue = persistedIssue(1L, "ISSUE-1", PROJECT_ID, "Deleted blocking", IssueStatus.DELETED);
+        var blockedIssue = persistedIssue(2L, "ISSUE-2");
+        var service = service(new InMemoryIssueRepository(deletedBlockingIssue, blockedIssue));
+
+        assertThrows(SecurityException.class,
+                () -> service.addDependency(1L, 2L, pl.getLoginId()));
+    }
+
+    @Test
     @DisplayName("rejects self-dependency at service level")
     void addDependencyRejectsSelf() {
         var issue = persistedIssue(1L, "ISSUE-1");
@@ -570,6 +666,26 @@ class IssueServiceTest {
         assertEquals(result.dependencyId(), history.previousValue());
         assertNull(history.newValue());
         assertEquals("Dependency removed", history.message());
+    }
+
+    @Test
+    @DisplayName("dependency remove rejects deleted issues")
+    void removeDependencyRejectsDeletedIssue() {
+        var issueA = persistedIssue(1L, "ISSUE-1");
+        var deletedIssueB = persistedIssue(2L, "ISSUE-2", PROJECT_ID, "Deleted blocked", IssueStatus.DELETED);
+        var deps = new FakeIssueDependencyRepository();
+        var dependencyId = IssueDependency.dependencyIdFor(issueA.id(), deletedIssueB.id());
+        var persistedDependency = deps.addFixture(IssueDependency.fromPersistence(
+                1L,
+                dependencyId,
+                issueA.id(),
+                deletedIssueB.id(),
+                now));
+        var service = service(new InMemoryIssueRepository(issueA, deletedIssueB), deps);
+
+        assertThrows(SecurityException.class,
+                () -> service.removeDependency(issueA.id(), deletedIssueB.id(), pl.getLoginId()));
+        assertTrue(deps.findById(persistedDependency.id()).isPresent());
     }
 
     @Test
@@ -672,8 +788,22 @@ class IssueServiceTest {
         assertEquals(ActionType.COMMENTED, history.actionType());
         assertEquals("Outdated investigation note", history.previousValue());
         assertNull(history.newValue());
-        assertNull(history.message());
+        assertEquals("comment deleted", history.message());
         assertEquals(dev.getLoginId(), history.changedById());
+    }
+
+    @Test
+    @DisplayName("comment update and delete reject deleted issues")
+    void updateAndDeleteCommentRejectDeletedIssue() {
+        var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue", IssueStatus.DELETED);
+        var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+        var service = service(new InMemoryIssueRepository(deletedIssue), comments);
+
+        assertThrows(SecurityException.class,
+                () -> service.updateComment(ISSUE_ID, COMMENT_ID, "Updated", dev.getLoginId()));
+        assertThrows(SecurityException.class,
+                () -> service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId()));
+        assertTrue(comments.findById(COMMENT_ID).isPresent());
     }
 
     @Test
@@ -736,28 +866,22 @@ class IssueServiceTest {
     }
 
     @Test
-    @DisplayName("writer updates own status-change comment content")
-    void updateStatusChangeCommentSucceedsForWriter() {
+    @DisplayName("writer cannot update status-change comment content")
+    void updateStatusChangeCommentRejectsForWriter() {
         var issue = persistedIssue();
         var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
         var histories = new FakeIssueHistoryRepository();
         var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
                 histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
 
-        CommentResult result = service.updateComment(
+        assertThrows(SecurityException.class, () -> service.updateComment(
                 ISSUE_ID,
                 COMMENT_ID,
                 "Updated status transition reason",
-                dev.getLoginId());
+                dev.getLoginId()));
 
-        assertEquals(CommentPurpose.STATUS_CHANGE, result.purpose());
-        assertEquals("Updated status transition reason", result.content());
-        assertEquals("Updated status transition reason", comments.findById(COMMENT_ID).orElseThrow().content());
-        IssueHistory history = histories.findByIssueId(ISSUE_ID).getFirst();
-        assertEquals(ActionType.COMMENTED, history.actionType());
-        assertEquals("Outdated investigation note", history.previousValue());
-        assertEquals("Updated status transition reason", history.newValue());
-        assertEquals("Updated status transition reason", history.message());
+        assertEquals("Outdated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
+        assertTrue(histories.findByIssueId(ISSUE_ID).isEmpty());
     }
 
     @Test
@@ -876,6 +1000,7 @@ class IssueServiceTest {
             FakeCommentRepository comments,
             FakeIssueHistoryRepository histories,
             InMemoryUserRepository users) {
+        comments.recordHistoriesIn(histories);
         return new IssueService(
                 new FakeProjectRepository(project, otherProject),
                 issues,
@@ -1006,11 +1131,16 @@ class IssueServiceTest {
     private static final class FakeCommentRepository implements CommentRepository {
 
         private final Map<Long, Comment> comments = new LinkedHashMap<>();
+        private FakeIssueHistoryRepository histories;
 
         private FakeCommentRepository(Comment... comments) {
             for (Comment comment : comments) {
                 this.comments.put(comment.id(), comment);
             }
+        }
+
+        private void recordHistoriesIn(FakeIssueHistoryRepository histories) {
+            this.histories = histories;
         }
 
         @Override
@@ -1032,6 +1162,15 @@ class IssueServiceTest {
         }
 
         @Override
+        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+            Comment saved = save(comment);
+            if (histories != null) {
+                histories.save(history);
+            }
+            return saved;
+        }
+
+        @Override
         public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
             Comment comment = comments.get(commentId);
             if (comment == null
@@ -1043,6 +1182,18 @@ class IssueServiceTest {
                                 + "or is not a GENERAL comment.");
             }
             comments.remove(commentId);
+        }
+
+        @Override
+        public void deleteGeneralByIdAndRecordIssueChange(
+                long issueId,
+                long commentId,
+                String writerLoginId,
+                IssueHistory history) {
+            deleteGeneralById(issueId, commentId, writerLoginId);
+            if (histories != null) {
+                histories.save(history);
+            }
         }
     }
 }

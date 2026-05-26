@@ -84,7 +84,7 @@ class IssueCommentTest {
         assertEquals(ActionType.COMMENTED, history.getAction());
         assertEquals("Outdated investigation note", history.getPreviousValue());
         assertNull(history.getNewValue());
-        assertNull(history.getMessage());
+        assertEquals("comment deleted", history.getMessage());
         assertSame(developer, history.getChangedBy());
         assertEquals(deletedAt, history.getChangedDate());
     }

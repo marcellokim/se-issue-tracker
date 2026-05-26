@@ -302,6 +302,18 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+            return activeIssues.stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title))
+                    || deletedIssues.stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title));
+        }
+
+        @Override
         public boolean existsByResponsibleUser(String userLoginId) {
             return activeIssues.stream()
                     .filter(issue -> issue.status() != IssueStatus.DELETED)

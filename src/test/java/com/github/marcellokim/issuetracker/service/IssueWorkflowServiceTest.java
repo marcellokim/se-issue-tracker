@@ -11,6 +11,7 @@ import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -272,6 +273,34 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
+    @DisplayName("status-change comments are read-only in workflow actions")
+    void statusChangeCommentActionsAreReadOnly() {
+        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "desc", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(CREATED_AT)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.NEW)
+                .updatedAt(CREATED_AT));
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
+                100L,
+                ISSUE_ID,
+                reporter.getLoginId(),
+                "Status transition reason",
+                CommentPurpose.STATUS_CHANGE,
+                CREATED_AT,
+                CREATED_AT));
+        var service = workflowService(
+                new InMemoryIssueRepository(issue),
+                comments,
+                new InMemoryUserRepository(reporter, assignee, verifier, pl)
+                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
+
+        assertFalse(service.canUpdateComment(ISSUE_ID, 100L, reporter.getLoginId()));
+        assertFalse(service.canDeleteComment(ISSUE_ID, 100L, reporter.getLoginId()));
+    }
+
+    @Test
     @DisplayName("mark fixed action is disabled after issue is already fixed")
     void markFixedActionDisablesAfterIssueIsFixed() {
         var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
@@ -358,8 +387,22 @@ class IssueWorkflowServiceTest {
         }
 
         @Override
+        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+            return save(comment);
+        }
+
+        @Override
         public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
             comments.remove(commentId);
+        }
+
+        @Override
+        public void deleteGeneralByIdAndRecordIssueChange(
+                long issueId,
+                long commentId,
+                String writerLoginId,
+                IssueHistory history) {
+            deleteGeneralById(issueId, commentId, writerLoginId);
         }
     }
 }

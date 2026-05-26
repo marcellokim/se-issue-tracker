@@ -112,6 +112,22 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
+    public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        JdbcIssueQueries.EXISTS_BY_PROJECT_ID_AND_TITLE_EXCLUDING_ISSUE_ID_SQL)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, title);
+            statement.setLong(3, excludedIssueId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue title duplication.", exception);
+        }
+    }
+
+    @Override
     public boolean existsByResponsibleUser(String userLoginId) {
         String sql = """
                 select 1

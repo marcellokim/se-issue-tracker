@@ -66,6 +66,14 @@ final class JdbcIssueQueries {
               and title = ?
             fetch first 1 rows only
             """;
+    static final String EXISTS_BY_PROJECT_ID_AND_TITLE_EXCLUDING_ISSUE_ID_SQL = """
+            select 1
+            from issues
+            where project_id = ?
+              and title = ?
+              and id <> ?
+            fetch first 1 rows only
+            """;
 
     private JdbcIssueQueries() {
     }
