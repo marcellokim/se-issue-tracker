@@ -151,24 +151,6 @@ class IssueServiceTest {
     }
 
     @Test
-    @DisplayName("register issue availability follows project membership")
-    void canRegisterIssueRequiresProjectMembership() {
-        var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
-                .withProjectMembers(PROJECT_ID, pl.getLoginId(), tester.getLoginId());
-        var service = service(
-                new InMemoryIssueRepository(),
-                new FakeIssueDependencyRepository(),
-                new FakeCommentRepository(),
-                users);
-
-        assertTrue(service.canRegisterIssue(PROJECT_ID, tester.getLoginId()));
-        assertFalse(service.canRegisterIssue(PROJECT_ID, dev.getLoginId()));
-        assertFalse(service.canRegisterIssue(PROJECT_ID, admin.getLoginId()));
-        assertFalse(service.canRegisterIssue(PROJECT_ID, inactiveDev.getLoginId()));
-        assertFalse(service.canRegisterIssue(999L, tester.getLoginId()));
-    }
-
-    @Test
     @DisplayName("searches visible issues inside one project")
     void searchProjectIssuesFiltersByProjectAndKeyword() {
         Issue projectIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Login bug", IssueStatus.NEW);

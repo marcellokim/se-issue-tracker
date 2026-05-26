@@ -77,16 +77,16 @@ public final class IssueService {
         return toIssueResult(saved);
     }
 
-    public boolean canRegisterIssue(long projectId, String currentUserId) {
-        try {
-            Project project = findProject(projectId);
-            User reporter = findUser(currentUserId);
-            return permissionPolicy.canRegisterIssue(reporter, project)
-                    && isActiveProjectMember(reporter, project.getId());
-        } catch (RuntimeException exception) {
-            return false;
-        }
-    }
+    // public boolean canRegisterIssue(long projectId, String currentUserId) {
+    // try {
+    // Project project = findProject(projectId);
+    // User reporter = findUser(currentUserId);
+    // return permissionPolicy.canRegisterIssue(reporter, project)
+    // && isActiveProjectMember(reporter, project.getId());
+    // } catch (RuntimeException exception) {
+    // return false;
+    // }
+    // }
 
     public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
         Issue issue = findIssueDetail(issueId, currentUserId);

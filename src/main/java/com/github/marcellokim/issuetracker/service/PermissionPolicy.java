@@ -41,39 +41,39 @@ public final class PermissionPolicy {
         }
     }
 
-    // UI 버튼 관련
-    public boolean canRegisterIssue(User user, Project project) {
-        return allows(() -> assertCanRegisterIssue(user, project));
-    }
+    // // UI 버튼 관련
+    // public boolean canRegisterIssue(User user, Project project) {
+    // return allows(() -> assertCanRegisterIssue(user, project));
+    // }
 
     public void assertCanViewIssue(User user) {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view issues.");
     }
 
-    // UI 버튼 관련
-    public boolean canViewIssue(User user) {
-        return allows(() -> assertCanViewIssue(user));
-    }
+    // // UI 버튼 관련
+    // public boolean canViewIssue(User user) {
+    // return allows(() -> assertCanViewIssue(user));
+    // }
 
     public void assertCanAssignIssue(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requirePl(user, "Only PL can assign issue owners.");
     }
 
-    // UI 버튼 관련
-    public boolean canAssignIssue(User user, Issue issue) {
-        return allows(() -> assertCanAssignIssue(user, issue));
-    }
+    // // UI 버튼 관련
+    // public boolean canAssignIssue(User user, Issue issue) {
+    // return allows(() -> assertCanAssignIssue(user, issue));
+    // }
 
     public void assertCanAddComment(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can add issue comments.");
     }
 
-    // UI 버튼 관련
-    public boolean canAddComment(User user, Issue issue) {
-        return allows(() -> assertCanAddComment(user, issue));
-    }
+    // // UI 버튼 관련
+    // public boolean canAddComment(User user, Issue issue) {
+    // return allows(() -> assertCanAddComment(user, issue));
+    // }
 
     public void assertCanUpdateIssue(User user, Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
@@ -86,10 +86,10 @@ public final class PermissionPolicy {
         }
     }
 
-    // UI 관련
-    public boolean canUpdateIssue(User user, Issue issue) {
-        return allows(() -> assertCanUpdateIssue(user, issue));
-    }
+    // // UI 관련
+    // public boolean canUpdateIssue(User user, Issue issue) {
+    // return allows(() -> assertCanUpdateIssue(user, issue));
+    // }
 
     public void assertCanChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
@@ -125,10 +125,11 @@ public final class PermissionPolicy {
         }
     }
 
-    // UI 버튼 관련
-    public boolean canChangeStatus(User user, Issue issue, IssueStatus targetStatus) {
-        return allows(() -> assertCanChangeStatus(user, issue, targetStatus));
-    }
+    // // UI 버튼 관련
+    // public boolean canChangeStatus(User user, Issue issue, IssueStatus
+    // targetStatus) {
+    // return allows(() -> assertCanChangeStatus(user, issue, targetStatus));
+    // }
 
     public void assertCanManageDeletedIssue(User user, Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
@@ -137,20 +138,20 @@ public final class PermissionPolicy {
         }
     }
 
-    // UI 버튼 관련
-    public boolean canManageDeletedIssue(User user, Issue issue) {
-        return allows(() -> assertCanManageDeletedIssue(user, issue));
-    }
+    // // UI 버튼 관련
+    // public boolean canManageDeletedIssue(User user, Issue issue) {
+    // return allows(() -> assertCanManageDeletedIssue(user, issue));
+    // }
 
     public void assertCanManageDependency(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         requirePl(user, "Only PL can manage dependencies.");
     }
 
-    // UI 버튼 관련
-    public boolean canManageDependency(User user, Issue issue) {
-        return allows(() -> assertCanManageDependency(user, issue));
-    }
+    // // UI 버튼 관련
+    // public boolean canManageDependency(User user, Issue issue) {
+    // return allows(() -> assertCanManageDependency(user, issue));
+    // }
 
     public void assertCanChangePriority(User user, Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
@@ -162,13 +163,14 @@ public final class PermissionPolicy {
         assertCanChangePriority(user, issue);
     }
 
-    public boolean canChangePriority(User user, Issue issue) {
-        return allows(() -> assertCanChangePriority(user, issue));
-    }
+    // public boolean canChangePriority(User user, Issue issue) {
+    // return allows(() -> assertCanChangePriority(user, issue));
+    // }
 
-    public boolean canChangePriority(User user, Issue issue, Priority newPriority) {
-        return allows(() -> assertCanChangePriority(user, issue, newPriority));
-    }
+    // public boolean canChangePriority(User user, Issue issue, Priority
+    // newPriority) {
+    // return allows(() -> assertCanChangePriority(user, issue, newPriority));
+    // }
 
     public void assertCanUpdateComment(User user, Comment comment) {
         Comment targetComment = Objects.requireNonNull(comment, "comment");
@@ -178,9 +180,9 @@ public final class PermissionPolicy {
         }
     }
 
-    public boolean canUpdateComment(User user, Comment comment) {
-        return allows(() -> assertCanUpdateComment(user, comment));
-    }
+    // public boolean canUpdateComment(User user, Comment comment) {
+    // return allows(() -> assertCanUpdateComment(user, comment));
+    // }
 
     public void assertCanDeleteComment(User user, Comment comment) {
         Comment targetComment = Objects.requireNonNull(comment, "comment");
@@ -190,17 +192,17 @@ public final class PermissionPolicy {
         }
     }
 
-    public boolean canDeleteComment(User user, Comment comment) {
-        return allows(() -> assertCanDeleteComment(user, comment));
-    }
+    // public boolean canDeleteComment(User user, Comment comment) {
+    // return allows(() -> assertCanDeleteComment(user, comment));
+    // }
 
     public void assertCanManageAccount(User user) {
         requireAdmin(user, "Only ADMIN can manage accounts.");
     }
 
-    public boolean canManageAccount(User user) {
-        return allows(() -> assertCanManageAccount(user));
-    }
+    // public boolean canManageAccount(User user) {
+    // return allows(() -> assertCanManageAccount(user));
+    // }
 
     public void assertCanManageProject(User user) {
         if (!verifyPermission(user, MANAGE_PROJECT, null)) {
@@ -208,9 +210,9 @@ public final class PermissionPolicy {
         }
     }
 
-    public boolean canManageProject(User user) {
-        return allows(() -> assertCanManageProject(user));
-    }
+    // public boolean canManageProject(User user) {
+    // return allows(() -> assertCanManageProject(user));
+    // }
 
     public boolean canViewAllProjects(User user) {
         return isAdmin(user);
@@ -230,18 +232,18 @@ public final class PermissionPolicy {
         }
     }
 
-    public boolean canViewStatistics(User user, Object filters) {
-        return allows(() -> assertCanViewStatistics(user, filters));
-    }
+    // public boolean canViewStatistics(User user, Object filters) {
+    // return allows(() -> assertCanViewStatistics(user, filters));
+    // }
 
-    private static boolean allows(Runnable check) {
-        try {
-            check.run();
-            return true;
-        } catch (RuntimeException exception) {
-            return false;
-        }
-    }
+    // private static boolean allows(Runnable check) {
+    // try {
+    // check.run();
+    // return true;
+    // } catch (RuntimeException exception) {
+    // return false;
+    // }
+    // }
 
     private static void requirePl(User user, String message) {
         if (!isPl(user)) {

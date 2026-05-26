@@ -22,7 +22,6 @@ import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
-import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
@@ -104,12 +103,6 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 users,
                 permissionPolicy,
                 clock);
-        IssueWorkflowService issueWorkflowService = new IssueWorkflowService(
-                issues,
-                issueDependencies,
-                comments,
-                users,
-                permissionPolicy);
         DeletedIssueService deletedIssueService = new DeletedIssueService(
                 issues,
                 users,
@@ -133,7 +126,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 new AccountController(authenticationService, accountService),
                 new DashboardController(authenticationService, dashboardSummaryService),
                 ProjectController.create(authenticationService, projectService),
-                new IssueController(authenticationService, issueService, issueWorkflowService),
+                new IssueController(authenticationService, issueService),
                 new AssignmentController(authenticationService, assignmentService),
                 new IssueStateController(authenticationService, issueStateService),
                 new DeletedIssueController(authenticationService, deletedIssueService),

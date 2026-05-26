@@ -15,8 +15,7 @@ public final class StatisticsController {
 
     public StatisticsController(
             AuthenticationService authenticationService,
-            StatisticsService statisticsService
-    ) {
+            StatisticsService statisticsService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.statisticsService = Objects.requireNonNull(statisticsService, "statisticsService");
     }
@@ -26,8 +25,7 @@ public final class StatisticsController {
             LocalDate dailyFromInclusive,
             LocalDate dailyToInclusive,
             YearMonth monthlyFromInclusive,
-            YearMonth monthlyToInclusive
-    ) {
+            YearMonth monthlyToInclusive) {
         User user = requireCurrentUser();
         return statisticsService.viewStatistics(
                 projectId,
@@ -42,10 +40,10 @@ public final class StatisticsController {
         return viewStatistics(projectId, null, null, null, null);
     }
 
-    public boolean canViewStatistics(long projectId) {
-        User user = requireCurrentUser();
-        return statisticsService.canViewStatistics(projectId, user);
-    }
+    // public boolean canViewStatistics(long projectId) {
+    // User user = requireCurrentUser();
+    // return statisticsService.canViewStatistics(projectId, user);
+    // }
 
     private User requireCurrentUser() {
         return authenticationService.currentUser()

@@ -46,9 +46,10 @@ public final class StatisticsService {
                 monthlyToInclusive));
     }
 
-    public boolean canViewStatistics(long projectId, User actor) {
-        return permissionPolicy.canViewStatistics(actor, projectId) && isActiveProjectMember(actor, projectId);
-    }
+    // public boolean canViewStatistics(long projectId, User actor) {
+    // return permissionPolicy.assertCanViewStatistics(actor, projectId) &&
+    // isActiveProjectMember(actor, projectId);
+    // }
 
     private void requireActiveProjectMember(User actor, long projectId) {
         if (!isActiveProjectMember(actor, projectId)) {

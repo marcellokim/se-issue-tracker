@@ -45,7 +45,8 @@ public final class DashboardSummaryService {
          */
         Objects.requireNonNull(user, "user");
         return projectRepository.findAll().stream()
-                .filter(project -> permissionPolicy.canViewAllProjects(user) || isParticipant(project.getId(), user.getLoginId()))
+                .filter(project -> permissionPolicy.canViewAllProjects(user)
+                        || isParticipant(project.getId(), user.getLoginId()))
                 .map(this::summarizeProject)
                 .toList();
     }
@@ -63,7 +64,8 @@ public final class DashboardSummaryService {
     public List<IssueSummary> relatedIssuesFor(User user) {
         Objects.requireNonNull(user, "user");
         return projectRepository.findAll().stream()
-                .filter(project -> permissionPolicy.canViewAllProjects(user) || isParticipant(project.getId(), user.getLoginId()))
+                .filter(project -> permissionPolicy.canViewAllProjects(user)
+                        || isParticipant(project.getId(), user.getLoginId()))
                 .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
                 .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
                         || isRelatedIssue(issue, user.getLoginId()))
