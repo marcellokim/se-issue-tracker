@@ -177,7 +177,7 @@ class IssueControllerTest {
         var controller = authenticatedController(dev, issue);
 
         List<IssueSummary> results = controller.searchIssues(
-                PROJECT_ID, "Issue", IssueStatus.NEW, Priority.MAJOR, null, null, null);
+                PROJECT_ID, "Issue", IssueStatus.NEW, Priority.MAJOR, null, null, null, null, null);
 
         assertEquals(1, results.size());
     }

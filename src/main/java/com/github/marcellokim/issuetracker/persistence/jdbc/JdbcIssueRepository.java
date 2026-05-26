@@ -44,7 +44,7 @@ public final class JdbcIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findAllById(List<Long> issueIds) {
-        if (issueIds.isEmpty()) {
+        if (issueIds == null || issueIds.isEmpty()) {
             return List.of();
         }
         String sql = JdbcIssueQueries.findAllByIdSql(issueIds.size());

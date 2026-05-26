@@ -12,6 +12,7 @@ import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -58,7 +59,7 @@ public final class IssueController {
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
             Priority priority) {
-        return searchIssues(projectId, keyword, status, priority, null, null, null);
+        return searchIssues(projectId, keyword, status, priority, null, null, null, null, null);
     }
 
     public List<IssueSummary> searchIssues(
@@ -68,7 +69,9 @@ public final class IssueController {
             Priority priority,
             String reporterId,
             String assigneeId,
-            String verifierId) {
+            String verifierId,
+            LocalDateTime reportedFrom,
+            LocalDateTime reportedTo) {
         User user = requireCurrentUser();
         return issueService.searchIssues(
                 projectId,
@@ -78,6 +81,8 @@ public final class IssueController {
                 reporterId,
                 assigneeId,
                 verifierId,
+                reportedFrom,
+                reportedTo,
                 user.getLoginId());
     }
 

@@ -487,8 +487,8 @@ class ControllerCoverageTest {
         @Override
         public List<Issue> findAllById(List<Long> issueIds) {
             return issueIds.stream()
+                    .filter(issuesById::containsKey)
                     .map(issuesById::get)
-                    .filter(issue -> issue != null)
                     .toList();
         }
 

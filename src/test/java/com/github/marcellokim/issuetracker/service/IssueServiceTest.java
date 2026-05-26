@@ -236,6 +236,8 @@ class IssueServiceTest {
                 tester.getLoginId(),
                 dev.getLoginId(),
                 tester.getLoginId(),
+                null,
+                null,
                 dev.getLoginId());
 
         assertEquals(List.of(matchingIssue.id()), results.stream().map(IssueSummary::id).toList());

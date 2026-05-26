@@ -21,9 +21,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class IssueService {
 
@@ -93,8 +96,14 @@ public final class IssueService {
         List<HistoryResult> histories = issueHistoryRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toHistoryResult)
                 .toList();
-        List<DependencyResult> dependencies = dependencyRepository.findByIssueId(issue.id()).stream()
-                .map(IssueService::toDependencyResult)
+        List<IssueDependency> deps = dependencyRepository.findByBlockedIssueId(issue.id());
+        List<Long> blockingIds = deps.stream()
+                .map(IssueDependency::blockingIssueId)
+                .toList();
+        Map<Long, Issue> blockingIssues = issueRepository.findAllById(blockingIds).stream()
+                .collect(Collectors.toMap(Issue::id, Function.identity()));
+        List<DependencyResult> dependencies = deps.stream()
+                .map(dep -> toDependencyResult(dep, blockingIssues.get(dep.blockingIssueId()), issue))
                 .toList();
         return toIssueDetailResult(issue, comments, histories, dependencies);
     }
@@ -105,7 +114,7 @@ public final class IssueService {
             IssueStatus status,
             Priority priority,
             String currentUserId) {
-        return searchIssues(projectId, keyword, status, priority, null, null, null, currentUserId);
+        return searchIssues(projectId, keyword, status, priority, null, null, null, null, null, currentUserId);
     }
 
     public List<IssueSummary> searchIssues(
@@ -116,6 +125,8 @@ public final class IssueService {
             String reporterId,
             String assigneeId,
             String verifierId,
+            LocalDateTime reportedFrom,
+            LocalDateTime reportedTo,
             String currentUserId) {
         findProject(projectId);
         User actor = findUser(currentUserId);
@@ -129,8 +140,8 @@ public final class IssueService {
                 optionalText(assigneeId),
                 optionalText(verifierId),
                 keyword,
-                null,
-                null,
+                reportedFrom,
+                reportedTo,
                 false)).stream()
                 .filter(issue -> issue.projectId() == projectId)
                 .map(IssueService::toIssueSummary)
@@ -219,8 +230,16 @@ public final class IssueService {
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
         requireActiveProjectMember(actor, projectId, "Only project members can view project dependencies.");
-        return dependencyRepository.findByProjectId(projectId).stream()
-                .map(IssueService::toDependencyResult)
+        List<IssueDependency> deps = dependencyRepository.findByProjectId(projectId);
+        Set<Long> issueIds = new HashSet<>();
+        for (IssueDependency dep : deps) {
+            issueIds.add(dep.blockingIssueId());
+            issueIds.add(dep.blockedIssueId());
+        }
+        Map<Long, Issue> issuesById = issueRepository.findAllById(List.copyOf(issueIds)).stream()
+                .collect(Collectors.toMap(Issue::id, Function.identity()));
+        return deps.stream()
+                .map(dep -> toDependencyResult(dep, issuesById.get(dep.blockingIssueId()), issuesById.get(dep.blockedIssueId())))
                 .toList();
     }
 
@@ -450,17 +469,6 @@ public final class IssueService {
                 history.newValue(),
                 history.message(),
                 history.changedDate());
-    }
-
-    private static DependencyResult toDependencyResult(IssueDependency dep) {
-        return new DependencyResult(
-                dep.id(),
-                dep.getDependencyId(),
-                dep.blockingIssueId(),
-                "id=" + dep.blockingIssueId(),
-                dep.blockedIssueId(),
-                "id=" + dep.blockedIssueId(),
-                dep.getDiscoveredDate());
     }
 
     private static DependencyResult toDependencyResult(IssueDependency dep, Issue blockingIssue, Issue blockedIssue) {

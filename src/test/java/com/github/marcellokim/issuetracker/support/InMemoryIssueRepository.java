@@ -28,9 +28,12 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findAllById(List<Long> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) {
+            return List.of();
+        }
         return issueIds.stream()
+                .filter(issues::containsKey)
                 .map(issues::get)
-                .filter(issue -> issue != null)
                 .toList();
     }
 

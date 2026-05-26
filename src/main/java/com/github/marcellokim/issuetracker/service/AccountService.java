@@ -1,13 +1,14 @@
 package com.github.marcellokim.issuetracker.service;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
-import java.time.LocalDateTime;
-import java.util.Objects;
 
 public final class AccountService {
 
@@ -53,7 +54,7 @@ public final class AccountService {
         permissionPolicy.assertCanManageAccount(actor);
         Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
         requireNonAdminAccount(loginId, newRole);
-        if (userRepository.findByLoginId(loginId).isPresent()) {
+        if (userRepository.findByLoginId(loginId.trim()).isPresent()) { // Id 중복 조회할 때도 trim() 적용 - 도메인 레이어에서도 프로젝트 규칙에 따라 trim 적용
             throw new IllegalArgumentException("Account already exists: " + loginId);
         }
 
