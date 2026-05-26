@@ -57,8 +57,7 @@ public final class AccountService {
         permissionPolicy.assertCanManageAccount(actor);
         Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
         requireNonAdminAccount(loginId, newRole);
-        if (userRepository.findByLoginId(loginId.trim()).isPresent()) { // Id 중복 조회할 때도 trim() 적용 - 도메인 레이어에서도 프로젝트 규칙에
-                                                                        // // 따라 trim 적용
+        if (userRepository.findByLoginId(loginId).isPresent()) {
             throw new IllegalArgumentException("Account already exists: " + loginId);
         }
 
@@ -97,6 +96,9 @@ public final class AccountService {
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
+        if (Objects.equals(target.getName(), name)) {
+            throw new IllegalArgumentException("name is same with current name.");
+        }
         target.rename(name, clock.now());
         return UserResult.from(userRepository.save(target));
     }
@@ -111,6 +113,9 @@ public final class AccountService {
         requireNonAdminTarget(target);
         requireNonAdminAccount(loginId, newRole);
         rejectRoleChangeWithProjectResponsibility(target, newRole);
+        if (target.getRole() == newRole) {
+            throw new IllegalArgumentException("Role is already same.");
+        }
         target.changeRole(newRole, clock.now());
         return UserResult.from(userRepository.save(target));
     }
