@@ -173,6 +173,38 @@ class PermissionPolicyTest {
         }
 
         @Test
+        @DisplayName("canViewAllProjects grants access only to ADMIN")
+        void canViewAllProjectsGrantsOnlyAdmin() {
+                assertTrue(policy.canViewAllProjects(admin));
+                assertFalse(policy.canViewAllProjects(pl));
+                assertFalse(policy.canViewAllProjects(dev));
+                assertFalse(policy.canViewAllProjects(tester));
+                assertFalse(policy.canViewAllProjects(null));
+                assertFalse(policy.canViewAllProjects(inactive("admin2", Role.ADMIN)));
+        }
+
+        @Test
+        @DisplayName("canViewAllUsers grants access only to ADMIN")
+        void canViewAllUsersGrantsOnlyAdmin() {
+                assertTrue(policy.canViewAllUsers(admin));
+                assertFalse(policy.canViewAllUsers(pl));
+                assertFalse(policy.canViewAllUsers(dev));
+                assertFalse(policy.canViewAllUsers(tester));
+                assertFalse(policy.canViewAllUsers(null));
+        }
+
+        @Test
+        @DisplayName("canViewAllProjectIssues grants access to ADMIN and PL only")
+        void canViewAllProjectIssuesGrantsAdminAndPl() {
+                assertTrue(policy.canViewAllProjectIssues(admin));
+                assertTrue(policy.canViewAllProjectIssues(pl));
+                assertFalse(policy.canViewAllProjectIssues(dev));
+                assertFalse(policy.canViewAllProjectIssues(tester));
+                assertFalse(policy.canViewAllProjectIssues(null));
+                assertFalse(policy.canViewAllProjectIssues(inactive("pl2", Role.PL)));
+        }
+
+        @Test
         @DisplayName("rejects non-PL issue management and non-ADMIN account management")
         void rejectsWrongRoleForManagementOperations() {
                 assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(dev, issue(IssueStatus.NEW)));

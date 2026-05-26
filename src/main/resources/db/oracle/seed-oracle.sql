@@ -475,6 +475,67 @@ begin
 end;
 /
 begin
+   delete from comments target
+    where exists (
+      select 1
+        from issues i
+        join projects project
+      on project.id = i.project_id
+       where target.issue_id = i.id
+         and project.name = 'project1'
+         and i.title = 'Assignment notification not shown'
+   );
+end;
+/
+begin
+   delete from issue_history target
+    where exists (
+      select 1
+        from issues i
+        join projects project
+      on project.id = i.project_id
+       where target.issue_id = i.id
+         and project.name = 'project1'
+         and i.title = 'Assignment notification not shown'
+   );
+end;
+/
+begin
+   delete from issue_history target
+    where target.action_type = 'DEPENDENCY_CHANGED'
+      and exists (
+      select 1
+        from issues blocking_issue
+        join issues blocked_issue
+      on blocking_issue.project_id <> blocked_issue.project_id
+       where target.new_value = lower(standard_hash(
+          to_char(blocking_issue.id)
+          || ':'
+          || to_char(blocked_issue.id),
+          'SHA256'
+       ))
+          or target.previous_value = lower(standard_hash(
+             to_char(blocking_issue.id)
+             || ':'
+             || to_char(blocked_issue.id),
+             'SHA256'
+          ))
+   );
+end;
+/
+begin
+   delete from issue_dependencies target
+    where exists (
+      select 1
+        from issues blocking_issue
+        join issues blocked_issue
+      on blocked_issue.id = target.blocked_issue_id
+       where blocking_issue.id = target.blocking_issue_id
+         and blocking_issue.project_id <> blocked_issue.project_id
+   );
+end;
+/
+begin
    for seed_issue in (
       select p.id as project_id,
              lower(standard_hash(
@@ -1608,7 +1669,7 @@ begin
                                'STATUS_CHANGE' )
          union all
          select 'project2',
-                'Dashboard statistics misses closed issues',
+                'Report export fails after generation',
                 'pl2',
                 'DEPENDENCY_CHANGED',
                 null,
@@ -1626,12 +1687,12 @@ begin
                    on blocked_project.name = 'project2'
                      join issues blocked_issue
                    on blocked_issue.project_id = blocked_project.id
-                    where blocking_project.name = 'project1'
-                      and blocking_issue.title = 'Login fails on invalid credential'
-                      and blocked_issue.title = 'Dashboard statistics misses closed issues'
+                    where blocking_project.name = 'project2'
+                      and blocking_issue.title = 'Dashboard statistics misses closed issues'
+                      and blocked_issue.title = 'Report export fails after generation'
                 ),
                 'Dependency added',
-                timestamp '2026-05-11 11:00:00'
+                timestamp '2026-05-22 11:00:00'
            from dual
          union all
          select 'project2',
@@ -1789,11 +1850,11 @@ begin
                 timestamp '2026-05-21 11:00:00' as discovered_at
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
-                'project2',
+         select 'project2',
                 'Dashboard statistics misses closed issues',
-                timestamp '2026-05-11 11:00:00'
+                'project2',
+                'Report export fails after generation',
+                timestamp '2026-05-22 11:00:00'
            from dual
          union all
          select 'project2',

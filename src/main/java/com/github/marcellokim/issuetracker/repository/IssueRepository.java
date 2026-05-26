@@ -10,11 +10,21 @@ public interface IssueRepository {
 
     Optional<Issue> findById(long issueId);
 
+    List<Issue> findAllById(List<Long> issueIds);
+
     List<Issue> findByProject(long projectId);
 
     List<Issue> findDeletedByProject(long projectId);
 
     List<Issue> findByCriteria(IssueSearchCriteria criteria);
+
+    boolean existsByProjectIdAndTitle(long projectId, String title);
+
+    boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId);
+
+    boolean existsByResponsibleUser(String userLoginId);
+
+    boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId);
 
     Issue save(Issue issue);
 

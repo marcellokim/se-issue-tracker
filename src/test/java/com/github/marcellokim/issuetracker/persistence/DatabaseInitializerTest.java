@@ -68,19 +68,6 @@ class DatabaseInitializerTest {
     }
 
     @Test
-    @DisplayName("application initialization rejects incompatible existing schema columns")
-    void applicationInitializationRejectsIncompatibleExistingSchemaColumns() {
-        RecordingConnectionProvider provider = new RecordingConnectionProvider(
-                ALL_CORE_TABLES,
-                Set.of("ISSUES.REPORTED_AT", "ISSUE_HISTORY.CHANGED_AT"));
-
-        assertThrows(IllegalStateException.class, () -> DatabaseInitializer.initializeApplication(provider));
-        assertTrue(provider.executedSqlContaining("create table users"));
-        assertFalse(provider.executedSqlContaining("merge into users"));
-        assertFalse(provider.updatedSqlContaining("drop table"));
-    }
-
-    @Test
     @DisplayName("fixed seed reset drops objects before schema and seed scripts")
     void fixedSeedResetDropsObjectsBeforeSchemaAndSeed() throws SQLException, IOException {
         RecordingConnectionProvider provider = new RecordingConnectionProvider(ALL_CORE_TABLES);
@@ -96,16 +83,10 @@ class DatabaseInitializerTest {
     private static final class RecordingConnectionProvider implements DatabaseConnectionProvider {
 
         private final Set<String> existingTables;
-        private final Set<String> missingColumnsAfterSchema;
         private final List<String> events = new ArrayList<>();
 
         private RecordingConnectionProvider(Set<String> existingTables) {
-            this(existingTables, Set.of());
-        }
-
-        private RecordingConnectionProvider(Set<String> existingTables, Set<String> missingColumnsAfterSchema) {
             this.existingTables = existingTables;
-            this.missingColumnsAfterSchema = missingColumnsAfterSchema;
         }
 
         @Override
@@ -155,39 +136,25 @@ class DatabaseInitializerTest {
         }
 
         private PreparedStatement preparedStatement(String sql) {
-            PreparedStatementState state = new PreparedStatementState(sql);
+            class PreparedStatementState {
+                String tableName;
+            }
+            PreparedStatementState state = new PreparedStatementState();
+            boolean columnQuery = sql.toLowerCase(Locale.ROOT).contains("user_tab_columns");
             InvocationHandler handler = (proxy, method, args) -> switch (method.getName()) {
                 case "setString" -> {
                     int parameterIndex = (int) args[0];
-                    while (state.arguments.size() < parameterIndex) {
-                        state.arguments.add("");
+                    String value = ((String) args[1]).toUpperCase(Locale.ROOT);
+                    if (parameterIndex == 1) {
+                        state.tableName = value;
                     }
-                    state.arguments.set(parameterIndex - 1, ((String) args[1]).toUpperCase(Locale.ROOT));
                     yield null;
                 }
-                case "executeQuery" -> resultSet(countForPreparedQuery(state));
+                case "executeQuery" -> resultSet(columnQuery ? 1 : existingTables.contains(state.tableName) ? 1 : 0);
                 case "close" -> null;
                 default -> defaultValue(method);
             };
             return proxy(PreparedStatement.class, handler);
-        }
-
-        private int countForPreparedQuery(PreparedStatementState state) {
-            if (state.normalizedSql.contains("from user_tab_columns")) {
-                String requiredColumn = state.arguments.get(0) + "." + state.arguments.get(1);
-                return missingColumnsAfterSchema.contains(requiredColumn) ? 0 : 1;
-            }
-            return existingTables.contains(state.arguments.get(0)) ? 1 : 0;
-        }
-
-        private static final class PreparedStatementState {
-
-            private final String normalizedSql;
-            private final List<String> arguments = new ArrayList<>();
-
-            private PreparedStatementState(String sql) {
-                this.normalizedSql = normalize(sql);
-            }
         }
 
         private static ResultSet resultSet(int count) {

@@ -102,10 +102,10 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
 
     @Override
     public IssueHistory save(IssueHistory history) {
-        if (history.id() == 0L) {
-            return insert(history);
+        if (history.id() != 0L) {
+            throw new IllegalArgumentException("Issue history must be new before save.");
         }
-        return update(history);
+        return insert(history);
     }
 
     private IssueHistory insert(IssueHistory history) {
@@ -129,36 +129,6 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
                     .orElseThrow(() -> new RepositoryException("Inserted issue history was not found.", null));
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to insert issue history.", exception);
-        }
-    }
-
-    private IssueHistory update(IssueHistory history) {
-        String sql = """
-                update issue_history
-                set issue_id = ?,
-                    changed_by_login_id = ?,
-                    action_type = ?,
-                    previous_value = ?,
-                    new_value = ?,
-                    message = ?,
-                    changed_at = coalesce(?, changed_at)
-                where id = ?
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, history.issueId());
-            statement.setString(2, history.changedById());
-            statement.setString(3, history.actionType().name());
-            JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
-            JdbcSupport.setNullableString(statement, 5, history.getNewValue());
-            statement.setString(6, history.getMessage());
-            JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
-            statement.setLong(8, history.id());
-            statement.executeUpdate();
-            return findById(history.id())
-                    .orElseThrow(() -> new RepositoryException("Updated issue history was not found.", null));
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to update issue history.", exception);
         }
     }
 

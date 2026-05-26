@@ -11,6 +11,7 @@ public class Issue {
 
     private static final String CREATED_PREVIOUS_VALUE = null;
     private static final String COMMENT_FIELD = "comment";
+    private static final String COMMENT_DELETED_MESSAGE = "comment deleted";
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
     private static final String ISSUE_ID_PREFIX = "ISSUE-";
@@ -64,6 +65,10 @@ public class Issue {
         this.fixerId = loginIdOrNull(fixer);
         this.resolverId = loginIdOrNull(resolver);
         this.updatedAt = Objects.requireNonNull(state.updatedAt, "updatedAt must not be null");
+        if (!persisted && status == IssueStatus.NEW) {
+            recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created",
+                    reporter, reportedDate);
+        }
     }
 
     private Issue(
@@ -98,16 +103,16 @@ public class Issue {
         return new Issue(issueId, title, description, priority, reporter, reportedDate);
     }
 
+    public static Issue create(PersistedState state) {
+        return new Issue(state, false);
+    }
+
     public static PersistedState persistedState(long projectId, String title, String description, User reporter) {
         return new PersistedState(projectId, title, description, reporter);
     }
 
     public static Issue fromPersistence(PersistedState state) {
         return new Issue(state);
-    }
-
-    public static Issue newForPersistence(PersistedState state) {
-        return new Issue(state, false);
     }
 
     // --- getters ---
@@ -294,6 +299,7 @@ public class Issue {
 
         setResolver(resolver);
         changeStatusTo(IssueStatus.RESOLVED, requiredComment, resolver, changedDate);
+        clearActiveAssignment();
     }
 
     public void close(User changedBy, String comment, LocalDateTime changedDate) {
@@ -390,7 +396,7 @@ public class Issue {
         Objects.requireNonNull(comment, "comment must not be null");
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
         Objects.requireNonNull(changedDate, CHANGED_DATE_REQUIRED);
-        recordHistory(ActionType.COMMENTED, comment.content(), null, null, changedBy, changedDate);
+        recordHistory(ActionType.COMMENTED, comment.content(), null, COMMENT_DELETED_MESSAGE, changedBy, changedDate);
     }
 
     public void changePriority(Priority newPriority, User changedBy, LocalDateTime changedDate) {

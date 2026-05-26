@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.persistence.jdbc;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
@@ -16,12 +17,12 @@ import java.util.Optional;
 
 public final class JdbcCommentRepository implements CommentRepository {
 
-    private static final String BASE_SELECT =
-            "select id, issue_id, writer_login_id, content, purpose, created_at, updated_at from comments";
+    private static final String BASE_SELECT = "select id, issue_id, writer_login_id, content, purpose, created_at, updated_at from comments";
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by created_at, id";
 
     private final DatabaseConnectionProvider connectionProvider;
+    private final JdbcIssueWriteSupport writes = new JdbcIssueWriteSupport();
 
     public JdbcCommentRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
@@ -69,6 +70,35 @@ public final class JdbcCommentRepository implements CommentRepository {
     }
 
     @Override
+    public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+        Objects.requireNonNull(history, "history");
+        if (comment.id() == 0L) {
+            throw new IllegalArgumentException("Comment must be persisted before update.");
+        }
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
+            connection.setAutoCommit(false);
+            try {
+                update(connection, comment);
+                writes.insertTransientHistories(connection, history.issueId(), List.of(history));
+                Comment updated = findById(connection, comment.id())
+                        .orElseThrow(() -> new RepositoryException("Updated comment was not found.", null));
+                connection.commit();
+                transactionSucceeded = true;
+                return updated;
+            } catch (SQLException | RuntimeException exception) {
+                writes.rollbackPreservingOriginalFailure(connection);
+                throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to update comment with issue history.", exception);
+        }
+    }
+
+    @Override
     public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
         String sql = """
                 delete from comments
@@ -90,6 +120,48 @@ public final class JdbcCommentRepository implements CommentRepository {
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to delete comment.", exception);
+        }
+    }
+
+    @Override
+    public void deleteGeneralByIdAndRecordIssueChange(
+            long issueId,
+            long commentId,
+            String writerLoginId,
+            IssueHistory history) {
+        Objects.requireNonNull(history, "history");
+        String sql = """
+                delete from comments
+                where id = ?
+                  and issue_id = ?
+                  and writer_login_id = ?
+                  and purpose = 'GENERAL'
+                """;
+        try (Connection connection = connectionProvider.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            boolean transactionSucceeded = false;
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setLong(1, commentId);
+                statement.setLong(2, issueId);
+                statement.setString(3, Objects.requireNonNull(writerLoginId, "writerLoginId"));
+                int affectedRows = statement.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new IllegalArgumentException(
+                            "Comment was not deleted because it does not exist, is not owned by the writer, "
+                                    + "or is not a GENERAL comment.");
+                }
+                writes.insertTransientHistories(connection, history.issueId(), List.of(history));
+                connection.commit();
+                transactionSucceeded = true;
+            } catch (SQLException | RuntimeException exception) {
+                writes.rollbackPreservingOriginalFailure(connection);
+                throw exception;
+            } finally {
+                writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to delete comment with issue history.", exception);
         }
     }
 
@@ -118,28 +190,47 @@ public final class JdbcCommentRepository implements CommentRepository {
     private Comment update(Comment comment) {
         String sql = """
                 update comments
-                set issue_id = ?,
-                    writer_login_id = ?,
-                    content = ?,
-                    purpose = ?,
-                    created_at = coalesce(?, created_at),
+                set content = ?,
                     updated_at = coalesce(?, current_timestamp)
                 where id = ?
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, comment.issueId());
-            statement.setString(2, comment.writerId());
-            statement.setString(3, comment.content());
-            statement.setString(4, comment.purpose().name());
-            JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
-            JdbcSupport.setNullableTimestamp(statement, 6, comment.updatedDate());
-            statement.setLong(7, comment.id());
+            statement.setString(1, comment.content());
+            JdbcSupport.setNullableTimestamp(statement, 2, comment.updatedDate());
+            statement.setLong(3, comment.id());
             statement.executeUpdate();
             return findById(comment.id())
                     .orElseThrow(() -> new RepositoryException("Updated comment was not found.", null));
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update comment.", exception);
+        }
+    }
+
+    private void update(Connection connection, Comment comment) throws SQLException {
+        String sql = """
+                update comments
+                set content = ?,
+                    updated_at = coalesce(?, current_timestamp)
+                where id = ?
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, comment.content());
+            JdbcSupport.setNullableTimestamp(statement, 2, comment.updatedDate());
+            statement.setLong(3, comment.id());
+            statement.executeUpdate();
+        }
+    }
+
+    private Optional<Comment> findById(Connection connection, long commentId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
+            statement.setLong(1, commentId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(mapComment(resultSet));
+                }
+                return Optional.empty();
+            }
         }
     }
 

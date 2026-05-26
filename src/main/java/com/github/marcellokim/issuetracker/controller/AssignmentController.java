@@ -1,7 +1,7 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.AssignmentResult;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
@@ -20,7 +20,7 @@ public final class AssignmentController {
         this.assignmentService = Objects.requireNonNull(assignmentService, "assignmentService");
     }
 
-    public AssignmentOptions startAssignment(long issueId) {
+    public AssignmentOptionsResult startAssignment(long issueId) {
         User user = requireCurrentUser();
         return assignmentService.startAssignment(issueId, user.getLoginId());
     }

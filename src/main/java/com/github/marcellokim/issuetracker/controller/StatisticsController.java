@@ -1,8 +1,8 @@
 package com.github.marcellokim.issuetracker.controller;
 
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -21,7 +21,7 @@ public final class StatisticsController {
         this.statisticsService = Objects.requireNonNull(statisticsService, "statisticsService");
     }
 
-    public StatisticsReport viewStatistics(
+    public StatisticsReportResult viewStatistics(
             long projectId,
             LocalDate dailyFromInclusive,
             LocalDate dailyToInclusive,
@@ -38,8 +38,13 @@ public final class StatisticsController {
                 user);
     }
 
-    public StatisticsReport viewStatistics(long projectId) {
+    public StatisticsReportResult viewStatistics(long projectId) {
         return viewStatistics(projectId, null, null, null, null);
+    }
+
+    public boolean canViewStatistics(long projectId) {
+        User user = requireCurrentUser();
+        return statisticsService.canViewStatistics(projectId, user);
     }
 
     private User requireCurrentUser() {

@@ -23,18 +23,19 @@ class JdbcIssueQueriesTest {
     @Test
     @DisplayName("default search excludes deleted issues and preserves ordering")
     void defaultSearchExcludesDeletedIssues() {
-        var query = JdbcIssueQueries.search(IssueSearchCriteria.all());
+        var query = JdbcIssueQueries.search(IssueSearchCriteria.all(10L));
 
+        assertTrue(query.sql().contains("and i.project_id = ?"));
         assertTrue(query.sql().contains("and i.status <> 'DELETED'"));
         assertTrue(query.sql().endsWith(" order by i.reported_at desc, i.id desc"));
-        assertEquals(0, query.binders().size());
+        assertEquals(1, query.binders().size());
     }
 
     @Test
     @DisplayName("explicit status does not add deleted exclusion twice")
     void explicitStatusControlsDeletedFilter() {
         var criteria = IssueSearchCriteria.create(
-                null,
+                10L,
                 IssueStatus.DELETED,
                 null,
                 null,
@@ -49,14 +50,14 @@ class JdbcIssueQueriesTest {
 
         assertTrue(query.sql().contains("and i.status = ?"));
         assertFalse(query.sql().contains("and i.status <> 'DELETED'"));
-        assertEquals(1, query.binders().size());
+        assertEquals(2, query.binders().size());
     }
 
     @Test
     @DisplayName("include deleted search does not add default deleted exclusion")
     void includeDeletedSearchDoesNotAddDeletedExclusion() {
         var criteria = IssueSearchCriteria.create(
-                null,
+                10L,
                 null,
                 null,
                 null,
@@ -70,13 +71,13 @@ class JdbcIssueQueriesTest {
         var query = JdbcIssueQueries.search(criteria);
 
         assertFalse(query.sql().contains("and i.status <> 'DELETED'"));
-        assertEquals(0, query.binders().size());
+        assertEquals(1, query.binders().size());
     }
 
     @Test
     @DisplayName("search query binder list is immutable")
     void searchQueryBinderListIsImmutable() {
-        var query = JdbcIssueQueries.search(IssueSearchCriteria.all());
+        var query = JdbcIssueQueries.search(IssueSearchCriteria.all(10L));
 
         assertThrows(UnsupportedOperationException.class, () -> query.binders().clear());
     }

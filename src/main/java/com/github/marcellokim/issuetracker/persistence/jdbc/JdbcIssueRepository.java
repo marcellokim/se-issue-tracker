@@ -43,6 +43,23 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
+    public List<Issue> findAllById(List<Long> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) {
+            return List.of();
+        }
+        String sql = JdbcIssueQueries.findAllByIdSql(issueIds.size());
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < issueIds.size(); i++) {
+                statement.setLong(i + 1, issueIds.get(i));
+            }
+            return executeIssueList(statement);
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to find issues by ids.", exception);
+        }
+    }
+
+    @Override
     public List<Issue> findByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_PROJECT_SQL)) {
@@ -56,7 +73,8 @@ public final class JdbcIssueRepository implements IssueRepository {
     @Override
     public List<Issue> findDeletedByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
+                PreparedStatement statement = connection
+                        .prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
         } catch (SQLException exception) {
@@ -75,6 +93,84 @@ public final class JdbcIssueRepository implements IssueRepository {
             return executeIssueList(statement);
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to search issues.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsByProjectIdAndTitle(long projectId, String title) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        JdbcIssueQueries.EXISTS_BY_PROJECT_ID_AND_TITLE_SQL)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, title);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue title duplication.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        JdbcIssueQueries.EXISTS_BY_PROJECT_ID_AND_TITLE_EXCLUDING_ISSUE_ID_SQL)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, title);
+            statement.setLong(3, excludedIssueId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue title duplication.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsByResponsibleUser(String userLoginId) {
+        String sql = """
+                select 1
+                from issues
+                where status in ('ASSIGNED', 'FIXED')
+                  and (
+                      assignee_login_id = ?
+                      or verifier_login_id = ?
+                  )
+                  and rownum = 1
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, userLoginId);
+            statement.setString(2, userLoginId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check issue responsibility existence.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+        String sql = """
+                select 1
+                from issues
+                where project_id = ?
+                  and status in ('ASSIGNED', 'FIXED')
+                  and (assignee_login_id = ? or verifier_login_id = ?)
+                  and rownum = 1
+                """;
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, loginId);
+            statement.setString(3, loginId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check active issue assignment.", exception);
         }
     }
 

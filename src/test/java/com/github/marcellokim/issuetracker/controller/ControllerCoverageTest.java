@@ -3,14 +3,15 @@ package com.github.marcellokim.issuetracker.controller;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
@@ -24,17 +25,23 @@ import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRe
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AccountService;
+import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
+import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
+import com.github.marcellokim.issuetracker.service.UserResult;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDate;
@@ -57,6 +64,54 @@ class ControllerCoverageTest {
     private static final long PROJECT_ID = 10L;
 
     @Test
+    @DisplayName("authentication controller delegates login and logout")
+    void authenticationControllerDelegatesLoginAndLogout() {
+        PasswordHasher hasher = new PasswordHasher();
+        User user = User.fromPersistence("dev", "dev", hasher.hash("secret"), Role.DEV, true, NOW, NOW);
+        FakeUserRepository users = new FakeUserRepository(user);
+        AuthenticationService authService = new AuthenticationService(users, hasher, new SessionStore());
+        AuthenticationController controller = new AuthenticationController(authService);
+
+        var result = controller.login(user.getLoginId(), "secret");
+        controller.logout();
+
+        assertTrue(result.success());
+        assertEquals(Optional.empty(), authService.currentUser());
+    }
+
+    @Test
+    @DisplayName("dashboard controller reads dashboard data through service after auth")
+    void dashboardControllerDelegatesDashboardReads() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
+        FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
+        DashboardController controller = new DashboardController(
+                auth.service(),
+                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(), new PermissionPolicy()));
+
+        assertEquals(1, controller.viewProjects().size());
+        assertEquals(1, controller.viewRelatedIssues().size());
+        assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
+                .map(UserResult::loginId)
+                .toList());
+    }
+
+    @Test
+    @DisplayName("dashboard controller rejects anonymous users")
+    void dashboardControllerRejectsAnonymousUsers() {
+        DashboardController controller = new DashboardController(
+                anonymousAuth(),
+                new DashboardSummaryService(
+                        new FakeProjectRepository(),
+                        new FakeIssueRepository(),
+                        new FakeStatisticsRepository(),
+                        new FakeUserRepository(),
+                        new PermissionPolicy()));
+
+        assertThrows(SecurityException.class, controller::viewProjects);
+    }
+
+    @Test
     @DisplayName("statistics controller delegates report query after auth and range validation")
     void statisticsControllerDelegatesReportQuery() {
         AuthFixture auth = authenticated(Role.DEV);
@@ -66,16 +121,17 @@ class ControllerCoverageTest {
 
         StatisticsController controller = new StatisticsController(
                 auth.service(),
-                new StatisticsService(new PermissionPolicy(), statistics));
+                new StatisticsService(new PermissionPolicy(), statistics, auth.users()));
 
-        StatisticsReport actualReport = controller.viewStatistics(
+        StatisticsReportResult actualReport = controller.viewStatistics(
                 PROJECT_ID,
                 LocalDate.of(2026, 5, 1),
                 LocalDate.of(2026, 5, 31),
                 YearMonth.of(2026, 5),
                 YearMonth.of(2026, 6));
 
-        assertSame(expectedReport, actualReport);
+        assertEquals(expectedReport.statusCounts(), actualReport.statusCounts());
+        assertEquals(expectedReport.priorityCounts(), actualReport.priorityCounts());
         assertEquals(PROJECT_ID, statistics.reportProjectId);
         assertEquals(LocalDate.of(2026, 5, 1), statistics.dailyFrom);
         assertEquals(YearMonth.of(2026, 6), statistics.monthlyTo);
@@ -86,12 +142,13 @@ class ControllerCoverageTest {
     void statisticsControllerRejectsInvalidAccessOrRange() {
         StatisticsController anonymousController = new StatisticsController(
                 anonymousAuth(),
-                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository()));
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), new FakeUserRepository()));
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
         StatisticsController controller = new StatisticsController(
                 authenticated(Role.PL).service(),
-                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository()));
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), new FakeUserRepository(
+                        user("pl", Role.PL))));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> controller.viewStatistics(
@@ -121,12 +178,12 @@ class ControllerCoverageTest {
                 auth.service(),
                 new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), new Clock()));
 
-        List<Issue> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
-        Issue softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
-        Issue restored = controller.restoreIssue(deletedIssue.id(), "restore for demo");
+        List<IssueSummary> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
+        IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
+        IssueSummary restored = controller.restoreIssue(deletedIssue.id(), "restore for demo");
         int purged = controller.purgeOverflow(PROJECT_ID);
 
-        assertEquals(List.of(deletedIssue), deletedIssues);
+        assertEquals(List.of(deletedIssue.id()), deletedIssues.stream().map(IssueSummary::id).toList());
         assertEquals(IssueStatus.DELETED, softDeleted.status());
         assertEquals(IssueStatus.NEW, restored.status());
         assertEquals("pl", issues.lastChangedBy);
@@ -217,7 +274,7 @@ class ControllerCoverageTest {
                         recommendationService,
                         new Clock()));
 
-        AssignmentOptions options = controller.startAssignment(issue.id());
+        AssignmentOptionsResult options = controller.startAssignment(issue.id());
 
         assertEquals(1, options.devAssigneeCandidates().size());
         assertEquals(1, options.testerVerifierCandidates().size());
@@ -256,6 +313,66 @@ class ControllerCoverageTest {
     }
 
     @Test
+    @DisplayName("account controller creates account through service after auth")
+    void accountControllerCreatesAccount() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository();
+        FakeIssueRepository issues = new FakeIssueRepository();
+        PasswordHasher hasher = new PasswordHasher();
+        AccountController controller = new AccountController(
+                auth.service(),
+                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher));
+
+        UserResult result = controller.createAccount("newdev", "New Dev", "pass123", Role.DEV);
+
+        assertEquals("newdev", result.loginId());
+        assertEquals(Role.DEV, result.role());
+        assertTrue(result.active());
+    }
+
+    @Test
+    @DisplayName("account controller updates, renames, changes role, activates, and deactivates")
+    void accountControllerManagesAccounts() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User target = user("target1", Role.DEV);
+        auth.users().save(target);
+        FakeProjectRepository projects = new FakeProjectRepository();
+        FakeIssueRepository issues = new FakeIssueRepository();
+        PasswordHasher hasher = new PasswordHasher();
+        AccountController controller = new AccountController(
+                auth.service(),
+                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher));
+
+        UserResult renamed = controller.renameAccount("target1", "Renamed");
+        assertEquals("Renamed", renamed.name());
+
+        UserResult roleChanged = controller.changeAccountRole("target1", Role.TESTER);
+        assertEquals(Role.TESTER, roleChanged.role());
+
+        UserResult deactivated = controller.deactivateAccount("target1");
+        assertFalse(deactivated.active());
+
+        UserResult activated = controller.activateAccount("target1");
+        assertTrue(activated.active());
+
+        UserResult updated = controller.updateAccount("target1", "Full Update", Role.PL);
+        assertEquals("Full Update", updated.name());
+        assertEquals(Role.PL, updated.role());
+    }
+
+    @Test
+    @DisplayName("account controller rejects anonymous users")
+    void accountControllerRejectsAnonymous() {
+        AccountController controller = new AccountController(
+                anonymousAuth(),
+                new AccountService(new PermissionPolicy(), new FakeUserRepository(),
+                        new FakeProjectRepository(), new FakeIssueRepository(), new PasswordHasher()));
+
+        assertThrows(SecurityException.class,
+                () -> controller.createAccount("x", "X", "pass", Role.DEV));
+    }
+
+    @Test
     @DisplayName("stub controllers keep DCD layer dependencies injectable")
     void stubControllersAcceptLayerDependencies() {
         AuthFixture auth = authenticated(Role.ADMIN);
@@ -267,7 +384,7 @@ class ControllerCoverageTest {
 
         assertDoesNotThrow(() -> new AccountController(
                 auth.service(),
-                new AccountService(policy, users, new PasswordHasher())));
+                new AccountService(policy, users, projects, issues, new PasswordHasher())));
         assertDoesNotThrow(() -> new IssueController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueService(
@@ -275,6 +392,7 @@ class ControllerCoverageTest {
                         issues,
                         new FakeIssueDependencyRepository(),
                         new FakeCommentRepository(),
+                        new FakeIssueHistoryRepository(),
                         users,
                         policy,
                         clock)));
@@ -368,6 +486,14 @@ class ControllerCoverageTest {
         }
 
         @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return issueIds.stream()
+                    .filter(issuesById::containsKey)
+                    .map(issuesById::get)
+                    .toList();
+        }
+
+        @Override
         public List<Issue> findByProject(long projectId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.projectId() == projectId)
@@ -385,6 +511,36 @@ class ControllerCoverageTest {
         @Override
         public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
             return new ArrayList<>(issuesById.values());
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return issuesById.values().stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+            return issuesById.values().stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return issuesById.values().stream()
+                    .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId()));
+        }
+
+        @Override
+        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+            return issuesById.values().stream()
+                    .filter(issue -> issue.projectId() == projectId)
+                    .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
+                    .anyMatch(issue -> loginId.equals(issue.assigneeId()) || loginId.equals(issue.verifierId()));
         }
 
         @Override
@@ -473,6 +629,11 @@ class ControllerCoverageTest {
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
             return List.of();
+        }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return false;
         }
     }
 
@@ -610,7 +771,20 @@ class ControllerCoverageTest {
         }
 
         @Override
+        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+            return comment;
+        }
+
+        @Override
         public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
+        }
+
+        @Override
+        public void deleteGeneralByIdAndRecordIssueChange(
+                long issueId,
+                long commentId,
+                String writerLoginId,
+                IssueHistory history) {
         }
     }
 

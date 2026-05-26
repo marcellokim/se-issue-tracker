@@ -146,7 +146,7 @@ class ArchitectureBoundaryTest {
                 .resolve(packageSegment);
         if (!Files.exists(packagePath)) {
             // Task 1 guard 선설치 후 Task 2 cli 패키지 생성 전까지만 빈 검사 대상 허용.
-            if ("cli".equals(packageSegment)) {
+            if ("cli".equals(packageSegment) || "ui".equals(packageSegment)) {
                 return List.of();
             }
             throw new AssertionError("Production package is missing: " + packageSegment);

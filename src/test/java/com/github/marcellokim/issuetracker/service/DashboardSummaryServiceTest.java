@@ -53,7 +53,8 @@ class DashboardSummaryServiceTest {
                         ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))),
                 new FakeIssueRepository(List.of(activeIssue), List.of(deletedIssue)),
                 new FakeStatisticsRepository(statusCounts),
-                new FakeUserRepository(List.of(pl, dev, tester)));
+                new FakeUserRepository(List.of(pl, dev, tester)),
+                new PermissionPolicy());
 
         DashboardProjectSummary summary = service.projectSummaries().getFirst();
 
@@ -65,6 +66,107 @@ class DashboardSummaryServiceTest {
         assertEquals(1, summary.visibleIssueCount());
         assertEquals(1, summary.deletedIssueCount());
         assertEquals(statusCounts, summary.statusCounts());
+    }
+
+    @Test
+    @DisplayName("admin dashboard includes all projects and users")
+    void adminDashboardIncludesAllProjectsAndUsers() {
+        User admin = user("admin", Role.ADMIN);
+        User dev = user("dev", Role.DEV);
+        User tester = user("tester", Role.TESTER);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Project project2 = Project.fromPersistence(2L, "project2", "Demo project", "admin", NOW, NOW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(
+                        List.of(project1, project2),
+                        Map.of(
+                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
+                        )),
+                new FakeIssueRepository(List.of(), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(admin, dev, tester)),
+                new PermissionPolicy());
+
+        List<DashboardProjectSummary> summaries = service.projectSummariesFor(admin);
+
+        assertEquals(List.of("project1", "project2"), summaries.stream()
+                .map(DashboardProjectSummary::projectName)
+                .toList());
+        assertEquals(List.of("admin", "dev", "tester"), service.usersFor(admin).stream()
+                .map(UserResult::loginId)
+                .toList());
+    }
+
+    @Test
+    @DisplayName("admin sees all issues across all projects via relatedIssuesFor")
+    void adminSeesAllRelatedIssues() {
+        User admin = user("admin", Role.ADMIN);
+        User dev = user("dev", Role.DEV);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Issue issue1 = issue(101L, IssueStatus.NEW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(project1, List.of(
+                        ProjectMember.create(project1.getId(), dev.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(issue1), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(admin, dev)),
+                new PermissionPolicy());
+
+        List<IssueSummary> issues = service.relatedIssuesFor(admin);
+
+        assertEquals(1, issues.size());
+        assertEquals(101L, issues.getFirst().id());
+    }
+
+    @Test
+    @DisplayName("dev sees only related issues in participating projects via relatedIssuesFor")
+    void devSeesOnlyRelatedIssues() {
+        User dev = user("dev", Role.DEV);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Issue issue1 = issue(101L, IssueStatus.NEW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(project1, List.of(
+                        ProjectMember.create(project1.getId(), dev.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(issue1), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(dev)),
+                new PermissionPolicy());
+
+        List<IssueSummary> issues = service.relatedIssuesFor(dev);
+
+        assertEquals(0, issues.size());
+    }
+
+    @Test
+    @DisplayName("non-admin dashboard includes only participating projects")
+    void nonAdminDashboardIncludesOnlyParticipatingProjects() {
+        User dev = user("dev", Role.DEV);
+        User tester = user("tester", Role.TESTER);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Project project2 = Project.fromPersistence(2L, "project2", "Demo project", "admin", NOW, NOW);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(
+                        List.of(project1, project2),
+                        Map.of(
+                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
+                        )),
+                new FakeIssueRepository(List.of(), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(dev, tester)),
+                new PermissionPolicy());
+
+        List<DashboardProjectSummary> summaries = service.projectSummariesFor(dev);
+
+        assertEquals(List.of("project1"), summaries.stream()
+                .map(DashboardProjectSummary::projectName)
+                .toList());
+        assertEquals(List.of(), service.usersFor(dev));
     }
 
     private static User user(String loginId, Role role) {
@@ -87,27 +189,35 @@ class DashboardSummaryServiceTest {
 
     private static final class FakeProjectRepository implements ProjectRepository {
 
-        private final Project project;
-        private final List<ProjectMember> members;
+        private final List<Project> projects;
+        private final Map<Long, List<ProjectMember>> membersByProjectId;
 
         private FakeProjectRepository(Project project, List<ProjectMember> members) {
-            this.project = project;
-            this.members = List.copyOf(members);
+            this(List.of(project), Map.of(project.getId(), members));
+        }
+
+        private FakeProjectRepository(List<Project> projects, Map<Long, List<ProjectMember>> membersByProjectId) {
+            this.projects = List.copyOf(projects);
+            this.membersByProjectId = Map.copyOf(membersByProjectId);
         }
 
         @Override
         public Optional<Project> findById(long projectId) {
-            return project.getId() == projectId ? Optional.of(project) : Optional.empty();
+            return projects.stream()
+                    .filter(project -> project.getId() == projectId)
+                    .findFirst();
         }
 
         @Override
         public Optional<Project> findByName(String name) {
-            return project.getName().equals(name) ? Optional.of(project) : Optional.empty();
+            return projects.stream()
+                    .filter(project -> project.getName().equals(name))
+                    .findFirst();
         }
 
         @Override
         public List<Project> findAll() {
-            return List.of(project);
+            return projects;
         }
 
         @Override
@@ -132,7 +242,15 @@ class DashboardSummaryServiceTest {
 
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
-            return project.getId() == projectId ? members : List.of();
+            return membersByProjectId.getOrDefault(projectId, List.of());
+        }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return membersByProjectId.values().stream()
+                    .flatMap(List::stream)
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
         }
     }
 
@@ -154,6 +272,13 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return activeIssues.stream()
+                    .filter(issue -> issueIds.contains(issue.id()))
+                    .toList();
+        }
+
+        @Override
         public List<Issue> findByProject(long projectId) {
             return activeIssues;
         }
@@ -166,6 +291,42 @@ class DashboardSummaryServiceTest {
         @Override
         public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
             throw new UnsupportedOperationException("findByCriteria is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return activeIssues.stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title))
+                    || deletedIssues.stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+            return activeIssues.stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title))
+                    || deletedIssues.stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return activeIssues.stream()
+                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId())
+                            || userLoginId.equals(issue.fixerId())
+                            || userLoginId.equals(issue.resolverId()));
+        }
+
+        @Override
+        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+            throw new UnsupportedOperationException(
+                    "existsActiveAssignmentByProjectAndUser is not needed by DashboardSummaryServiceTest.");
         }
 
         @Override

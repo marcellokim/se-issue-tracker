@@ -223,6 +223,13 @@ class RepositoryDemoSummaryServiceTest {
         public List<ProjectMember> findParticipants(long projectId) {
             return project.getId() == projectId ? members : List.of();
         }
+
+        @Override
+        public boolean existsByParticipant(String userLoginId) {
+            return members.stream()
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
+        }
     }
 
     private static final class FakeIssueRepository implements IssueRepository {
@@ -241,6 +248,13 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public List<Issue> findAllById(List<Long> issueIds) {
+            return issues.stream()
+                    .filter(issue -> issueIds.contains(issue.id()))
+                    .toList();
+        }
+
+        @Override
         public List<Issue> findByProject(long projectId) {
             return issues.stream()
                     .filter(issue -> issue.projectId() == projectId)
@@ -255,6 +269,36 @@ class RepositoryDemoSummaryServiceTest {
         @Override
         public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
             return issues;
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitle(long projectId, String title) {
+            return issues.stream()
+                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+            return issues.stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title));
+        }
+
+        @Override
+        public boolean existsByResponsibleUser(String userLoginId) {
+            return issues.stream()
+                    .filter(issue -> issue.status() != IssueStatus.DELETED)
+                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                            || userLoginId.equals(issue.verifierId())
+                            || userLoginId.equals(issue.fixerId())
+                            || userLoginId.equals(issue.resolverId()));
+        }
+
+        @Override
+        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+            throw new UnsupportedOperationException(
+                    "existsActiveAssignmentByProjectAndUser is not needed by RepositoryDemoSummaryServiceTest.");
         }
 
         @Override

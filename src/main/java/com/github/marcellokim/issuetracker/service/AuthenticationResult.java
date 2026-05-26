@@ -1,19 +1,18 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.User;
 import java.util.Objects;
 
 public record AuthenticationResult(
         boolean success,
-        User user,
+        UserResult user,
         String message
 ) {
 
-    public static AuthenticationResult success(User user) {
-        return new AuthenticationResult(true, Objects.requireNonNull(user, "user"), "Login succeeded.");
+    public static AuthenticationResult success(com.github.marcellokim.issuetracker.domain.User user) {
+        return new AuthenticationResult(true, UserResult.from(user), "Login succeeded.");
     }
 
     public static AuthenticationResult failure(String message) {
-        return new AuthenticationResult(false, null, message);
+        return new AuthenticationResult(false, null, Objects.requireNonNull(message, "message"));
     }
 }

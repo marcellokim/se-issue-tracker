@@ -42,7 +42,7 @@ public class User {
             boolean active,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
-        this.loginId = requireText(loginId, "loginId");
+        this.loginId = requireText(loginId, "loginId").trim();
         this.name = requireText(name, "name");
         this.passwordHash = requireText(passwordHash, "passwordHash");
         this.role = Objects.requireNonNull(role, "role must not be null");

@@ -31,6 +31,10 @@ public final class AuthenticationService {
         return sessionStore.currentUser();
     }
 
+    public void logout() {
+        sessionStore.clear();
+    }
+
     public AuthenticationResult logIn(String loginId, String password) {
         return login(loginId, password);
     }
@@ -42,11 +46,11 @@ public final class AuthenticationService {
 
         return users.findByLoginId(loginId.trim())
                 .map(user -> {
-                    if (!user.isActive()) {
-                        return AuthenticationResult.failure("This account is inactive.");
-                    }
                     if (!passwordHasher.matches(password, user.getPasswordHash())) {
                         return AuthenticationResult.failure("Invalid ID or password.");
+                    }
+                    if (!user.isActive()) {
+                        return AuthenticationResult.failure("This account is inactive.");
                     }
                     sessionStore.startSession(user);
                     return AuthenticationResult.success(user);

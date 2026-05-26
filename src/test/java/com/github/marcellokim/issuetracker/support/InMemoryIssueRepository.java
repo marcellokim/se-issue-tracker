@@ -5,7 +5,6 @@ import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import java.util.Optional;
 public final class InMemoryIssueRepository implements IssueRepository {
 
     private final Map<Long, Issue> issues = new LinkedHashMap<>();
+    private long nextId = 1L;
 
     public InMemoryIssueRepository(Issue... issues) {
         for (Issue issue : issues) {
@@ -24,6 +24,17 @@ public final class InMemoryIssueRepository implements IssueRepository {
     @Override
     public Optional<Issue> findById(long issueId) {
         return Optional.ofNullable(issues.get(issueId));
+    }
+
+    @Override
+    public List<Issue> findAllById(List<Long> issueIds) {
+        if (issueIds == null || issueIds.isEmpty()) {
+            return List.of();
+        }
+        return issueIds.stream()
+                .filter(issues::containsKey)
+                .map(issues::get)
+                .toList();
     }
 
     @Override
@@ -43,13 +54,56 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     @Override
     public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
-        return new ArrayList<>(issues.values());
+        return issues.values().stream()
+                .filter(issue -> issue.projectId() == criteria.projectId())
+                .filter(issue -> criteria.status() == null || issue.status() == criteria.status())
+                .filter(issue -> criteria.includeDeleted() || issue.status() != IssueStatus.DELETED)
+                .filter(issue -> criteria.priority() == null || issue.priority() == criteria.priority())
+                .filter(issue -> criteria.reporterId() == null || criteria.reporterId().equals(issue.reporterId()))
+                .filter(issue -> criteria.assigneeId() == null || criteria.assigneeId().equals(issue.assigneeId()))
+                .filter(issue -> criteria.verifierId() == null || criteria.verifierId().equals(issue.verifierId()))
+                .filter(issue -> matchesKeyword(issue, criteria.keyword()))
+                .filter(issue -> criteria.reportedFrom() == null || !issue.reportedDate().isBefore(criteria.reportedFrom()))
+                .filter(issue -> criteria.reportedTo() == null || issue.reportedDate().isBefore(criteria.reportedTo()))
+                .toList();
+    }
+
+    @Override
+    public boolean existsByProjectIdAndTitle(long projectId, String title) {
+        return issues.values().stream()
+                .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+    }
+
+    @Override
+    public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+        return issues.values().stream()
+                .anyMatch(issue -> issue.id() != excludedIssueId
+                        && issue.projectId() == projectId
+                        && issue.title().equals(title));
+    }
+
+    @Override
+    public boolean existsByResponsibleUser(String userLoginId) {
+        return issues.values().stream()
+                .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
+                .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
+                        || userLoginId.equals(issue.verifierId()));
+    }
+
+    @Override
+    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+        return issues.values().stream()
+                .filter(issue -> issue.projectId() == projectId)
+                .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
+                .anyMatch(issue -> loginId.equals(issue.assigneeId()) || loginId.equals(issue.verifierId()));
     }
 
     @Override
     public Issue save(Issue issue) {
-        issues.put(issue.id(), issue);
-        return issue;
+        Issue saved = issue.id() == 0L ? persistNew(issue) : issue;
+        issues.put(saved.id(), saved);
+        nextId = Math.max(nextId, saved.id() + 1);
+        return saved;
     }
 
     @Override
@@ -70,5 +124,32 @@ public final class InMemoryIssueRepository implements IssueRepository {
     @Override
     public void purge(long issueId) {
         issues.remove(issueId);
+    }
+
+    private Issue persistNew(Issue issue) {
+        return Issue.fromPersistence(Issue.persistedState(
+                        issue.projectId(),
+                        issue.title(),
+                        issue.description(),
+                        issue.getReporter())
+                .id(nextId++)
+                .issueId(issue.getIssueId())
+                .reportedDate(issue.reportedDate())
+                .priority(issue.priority())
+                .status(issue.status())
+                .assignee(issue.getAssignee())
+                .verifier(issue.getVerifier())
+                .fixer(issue.getFixer())
+                .resolver(issue.getResolver())
+                .updatedAt(issue.updatedAt()));
+    }
+
+    private static boolean matchesKeyword(Issue issue, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+        String normalizedKeyword = keyword.toLowerCase();
+        return issue.title().toLowerCase().contains(normalizedKeyword)
+                || issue.description().toLowerCase().contains(normalizedKeyword);
     }
 }

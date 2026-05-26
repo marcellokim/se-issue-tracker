@@ -1,24 +1,32 @@
 package com.github.marcellokim.issuetracker.service;
 
+import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
-import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
+import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
+import com.github.marcellokim.issuetracker.repository.IssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class IssueService {
 
@@ -26,6 +34,7 @@ public final class IssueService {
     private final IssueRepository issueRepository;
     private final IssueDependencyRepository dependencyRepository;
     private final CommentRepository commentRepository;
+    private final IssueHistoryRepository issueHistoryRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
@@ -35,47 +44,185 @@ public final class IssueService {
             IssueRepository issueRepository,
             IssueDependencyRepository dependencyRepository,
             CommentRepository commentRepository,
+            IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock
-    ) {
+            Clock clock) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.commentRepository = Objects.requireNonNull(commentRepository, "commentRepository");
+        this.issueHistoryRepository = Objects.requireNonNull(issueHistoryRepository, "issueHistoryRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public IssueResult registerIssue(long projectId, String title, String description, Priority priority, String currentUserId) {
+    public IssueResult registerIssue(long projectId, String title, String description, Priority priority,
+            String currentUserId) {
         Project project = findProject(projectId);
         User reporter = findUser(currentUserId);
         permissionPolicy.assertCanRegisterIssue(reporter, project);
+        requireActiveProjectMember(reporter, project.getId(), "Only project members can register issues.");
+        if (issueRepository.existsByProjectIdAndTitle(project.getId(), title)) {
+            throw new IllegalArgumentException("Issue title already exists in this project.");
+        }
         LocalDateTime now = now();
-        Issue issue = Issue.newForPersistence(
+        Issue issue = Issue.create(
                 Issue.persistedState(project.getId(), title, description, reporter)
                         .priority(priority != null ? priority : Priority.MAJOR)
                         .reportedDate(now)
-                        .updatedAt(now)
-        );
+                        .updatedAt(now));
+        Issue saved = issueRepository.save(issue);
+        return toIssueResult(saved);
+    }
+
+    public boolean canRegisterIssue(long projectId, String currentUserId) {
+        try {
+            Project project = findProject(projectId);
+            User reporter = findUser(currentUserId);
+            return permissionPolicy.canRegisterIssue(reporter, project)
+                    && isActiveProjectMember(reporter, project.getId());
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
+        Issue issue = findIssueDetail(issueId, currentUserId);
+        List<CommentResult> comments = commentRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toCommentResult)
+                .toList();
+        List<HistoryResult> histories = issueHistoryRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toHistoryResult)
+                .toList();
+        List<IssueDependency> deps = dependencyRepository.findByBlockedIssueId(issue.id());
+        List<Long> blockingIds = deps.stream()
+                .map(IssueDependency::blockingIssueId)
+                .toList();
+        Map<Long, Issue> blockingIssues = issueRepository.findAllById(blockingIds).stream()
+                .collect(Collectors.toMap(Issue::id, Function.identity()));
+        List<DependencyResult> dependencies = deps.stream()
+                .map(dep -> toDependencyResult(dep, blockingIssues.get(dep.blockingIssueId()), issue))
+                .toList();
+        return toIssueDetailResult(issue, comments, histories, dependencies);
+    }
+
+    public List<IssueSummary> searchIssues(
+            long projectId,
+            String keyword,
+            IssueStatus status,
+            Priority priority,
+            String currentUserId) {
+        return searchIssues(projectId, keyword, status, priority, null, null, null, null, null, currentUserId);
+    }
+
+    public List<IssueSummary> searchIssues(
+            long projectId,
+            String keyword,
+            IssueStatus status,
+            Priority priority,
+            String reporterId,
+            String assigneeId,
+            String verifierId,
+            LocalDateTime reportedFrom,
+            LocalDateTime reportedTo,
+            String currentUserId) {
+        findProject(projectId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        requireActiveProjectMember(actor, projectId, "Only project members can search issues.");
+        return issueRepository.findByCriteria(IssueSearchCriteria.create(
+                projectId,
+                status,
+                priority,
+                optionalText(reporterId),
+                optionalText(assigneeId),
+                optionalText(verifierId),
+                keyword,
+                reportedFrom,
+                reportedTo,
+                false)).stream()
+                .filter(issue -> issue.projectId() == projectId)
+                .map(IssueService::toIssueSummary)
+                .toList();
+    }
+
+    public List<IssueSummary> viewRelatedProjectIssues(long projectId, String currentUserId) {
+        findProject(projectId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        requireActiveProjectMember(actor, projectId, "Only project members can view related project issues.");
+        return issueRepository.findByCriteria(IssueSearchCriteria.create(
+                projectId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false)).stream()
+                .filter(issue -> actor.getRole() == Role.PL || isAssignedParticipant(issue, actor.getLoginId()))
+                .map(IssueService::toIssueSummary)
+                .toList();
+    }
+
+    public IssueResult updateIssue(long issueId, String title, String description, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanUpdateIssue(actor, issue);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can update issues.");
+        if (issueRepository.existsByProjectIdAndTitleExcludingIssueId(issue.projectId(), title, issue.id())) {
+            throw new IllegalArgumentException("Issue title already exists in this project.");
+        }
+        issue.updateTitleAndDescription(title, description, actor, now());
+        Issue saved = issueRepository.save(issue);
+        return toIssueResult(saved);
+    }
+
+    public IssueResult changePriority(long issueId, Priority priority, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanChangePriority(actor, issue, priority);
+        requireProjectLead(actor, issue.projectId(), "Only the project PL can change issue priority.");
+        issue.changePriority(priority, actor, now());
         Issue saved = issueRepository.save(issue);
         return toIssueResult(saved);
     }
 
     public CommentResult addComment(long issueId, String content, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         User writer = findUser(currentUserId);
         permissionPolicy.assertCanAddComment(writer, issue);
+        requireActiveProjectMember(writer, issue.projectId(), "Only project members can add issue comments.");
         LocalDateTime now = now();
         Comment comment = issue.addComment(CommentIdGenerator.nextCommentId(), content, writer, now);
         issueRepository.save(issue);
         return toCommentResult(comment);
     }
 
+    public List<CommentResult> viewComments(long issueId, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can view comments.");
+        return commentRepository.findByIssueId(issue.id()).stream()
+                .map(IssueService::toCommentResult)
+                .toList();
+    }
+
     public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
         Issue blockingIssue = findIssue(blockingIssueId);
         Issue blockedIssue = findIssue(blockedIssueId);
+        requireNotDeleted(blockingIssue);
+        requireNotDeleted(blockedIssue);
+        requireSameProjectDependency(blockingIssue, blockedIssue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
@@ -87,28 +234,80 @@ public final class IssueService {
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
-    public void removeDependency(String dependencyId, String currentUserId) {
-        IssueDependency dependency = dependencyRepository.findByDependencyId(dependencyId)
-                .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
+    public List<DependencyResult> viewProjectDependencies(long projectId, String currentUserId) {
+        findProject(projectId);
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        requireActiveProjectMember(actor, projectId, "Only project members can view project dependencies.");
+        List<IssueDependency> deps = dependencyRepository.findByProjectId(projectId);
+        Set<Long> issueIds = new HashSet<>();
+        for (IssueDependency dep : deps) {
+            issueIds.add(dep.blockingIssueId());
+            issueIds.add(dep.blockedIssueId());
+        }
+        Map<Long, Issue> issuesById = issueRepository.findAllById(List.copyOf(issueIds)).stream()
+                .collect(Collectors.toMap(Issue::id, Function.identity()));
+        return deps.stream()
+                .map(dep -> toDependencyResult(dep, issuesById.get(dep.blockingIssueId()), issuesById.get(dep.blockedIssueId())))
+                .toList();
+    }
+
+    public void removeDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
+        String hashedDependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
+        IssueDependency dependency = dependencyRepository.findByDependencyId(hashedDependencyId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Dependency not found: " + blockingIssueId + " -> " + blockedIssueId));
+        Issue blockingIssue = findIssue(dependency.blockingIssueId());
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
+        requireNotDeleted(blockingIssue);
+        requireNotDeleted(blockedIssue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         blockedIssue.removeDependency(dependency, actor, now());
-        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(dependencyId, blockedIssue);
+        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(hashedDependencyId, blockedIssue);
     }
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         Comment comment = findComment(commentId);
         User currentUser = findUser(currentUserId);
         requireCommentBelongsToIssue(comment, issue);
-        requireCommentWriter(comment, currentUser);
-        requireGeneralComment(comment);
+        permissionPolicy.assertCanDeleteComment(currentUser, comment);
+        requireActiveProjectMember(currentUser, issue.projectId(), "Only project members can delete issue comments.");
 
         issue.recordCommentDeletion(comment, currentUser, now());
-        issueRepository.save(issue);
-        commentRepository.deleteGeneralById(issue.id(), comment.id(), currentUser.getLoginId());
+        IssueHistory history = issue.getHistories().getLast();
+        commentRepository.deleteGeneralByIdAndRecordIssueChange(
+                issue.id(),
+                comment.id(),
+                currentUser.getLoginId(),
+                historyForPersistence(issue.id(), history));
+    }
+
+    public CommentResult updateComment(long issueId, long commentId, String content, String currentUserId) {
+        Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
+        Comment comment = findComment(commentId);
+        User currentUser = findUser(currentUserId);
+        requireCommentBelongsToIssue(comment, issue);
+        permissionPolicy.assertCanUpdateComment(currentUser, comment);
+        requireActiveProjectMember(currentUser, issue.projectId(), "Only project members can update issue comments.");
+
+        String previousContent = comment.content();
+        LocalDateTime changedAt = now();
+        comment.changeContent(content, changedAt);
+        IssueHistory history = IssueHistory.newForPersistence(
+                issue.id(),
+                currentUser.getLoginId(),
+                ActionType.COMMENTED,
+                previousContent,
+                comment.content(),
+                comment.content(),
+                changedAt);
+        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
+        return toCommentResult(saved);
     }
 
     private Project findProject(long projectId) {
@@ -119,6 +318,15 @@ public final class IssueService {
     private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
+    }
+
+    private Issue findIssueDetail(long issueId, String currentUserId) {
+        User actor = findUser(currentUserId);
+        permissionPolicy.assertCanViewIssue(actor);
+        Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
+        requireActiveProjectMember(actor, issue.projectId(), "Only project members can view issue details.");
+        return issue;
     }
 
     private Comment findComment(long commentId) {
@@ -136,6 +344,35 @@ public final class IssueService {
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
         if (!projectLead) {
             throw new SecurityException(message);
+        }
+    }
+
+    private void requireActiveProjectMember(User actor, long projectId, String message) {
+        if (!isActiveProjectMember(actor, projectId)) {
+            throw new SecurityException(message);
+        }
+    }
+
+    private boolean isActiveProjectMember(User actor, long projectId) {
+        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
+                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+    }
+
+    private static boolean isAssignedParticipant(Issue issue, String loginId) {
+        return loginId.equals(issue.reporterId())
+                || loginId.equals(issue.assigneeId())
+                || loginId.equals(issue.verifierId());
+    }
+
+    private static void requireSameProjectDependency(Issue blockingIssue, Issue blockedIssue) {
+        if (blockingIssue.projectId() != blockedIssue.projectId()) {
+            throw new IllegalArgumentException("Dependencies are allowed only within the same project.");
+        }
+    }
+
+    private static void requireNotDeleted(Issue issue) {
+        if (issue.status() == IssueStatus.DELETED) {
+            throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
         }
     }
 
@@ -169,16 +406,22 @@ public final class IssueService {
         }
     }
 
-    private static void requireCommentWriter(Comment comment, User currentUser) {
-        if (!comment.writerId().equals(currentUser.getLoginId())) {
-            throw new SecurityException("Only the comment writer can delete the comment.");
-        }
+    private static IssueHistory historyForPersistence(long issueId, IssueHistory history) {
+        return IssueHistory.newForPersistence(
+                issueId,
+                history.changedById(),
+                history.actionType(),
+                history.previousValue(),
+                history.newValue(),
+                history.message(),
+                history.changedDate());
     }
 
-    private static void requireGeneralComment(Comment comment) {
-        if (comment.purpose() != CommentPurpose.GENERAL) {
-            throw new IllegalArgumentException("Only GENERAL comments can be deleted.");
+    private static String optionalText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
         }
+        return value.trim();
     }
 
     private LocalDateTime now() {
@@ -193,8 +436,48 @@ public final class IssueService {
                 issue.priority(),
                 issue.title(),
                 issue.description(),
-                issue.getReporter()
-        );
+                toUserResult(issue.getReporter()));
+    }
+
+    private static IssueSummary toIssueSummary(Issue issue) {
+        return new IssueSummary(
+                issue.id(),
+                issue.getIssueId(),
+                issue.projectId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.reporterId(),
+                issue.assigneeId(),
+                issue.verifierId(),
+                issue.reportedDate(),
+                issue.updatedAt());
+    }
+
+    private static IssueDetailResult toIssueDetailResult(
+            Issue issue,
+            List<CommentResult> comments,
+            List<HistoryResult> histories,
+            List<DependencyResult> dependencies) {
+        return new IssueDetailResult(
+                issue.id(),
+                issue.projectId(),
+                issue.getIssueId(),
+                issue.status(),
+                issue.priority(),
+                issue.title(),
+                issue.description(),
+                toUserResult(issue.getReporter()),
+                toUserResult(issue.getAssignee()),
+                toUserResult(issue.getVerifier()),
+                toUserResult(issue.getFixer()),
+                toUserResult(issue.getResolver()),
+                issue.reportedDate(),
+                issue.updatedAt(),
+                comments,
+                histories,
+                dependencies,
+                List.of());
     }
 
     private static CommentResult toCommentResult(Comment comment) {
@@ -202,10 +485,26 @@ public final class IssueService {
                 comment.getCommentId(),
                 comment.getContent(),
                 comment.getPurpose(),
-                comment.getWriter(),
+                comment.writerId(),
+                toUserResult(comment.getWriter()),
                 comment.getCreatedDate(),
-                comment.getUpdatedDate()
-        );
+                comment.getUpdatedDate());
+    }
+
+    private static UserResult toUserResult(User user) {
+        return user == null ? null : UserResult.from(user);
+    }
+
+    private static HistoryResult toHistoryResult(IssueHistory history) {
+        return new HistoryResult(
+                history.id(),
+                history.issueId(),
+                history.changedById(),
+                history.actionType(),
+                history.previousValue(),
+                history.newValue(),
+                history.message(),
+                history.changedDate());
     }
 
     private static DependencyResult toDependencyResult(IssueDependency dep, Issue blockingIssue, Issue blockedIssue) {
@@ -216,7 +515,6 @@ public final class IssueService {
                 blockingIssue.getIssueId(),
                 blockedIssue.id(),
                 blockedIssue.getIssueId(),
-                dep.getDiscoveredDate()
-        );
+                dep.getDiscoveredDate());
     }
 }

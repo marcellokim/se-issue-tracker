@@ -35,7 +35,7 @@ class AuthenticationServiceTest {
 
         assertTrue(result.success());
         assertNotNull(result.user());
-        assertEquals(Role.ADMIN, result.user().getRole());
+        assertEquals(Role.ADMIN, result.user().role());
     }
 
     @Test
@@ -65,6 +65,19 @@ class AuthenticationServiceTest {
     }
 
     @Test
+    @DisplayName("inactive account still requires matching password")
+    void inactiveAccountStillRequiresMatchingPassword() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of(
+                user("dev1", ADMIN_PASSWORD, Role.DEV, false)
+        )));
+
+        AuthenticationResult result = service.login("dev1", "wrong-password");
+
+        assertFalse(result.success());
+        assertEquals("Invalid ID or password.", result.message());
+    }
+
+    @Test
     @DisplayName("rejects missing credentials before repository lookup")
     void loginRejectsMissingCredentials() {
         var service = new AuthenticationService(new FakeUserRepository(List.of()));
@@ -88,6 +101,21 @@ class AuthenticationServiceTest {
         assertTrue(result.success());
         assertTrue(service.currentUser().isPresent());
         assertEquals("admin", service.currentUser().orElseThrow().getLoginId());
+    }
+
+    @Test
+    @DisplayName("logout clears authenticated current user")
+    void logoutClearsCurrentUser() {
+        var service = new AuthenticationService(new FakeUserRepository(List.of(
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
+        )));
+
+        assertTrue(service.login("admin", ADMIN_PASSWORD).success());
+        assertTrue(service.currentUser().isPresent());
+
+        service.logout();
+
+        assertFalse(service.currentUser().isPresent());
     }
 
     @Test

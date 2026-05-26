@@ -147,9 +147,9 @@ class DomainValueObjectsTest {
     @Test
     @DisplayName("all issue search criteria defaults to active issues")
     void allIssueSearchCriteriaDefaultsToActiveIssues() {
-        IssueSearchCriteria criteria = IssueSearchCriteria.all();
+        IssueSearchCriteria criteria = IssueSearchCriteria.all(1L);
 
-        assertNull(criteria.projectId());
+        assertEquals(1L, criteria.projectId());
         assertNull(criteria.status());
         assertNull(criteria.priority());
         assertNull(criteria.reporterId());
@@ -172,19 +172,35 @@ class DomainValueObjectsTest {
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)));
         List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(
                 List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)));
+        Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts = new java.util.LinkedHashMap<>();
+        monthlyStatusCounts.put(YearMonth.of(2026, 5), Map.of(IssueStatus.NEW, 1));
+        Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts = new java.util.LinkedHashMap<>();
+        monthlyPriorityCounts.put(YearMonth.of(2026, 5), Map.of(Priority.MAJOR, 2));
 
-        StatisticsReport report = StatisticsReport.create(statusCounts, priorityCounts, dailyCounts, monthlyCounts);
+        StatisticsReport report = StatisticsReport.create(
+                statusCounts,
+                priorityCounts,
+                dailyCounts,
+                monthlyCounts,
+                monthlyStatusCounts,
+                monthlyPriorityCounts);
         statusCounts.put(IssueStatus.CLOSED, 99);
         priorityCounts.put(Priority.CRITICAL, 99);
         dailyCounts.add(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 99));
         monthlyCounts.add(MonthlyIssueCount.create(YearMonth.of(2026, 6), 99));
+        monthlyStatusCounts.put(YearMonth.of(2026, 6), Map.of(IssueStatus.CLOSED, 99));
+        monthlyPriorityCounts.put(YearMonth.of(2026, 6), Map.of(Priority.CRITICAL, 99));
 
         assertEquals(Map.of(IssueStatus.NEW, 1), report.statusCounts());
         assertEquals(Map.of(Priority.MAJOR, 2), report.priorityCounts());
         assertEquals(List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
         assertEquals(List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
+        assertEquals(Map.of(IssueStatus.NEW, 1), report.monthlyStatusCounts().get(YearMonth.of(2026, 5)));
+        assertEquals(Map.of(Priority.MAJOR, 2), report.monthlyPriorityCounts().get(YearMonth.of(2026, 5)));
         assertThrows(UnsupportedOperationException.class,
                 () -> report.dailyCounts().add(DailyIssueCount.create(LocalDate.now(), 1)));
+        assertThrows(UnsupportedOperationException.class,
+                () -> report.monthlyStatusCounts().put(YearMonth.of(2026, 7), Map.of()));
     }
 
     @Test
@@ -205,6 +221,7 @@ class DomainValueObjectsTest {
                 "StatisticsReport[statusCounts=");
         assertTrue(report.toString().contains("priorityCounts="));
         assertTrue(report.toString().contains("monthlyCounts="));
+        assertTrue(report.toString().contains("monthlyStatusCounts="));
         assertThrows(NullPointerException.class,
                 () -> StatisticsReport.create(null, Map.of(), List.of(), List.of()));
     }
@@ -324,7 +341,9 @@ class DomainValueObjectsTest {
                 Map.of(IssueStatus.NEW, 1),
                 Map.of(Priority.MAJOR, 2),
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)),
-                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)));
+                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)),
+                Map.of(YearMonth.of(2026, 5), Map.of(IssueStatus.NEW, 1)),
+                Map.of(YearMonth.of(2026, 5), Map.of(Priority.MAJOR, 2)));
     }
 
     private static void assertValueSemantics(

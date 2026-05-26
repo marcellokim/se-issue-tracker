@@ -1,26 +1,185 @@
 package com.github.marcellokim.issuetracker.service;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.IssueRepository;
+import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
-import java.util.Objects;
 
 public final class AccountService {
 
+    private static final String ROLE_REQUIRED = "role must not be null";
     private final PermissionPolicy permissionPolicy;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final IssueRepository issueRepository;
     private final PasswordHasher passwordHasher;
+    private final Clock clock;
 
     public AccountService(
             PermissionPolicy permissionPolicy,
             UserRepository userRepository,
+            ProjectRepository projectRepository,
+            IssueRepository issueRepository,
             PasswordHasher passwordHasher) {
-        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
-        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
+        this(permissionPolicy, userRepository, projectRepository, issueRepository, passwordHasher, new Clock());
     }
 
-    /*
-     * Admin account UC 조율은 service 책임.
-     * 이후 계정 관리 메서드가 추가되어도 controller는 system operation adapter 역할만 유지.
-     */
+    public AccountService(
+            PermissionPolicy permissionPolicy,
+            UserRepository userRepository,
+            ProjectRepository projectRepository,
+            IssueRepository issueRepository,
+            PasswordHasher passwordHasher,
+            Clock clock) {
+        this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
+        this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
+        this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
+        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
+        this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    public UserResult createAccount(
+            String loginId,
+            String name,
+            String password,
+            Role role,
+            User actor) {
+        requireActor(actor);
+        permissionPolicy.assertCanManageAccount(actor);
+        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
+        requireNonAdminAccount(loginId, newRole);
+        if (userRepository.findByLoginId(loginId.trim()).isPresent()) { // Id 중복 조회할 때도 trim() 적용 - 도메인 레이어에서도 프로젝트 규칙에 따라 trim 적용
+            throw new IllegalArgumentException("Account already exists: " + loginId);
+        }
+
+        LocalDateTime now = clock.now();
+        User user = User.create(
+                loginId,
+                name,
+                passwordHasher.hash(password),
+                newRole,
+                now);
+        return UserResult.from(userRepository.save(user));
+    }
+
+    public UserResult updateAccount(String loginId, String name, Role role, User actor) {
+        requireActor(actor);
+        permissionPolicy.assertCanManageAccount(actor);
+        requireDifferentAccount(loginId, actor.getLoginId());
+        User target = findUser(loginId);
+        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
+        requireNonAdminTarget(target);
+        requireNonAdminAccount(loginId, newRole);
+        rejectRoleChangeWithProjectResponsibility(target, newRole);
+        LocalDateTime now = clock.now();
+        target.rename(name, now);
+        target.changeRole(newRole, now);
+        return UserResult.from(userRepository.save(target));
+    }
+
+    public UserResult renameAccount(String loginId, String name, User actor) {
+        requireActor(actor);
+        permissionPolicy.assertCanManageAccount(actor);
+        requireDifferentAccount(loginId, actor.getLoginId());
+        User target = findUser(loginId);
+        requireNonAdminTarget(target);
+        target.rename(name, clock.now());
+        return UserResult.from(userRepository.save(target));
+    }
+
+    public UserResult changeAccountRole(String loginId, Role role, User actor) {
+        requireActor(actor);
+        permissionPolicy.assertCanManageAccount(actor);
+        requireDifferentAccount(loginId, actor.getLoginId());
+        User target = findUser(loginId);
+        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
+        requireNonAdminTarget(target);
+        requireNonAdminAccount(loginId, newRole);
+        rejectRoleChangeWithProjectResponsibility(target, newRole);
+        target.changeRole(newRole, clock.now());
+        return UserResult.from(userRepository.save(target));
+    }
+
+    public UserResult activateAccount(String loginId, User actor) {
+        requireActor(actor);
+        permissionPolicy.assertCanManageAccount(actor);
+        requireDifferentAccount(loginId, actor.getLoginId());
+        User target = findUser(loginId);
+        requireNonAdminTarget(target);
+        target.activate(clock.now());
+        return UserResult.from(userRepository.save(target));
+    }
+
+    public UserResult deactivateAccount(String loginId, User actor) {
+        requireActor(actor);
+        permissionPolicy.assertCanManageAccount(actor);
+        requireDifferentAccount(loginId, actor.getLoginId());
+        User target = findUser(loginId);
+        requireNonAdminTarget(target);
+        rejectDeactivationWithProjectResponsibility(target);
+        target.deactivate(clock.now());
+        return UserResult.from(userRepository.save(target));
+    }
+
+    private static void requireNonAdminAccount(String loginId, Role role) {
+        if (isAdminLoginId(loginId) || role == Role.ADMIN) {
+            throw new IllegalArgumentException("The admin account cannot be created or modified.");
+        }
+    }
+
+    private static void requireNonAdminTarget(User target) {
+        if (target.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("The admin account cannot be created or modified.");
+        }
+    }
+
+    private static void requireDifferentAccount(String targetLoginId, String currentUserId) {
+        if (Objects.equals(targetLoginId, currentUserId)) {
+            throw new IllegalArgumentException("Admin must manage another account.");
+        }
+    }
+
+    private void rejectRoleChangeWithProjectResponsibility(User target, Role newRole) {
+        if (target.getRole() == newRole) {
+            return;
+        }
+        if (projectRepository.existsByParticipant(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account role can be changed only when the user has no project membership.");
+        }
+        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                "Account role can be changed only when the user has no assigned issue responsibility.");
+        }
+    }
+
+    private void rejectDeactivationWithProjectResponsibility(User target) {
+        if (projectRepository.existsByParticipant(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account can be deactivated only when the user has no project membership.");
+        }
+        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+            throw new IllegalArgumentException(
+                    "Account can be deactivated only when the user has no assigned issue responsibility.");
+        }
+    }
+
+    private static boolean isAdminLoginId(String loginId) {
+        return loginId != null && "admin".equalsIgnoreCase(loginId.trim());
+    }
+
+    private static void requireActor(User actor) {
+        Objects.requireNonNull(actor, "actor must not be null");
+    }
+
+    private User findUser(String loginId) {
+        return userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + loginId));
+    }
 }

@@ -1,9 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
-import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import java.util.List;
 import java.util.Objects;
@@ -19,42 +17,74 @@ public final class AssignmentRecommendationService {
         this.recommendations = Objects.requireNonNull(recommendations, "recommendations");
     }
 
-    public AssignmentOptions recommendAssignmentCandidates(Issue issue) {
+    public AssignmentOptionsResult recommendAssignmentCandidates(Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
         return switch (targetIssue.status()) {
-            case NEW, REOPENED -> AssignmentOptions.create(
-                    findDevAssigneeCandidateDetails(targetIssue),
-                    findTesterVerifierCandidateDetails(targetIssue));
-            case ASSIGNED -> AssignmentOptions.create(
-                    findDevAssigneeCandidateDetails(targetIssue),
+            case NEW, REOPENED -> options(
+                    findAllDevAssigneeCandidateDetails(targetIssue),
+                    findAllTesterVerifierCandidateDetails(targetIssue));
+            case ASSIGNED -> options(
+                    findAllDevAssigneeCandidateDetails(targetIssue),
                     List.of());
-            case FIXED -> AssignmentOptions.create(
+            case FIXED -> options(
                     List.of(),
-                    findTesterVerifierCandidateDetails(targetIssue));
-            case RESOLVED, CLOSED, DELETED -> AssignmentOptions.create(List.of(), List.of());
+                    findAllTesterVerifierCandidateDetails(targetIssue));
+            case RESOLVED, CLOSED, DELETED -> new AssignmentOptionsResult(List.of(), List.of());
         };
     }
 
-    public List<User> findDevAssigneeCandidates(Issue issue) {
-        return findDevAssigneeCandidateDetails(issue).stream()
-                .map(AssignmentCandidate::user)
+    public List<UserResult> findDevAssigneeCandidates(Issue issue) {
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        return topCandidates(recommendations.findDevAssigneeCandidates(issue.projectId())).stream()
+                .map(candidate -> UserResult.from(candidate.user()))
                 .toList();
     }
 
-    public List<User> findTesterVerifierCandidates(Issue issue) {
-        return findTesterVerifierCandidateDetails(issue).stream()
-                .map(AssignmentCandidate::user)
+    public List<UserResult> findTesterVerifierCandidates(Issue issue) {
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        return topCandidates(recommendations.findTesterVerifierCandidates(issue.projectId())).stream()
+                .map(candidate -> UserResult.from(candidate.user()))
                 .toList();
     }
 
-    public List<AssignmentCandidate> findDevAssigneeCandidateDetails(Issue issue) {
+    public List<AssignmentCandidateResult> findDevAssigneeCandidateDetails(Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        return topCandidates(recommendations.findDevAssigneeCandidates(issue.projectId()));
+        return topCandidateResults(findAllDevAssigneeCandidateDetails(issue));
     }
 
-    public List<AssignmentCandidate> findTesterVerifierCandidateDetails(Issue issue) {
+    public List<AssignmentCandidateResult> findTesterVerifierCandidateDetails(Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        return topCandidates(recommendations.findTesterVerifierCandidates(issue.projectId()));
+        return topCandidateResults(findAllTesterVerifierCandidateDetails(issue));
+    }
+
+    private static AssignmentOptionsResult options(
+            List<AssignmentCandidateResult> allDevCandidates,
+            List<AssignmentCandidateResult> allTesterCandidates) {
+        return new AssignmentOptionsResult(
+                topCandidateResults(allDevCandidates),
+                topCandidateResults(allTesterCandidates),
+                allDevCandidates,
+                allTesterCandidates);
+    }
+
+    private List<AssignmentCandidateResult> findAllDevAssigneeCandidateDetails(Issue issue) {
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        return recommendations.findDevAssigneeCandidates(issue.projectId()).stream()
+                .map(AssignmentCandidateResult::from)
+                .toList();
+    }
+
+    private List<AssignmentCandidateResult> findAllTesterVerifierCandidateDetails(Issue issue) {
+        Objects.requireNonNull(issue, ISSUE_REQUIRED);
+        return recommendations.findTesterVerifierCandidates(issue.projectId()).stream()
+                .map(AssignmentCandidateResult::from)
+                .toList();
+    }
+
+    private static List<AssignmentCandidateResult> topCandidateResults(List<AssignmentCandidateResult> candidates) {
+        return candidates.stream()
+                .limit(MAX_CANDIDATES)
+                .toList();
     }
 
     private static List<AssignmentCandidate> topCandidates(List<AssignmentCandidate> candidates) {

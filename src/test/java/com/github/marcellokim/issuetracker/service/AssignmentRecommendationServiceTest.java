@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
-import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -34,7 +33,7 @@ class AssignmentRecommendationServiceTest {
     @Test
     @DisplayName("returns only DEV candidates for ASSIGNED issues")
     void recommendsOnlyDevCandidatesForAssignedIssues() {
-        AssignmentOptions options = service.recommendAssignmentCandidates(issue(IssueStatus.ASSIGNED));
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.ASSIGNED));
 
         assertFalse(options.devAssigneeCandidates().isEmpty());
         assertTrue(options.testerVerifierCandidates().isEmpty());
@@ -43,7 +42,7 @@ class AssignmentRecommendationServiceTest {
     @Test
     @DisplayName("returns only TESTER candidates for FIXED issues")
     void recommendsOnlyTesterCandidatesForFixedIssues() {
-        AssignmentOptions options = service.recommendAssignmentCandidates(issue(IssueStatus.FIXED));
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.FIXED));
 
         assertTrue(options.devAssigneeCandidates().isEmpty());
         assertFalse(options.testerVerifierCandidates().isEmpty());
@@ -58,14 +57,14 @@ class AssignmentRecommendationServiceTest {
     }
 
     private void assertBothCandidateTypes(Issue issue) {
-        AssignmentOptions options = service.recommendAssignmentCandidates(issue);
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue);
 
         assertFalse(options.devAssigneeCandidates().isEmpty());
         assertFalse(options.testerVerifierCandidates().isEmpty());
     }
 
     private void assertNoCandidates(Issue issue) {
-        AssignmentOptions options = service.recommendAssignmentCandidates(issue);
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue);
 
         assertTrue(options.devAssigneeCandidates().isEmpty());
         assertTrue(options.testerVerifierCandidates().isEmpty());

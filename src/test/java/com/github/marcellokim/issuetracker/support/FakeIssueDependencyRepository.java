@@ -47,6 +47,11 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
+    public List<IssueDependency> findByProjectId(long projectId) {
+        return List.copyOf(dependencies.values());
+    }
+
+    @Override
     public boolean existsByPair(long blockingIssueId, long blockedIssueId) {
         return dependencies.values().stream()
                 .anyMatch(d -> d.blockingIssueId() == blockingIssueId && d.blockedIssueId() == blockedIssueId);

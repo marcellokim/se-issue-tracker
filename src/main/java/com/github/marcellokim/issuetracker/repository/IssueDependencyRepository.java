@@ -23,6 +23,8 @@ public interface IssueDependencyRepository {
 
     List<IssueDependency> findByBlockedIssueId(long blockedIssueId);
 
+    List<IssueDependency> findByProjectId(long projectId);
+
     boolean existsByPair(long blockingIssueId, long blockedIssueId);
 
     // IssueDependency save(IssueDependency dependency);
