@@ -26,8 +26,7 @@ public final class IssueStateService {
             IssueDependencyRepository dependencyRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock
-    ) {
+            Clock clock) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
@@ -136,7 +135,7 @@ public final class IssueStateService {
     }
 
     private User findUser(String userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByLoginId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
     }
 
@@ -175,8 +174,7 @@ public final class IssueStateService {
                 toUserResult(issue.getAssignee()),
                 toUserResult(issue.getVerifier()),
                 toUserResult(issue.getFixer()),
-                toUserResult(issue.getResolver())
-        );
+                toUserResult(issue.getResolver()));
     }
 
     private static UserResult toUserResult(User user) {

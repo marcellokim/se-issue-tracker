@@ -64,7 +64,7 @@ public final class RepositoryDemoCommand {
 
         summary.project().ifPresentOrElse(
                 this::printProjectSummary,
-                () -> output.println("Project: project1 missing"));
+                () -> output.println("Project: Project A missing"));
     }
 
     private void printProjectSummary(RepositoryDemoSummary.ProjectSummary summary) {

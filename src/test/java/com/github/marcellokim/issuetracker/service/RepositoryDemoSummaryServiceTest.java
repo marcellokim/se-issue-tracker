@@ -42,7 +42,7 @@ class RepositoryDemoSummaryServiceTest {
         User admin = user("admin", Role.ADMIN, true);
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
-        Project project = Project.fromPersistence(PROJECT_ID, "project1", "Demo", "admin", NOW, NOW);
+        Project project = Project.fromPersistence(PROJECT_ID, "Project A", "Demo", "admin", NOW, NOW);
         Issue issue = issue(101L, IssueStatus.NEW);
 
         RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(
@@ -63,7 +63,7 @@ class RepositoryDemoSummaryServiceTest {
         assertTrue(summary.admin().orElseThrow().active());
 
         RepositoryDemoSummary.ProjectSummary projectSummary = summary.project().orElseThrow();
-        assertEquals("project1", projectSummary.projectName());
+        assertEquals("Project A", projectSummary.projectName());
         assertEquals(3, projectSummary.memberCount());
         assertEquals(1, projectSummary.activeDevCount());
         assertEquals(1, projectSummary.activeTesterCount());

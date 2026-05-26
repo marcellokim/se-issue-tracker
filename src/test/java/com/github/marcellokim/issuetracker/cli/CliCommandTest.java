@@ -47,7 +47,7 @@ class CliCommandTest {
         RepositoryDemoSummary summary = new RepositoryDemoSummary(
                 Optional.of(new RepositoryDemoSummary.AdminAccount("admin", Role.ADMIN, true)),
                 Optional.of(new RepositoryDemoSummary.ProjectSummary(
-                        "project1",
+                        "Project A",
                         3,
                         1,
                         1,
@@ -61,7 +61,7 @@ class CliCommandTest {
 
         assertTrue(output.text().contains("Oracle repository demo ready."));
         assertTrue(output.text().contains("Admin: admin / ADMIN / active=true"));
-        assertTrue(output.text().contains("Project: project1"));
+        assertTrue(output.text().contains("Project: Project A"));
         assertTrue(output.text().contains("Status counts: {NEW=1, ASSIGNED=3, CLOSED=2}"));
         assertTrue(output.text().contains("Priority counts: {BLOCKER=1, MAJOR=2, TRIVIAL=4}"));
         assertTrue(output.text().contains("Tester recommendation candidates: 1"));

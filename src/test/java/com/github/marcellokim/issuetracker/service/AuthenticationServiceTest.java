@@ -28,8 +28,7 @@ class AuthenticationServiceTest {
     @DisplayName("accepts matching seeded admin credentials")
     void loginAcceptsSeededAdminCredentials() {
         var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
-        )));
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
 
         AuthenticationResult result = service.login("admin", ADMIN_PASSWORD);
 
@@ -42,8 +41,7 @@ class AuthenticationServiceTest {
     @DisplayName("rejects incorrect password")
     void loginRejectsIncorrectPassword() {
         var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
-        )));
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
 
         AuthenticationResult result = service.login("admin", "wrong-password");
 
@@ -55,8 +53,7 @@ class AuthenticationServiceTest {
     @DisplayName("rejects inactive account")
     void loginRejectsInactiveAccount() {
         var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("dev1", ADMIN_PASSWORD, Role.DEV, false)
-        )));
+                user("dev1", ADMIN_PASSWORD, Role.DEV, false))));
 
         AuthenticationResult result = service.login("dev1", ADMIN_PASSWORD);
 
@@ -68,8 +65,7 @@ class AuthenticationServiceTest {
     @DisplayName("inactive account still requires matching password")
     void inactiveAccountStillRequiresMatchingPassword() {
         var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("dev1", ADMIN_PASSWORD, Role.DEV, false)
-        )));
+                user("dev1", ADMIN_PASSWORD, Role.DEV, false))));
 
         AuthenticationResult result = service.login("dev1", "wrong-password");
 
@@ -92,8 +88,7 @@ class AuthenticationServiceTest {
     @DisplayName("trims login id and stores authenticated current user")
     void loginTrimsLoginIdAndStoresCurrentUser() {
         var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
-        )));
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
 
         assertFalse(service.currentUser().isPresent());
         AuthenticationResult result = service.logIn(" admin ", ADMIN_PASSWORD);
@@ -107,8 +102,7 @@ class AuthenticationServiceTest {
     @DisplayName("logout clears authenticated current user")
     void logoutClearsCurrentUser() {
         var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true)
-        )));
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
 
         assertTrue(service.login("admin", ADMIN_PASSWORD).success());
         assertTrue(service.currentUser().isPresent());
@@ -131,7 +125,8 @@ class AuthenticationServiceTest {
 
     private static User user(String loginId, String password, Role role, boolean active) {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
-        return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp, timestamp);
+        return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp,
+                timestamp);
     }
 
     private static final class FakeUserRepository implements UserRepository {
@@ -191,9 +186,7 @@ class AuthenticationServiceTest {
                             user.getRole(),
                             true,
                             user.getCreatedAt(),
-                            user.getUpdatedAt()
-                    )
-            ));
+                            user.getUpdatedAt())));
         }
 
         @Override
@@ -207,9 +200,7 @@ class AuthenticationServiceTest {
                             user.getRole(),
                             false,
                             user.getCreatedAt(),
-                            user.getUpdatedAt()
-                    )
-            ));
+                            user.getUpdatedAt())));
         }
     }
 }

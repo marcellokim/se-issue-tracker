@@ -248,7 +248,8 @@ public final class IssueService {
         Map<Long, Issue> issuesById = issueRepository.findAllById(List.copyOf(issueIds)).stream()
                 .collect(Collectors.toMap(Issue::id, Function.identity()));
         return deps.stream()
-                .map(dep -> toDependencyResult(dep, issuesById.get(dep.blockingIssueId()), issuesById.get(dep.blockedIssueId())))
+                .map(dep -> toDependencyResult(dep, issuesById.get(dep.blockingIssueId()),
+                        issuesById.get(dep.blockedIssueId())))
                 .toList();
     }
 
@@ -335,7 +336,7 @@ public final class IssueService {
     }
 
     private User findUser(String userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByLoginId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
     }
 

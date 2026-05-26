@@ -141,7 +141,7 @@ public final class ProjectService {
 
     private User findUser(String loginId) {
         String requiredLoginId = requireText(loginId, "loginId");
-        return userRepository.findById(requiredLoginId)
+        return userRepository.findByLoginId(requiredLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
     }
 

@@ -87,7 +87,8 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
         DashboardController controller = new DashboardController(
                 auth.service(),
-                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(), new PermissionPolicy()));
+                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(),
+                        new PermissionPolicy()));
 
         assertEquals(1, controller.viewProjects().size());
         assertEquals(1, controller.viewRelatedIssues().size());
@@ -142,7 +143,8 @@ class ControllerCoverageTest {
     void statisticsControllerRejectsInvalidAccessOrRange() {
         StatisticsController anonymousController = new StatisticsController(
                 anonymousAuth(),
-                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), new FakeUserRepository()));
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(),
+                        new FakeUserRepository()));
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
         StatisticsController controller = new StatisticsController(
@@ -204,8 +206,8 @@ class ControllerCoverageTest {
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
                 new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
-        SecurityException adminFailure =
-                assertThrows(SecurityException.class, () -> adminController.deleteIssue(101L, "admin cannot delete"));
+        SecurityException adminFailure = assertThrows(SecurityException.class,
+                () -> adminController.deleteIssue(101L, "admin cannot delete"));
         assertEquals("Only PL can manage deleted issues.", adminFailure.getMessage());
 
         DeletedIssueController plController = new DeletedIssueController(
@@ -354,10 +356,6 @@ class ControllerCoverageTest {
 
         UserResult activated = controller.activateAccount("target1");
         assertTrue(activated.active());
-
-        UserResult updated = controller.updateAccount("target1", "Full Update", Role.PL);
-        assertEquals("Full Update", updated.name());
-        assertEquals(Role.PL, updated.role());
     }
 
     @Test
@@ -398,7 +396,8 @@ class ControllerCoverageTest {
                         clock)));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
-                new com.github.marcellokim.issuetracker.service.IssueStateService(issues, new FakeIssueDependencyRepository(), users, policy, clock)));
+                new com.github.marcellokim.issuetracker.service.IssueStateService(issues,
+                        new FakeIssueDependencyRepository(), users, policy, clock)));
     }
 
     private static AuthFixture authenticated(Role role) {

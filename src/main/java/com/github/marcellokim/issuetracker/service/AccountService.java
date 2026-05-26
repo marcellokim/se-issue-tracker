@@ -50,11 +50,15 @@ public final class AccountService {
             String password,
             Role role,
             User actor) {
+        loginId = requireText(loginId, "loginId");
+        name = requireText(name, "name");
+        password = requireText(password, "password");
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
         requireNonAdminAccount(loginId, newRole);
-        if (userRepository.findByLoginId(loginId.trim()).isPresent()) { // Id 중복 조회할 때도 trim() 적용 - 도메인 레이어에서도 프로젝트 규칙에 따라 trim 적용
+        if (userRepository.findByLoginId(loginId.trim()).isPresent()) { // Id 중복 조회할 때도 trim() 적용 - 도메인 레이어에서도 프로젝트 규칙에
+                                                                        // // 따라 trim 적용
             throw new IllegalArgumentException("Account already exists: " + loginId);
         }
 
@@ -68,22 +72,26 @@ public final class AccountService {
         return UserResult.from(userRepository.save(user));
     }
 
-    public UserResult updateAccount(String loginId, String name, Role role, User actor) {
-        requireActor(actor);
-        permissionPolicy.assertCanManageAccount(actor);
-        requireDifferentAccount(loginId, actor.getLoginId());
-        User target = findUser(loginId);
-        Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
-        requireNonAdminTarget(target);
-        requireNonAdminAccount(loginId, newRole);
-        rejectRoleChangeWithProjectResponsibility(target, newRole);
-        LocalDateTime now = clock.now();
-        target.rename(name, now);
-        target.changeRole(newRole, now);
-        return UserResult.from(userRepository.save(target));
-    }
+    // 중복 메서드
+    // public UserResult updateAccount(String loginId, String name, Role role, User
+    // actor) {
+    // requireActor(actor);
+    // permissionPolicy.assertCanManageAccount(actor);
+    // requireDifferentAccount(loginId, actor.getLoginId());
+    // User target = findUser(loginId);
+    // Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
+    // requireNonAdminTarget(target);
+    // requireNonAdminAccount(loginId, newRole);
+    // rejectRoleChangeWithProjectResponsibility(target, newRole);
+    // LocalDateTime now = clock.now();
+    // target.rename(name, now);
+    // target.changeRole(newRole, now);
+    // return UserResult.from(userRepository.save(target));
+    // }
 
     public UserResult renameAccount(String loginId, String name, User actor) {
+        loginId = requireText(loginId, "loginId");
+        name = requireText(name, "name");
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
@@ -94,6 +102,7 @@ public final class AccountService {
     }
 
     public UserResult changeAccountRole(String loginId, Role role, User actor) {
+        loginId = requireText(loginId, "loginId");
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
@@ -107,22 +116,30 @@ public final class AccountService {
     }
 
     public UserResult activateAccount(String loginId, User actor) {
+        loginId = requireText(loginId, "loginId");
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
+        if (target.isActive()) {
+            throw new IllegalArgumentException("Account is already active.");
+        }
         target.activate(clock.now());
         return UserResult.from(userRepository.save(target));
     }
 
     public UserResult deactivateAccount(String loginId, User actor) {
+        loginId = requireText(loginId, "loginId");
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         requireDifferentAccount(loginId, actor.getLoginId());
         User target = findUser(loginId);
         requireNonAdminTarget(target);
         rejectDeactivationWithProjectResponsibility(target);
+        if (!target.isActive()) {
+            throw new IllegalArgumentException("Account is already inactive.");
+        }
         target.deactivate(clock.now());
         return UserResult.from(userRepository.save(target));
     }
@@ -155,7 +172,7 @@ public final class AccountService {
         }
         if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
             throw new IllegalArgumentException(
-                "Account role can be changed only when the user has no assigned issue responsibility.");
+                    "Account role can be changed only when the user has no assigned issue responsibility.");
         }
     }
 
@@ -176,6 +193,13 @@ public final class AccountService {
 
     private static void requireActor(User actor) {
         Objects.requireNonNull(actor, "actor must not be null");
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value.trim();
     }
 
     private User findUser(String loginId) {

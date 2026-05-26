@@ -447,10 +447,10 @@ class ProjectControllerTest {
             User assignee,
             User verifier) {
         return Issue.fromPersistence(Issue.persistedState(
-                        projectId,
-                        "Issue " + id,
-                        "Project controller test issue",
-                        user("reporter", Role.DEV, true))
+                projectId,
+                "Issue " + id,
+                "Project controller test issue",
+                user("reporter", Role.DEV, true))
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
