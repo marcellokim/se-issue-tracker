@@ -16,7 +16,7 @@
 | DCD ver1 layered overview | appendix 또는 구현 설명 | JavaFX/Swing, controller, service/policy, repository, technical services, domain class의 계층 경계를 설명한다. |
 | Logical Architecture | 설계 개요 또는 구현 설명 | `Presentation -> Application -> Domain -> Persistence/Technical Services` 의존 방향을 설명한다. |
 
-최종 보고서 본문에서는 독자가 핵심 기능 흐름을 빠르게 이해할 수 있도록 `its_dcd_ver2`를 대표 DCD로 사용한다.  
+최종 보고서 본문에서는 독자가 핵심 기능 흐름을 빠르게 이해할 수 있도록 `its_dcd_ver2`를 대표 DCD로 사용한다.
 `its_dcd_ver1`은 layered DCD로, 구현자가 UI toolkit, controller, service/policy, repository, domain object의 책임 경계를 확인할 수 있도록 appendix 또는 구현 설명에 사용한다.
 
 ## MVC 적용
