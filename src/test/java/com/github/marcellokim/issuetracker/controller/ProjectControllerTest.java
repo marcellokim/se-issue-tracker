@@ -672,6 +672,14 @@ class ProjectControllerTest {
         }
 
         @Override
+        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+            return issuesById.values().stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title));
+        }
+
+        @Override
         public boolean existsByResponsibleUser(String userLoginId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.status() != IssueStatus.DELETED)

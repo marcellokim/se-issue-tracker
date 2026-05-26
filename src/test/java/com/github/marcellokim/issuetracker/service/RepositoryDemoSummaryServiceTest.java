@@ -278,6 +278,14 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
+            return issues.stream()
+                    .anyMatch(issue -> issue.id() != excludedIssueId
+                            && issue.projectId() == projectId
+                            && issue.title().equals(title));
+        }
+
+        @Override
         public boolean existsByResponsibleUser(String userLoginId) {
             return issues.stream()
                     .filter(issue -> issue.status() != IssueStatus.DELETED)

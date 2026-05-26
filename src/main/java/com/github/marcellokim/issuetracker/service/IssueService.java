@@ -160,9 +160,13 @@ public final class IssueService {
 
     public IssueResult updateIssue(long issueId, String title, String description, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanUpdateIssue(actor, issue);
         requireActiveProjectMember(actor, issue.projectId(), "Only project members can update issues.");
+        if (issueRepository.existsByProjectIdAndTitleExcludingIssueId(issue.projectId(), title, issue.id())) {
+            throw new IllegalArgumentException("Issue title already exists in this project.");
+        }
         issue.updateTitleAndDescription(title, description, actor, now());
         Issue saved = issueRepository.save(issue);
         return toIssueResult(saved);
@@ -170,6 +174,7 @@ public final class IssueService {
 
     public IssueResult changePriority(long issueId, Priority priority, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanChangePriority(actor, issue, priority);
         requireProjectLead(actor, issue.projectId(), "Only the project PL can change issue priority.");
@@ -180,6 +185,7 @@ public final class IssueService {
 
     public CommentResult addComment(long issueId, String content, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         User writer = findUser(currentUserId);
         permissionPolicy.assertCanAddComment(writer, issue);
         requireActiveProjectMember(writer, issue.projectId(), "Only project members can add issue comments.");
@@ -191,6 +197,7 @@ public final class IssueService {
 
     public List<CommentResult> viewComments(long issueId, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
         requireActiveProjectMember(actor, issue.projectId(), "Only project members can view comments.");
@@ -202,6 +209,8 @@ public final class IssueService {
     public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
         Issue blockingIssue = findIssue(blockingIssueId);
         Issue blockedIssue = findIssue(blockedIssueId);
+        requireNotDeleted(blockingIssue);
+        requireNotDeleted(blockedIssue);
         requireSameProjectDependency(blockingIssue, blockedIssue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
@@ -229,7 +238,10 @@ public final class IssueService {
         IssueDependency dependency = dependencyRepository.findByDependencyId(hashedDependencyId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Dependency not found: " + blockingIssueId + " -> " + blockedIssueId));
+        Issue blockingIssue = findIssue(dependency.blockingIssueId());
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
+        requireNotDeleted(blockingIssue);
+        requireNotDeleted(blockedIssue);
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
@@ -239,6 +251,7 @@ public final class IssueService {
 
     public void deleteComment(long issueId, long commentId, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         Comment comment = findComment(commentId);
         User currentUser = findUser(currentUserId);
         requireCommentBelongsToIssue(comment, issue);
@@ -252,6 +265,7 @@ public final class IssueService {
 
     public CommentResult updateComment(long issueId, long commentId, String content, String currentUserId) {
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         Comment comment = findComment(commentId);
         User currentUser = findUser(currentUserId);
         requireCommentBelongsToIssue(comment, issue);
@@ -287,6 +301,7 @@ public final class IssueService {
         User actor = findUser(currentUserId);
         permissionPolicy.assertCanViewIssue(actor);
         Issue issue = findIssue(issueId);
+        requireNotDeleted(issue);
         requireActiveProjectMember(actor, issue.projectId(), "Only project members can view issue details.");
         return issue;
     }
@@ -329,6 +344,12 @@ public final class IssueService {
     private static void requireSameProjectDependency(Issue blockingIssue, Issue blockedIssue) {
         if (blockingIssue.projectId() != blockedIssue.projectId()) {
             throw new IllegalArgumentException("Dependencies are allowed only within the same project.");
+        }
+    }
+
+    private static void requireNotDeleted(Issue issue) {
+        if (issue.status() == IssueStatus.DELETED) {
+            throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
         }
     }
 
