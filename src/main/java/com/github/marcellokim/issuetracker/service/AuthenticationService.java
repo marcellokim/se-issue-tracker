@@ -2,22 +2,21 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.util.Objects;
 import java.util.Optional;
 
 public final class AuthenticationService {
 
     private final UserRepository users;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHashing passwordHashing;
     private final CurrentUserSession session;
 
     public AuthenticationService(
             UserRepository users,
-            PasswordHasher passwordHasher,
+            PasswordHashing passwordHashing,
             CurrentUserSession sessionStore) {
         this.users = Objects.requireNonNull(users, "users");
-        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
+        this.passwordHashing = Objects.requireNonNull(passwordHashing, "passwordHashing");
         this.session = Objects.requireNonNull(sessionStore, "session");
     }
 
@@ -38,7 +37,7 @@ public final class AuthenticationService {
 
         return users.findByLoginId(loginId.trim())
                 .map(user -> {
-                    if (!passwordHasher.matches(password, user.getPasswordHash())) {
+                    if (!passwordHashing.matches(password, user.getPasswordHash())) {
                         return AuthenticationResult.failure("Invalid ID or password.");
                     }
                     if (!user.isActive()) {

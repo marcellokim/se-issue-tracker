@@ -7,7 +7,6 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.time.LocalDateTime;
 
 public final class AccountService {
@@ -17,7 +16,7 @@ public final class AccountService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final IssueRepository issueRepository;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHashing passwordHashing;
     private final Clock clock;
 
     public AccountService(
@@ -25,13 +24,13 @@ public final class AccountService {
             UserRepository userRepository,
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
-            PasswordHasher passwordHasher,
+            PasswordHashing passwordHashing,
             Clock clock) {
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
-        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
+        this.passwordHashing = Objects.requireNonNull(passwordHashing, "passwordHashing");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -56,7 +55,7 @@ public final class AccountService {
         User user = User.create(
                 loginId,
                 name,
-                passwordHasher.hash(password),
+                passwordHashing.hash(password),
                 newRole,
                 now);
         return UserResult.from(userRepository.save(user));

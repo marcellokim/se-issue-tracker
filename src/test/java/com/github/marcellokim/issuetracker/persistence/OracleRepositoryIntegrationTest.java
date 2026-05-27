@@ -60,7 +60,7 @@ class OracleRepositoryIntegrationTest {
         DatabaseInitializer.resetWithFixedSeed(connectionProvider);
         DatabaseInitializer.initializeApplication(connectionProvider);
 
-        repositories = new JdbcRepositoryFactory(connectionProvider);
+        repositories = new JdbcRepositoryFactory(connectionProvider, new PasswordHasher());
     }
 
     private static void assertTestSchema() throws SQLException {

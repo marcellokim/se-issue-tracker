@@ -152,7 +152,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                         context = new RepositoryContext(
                                         environment,
                                         connectionProvider,
-                                        new JdbcRepositoryFactory(connectionProvider));
+                                        new JdbcRepositoryFactory(connectionProvider, new PasswordHasher()));
                 }
                 return context;
         }

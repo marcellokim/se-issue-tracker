@@ -2,7 +2,19 @@ package com.github.marcellokim.issuetracker.setup;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcUserRepository;
+import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.CommentIdProvider;
+import com.github.marcellokim.issuetracker.service.CurrentUserSession;
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
+import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
+import com.github.marcellokim.issuetracker.technical.SystemClock;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -54,9 +66,35 @@ class ArchitectureBoundaryTest {
                         ROOT_PACKAGE + ".controller",
                         ROOT_PACKAGE + ".persistence",
                         ROOT_PACKAGE + ".ui",
-                        ROOT_PACKAGE + ".config"
+                        ROOT_PACKAGE + ".config",
+                        ROOT_PACKAGE + ".technical"
                 )
         );
+    }
+
+    @Test
+    @DisplayName("technical implementations satisfy service ports")
+    void technicalImplementationsSatisfyServicePorts() {
+        assertTrue(Clock.class.isAssignableFrom(SystemClock.class));
+        assertTrue(CommentIdProvider.class.isAssignableFrom(CommentIdGenerator.class));
+        assertTrue(CurrentUserSession.class.isAssignableFrom(SessionStore.class));
+        assertTrue(PasswordHashing.class.isAssignableFrom(PasswordHasher.class));
+    }
+
+    @Test
+    @DisplayName("jdbc user repository depends on password hashing port")
+    void jdbcUserRepositoryDependsOnPasswordHashingPort() throws NoSuchMethodException {
+        Constructor<JdbcUserRepository> repositoryConstructor = JdbcUserRepository.class.getConstructor(
+                DatabaseConnectionProvider.class,
+                PasswordHashing.class
+        );
+        Constructor<JdbcRepositoryFactory> factoryConstructor = JdbcRepositoryFactory.class.getConstructor(
+                DatabaseConnectionProvider.class,
+                PasswordHashing.class
+        );
+
+        assertTrue(repositoryConstructor.getParameterTypes()[1].equals(PasswordHashing.class));
+        assertTrue(factoryConstructor.getParameterTypes()[1].equals(PasswordHashing.class));
     }
 
     @Test
