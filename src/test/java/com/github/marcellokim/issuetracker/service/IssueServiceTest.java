@@ -160,7 +160,17 @@ class IssueServiceTest {
                                 IssueStatus.NEW);
                 var service = service(new InMemoryIssueRepository(projectIssue, otherProjectIssue));
 
-                List<IssueSummary> results = service.searchIssues(PROJECT_ID, "login", null, null, dev.getLoginId());
+                List<IssueSummary> results = service.searchIssues(
+                                PROJECT_ID,
+                                "login",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                dev.getLoginId());
 
                 assertEquals(1, results.size());
                 assertEquals(projectIssue.id(), results.getFirst().id());
@@ -168,7 +178,17 @@ class IssueServiceTest {
                 assertEquals(projectIssue.projectId(), results.getFirst().projectId());
                 assertEquals(projectIssue.title(), results.getFirst().title());
                 assertThrows(SecurityException.class,
-                                () -> service.searchIssues(PROJECT_ID, "login", null, null, admin.getLoginId()));
+                                () -> service.searchIssues(
+                                                PROJECT_ID,
+                                                "login",
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                admin.getLoginId()));
         }
 
         @Test

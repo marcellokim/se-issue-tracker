@@ -362,6 +362,55 @@ class OracleRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("Issue soft delete records removed dependency history on blocked issue")
+    void issueSoftDeleteRecordsRemovedDependencyHistoryOnBlockedIssue() {
+        var project = repositories.projects().findByName("Project A").orElseThrow();
+        Issue blocking = null;
+        Issue blocked = null;
+        IssueDependency dependency = null;
+
+        try {
+            blocking = createIssue(project.getId(), uniqueId("soft_delete_dependency_blocking"), IssueStatus.NEW);
+            blocked = createIssue(project.getId(), uniqueId("soft_delete_dependency_blocked"), IssueStatus.NEW);
+            User projectLead = repositories.users().findByLoginId("pl1").orElseThrow();
+            dependency = repositories.issueDependencies().saveAndRecordIssueChange(
+                    blocked.addDependency(
+                            IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
+                            blocking,
+                            projectLead,
+                            LocalDateTime.now()),
+                    blocked);
+
+            repositories.issues().softDelete(
+                    blocking.id(),
+                    projectLead.getLoginId(),
+                    "Delete blocking issue.",
+                    LocalDateTime.now().plusSeconds(1));
+
+            String dependencyId = dependency.getDependencyId();
+            assertFalse(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
+            assertTrue(repositories.issueHistory().findByIssueId(blocked.id()).stream()
+                    .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
+                            && dependencyId.equals(history.previousValue())
+                            && history.newValue() == null
+                            && "Dependency removed".equals(history.message())));
+        } finally {
+            if (dependency != null) {
+                String dependencyId = dependency.getDependencyId();
+                executeUpdate(
+                        "delete from issue_dependencies where dependency_id = ?",
+                        statement -> statement.setString(1, dependencyId));
+            }
+            if (blocked != null) {
+                repositories.issues().purge(blocked.id());
+            }
+            if (blocking != null) {
+                repositories.issues().purge(blocking.id());
+            }
+        }
+    }
+
+    @Test
     @DisplayName("Issue restore accepts only NEW or CLOSED pre-delete history")
     void issueRestoreAcceptsOnlyNewOrClosedPreDeleteHistory() {
         var project = repositories.projects().findByName("Project A").orElseThrow();

@@ -54,6 +54,21 @@ class DeletedIssueServiceTest {
                 () -> service.deleteIssue(ISSUE_ID, "delete rejected", projectPl));
     }
 
+    @Test
+    @DisplayName("delete reason is required")
+    void rejectBlankDeleteReason() {
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                new InMemoryIssueRepository(issueWithStatus(IssueStatus.NEW)),
+                users,
+                new PermissionPolicy(),
+                java.time.LocalDateTime::now);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.deleteIssue(ISSUE_ID, " ", projectPl));
+    }
+
     private Issue deletedIssue() {
         return issueWithStatus(IssueStatus.DELETED);
     }

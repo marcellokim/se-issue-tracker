@@ -22,8 +22,7 @@ public final class DeletedIssueService {
             IssueRepository issueRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock
-    ) {
+            Clock clock) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
@@ -38,10 +37,10 @@ public final class DeletedIssueService {
     }
 
     public IssueSummary deleteIssue(long issueId, String comment, User actor) {
+        comment = requireText(comment, "comment");
         Issue issue = findIssue(issueId);
-        permissionPolicy.assertCanManageDeletedIssue(actor, issue);
+        requireDeletedIssuePermission(actor, issue.projectId());
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED);
-        requireProjectLead(actor, issue.projectId());
 
         Issue deletedIssue = issueRepository.softDelete(issueId, actor.getLoginId(), comment, clock.now());
         issueRepository.purgeDeletedBeyondLimit(deletedIssue.projectId(), MAX_DELETED_ISSUES_PER_PROJECT);
@@ -49,9 +48,9 @@ public final class DeletedIssueService {
     }
 
     public IssueSummary restoreIssue(long issueId, String comment, User actor) {
+        comment = requireText(comment, "comment");
         Issue issue = findIssue(issueId);
-        permissionPolicy.assertCanManageDeletedIssue(actor, issue);
-        requireProjectLead(actor, issue.projectId());
+        requireDeletedIssuePermission(actor, issue.projectId());
         return toIssueSummary(issueRepository.restore(issueId, actor.getLoginId(), comment, clock.now()));
     }
 
@@ -66,13 +65,7 @@ public final class DeletedIssueService {
     }
 
     private void requireDeletedIssuePermission(User actor, long projectId) {
-        /*
-         * 삭제 이슈 권한 확인을 repository 작업과 같은 service 경계에 배치.
-         * 이후 리뷰에서 삭제 부수효과를 controller까지 추적하지 않아도 됨.
-         */
-        if (!permissionPolicy.verifyPermission(actor, "MANAGE_DELETED_ISSUE", projectId)) {
-            throw new SecurityException("Only PL can manage deleted issues.");
-        }
+        permissionPolicy.assertCanManageDeletedIssue(actor, projectId);
         requireProjectLead(actor, projectId);
     }
 
@@ -82,6 +75,13 @@ public final class DeletedIssueService {
         if (!projectLead) {
             throw new SecurityException("Only the project PL can manage deleted issues.");
         }
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value.trim();
     }
 
     private static IssueSummary toIssueSummary(Issue issue) {

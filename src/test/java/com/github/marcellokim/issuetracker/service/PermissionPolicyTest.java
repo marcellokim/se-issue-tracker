@@ -32,7 +32,6 @@ class PermissionPolicyTest {
         void adminCanManageAccountsAndProjectsOnly() {
                 assertDoesNotThrow(() -> policy.assertCanManageAccount(admin));
                 assertDoesNotThrow(() -> policy.assertCanManageProject(admin));
-                assertTrue(policy.verifyPermission(admin, "MANAGE_PROJECT", null));
 
                 assertThrows(SecurityException.class, () -> policy.assertCanRegisterIssue(admin, project));
                 assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(admin, issue(IssueStatus.NEW)));
@@ -42,33 +41,33 @@ class PermissionPolicyTest {
                                 () -> policy.assertCanManageDependency(admin, issue(IssueStatus.ASSIGNED)));
                 assertThrows(SecurityException.class,
                                 () -> policy.assertCanChangePriority(admin, issue(IssueStatus.ASSIGNED)));
-                assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin, project.getId()));
+                assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin));
         }
 
         @Test
-        @DisplayName("does not grant issue workflow permissions to ADMIN through generic permission checks")
+        @DisplayName("does not grant issue workflow permissions to ADMIN")
         void adminDoesNotReceiveIssueWorkflowPermissions() {
-                assertFalse(policy.verifyPermission(admin, "ASSIGN_ISSUE", project.getId()));
-                assertFalse(policy.verifyPermission(admin, "MANAGE_DELETED_ISSUE", project.getId()));
-                assertFalse(policy.verifyPermission(admin, "VIEW_STATISTICS", project.getId()));
+                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(admin, issue(IssueStatus.NEW)));
+                assertThrows(SecurityException.class,
+                                () -> policy.assertCanManageDeletedIssue(admin, issue(IssueStatus.DELETED)));
+                assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin));
         }
 
         @Test
-        @DisplayName("rejects empty, unknown, inactive, and malformed generic permission checks")
-        void genericPermissionChecksRejectInvalidRequests() {
-                assertFalse(policy.verifyPermission(null, "MANAGE_PROJECT", null));
-                assertFalse(policy.verifyPermission(pl, null, project.getId()));
-                assertFalse(policy.verifyPermission(pl, " ", project.getId()));
-                assertFalse(policy.verifyPermission(pl, "UNKNOWN_OPERATION", project.getId()));
-                assertFalse(policy.verifyPermission(inactive("pl2", Role.PL), "ASSIGN_ISSUE", project.getId()));
-                assertFalse(policy.verifyPermission(inactive("dev2", Role.DEV), "VIEW_STATISTICS", project.getId()));
+        @DisplayName("rejects inactive users and invalid deleted issue project context")
+        void rejectsInvalidPermissionRequests() {
+                assertThrows(SecurityException.class, () -> policy.assertCanManageProject(null));
+                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(
+                                inactive("pl2", Role.PL),
+                                issue(IssueStatus.NEW)));
+                assertThrows(SecurityException.class,
+                                () -> policy.assertCanViewStatistics(inactive("dev2", Role.DEV)));
+                assertThrows(SecurityException.class, () -> policy.assertCanManageDeletedIssue(pl, 0L));
 
-                assertTrue(policy.verifyPermission(pl, " view_statistics ", project.getId()));
-                assertTrue(policy.verifyPermission(dev, "VIEW_STATISTICS", project.getId()));
-                assertTrue(policy.verifyPermission(tester, "VIEW_STATISTICS", project.getId()));
-                assertFalse(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", null));
-                assertFalse(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", 0L));
-                assertTrue(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", project.getId()));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(dev));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(tester));
+                assertDoesNotThrow(() -> policy.assertCanManageDeletedIssue(pl, project.getId()));
         }
 
         @Test
@@ -88,24 +87,19 @@ class PermissionPolicyTest {
                 assertDoesNotThrow(() -> policy.assertCanManageDeletedIssue(pl, issue(IssueStatus.DELETED)));
                 assertDoesNotThrow(() -> policy.assertCanManageDependency(pl, issue(IssueStatus.ASSIGNED)));
                 assertDoesNotThrow(() -> policy.assertCanChangePriority(pl, issue(IssueStatus.ASSIGNED)));
-                assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl, project.getId()));
-
-                assertTrue(policy.verifyPermission(pl, "ASSIGN_ISSUE", project.getId()));
-                assertTrue(policy.verifyPermission(pl, "MANAGE_DELETED_ISSUE", project.getId()));
-                assertTrue(policy.verifyPermission(pl, "VIEW_STATISTICS", project.getId()));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl));
         }
 
         @Test
         @DisplayName("allows active auth users except ADMIN to view statistics")
         void activeIssueActorsCanViewStatistics() {
-                assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl, project.getId()));
-                assertDoesNotThrow(() -> policy.assertCanViewStatistics(dev, project.getId()));
-                assertDoesNotThrow(() -> policy.assertCanViewStatistics(tester, project.getId()));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(dev));
+                assertDoesNotThrow(() -> policy.assertCanViewStatistics(tester));
 
-                assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin, project.getId()));
+                assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin));
                 assertThrows(SecurityException.class,
-                                () -> policy.assertCanViewStatistics(inactive("tester2", Role.TESTER),
-                                                project.getId()));
+                                () -> policy.assertCanViewStatistics(inactive("tester2", Role.TESTER)));
         }
 
         @Test

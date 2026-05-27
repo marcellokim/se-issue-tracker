@@ -8,30 +8,31 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import java.util.Locale;
 import java.util.Objects;
 
 public final class PermissionPolicy {
 
     private static final String USER_REQUIRED = "user";
     private static final String ISSUE_REQUIRED = "issue";
-    private static final String MANAGE_DELETED_ISSUE = "MANAGE_DELETED_ISSUE";
-    private static final String MANAGE_PROJECT = "MANAGE_PROJECT";
-    private static final String VIEW_STATISTICS = "VIEW_STATISTICS";
+    // private static final String MANAGE_DELETED_ISSUE = "MANAGE_DELETED_ISSUE";
+    // private static final String MANAGE_PROJECT = "MANAGE_PROJECT";
+    // private static final String VIEW_STATISTICS = "VIEW_STATISTICS";
 
-    public boolean verifyPermission(User user, String operation, Object resource) {
-        if (!isActiveUser(user) || operation == null || operation.isBlank()) {
-            return false;
-        }
+    // public boolean verifyPermission(User user, String operation, Object resource)
+    // {
+    // if (!isActiveUser(user) || operation == null || operation.isBlank()) {
+    // return false;
+    // }
 
-        return switch (operation.trim().toUpperCase(Locale.ROOT)) {
-            case MANAGE_DELETED_ISSUE -> isPl(user) && isPersistedProjectResource(resource);
-            case MANAGE_PROJECT -> isAdmin(user);
-            case "ASSIGN_ISSUE" -> isPl(user);
-            case VIEW_STATISTICS -> isAuthUserRole(user);
-            default -> false;
-        };
-    }
+    // return switch (operation.trim().toUpperCase(Locale.ROOT)) {
+    // case MANAGE_DELETED_ISSUE -> isPl(user) &&
+    // isPersistedProjectResource(resource);
+    // case MANAGE_PROJECT -> isAdmin(user);
+    // case "ASSIGN_ISSUE" -> isPl(user);
+    // case VIEW_STATISTICS -> isAuthUserRole(user);
+    // default -> false;
+    // };
+    // }
 
     public void assertCanRegisterIssue(User user, Project project) {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can register issues.");
@@ -102,8 +103,13 @@ public final class PermissionPolicy {
 
     public void assertCanManageDeletedIssue(User user, Issue issue) {
         Issue targetIssue = Objects.requireNonNull(issue, ISSUE_REQUIRED);
-        if (!verifyPermission(user, MANAGE_DELETED_ISSUE, targetIssue.projectId())) {
-            throw new SecurityException("Only PL can manage deleted issues.");
+        assertCanManageDeletedIssue(user, targetIssue.projectId());
+    }
+
+    public void assertCanManageDeletedIssue(User user, long projectId) {
+        requirePl(user, "Only PL can manage deleted issues.");
+        if (projectId <= 0L) {
+            throw new SecurityException("Deleted issue management requires a persisted project.");
         }
     }
 
@@ -143,9 +149,7 @@ public final class PermissionPolicy {
     }
 
     public void assertCanManageProject(User user) {
-        if (!verifyPermission(user, MANAGE_PROJECT, null)) {
-            throw new SecurityException("Only ADMIN can manage projects.");
-        }
+        requireAdmin(user, "Only ADMIN can manage projects.");
     }
 
     public boolean canViewAllProjects(User user) {
@@ -160,10 +164,8 @@ public final class PermissionPolicy {
         return isActiveUser(user) && (user.getRole() == Role.ADMIN || user.getRole() == Role.PL);
     }
 
-    public void assertCanViewStatistics(User user, Object filters) {
-        if (!verifyPermission(user, VIEW_STATISTICS, filters)) {
-            throw new SecurityException("Only active PL, DEV, or TESTER users can view statistics.");
-        }
+    public void assertCanViewStatistics(User user) {
+        requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view statistics.");
     }
 
     private static void requirePl(User user, String message) {
@@ -226,9 +228,4 @@ public final class PermissionPolicy {
     private static boolean isActiveUser(User user) {
         return user != null && user.isActive();
     }
-
-    private static boolean isPersistedProjectResource(Object resource) {
-        return resource instanceof Long projectId && projectId > 0;
-    }
-
 }

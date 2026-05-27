@@ -33,7 +33,7 @@ public final class StatisticsService {
          * 기간 검증은 statistics use-case 경계 책임.
          * repository query input은 service 한 곳에서 보호.
          */
-        permissionPolicy.assertCanViewStatistics(actor, projectId);
+        permissionPolicy.assertCanViewStatistics(actor);
         requireActiveProjectMember(actor, projectId);
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
