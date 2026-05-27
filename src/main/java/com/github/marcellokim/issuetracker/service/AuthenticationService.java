@@ -31,6 +31,10 @@ public final class AuthenticationService {
     }
 
     public AuthenticationResult login(String loginId, String password) {
+        if (session.currentLoginId().isPresent()) {
+            return AuthenticationResult.failure("Already logged in. Please logout first.");
+        }
+
         if (loginId == null || loginId.isBlank() || password == null || password.isBlank()) {
             return AuthenticationResult.failure("ID and password are required.");
         }

@@ -6,7 +6,6 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvide
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

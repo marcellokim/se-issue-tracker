@@ -56,7 +56,7 @@ class DashboardSummaryServiceTest {
                 new FakeUserRepository(List.of(pl, dev, tester)),
                 new PermissionPolicy());
 
-        DashboardProjectSummary summary = service.projectSummaries().getFirst();
+        DashboardProjectSummary summary = service.projectSummariesFor(pl).getFirst();
 
         assertEquals("project1", summary.projectName());
         assertEquals(3, summary.memberCount());
@@ -81,9 +81,10 @@ class DashboardSummaryServiceTest {
                 new FakeProjectRepository(
                         List.of(project1, project2),
                         Map.of(
-                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
-                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
-                        )),
+                                project1.getId(),
+                                List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(),
+                                List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW)))),
                 new FakeIssueRepository(List.of(), List.of()),
                 new FakeStatisticsRepository(Map.of()),
                 new FakeUserRepository(List.of(admin, dev, tester)),
@@ -153,9 +154,10 @@ class DashboardSummaryServiceTest {
                 new FakeProjectRepository(
                         List.of(project1, project2),
                         Map.of(
-                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
-                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
-                        )),
+                                project1.getId(),
+                                List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(),
+                                List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW)))),
                 new FakeIssueRepository(List.of(), List.of()),
                 new FakeStatisticsRepository(Map.of()),
                 new FakeUserRepository(List.of(dev, tester)),
@@ -175,10 +177,10 @@ class DashboardSummaryServiceTest {
 
     private static Issue issue(long id, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                        PROJECT_ID,
-                        "Issue " + id,
-                        "Demo issue",
-                        user("reporter", Role.DEV))
+                PROJECT_ID,
+                "Issue " + id,
+                "Demo issue",
+                user("reporter", Role.DEV))
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
@@ -298,7 +300,7 @@ class DashboardSummaryServiceTest {
             return activeIssues.stream()
                     .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title))
                     || deletedIssues.stream()
-                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+                            .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
         }
 
         @Override
@@ -308,9 +310,9 @@ class DashboardSummaryServiceTest {
                             && issue.projectId() == projectId
                             && issue.title().equals(title))
                     || deletedIssues.stream()
-                    .anyMatch(issue -> issue.id() != excludedIssueId
-                            && issue.projectId() == projectId
-                            && issue.title().equals(title));
+                            .anyMatch(issue -> issue.id() != excludedIssueId
+                                    && issue.projectId() == projectId
+                                    && issue.title().equals(title));
         }
 
         @Override
@@ -383,8 +385,7 @@ class DashboardSummaryServiceTest {
         public List<DailyIssueCount> countReportedIssuesByDay(
                 long projectId,
                 LocalDate fromInclusive,
-                LocalDate toInclusive
-        ) {
+                LocalDate toInclusive) {
             return List.of();
         }
 
@@ -397,8 +398,7 @@ class DashboardSummaryServiceTest {
         public List<MonthlyIssueCount> countReportedIssuesByMonth(
                 long projectId,
                 YearMonth fromInclusive,
-                YearMonth toInclusive
-        ) {
+                YearMonth toInclusive) {
             return List.of();
         }
 
@@ -408,8 +408,7 @@ class DashboardSummaryServiceTest {
                 LocalDate dailyFromInclusive,
                 LocalDate dailyToInclusive,
                 YearMonth monthlyFromInclusive,
-                YearMonth monthlyToInclusive
-        ) {
+                YearMonth monthlyToInclusive) {
             return StatisticsReport.create(
                     countByStatus(projectId),
                     countByPriority(projectId),
