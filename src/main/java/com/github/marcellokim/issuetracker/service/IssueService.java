@@ -254,7 +254,7 @@ public final class IssueService {
 
     public List<DependencyResult> viewProjectDependencies(long projectId, String currentLoginId) {
         projectId = requirePositive(projectId, "projectId");
-        currentLoginId = requireText(currentLoginId, "currenLoginId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         findProject(projectId);
         User actor = findUser(currentLoginId);
         permissionPolicy.assertCanViewIssue(actor);
@@ -314,8 +314,11 @@ public final class IssueService {
                 historyForPersistence(issue.id(), history));
     }
 
-    // 여기서부터 ㅅㅂ 다시봐야함
     public CommentResult updateComment(long issueId, long commentId, String content, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        commentId = requirePositive(commentId, "commentId");
+        content = requireText(content, "content");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
         Comment comment = findComment(commentId);
@@ -325,6 +328,9 @@ public final class IssueService {
         requireActiveProjectMember(currentUser, issue.projectId(), "Only project members can update issue comments.");
 
         String previousContent = comment.content();
+        if (previousContent.equals(content)) {
+            throw new IllegalArgumentException("comment content is same as current content.");
+        }
         LocalDateTime changedAt = now();
         comment.changeContent(content, changedAt);
         IssueHistory history = IssueHistory.newForPersistence(
@@ -333,7 +339,7 @@ public final class IssueService {
                 ActionType.COMMENTED,
                 previousContent,
                 comment.content(),
-                comment.content(),
+                "comment updated",
                 changedAt);
         Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
         return toCommentResult(saved);

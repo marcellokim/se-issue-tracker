@@ -706,7 +706,7 @@ class OracleRepositoryIntegrationTest {
                                         .anyMatch(history -> history.actionType() == ActionType.COMMENTED
                                                         && history.previousValue() == null
                                                         && "Assignment audit comment.".equals(history.newValue())
-                                                        && "Assignment audit comment.".equals(history.message())));
+                                                        && "comment added".equals(history.message())));
                 } finally {
                         if (issue != null) {
                                 purgeTestIssue(issue.id());

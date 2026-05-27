@@ -266,6 +266,72 @@ class IssueServiceTest {
         }
 
         @Test
+        @DisplayName("search rejects deleted status filter")
+        void searchProjectIssuesRejectsDeletedStatus() {
+                var issue = persistedIssue();
+                var service = service(new InMemoryIssueRepository(issue));
+
+                assertThrows(SecurityException.class,
+                                () -> service.searchIssues(
+                                                PROJECT_ID,
+                                                null,
+                                                IssueStatus.DELETED,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                dev.getLoginId()));
+        }
+
+        @Test
+        @DisplayName("search rejects invalid reported date range")
+        void searchProjectIssuesRejectsInvalidReportedRange() {
+                var issue = persistedIssue();
+                var service = service(new InMemoryIssueRepository(issue));
+
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.searchIssues(
+                                                PROJECT_ID,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                now.plusDays(1),
+                                                now,
+                                                dev.getLoginId()));
+        }
+
+        @Test
+        @DisplayName("non-project members cannot search project issues")
+        void searchProjectIssuesRejectsNonProjectMember() {
+                var issue = persistedIssue();
+                var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                                .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
+                var service = service(
+                                new InMemoryIssueRepository(issue),
+                                new FakeIssueDependencyRepository(),
+                                new FakeCommentRepository(),
+                                users);
+
+                assertThrows(SecurityException.class,
+                                () -> service.searchIssues(
+                                                PROJECT_ID,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                dev.getLoginId()));
+        }
+
+        @Test
         @DisplayName("shows only assigned participant issues for DEV and TESTER")
         void viewRelatedProjectIssuesReturnsOnlyActorRelatedIssues() {
                 Issue reporterOnlyIssue = persistedIssue(
@@ -310,6 +376,22 @@ class IssueServiceTest {
                 assertEquals(2, plResults.size());
                 assertThrows(SecurityException.class,
                                 () -> service.viewRelatedProjectIssues(PROJECT_ID, admin.getLoginId()));
+        }
+
+        @Test
+        @DisplayName("non-project members cannot view related project issues")
+        void viewRelatedProjectIssuesRejectsNonProjectMember() {
+                var issue = persistedIssue();
+                var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
+                                .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
+                var service = service(
+                                new InMemoryIssueRepository(issue),
+                                new FakeIssueDependencyRepository(),
+                                new FakeCommentRepository(),
+                                users);
+
+                assertThrows(SecurityException.class,
+                                () -> service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId()));
         }
 
         @Test
@@ -440,6 +522,26 @@ class IssueServiceTest {
                 assertThrows(SecurityException.class,
                                 () -> service.updateIssue(ISSUE_ID, "Updated title", "Updated description",
                                                 tester.getLoginId()));
+        }
+
+        @Test
+        @DisplayName("issue update rejects statuses other than NEW or REOPENED")
+        void updateIssueRejectsNonEditableStatuses() {
+                for (IssueStatus status : List.of(
+                                IssueStatus.ASSIGNED,
+                                IssueStatus.FIXED,
+                                IssueStatus.RESOLVED,
+                                IssueStatus.CLOSED)) {
+                        var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Issue " + status, status);
+                        var service = service(new InMemoryIssueRepository(issue));
+
+                        assertThrows(SecurityException.class,
+                                        () -> service.updateIssue(
+                                                        ISSUE_ID,
+                                                        "Updated " + status,
+                                                        "Updated description",
+                                                        dev.getLoginId()));
+                }
         }
 
         @Test
@@ -947,7 +1049,7 @@ class IssueServiceTest {
                 assertEquals(ActionType.COMMENTED, history.actionType());
                 assertEquals("Outdated investigation note", history.previousValue());
                 assertEquals("Updated investigation note", history.newValue());
-                assertEquals("Updated investigation note", history.message());
+                assertEquals("comment updated", history.message());
                 assertEquals(dev.getLoginId(), history.changedById());
         }
 
@@ -981,7 +1083,26 @@ class IssueServiceTest {
                 assertEquals(ActionType.COMMENTED, appendedHistory.actionType());
                 assertEquals("Outdated investigation note", appendedHistory.previousValue());
                 assertEquals("Updated investigation note", appendedHistory.newValue());
-                assertEquals("Updated investigation note", appendedHistory.message());
+                assertEquals("comment updated", appendedHistory.message());
+        }
+
+        @Test
+        @DisplayName("comment update rejects same content")
+        void updateCommentRejectsSameContent() {
+                var issue = persistedIssue();
+                var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+                var histories = new FakeIssueHistoryRepository();
+                var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
+                                histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
+
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.updateComment(
+                                                ISSUE_ID,
+                                                COMMENT_ID,
+                                                "Outdated investigation note",
+                                                dev.getLoginId()));
+                assertEquals("Outdated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
+                assertTrue(histories.findByIssueId(ISSUE_ID).isEmpty());
         }
 
         @Test

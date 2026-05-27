@@ -38,7 +38,7 @@ class IssueCommentTest {
         assertEquals(ActionType.COMMENTED, history.getAction());
         assertNull(history.getPreviousValue());
         assertEquals("I will check it.", history.getNewValue());
-        assertEquals("I will check it.", history.getMessage());
+        assertEquals("comment added", history.getMessage());
         assertSame(developer, history.getChangedBy());
         assertEquals(commentedAt, history.getChangedDate());
     }

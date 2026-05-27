@@ -11,6 +11,7 @@ public class Issue {
 
     private static final String CREATED_PREVIOUS_VALUE = null;
     private static final String COMMENT_FIELD = "comment";
+    private static final String COMMENT_ADDED_MESSAGE = "comment added";
     private static final String COMMENT_DELETED_MESSAGE = "comment deleted";
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
@@ -388,7 +389,8 @@ public class Issue {
             CommentPurpose purpose) {
         var comment = Comment.create(commentId, content, writer, purpose, createdDate);
         comments.add(comment);
-        recordHistory(ActionType.COMMENTED, null, content, content, writer, createdDate);
+        String message = purpose == CommentPurpose.GENERAL ? COMMENT_ADDED_MESSAGE : content;
+        recordHistory(ActionType.COMMENTED, null, content, message, writer, createdDate);
         return comment;
     }
 

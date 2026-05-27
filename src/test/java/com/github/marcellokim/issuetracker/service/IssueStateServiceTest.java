@@ -154,6 +154,28 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("issue id and current user id are required")
+    void rejectInvalidIssueIdAndBlankCurrentUserId() {
+        var issue = assignedIssue();
+        var service = service(issue);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.changeStatus(0L, IssueStatus.FIXED, "Fix completed", assignee.getLoginId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", " "));
+    }
+
+    @Test
+    @DisplayName("deleted issue cannot be changed through normal state workflow")
+    void rejectDeletedIssueStatusChange() {
+        var issue = deletedIssue();
+        var service = service(issue);
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId()));
+    }
+
+    @Test
     @DisplayName("verifier rejects fixed issue back to assigned")
     void rejectFixedIssueBackToAssigned() {
         var fixed = fixedIssue();
@@ -286,6 +308,16 @@ class IssueStateServiceTest {
                 .reportedDate(createdAt())
                 .priority(Priority.MAJOR)
                 .status(IssueStatus.NEW)
+                .updatedAt(createdAt()));
+    }
+
+    private Issue deletedIssue() {
+        return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Deleted issue", "Removed", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(createdAt())
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.DELETED)
                 .updatedAt(createdAt()));
     }
 
