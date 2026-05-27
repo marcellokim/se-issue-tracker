@@ -85,6 +85,23 @@ class IssueServiceTest {
         }
 
         @Test
+        @DisplayName("rejects issue registration with invalid input")
+        void registerIssueRejectsInvalidInput() {
+                var service = service(new InMemoryIssueRepository());
+
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.registerIssue(0L, "Bug", "desc", Priority.MAJOR, dev.getLoginId()));
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.registerIssue(PROJECT_ID, " ", "desc", Priority.MAJOR,
+                                                dev.getLoginId()));
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.registerIssue(PROJECT_ID, "Bug", null, Priority.MAJOR,
+                                                dev.getLoginId()));
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.registerIssue(PROJECT_ID, "Bug", "desc", Priority.MAJOR, " "));
+        }
+
+        @Test
         @DisplayName("rejects duplicate issue title in same project including deleted issues")
         void registerIssueRejectsDuplicateTitleIncludingDeletedIssue() {
                 Issue deletedIssue = persistedIssue(
@@ -461,6 +478,34 @@ class IssueServiceTest {
         }
 
         @Test
+        @DisplayName("other project PL cannot change issue priority")
+        void changePriorityRejectsOtherProjectPl() {
+                var issue = persistedIssue();
+                var users = new InMemoryUserRepository(dev, tester, pl, otherProjectPl, admin, inactiveDev)
+                                .withProjectMembers(PROJECT_ID, pl.getLoginId())
+                                .withProjectMembers(OTHER_PROJECT_ID, otherProjectPl.getLoginId());
+                var service = service(
+                                new InMemoryIssueRepository(issue),
+                                new FakeIssueDependencyRepository(),
+                                new FakeCommentRepository(),
+                                users);
+
+                assertThrows(SecurityException.class,
+                                () -> service.changePriority(ISSUE_ID, Priority.CRITICAL,
+                                                otherProjectPl.getLoginId()));
+        }
+
+        @Test
+        @DisplayName("priority change rejects same priority")
+        void changePriorityRejectsSamePriority() {
+                var issue = persistedIssue();
+                var service = service(new InMemoryIssueRepository(issue));
+
+                assertThrows(IllegalArgumentException.class,
+                                () -> service.changePriority(ISSUE_ID, Priority.MAJOR, pl.getLoginId()));
+        }
+
+        @Test
         @DisplayName("adds comment to existing issue")
         void addCommentSucceeds() {
                 var issue = persistedIssue();
@@ -473,6 +518,22 @@ class IssueServiceTest {
                 assertEquals("Looks like a real bug", result.content());
                 assertEquals(dev.getLoginId(), result.writer().loginId());
                 assertNotNull(result.createdDate());
+        }
+
+        @Test
+        @DisplayName("comment changes do not update issue updatedAt")
+        void commentChangesDoNotUpdateIssueUpdatedAt() {
+                var issue = persistedIssue();
+                var issues = new InMemoryIssueRepository(issue);
+                var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
+                var service = service(issues, comments);
+                LocalDateTime originalUpdatedAt = issue.updatedAt();
+
+                service.addComment(ISSUE_ID, "Additional investigation note", dev.getLoginId());
+                service.updateComment(ISSUE_ID, COMMENT_ID, "Updated investigation note", dev.getLoginId());
+                service.deleteComment(ISSUE_ID, COMMENT_ID, dev.getLoginId());
+
+                assertEquals(originalUpdatedAt, issues.findById(ISSUE_ID).orElseThrow().updatedAt());
         }
 
         @Test
@@ -608,6 +669,25 @@ class IssueServiceTest {
         }
 
         @Test
+        @DisplayName("dependency add rejects resolved or closed blocked issues")
+        void addDependencyRejectsCompletedBlockedIssue() {
+                var blockingIssue = persistedIssue(1L, "ISSUE-1");
+                var resolvedBlockedIssue = persistedIssue(2L, "ISSUE-2", PROJECT_ID, "Resolved blocked",
+                                IssueStatus.RESOLVED);
+                var closedBlockedIssue = persistedIssue(3L, "ISSUE-3", PROJECT_ID, "Closed blocked",
+                                IssueStatus.CLOSED);
+                var service = service(new InMemoryIssueRepository(
+                                blockingIssue,
+                                resolvedBlockedIssue,
+                                closedBlockedIssue));
+
+                assertThrows(IllegalStateException.class,
+                                () -> service.addDependency(1L, 2L, pl.getLoginId()));
+                assertThrows(IllegalStateException.class,
+                                () -> service.addDependency(1L, 3L, pl.getLoginId()));
+        }
+
+        @Test
         @DisplayName("rejects self-dependency at service level")
         void addDependencyRejectsSelf() {
                 var issue = persistedIssue(1L, "ISSUE-1");
@@ -680,6 +760,28 @@ class IssueServiceTest {
                 assertEquals(result.dependencyId(), history.previousValue());
                 assertNull(history.newValue());
                 assertEquals("Dependency removed", history.message());
+        }
+
+        @Test
+        @DisplayName("other project PL cannot remove dependency")
+        void removeDependencyRejectsPlFromOtherProject() {
+                var issueA = persistedIssue(1L, "ISSUE-1");
+                var issueB = persistedIssue(2L, "ISSUE-2");
+                var deps = new FakeIssueDependencyRepository();
+                var users = new InMemoryUserRepository(dev, tester, pl, otherProjectPl, admin, inactiveDev)
+                                .withProjectMembers(PROJECT_ID, pl.getLoginId())
+                                .withProjectMembers(OTHER_PROJECT_ID, otherProjectPl.getLoginId());
+                var service = service(new InMemoryIssueRepository(issueA, issueB), deps,
+                                new FakeCommentRepository(), users);
+                DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+
+                assertThrows(SecurityException.class,
+                                () -> service.removeDependency(
+                                                result.blockingIssueId(),
+                                                result.blockedIssueId(),
+                                                otherProjectPl.getLoginId()));
+                assertTrue(deps.findById(result.id()).isPresent());
+                assertTrue(deps.findByDependencyId(result.dependencyId()).isPresent());
         }
 
         @Test

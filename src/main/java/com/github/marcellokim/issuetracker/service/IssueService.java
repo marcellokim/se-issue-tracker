@@ -63,9 +63,13 @@ public final class IssueService {
     }
 
     public IssueResult registerIssue(long projectId, String title, String description, Priority priority,
-            String currentUserId) {
+            String currentLoginId) {
+        projectId = requirePositive(projectId, "projectId");
+        title = requireText(title, "title");
+        description = requireText(description, "description");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         Project project = findProject(projectId);
-        User reporter = findUser(currentUserId);
+        User reporter = findUser(currentLoginId);
         permissionPolicy.assertCanRegisterIssue(reporter, project);
         requireActiveProjectMember(reporter, project.getId(), "Only project members can register issues.");
         if (issueRepository.existsByProjectIdAndTitle(project.getId(), title)) {
@@ -81,8 +85,10 @@ public final class IssueService {
         return toIssueResult(saved);
     }
 
-    public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
-        Issue issue = findIssueDetail(issueId, currentUserId);
+    public IssueDetailResult viewIssueDetail(long issueId, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
+        Issue issue = findIssueDetail(issueId, currentLoginId);
         List<CommentResult> comments = commentRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toCommentResult)
                 .toList();
@@ -111,13 +117,22 @@ public final class IssueService {
             String verifierId,
             LocalDateTime reportedFrom,
             LocalDateTime reportedTo,
-            String currentUserId) {
-        findProject(projectId);
-        User actor = findUser(currentUserId);
+            String currentLoginId) {
+
+        long requireProjectId = requirePositive(projectId, "projectId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
+        if (reportedFrom != null && reportedTo != null && reportedFrom.isAfter(reportedTo)) {
+            throw new IllegalArgumentException("reportedFrom must not be after reportedTo.");
+        }
+        findProject(requireProjectId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanViewIssue(actor);
-        requireActiveProjectMember(actor, projectId, "Only project members can search issues.");
+        if (status == IssueStatus.DELETED) {
+            throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
+        }
+        requireActiveProjectMember(actor, requireProjectId, "Only project members can search issues.");
         return issueRepository.findByCriteria(IssueSearchCriteria.create(
-                projectId,
+                requireProjectId,
                 status,
                 priority,
                 optionalText(reporterId),
@@ -127,14 +142,16 @@ public final class IssueService {
                 reportedFrom,
                 reportedTo,
                 false)).stream()
-                .filter(issue -> issue.projectId() == projectId)
+                .filter(issue -> issue.projectId() == requireProjectId)
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
 
-    public List<IssueSummary> viewRelatedProjectIssues(long projectId, String currentUserId) {
+    public List<IssueSummary> viewRelatedProjectIssues(long projectId, String currentLoginId) {
+        projectId = requirePositive(projectId, "projectId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         findProject(projectId);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanViewIssue(actor);
         requireActiveProjectMember(actor, projectId, "Only project members can view related project issues.");
         return issueRepository.findByCriteria(IssueSearchCriteria.create(
@@ -148,15 +165,20 @@ public final class IssueService {
                 null,
                 null,
                 false)).stream()
-                .filter(issue -> actor.getRole() == Role.PL || isAssignedParticipant(issue, actor.getLoginId()))
+                .filter(issue -> actor.getRole() == Role.PL || isRelatedParticipant(issue, actor.getLoginId()))
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
 
-    public IssueResult updateIssue(long issueId, String title, String description, String currentUserId) {
+    public IssueResult updateIssue(long issueId, String title, String description, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
+        title = requireText(title, "title");
+        description = requireText(description, "description");
+
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanUpdateIssue(actor, issue);
         requireActiveProjectMember(actor, issue.projectId(), "Only project members can update issues.");
         if (issueRepository.existsByProjectIdAndTitleExcludingIssueId(issue.projectId(), title, issue.id())) {
@@ -167,10 +189,12 @@ public final class IssueService {
         return toIssueResult(saved);
     }
 
-    public IssueResult changePriority(long issueId, Priority priority, String currentUserId) {
+    public IssueResult changePriority(long issueId, Priority priority, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanChangePriority(actor, issue, priority);
         requireProjectLead(actor, issue.projectId(), "Only the project PL can change issue priority.");
         issue.changePriority(priority, actor, now());
@@ -178,10 +202,13 @@ public final class IssueService {
         return toIssueResult(saved);
     }
 
-    public CommentResult addComment(long issueId, String content, String currentUserId) {
+    public CommentResult addComment(long issueId, String content, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        content = requireText(content, "content");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
-        User writer = findUser(currentUserId);
+        User writer = findUser(currentLoginId);
         permissionPolicy.assertCanAddComment(writer, issue);
         requireActiveProjectMember(writer, issue.projectId(), "Only project members can add issue comments.");
         LocalDateTime now = now();
@@ -190,10 +217,13 @@ public final class IssueService {
         return toCommentResult(comment);
     }
 
-    public List<CommentResult> viewComments(long issueId, String currentUserId) {
+    // 중복? 순순히 코멘트만 보여주는 기능
+    public List<CommentResult> viewComments(long issueId, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanViewIssue(actor);
         requireActiveProjectMember(actor, issue.projectId(), "Only project members can view comments.");
         return commentRepository.findByIssueId(issue.id()).stream()
@@ -201,13 +231,17 @@ public final class IssueService {
                 .toList();
     }
 
-    public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
+    public DependencyResult addDependency(long blockingIssueId, long blockedIssueId, String currentLoginId) {
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
+        blockedIssueId = requirePositive(blockedIssueId, "blockedIssueId");
+        blockingIssueId = requirePositive(blockingIssueId, "blockingIssueId");
         Issue blockingIssue = findIssue(blockingIssueId);
         Issue blockedIssue = findIssue(blockedIssueId);
         requireNotDeleted(blockingIssue);
         requireNotDeleted(blockedIssue);
+        requireDependencyAddStatus(blockedIssue);
         requireSameProjectDependency(blockingIssue, blockedIssue);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         validateDependency(blockingIssueId, blockedIssueId);
@@ -218,9 +252,11 @@ public final class IssueService {
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
-    public List<DependencyResult> viewProjectDependencies(long projectId, String currentUserId) {
+    public List<DependencyResult> viewProjectDependencies(long projectId, String currentLoginId) {
+        projectId = requirePositive(projectId, "projectId");
+        currentLoginId = requireText(currentLoginId, "currenLoginId");
         findProject(projectId);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanViewIssue(actor);
         requireActiveProjectMember(actor, projectId, "Only project members can view project dependencies.");
         List<IssueDependency> deps = dependencyRepository.findByProjectId(projectId);
@@ -237,27 +273,34 @@ public final class IssueService {
                 .toList();
     }
 
-    public void removeDependency(long blockingIssueId, long blockedIssueId, String currentUserId) {
-        String hashedDependencyId = IssueDependency.dependencyIdFor(blockingIssueId, blockedIssueId);
+    public void removeDependency(long blockingIssueId, long blockedIssueId, String currentLoginId) {
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
+        long requiredBlockedIssueId = requirePositive(blockedIssueId, "blockedIssueId");
+        long requiredBlockingIssueId = requirePositive(blockingIssueId, "blockingIssueId");
+        String hashedDependencyId = IssueDependency.dependencyIdFor(requiredBlockingIssueId, requiredBlockedIssueId);
         IssueDependency dependency = dependencyRepository.findByDependencyId(hashedDependencyId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Dependency not found: " + blockingIssueId + " -> " + blockedIssueId));
+                        "Dependency not found: " + requiredBlockingIssueId + " -> " + requiredBlockedIssueId));
         Issue blockingIssue = findIssue(dependency.blockingIssueId());
         Issue blockedIssue = findIssue(dependency.blockedIssueId());
         requireNotDeleted(blockingIssue);
         requireNotDeleted(blockedIssue);
-        User actor = findUser(currentUserId);
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
+        requireSameProjectDependency(blockingIssue, blockedIssue);
         blockedIssue.removeDependency(dependency, actor, now());
         dependencyRepository.deleteByDependencyIdAndRecordIssueChange(hashedDependencyId, blockedIssue);
     }
 
-    public void deleteComment(long issueId, long commentId, String currentUserId) {
+    public void deleteComment(long issueId, long commentId, String currentLoginId) {
+        issueId = requirePositive(issueId, "issueId");
+        commentId = requirePositive(commentId, "commentId");
+        currentLoginId = requireText(currentLoginId, "currentLoginId");
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
         Comment comment = findComment(commentId);
-        User currentUser = findUser(currentUserId);
+        User currentUser = findUser(currentLoginId);
         requireCommentBelongsToIssue(comment, issue);
         permissionPolicy.assertCanDeleteComment(currentUser, comment);
         requireActiveProjectMember(currentUser, issue.projectId(), "Only project members can delete issue comments.");
@@ -271,11 +314,12 @@ public final class IssueService {
                 historyForPersistence(issue.id(), history));
     }
 
-    public CommentResult updateComment(long issueId, long commentId, String content, String currentUserId) {
+    // 여기서부터 ㅅㅂ 다시봐야함
+    public CommentResult updateComment(long issueId, long commentId, String content, String currentLoginId) {
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
         Comment comment = findComment(commentId);
-        User currentUser = findUser(currentUserId);
+        User currentUser = findUser(currentLoginId);
         requireCommentBelongsToIssue(comment, issue);
         permissionPolicy.assertCanUpdateComment(currentUser, comment);
         requireActiveProjectMember(currentUser, issue.projectId(), "Only project members can update issue comments.");
@@ -305,8 +349,8 @@ public final class IssueService {
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
     }
 
-    private Issue findIssueDetail(long issueId, String currentUserId) {
-        User actor = findUser(currentUserId);
+    private Issue findIssueDetail(long issueId, String currentLoginId) {
+        User actor = findUser(currentLoginId);
         permissionPolicy.assertCanViewIssue(actor);
         Issue issue = findIssue(issueId);
         requireNotDeleted(issue);
@@ -343,7 +387,7 @@ public final class IssueService {
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
     }
 
-    private static boolean isAssignedParticipant(Issue issue, String loginId) {
+    private static boolean isRelatedParticipant(Issue issue, String loginId) {
         return loginId.equals(issue.reporterId())
                 || loginId.equals(issue.assigneeId())
                 || loginId.equals(issue.verifierId());
@@ -358,6 +402,12 @@ public final class IssueService {
     private static void requireNotDeleted(Issue issue) {
         if (issue.status() == IssueStatus.DELETED) {
             throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
+        }
+    }
+
+    private static void requireDependencyAddStatus(Issue blockedIssue) {
+        if (blockedIssue.status() == IssueStatus.RESOLVED || blockedIssue.status() == IssueStatus.CLOSED) {
+            throw new IllegalStateException("Resolved or closed issues cannot be blocked by a new dependency.");
         }
     }
 
@@ -407,6 +457,20 @@ public final class IssueService {
             return null;
         }
         return value.trim();
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value.trim();
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
+        }
+        return value;
     }
 
     private LocalDateTime now() {

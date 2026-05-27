@@ -31,17 +31,7 @@ public final class DashboardSummaryService {
                 this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         }
 
-        // public List<DashboardProjectSummary> projectSummaries() {
-        // return projectRepository.findAll().stream()
-        // .map(this::summarizeProject)
-        // .toList();
-        // }
-
         public List<DashboardProjectSummary> projectSummariesFor(User user) {
-                /*
-                 * 대시보드는 여러 repository를 합친 read model.
-                 * 조회 조합을 service에 두어 JavaFX presenter가 persistence port 없이 화면 데이터 포맷 가능.
-                 */
                 Objects.requireNonNull(user, "user");
                 if (!user.isActive()) {
                         throw new SecurityException("Only active users can view dashboard projects.");

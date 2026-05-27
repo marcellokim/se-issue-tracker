@@ -35,7 +35,6 @@ public final class AssignmentService {
         if (issueId <= 0L) {
             throw new IllegalArgumentException("issueId must be positive");
         }
-        loginId = requireText(loginId, "current user login id");
         Issue issue = findIssue(issueId);
         User actor = findUser(loginId);
         assertCanStartAssignment(actor, issue);
@@ -43,6 +42,9 @@ public final class AssignmentService {
     }
 
     public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
         User actor = findUser(loginId);
         assertCanManageAssignment(actor, issue);
@@ -67,6 +69,9 @@ public final class AssignmentService {
     }
 
     public AssignmentResult reassignIssue(long issueId, String assigneeId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
         User actor = findUser(loginId);
         assertCanManageAssignment(actor, issue);
@@ -82,6 +87,9 @@ public final class AssignmentService {
     }
 
     public AssignmentResult changeVerifier(long issueId, String verifierId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
         User actor = findUser(loginId);
         assertCanManageAssignment(actor, issue);

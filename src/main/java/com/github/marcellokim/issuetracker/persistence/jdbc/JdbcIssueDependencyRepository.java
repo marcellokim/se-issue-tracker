@@ -112,7 +112,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
                 select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at
                 from issue_dependencies
                 where blocking_issue_id in (select id from issues where project_id = ?)
-                   or blocked_issue_id in (select id from issues where project_id = ?)
+                    and blocked_issue_id in (select id from issues where project_id = ?)
                 order by id
                 """;
         try (Connection connection = connectionProvider.getConnection();
@@ -145,14 +145,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
         }
     }
 
-    // @Override
-    // public IssueDependency save(IssueDependency dependency) {
-    // if (dependency.id() == 0L) {
-    // return insert(dependency);
-    // }
-    // return update(dependency);
-    // }
-
     @Override
     public IssueDependency saveAndRecordIssueChange(IssueDependency dependency, Issue issue) {
         try (Connection connection = connectionProvider.getConnection()) {
@@ -177,19 +169,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             throw new RepositoryException("Failed to insert issue dependency with issue history.", exception);
         }
     }
-
-    // @Override
-    // public void deleteById(long dependencyId) {
-    // String sql = "delete from issue_dependencies where id = ?";
-    // try (Connection connection = connectionProvider.getConnection();
-    // PreparedStatement statement = connection.prepareStatement(sql)) {
-    // statement.setLong(1, dependencyId);
-    // statement.executeUpdate();
-    // } catch (SQLException exception) {
-    // throw new RepositoryException("Failed to delete issue dependency.",
-    // exception);
-    // }
-    // }
 
     @Override
     public void deleteByDependencyIdAndRecordIssueChange(String dependencyId, Issue issue) {
@@ -221,21 +200,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             throw new RepositoryException("Failed to delete issue dependency with issue history.", exception);
         }
     }
-
-    // @Override
-    // public void deleteByIssueId(long issueId) {
-    // String sql = "delete from issue_dependencies where blocking_issue_id = ? or
-    // blocked_issue_id = ?";
-    // try (Connection connection = connectionProvider.getConnection();
-    // PreparedStatement statement = connection.prepareStatement(sql)) {
-    // statement.setLong(1, issueId);
-    // statement.setLong(2, issueId);
-    // statement.executeUpdate();
-    // } catch (SQLException exception) {
-    // throw new RepositoryException("Failed to delete dependencies by issue.",
-    // exception);
-    // }
-    // }
 
     private static IssueHistory latestDependencyHistory(Issue issue, String dependencyId, boolean removal) {
         List<IssueHistory> histories = issue.getHistories();
@@ -274,29 +238,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
         }
     }
 
-    // private IssueDependency insert(IssueDependency dependency) {
-    // String sql = """
-    // insert into issue_dependencies (dependency_id, blocking_issue_id,
-    // blocked_issue_id, discovered_at)
-    // values (?, ?, ?, coalesce(?, current_timestamp))
-    // """;
-    // try (Connection connection = connectionProvider.getConnection();
-    // PreparedStatement statement =
-    // JdbcSupport.prepareInsertReturningId(connection, sql)) {
-    // statement.setString(1, dependency.getDependencyId());
-    // statement.setLong(2, dependency.blockingIssueId());
-    // statement.setLong(3, dependency.blockedIssueId());
-    // JdbcSupport.setNullableTimestamp(statement, 4, dependency.discoveredDate());
-    // statement.executeUpdate();
-    // return findById(JdbcSupport.generatedId(statement))
-    // .orElseThrow(() -> new RepositoryException("Inserted dependency was not
-    // found.", null));
-    // } catch (SQLException exception) {
-    // throw new RepositoryException("Failed to insert issue dependency.",
-    // exception);
-    // }
-    // }
-
     private IssueDependency insert(Connection connection, IssueDependency dependency) throws SQLException {
         String sql = """
                 insert into issue_dependencies (dependency_id, blocking_issue_id, blocked_issue_id, discovered_at)
@@ -316,32 +257,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
                     dependency.discoveredDate());
         }
     }
-
-    // private IssueDependency update(IssueDependency dependency) {
-    // String sql = """
-    // update issue_dependencies
-    // set dependency_id = ?,
-    // blocking_issue_id = ?,
-    // blocked_issue_id = ?,
-    // discovered_at = coalesce(?, discovered_at)
-    // where id = ?
-    // """;
-    // try (Connection connection = connectionProvider.getConnection();
-    // PreparedStatement statement = connection.prepareStatement(sql)) {
-    // statement.setString(1, dependency.getDependencyId());
-    // statement.setLong(2, dependency.blockingIssueId());
-    // statement.setLong(3, dependency.blockedIssueId());
-    // JdbcSupport.setNullableTimestamp(statement, 4, dependency.discoveredDate());
-    // statement.setLong(5, dependency.id());
-    // statement.executeUpdate();
-    // return findById(dependency.id())
-    // .orElseThrow(() -> new RepositoryException("Updated dependency was not
-    // found.", null));
-    // } catch (SQLException exception) {
-    // throw new RepositoryException("Failed to update issue dependency.",
-    // exception);
-    // }
-    // }
 
     private static List<IssueDependency> executeDependencyList(PreparedStatement statement) throws SQLException {
         try (ResultSet resultSet = statement.executeQuery()) {

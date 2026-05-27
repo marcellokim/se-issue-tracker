@@ -14,25 +14,6 @@ public final class PermissionPolicy {
 
     private static final String USER_REQUIRED = "user";
     private static final String ISSUE_REQUIRED = "issue";
-    // private static final String MANAGE_DELETED_ISSUE = "MANAGE_DELETED_ISSUE";
-    // private static final String MANAGE_PROJECT = "MANAGE_PROJECT";
-    // private static final String VIEW_STATISTICS = "VIEW_STATISTICS";
-
-    // public boolean verifyPermission(User user, String operation, Object resource)
-    // {
-    // if (!isActiveUser(user) || operation == null || operation.isBlank()) {
-    // return false;
-    // }
-
-    // return switch (operation.trim().toUpperCase(Locale.ROOT)) {
-    // case MANAGE_DELETED_ISSUE -> isPl(user) &&
-    // isPersistedProjectResource(resource);
-    // case MANAGE_PROJECT -> isAdmin(user);
-    // case "ASSIGN_ISSUE" -> isPl(user);
-    // case VIEW_STATISTICS -> isAuthUserRole(user);
-    // default -> false;
-    // };
-    // }
 
     public void assertCanRegisterIssue(User user, Project project) {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can register issues.");
