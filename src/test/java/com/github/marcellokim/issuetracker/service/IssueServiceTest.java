@@ -1008,7 +1008,12 @@ class IssueServiceTest {
                                 histories,
                                 users,
                                 new PermissionPolicy(),
-                                java.time.LocalDateTime::now);
+                                java.time.LocalDateTime::now,
+                                IssueServiceTest::nextCommentId);
+        }
+
+        private static String nextCommentId() {
+                return "COMMENT-test-" + java.util.UUID.randomUUID();
         }
 
         private Issue persistedIssue() {

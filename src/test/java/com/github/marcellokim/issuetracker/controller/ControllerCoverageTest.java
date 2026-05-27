@@ -396,11 +396,17 @@ class ControllerCoverageTest {
                         new FakeIssueHistoryRepository(),
                         users,
                         policy,
-                        clock)));
+                        clock,
+                        ControllerCoverageTest::nextCommentId)));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueStateService(issues,
-                        new FakeIssueDependencyRepository(), users, policy, clock)));
+                        new FakeIssueDependencyRepository(), users, policy, clock,
+                        ControllerCoverageTest::nextCommentId)));
+    }
+
+    private static String nextCommentId() {
+        return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
 
     private static AuthFixture authenticated(Role role) {

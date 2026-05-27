@@ -90,7 +90,8 @@ class IssueWorkflowIntegrationTest {
                 new FakeIssueDependencyRepository(),
                 userRepository,
                 policy,
-                java.time.LocalDateTime::now);
+                java.time.LocalDateTime::now,
+                IssueWorkflowIntegrationTest::nextCommentId);
 
         assignmentService.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId());
         stateService.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());
@@ -113,6 +114,10 @@ class IssueWorkflowIntegrationTest {
         assertEquals(3, completedIssue.getHistories().stream()
                 .filter(history -> history.getAction() == ActionType.COMMENTED)
                 .count());
+    }
+
+    private static String nextCommentId() {
+        return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
 
     private static final class EmptyAssignmentRecommendationRepository implements AssignmentRecommendationRepository {

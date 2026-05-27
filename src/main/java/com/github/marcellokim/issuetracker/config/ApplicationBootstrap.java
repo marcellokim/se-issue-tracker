@@ -31,6 +31,8 @@ import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
+import com.github.marcellokim.issuetracker.service.CommentIdProvider;
+import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -79,6 +81,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 var assignmentRecommendations = repositories.assignmentRecommendations();
                 PermissionPolicy permissionPolicy = new PermissionPolicy();
                 Clock clock = new SystemClock();
+                CommentIdProvider commentIdProvider = new CommentIdGenerator();
                 AuthenticationService authenticationService = authenticationService(users);
                 AccountService accountService = new AccountService(
                                 permissionPolicy,
@@ -95,7 +98,8 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 issueHistory,
                                 users,
                                 permissionPolicy,
-                                clock);
+                                clock,
+                                commentIdProvider);
                 AssignmentService assignmentService = new AssignmentService(
                                 issues,
                                 users,
@@ -107,7 +111,8 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 issueDependencies,
                                 users,
                                 permissionPolicy,
-                                clock);
+                                clock,
+                                commentIdProvider);
                 DeletedIssueService deletedIssueService = new DeletedIssueService(
                                 issues,
                                 users,

@@ -1171,7 +1171,8 @@ class OracleRepositoryIntegrationTest {
                 repositories.issueHistory(),
                 repositories.users(),
                 permissionPolicy(),
-                java.time.LocalDateTime::now);
+                java.time.LocalDateTime::now,
+                OracleRepositoryIntegrationTest::nextCommentId);
     }
 
     private static AssignmentService assignmentService() {
@@ -1189,7 +1190,12 @@ class OracleRepositoryIntegrationTest {
                 repositories.issueDependencies(),
                 repositories.users(),
                 permissionPolicy(),
-                java.time.LocalDateTime::now);
+                java.time.LocalDateTime::now,
+                OracleRepositoryIntegrationTest::nextCommentId);
+    }
+
+    private static String nextCommentId() {
+        return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
 
     private static DeletedIssueService deletedIssueService() {

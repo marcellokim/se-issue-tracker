@@ -9,6 +9,7 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -20,18 +21,21 @@ public final class IssueStateService {
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
+    private final CommentIdProvider commentIdProvider;
 
     public IssueStateService(
             IssueRepository issueRepository,
             IssueDependencyRepository dependencyRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock) {
+            Clock clock,
+            CommentIdProvider commentIdProvider) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.commentIdProvider = Objects.requireNonNull(commentIdProvider, "commentIdProvider");
     }
 
     public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment, String currentUserId) {
@@ -57,7 +61,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.markFixed(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -70,7 +74,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.rejectFix(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -84,7 +88,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -97,7 +101,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.close(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -110,7 +114,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.reopen(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,

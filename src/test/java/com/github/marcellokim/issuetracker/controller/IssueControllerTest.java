@@ -279,7 +279,8 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                java.time.LocalDateTime::now);
+                java.time.LocalDateTime::now,
+                IssueControllerTest::nextCommentId);
         return new IssueController(authService, issueService);
     }
 
@@ -294,8 +295,13 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                java.time.LocalDateTime::now);
+                java.time.LocalDateTime::now,
+                IssueControllerTest::nextCommentId);
         return new IssueController(authService, issueService);
+    }
+
+    private static String nextCommentId() {
+        return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
 
     private Issue persistedIssue() {

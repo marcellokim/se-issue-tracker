@@ -17,6 +17,7 @@ import com.github.marcellokim.issuetracker.repository.IssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+
 import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ public final class IssueService {
     private final IssueHistoryRepository issueHistoryRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
+    private final CommentIdProvider commentIdProvider;
     private final Clock clock;
 
     public IssueService(
@@ -47,7 +49,8 @@ public final class IssueService {
             IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock) {
+            Clock clock,
+            CommentIdProvider commentIdProvider) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
@@ -55,6 +58,7 @@ public final class IssueService {
         this.issueHistoryRepository = Objects.requireNonNull(issueHistoryRepository, "issueHistoryRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
+        this.commentIdProvider = Objects.requireNonNull(commentIdProvider, "commentIdProvider");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -76,17 +80,6 @@ public final class IssueService {
         Issue saved = issueRepository.save(issue);
         return toIssueResult(saved);
     }
-
-    // public boolean canRegisterIssue(long projectId, String currentUserId) {
-    // try {
-    // Project project = findProject(projectId);
-    // User reporter = findUser(currentUserId);
-    // return permissionPolicy.canRegisterIssue(reporter, project)
-    // && isActiveProjectMember(reporter, project.getId());
-    // } catch (RuntimeException exception) {
-    // return false;
-    // }
-    // }
 
     public IssueDetailResult viewIssueDetail(long issueId, String currentUserId) {
         Issue issue = findIssueDetail(issueId, currentUserId);
@@ -201,7 +194,7 @@ public final class IssueService {
         permissionPolicy.assertCanAddComment(writer, issue);
         requireActiveProjectMember(writer, issue.projectId(), "Only project members can add issue comments.");
         LocalDateTime now = now();
-        Comment comment = issue.addComment(CommentIdGenerator.nextCommentId(), content, writer, now);
+        Comment comment = issue.addComment(commentIdProvider.nextCommentId(), content, writer, now);
         issueRepository.save(issue);
         return toCommentResult(comment);
     }
