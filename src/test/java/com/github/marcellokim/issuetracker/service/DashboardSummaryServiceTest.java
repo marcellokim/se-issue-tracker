@@ -352,10 +352,6 @@ class DashboardSummaryServiceTest {
                     "purgeDeletedBeyondLimit is not needed by DashboardSummaryServiceTest.");
         }
 
-        @Override
-        public void purge(long issueId) {
-            throw new UnsupportedOperationException("purge is not needed by DashboardSummaryServiceTest.");
-        }
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {

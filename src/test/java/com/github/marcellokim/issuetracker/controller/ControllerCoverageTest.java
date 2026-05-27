@@ -580,10 +580,6 @@ class ControllerCoverageTest {
             return 2;
         }
 
-        @Override
-        public void purge(long issueId) {
-            issuesById.remove(issueId);
-        }
     }
 
     private static final class FakeProjectRepository implements ProjectRepository {

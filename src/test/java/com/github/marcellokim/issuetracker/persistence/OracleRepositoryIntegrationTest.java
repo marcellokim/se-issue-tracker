@@ -78,6 +78,17 @@ class OracleRepositoryIntegrationTest {
         }
     }
 
+    private static void purgeTestIssue(long issueId) {
+        String sql = "delete from issues where id = ?";
+        try (var connection = connectionProvider.getConnection();
+                var statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, issueId);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to purge test issue.", exception);
+        }
+    }
+
     @Test
     @DisplayName("seed data includes admin account and demo projects")
     void seedDataIncludesAdminAccountAndDemoProjects() {
@@ -299,7 +310,7 @@ class OracleRepositoryIntegrationTest {
                     .anyMatch(issue -> issue.id() == deletedIssue.id()));
             assertFalse(repositories.statistics().countByStatus(project.getId()).containsKey(IssueStatus.DELETED));
         } finally {
-            repositories.issues().purge(deletedIssue.id());
+            purgeTestIssue(deletedIssue.id());
             purgeIssuesByTitle(project.getId(), "Temporary deleted issue for repository policy test");
         }
     }
@@ -350,13 +361,13 @@ class OracleRepositoryIntegrationTest {
             }
         } finally {
             if (newIssue != null) {
-                repositories.issues().purge(newIssue.id());
+                purgeTestIssue(newIssue.id());
             }
             if (closedIssue != null) {
-                repositories.issues().purge(closedIssue.id());
+                purgeTestIssue(closedIssue.id());
             }
             for (Issue issue : rejectedIssues) {
-                repositories.issues().purge(issue.id());
+                purgeTestIssue(issue.id());
             }
         }
     }
@@ -402,10 +413,10 @@ class OracleRepositoryIntegrationTest {
                         statement -> statement.setString(1, dependencyId));
             }
             if (blocked != null) {
-                repositories.issues().purge(blocked.id());
+                purgeTestIssue(blocked.id());
             }
             if (blocking != null) {
-                repositories.issues().purge(blocking.id());
+                purgeTestIssue(blocking.id());
             }
         }
     }
@@ -445,10 +456,10 @@ class OracleRepositoryIntegrationTest {
             assertEquals(IssueStatus.DELETED, repositories.issues().findById(target.id()).orElseThrow().status());
         } finally {
             if (deletedFromNew != null) {
-                repositories.issues().purge(deletedFromNew.id());
+                purgeTestIssue(deletedFromNew.id());
             }
             if (invalidDeleted != null) {
-                repositories.issues().purge(invalidDeleted.id());
+                purgeTestIssue(invalidDeleted.id());
             }
         }
     }
@@ -551,7 +562,7 @@ class OracleRepositoryIntegrationTest {
             assertTrue(repositories.issues().findById(issueId).isEmpty());
         } finally {
             if (issue != null) {
-                repositories.issues().purge(issue.id());
+                purgeTestIssue(issue.id());
             }
             if (project != null) {
                 repositories.projects().deleteById(project.getId());
@@ -623,13 +634,13 @@ class OracleRepositoryIntegrationTest {
                     .anyMatch(issue -> issue.id() == deleted.id()));
             assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
 
-            repositories.issues().purge(deleted.id());
+            purgeTestIssue(deleted.id());
             saved = null;
 
             assertTrue(repositories.issues().findById(deleted.id()).isEmpty());
         } finally {
             if (saved != null) {
-                repositories.issues().purge(saved.id());
+                purgeTestIssue(saved.id());
             }
             purgeIssuesByTitle(project.getId(), title);
         }
@@ -678,7 +689,7 @@ class OracleRepositoryIntegrationTest {
                             && "Assignment audit comment.".equals(history.message())));
         } finally {
             if (issue != null) {
-                repositories.issues().purge(issue.id());
+                purgeTestIssue(issue.id());
             }
             purgeIssuesByTitle(project.getId(), title);
         }
@@ -742,7 +753,7 @@ class OracleRepositoryIntegrationTest {
             if (comment != null) {
                 repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
             }
-            repositories.issues().purge(issue.id());
+            purgeTestIssue(issue.id());
         }
     }
 
@@ -770,7 +781,7 @@ class OracleRepositoryIntegrationTest {
             assertTrue(repositories.issueHistory().findDeletedTransitionsByProject(project.getId()).stream()
                     .anyMatch(value -> value.id() == history.id()));
         } finally {
-            repositories.issues().purge(issue.id());
+            purgeTestIssue(issue.id());
         }
     }
 
@@ -831,8 +842,8 @@ class OracleRepositoryIntegrationTest {
                     repositories.issues().findById(blocked.id()).orElseThrow().updatedAt().isAfter(previousUpdatedAt));
 
         } finally {
-            repositories.issues().purge(blocked.id());
-            repositories.issues().purge(blocking.id());
+            purgeTestIssue(blocked.id());
+            purgeTestIssue(blocking.id());
         }
     }
 
@@ -868,8 +879,8 @@ class OracleRepositoryIntegrationTest {
             assertTrue(
                     repositories.issues().findById(blocked.id()).orElseThrow().updatedAt().isAfter(previousUpdatedAt));
         } finally {
-            repositories.issues().purge(blocked.id());
-            repositories.issues().purge(blocking.id());
+            purgeTestIssue(blocked.id());
+            purgeTestIssue(blocking.id());
         }
     }
 
@@ -908,7 +919,7 @@ class OracleRepositoryIntegrationTest {
             assertEquals(tester4Before + 1, completedIssueCountForTester("tester4", project.getId()));
         } finally {
             if (issue != null) {
-                repositories.issues().purge(issue.id());
+                purgeTestIssue(issue.id());
             }
         }
     }
@@ -1045,7 +1056,7 @@ class OracleRepositoryIntegrationTest {
                             && IssueStatus.RESOLVED.name().equals(history.newValue())));
         } finally {
             if (issueId > 0L) {
-                repositories.issues().purge(issueId);
+                purgeTestIssue(issueId);
             }
         }
     }
@@ -1090,7 +1101,7 @@ class OracleRepositoryIntegrationTest {
                             && "comment deleted".equals(history.message())));
         } finally {
             if (issueId > 0L) {
-                repositories.issues().purge(issueId);
+                purgeTestIssue(issueId);
             }
         }
     }
@@ -1136,7 +1147,7 @@ class OracleRepositoryIntegrationTest {
                             && dependency.dependencyId().equals(history.previousValue())
                             && history.newValue() == null));
         } finally {
-            issueIds.forEach(id -> repositories.issues().purge(id));
+            issueIds.forEach(id -> purgeTestIssue(id));
         }
     }
 
@@ -1187,7 +1198,7 @@ class OracleRepositoryIntegrationTest {
             assertEquals(IssueStatus.NEW, restored.status());
         } finally {
             if (issueId > 0L) {
-                repositories.issues().purge(issueId);
+                purgeTestIssue(issueId);
             }
         }
     }
@@ -1309,7 +1320,7 @@ class OracleRepositoryIntegrationTest {
         repositories.issues().findByCriteria(IssueSearchCriteria.create(
                 projectId, null, null, null, null, null, title, null, null, true)).stream()
                 .filter(issue -> issue.title().equals(title))
-                .forEach(issue -> repositories.issues().purge(issue.id()));
+                .forEach(issue -> purgeTestIssue(issue.id()));
     }
 
     private static Issue createIssue(long projectId, String title) {

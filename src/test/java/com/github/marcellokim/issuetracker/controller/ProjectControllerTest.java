@@ -718,9 +718,5 @@ class ProjectControllerTest {
             return 0;
         }
 
-        @Override
-        public void purge(long issueId) {
-            issuesById.remove(issueId);
-        }
     }
 }

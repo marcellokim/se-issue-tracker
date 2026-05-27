@@ -121,11 +121,6 @@ public final class InMemoryIssueRepository implements IssueRepository {
         return 0;
     }
 
-    @Override
-    public void purge(long issueId) {
-        issues.remove(issueId);
-    }
-
     private Issue persistNew(Issue issue) {
         return Issue.fromPersistence(Issue.persistedState(
                         issue.projectId(),

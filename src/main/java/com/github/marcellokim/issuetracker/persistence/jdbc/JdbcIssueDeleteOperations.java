@@ -148,17 +148,6 @@ final class JdbcIssueDeleteOperations {
         }
     }
 
-    void purge(long issueId) {
-        String sql = "delete from issues where id = ?";
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, issueId);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to purge issue.", exception);
-        }
-    }
-
     private void purgeAll(Connection connection, List<Long> issueIds) throws SQLException {
         if (issueIds.isEmpty()) {
             return;

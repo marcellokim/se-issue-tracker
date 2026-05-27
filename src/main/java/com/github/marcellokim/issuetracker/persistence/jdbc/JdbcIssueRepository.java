@@ -197,11 +197,6 @@ public final class JdbcIssueRepository implements IssueRepository {
         return deleteOperations.purgeDeletedBeyondLimit(projectId, maxDeletedIssues);
     }
 
-    @Override
-    public void purge(long issueId) {
-        deleteOperations.purge(issueId);
-    }
-
     private Issue insert(Issue issue) {
         String sql = """
                 insert into issues (

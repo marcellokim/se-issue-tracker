@@ -322,10 +322,6 @@ class RepositoryDemoSummaryServiceTest {
                     "purgeDeletedBeyondLimit is not needed by RepositoryDemoSummaryServiceTest.");
         }
 
-        @Override
-        public void purge(long issueId) {
-            throw new UnsupportedOperationException("purge is not needed by RepositoryDemoSummaryServiceTest.");
-        }
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {

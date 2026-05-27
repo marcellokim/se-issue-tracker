@@ -33,6 +33,4 @@ public interface IssueRepository {
     Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate);
 
     int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues);
-
-    void purge(long issueId);
 }
