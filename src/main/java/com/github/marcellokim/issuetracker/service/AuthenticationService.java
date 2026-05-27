@@ -3,7 +3,6 @@ package com.github.marcellokim.issuetracker.service;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
-import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -11,32 +10,25 @@ public final class AuthenticationService {
 
     private final UserRepository users;
     private final PasswordHasher passwordHasher;
-    private final SessionStore sessionStore;
-
-    public AuthenticationService(UserRepository users) {
-        this(users, new PasswordHasher(), new SessionStore());
-    }
+    private final CurrentUserSession session;
 
     public AuthenticationService(
             UserRepository users,
             PasswordHasher passwordHasher,
-            SessionStore sessionStore
-    ) {
+            CurrentUserSession sessionStore) {
         this.users = Objects.requireNonNull(users, "users");
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
-        this.sessionStore = Objects.requireNonNull(sessionStore, "sessionStore");
+        this.session = Objects.requireNonNull(sessionStore, "session");
     }
 
     public Optional<User> currentUser() {
-        return sessionStore.currentUser();
+        return session.currentLoginId()
+                .flatMap(users::findByLoginId)
+                .filter(User::isActive);
     }
 
     public void logout() {
-        sessionStore.clear();
-    }
-
-    public AuthenticationResult logIn(String loginId, String password) {
-        return login(loginId, password);
+        session.clear();
     }
 
     public AuthenticationResult login(String loginId, String password) {
@@ -52,7 +44,7 @@ public final class AuthenticationService {
                     if (!user.isActive()) {
                         return AuthenticationResult.failure("This account is inactive.");
                     }
-                    sessionStore.startSession(user);
+                    session.start(user.getLoginId());
                     return AuthenticationResult.success(user);
                 })
                 .orElseGet(() -> AuthenticationResult.failure("Invalid ID or password."));

@@ -403,7 +403,7 @@ class ControllerCoverageTest {
     private static AuthFixture authenticated(Role role) {
         User user = user(role.name().toLowerCase(Locale.ROOT), role);
         SessionStore sessionStore = new SessionStore();
-        sessionStore.startSession(user);
+        sessionStore.start(user.getLoginId());
         FakeUserRepository users = new FakeUserRepository(user);
         return new AuthFixture(
                 new AuthenticationService(users, new PasswordHasher(), sessionStore),

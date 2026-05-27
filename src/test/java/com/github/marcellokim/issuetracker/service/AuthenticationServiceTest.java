@@ -9,6 +9,7 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,8 +28,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("accepts matching seeded admin credentials")
     void loginAcceptsSeededAdminCredentials() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
+        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
 
         AuthenticationResult result = service.login("admin", ADMIN_PASSWORD);
 
@@ -40,8 +40,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("rejects incorrect password")
     void loginRejectsIncorrectPassword() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
+        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
 
         AuthenticationResult result = service.login("admin", "wrong-password");
 
@@ -52,8 +51,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("rejects inactive account")
     void loginRejectsInactiveAccount() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("dev1", ADMIN_PASSWORD, Role.DEV, false))));
+        var service = service(List.of(user("dev1", ADMIN_PASSWORD, Role.DEV, false)));
 
         AuthenticationResult result = service.login("dev1", ADMIN_PASSWORD);
 
@@ -64,8 +62,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("inactive account still requires matching password")
     void inactiveAccountStillRequiresMatchingPassword() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("dev1", ADMIN_PASSWORD, Role.DEV, false))));
+        var service = service(List.of(user("dev1", ADMIN_PASSWORD, Role.DEV, false)));
 
         AuthenticationResult result = service.login("dev1", "wrong-password");
 
@@ -76,7 +73,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("rejects missing credentials before repository lookup")
     void loginRejectsMissingCredentials() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of()));
+        var service = service(List.of());
 
         assertEquals("ID and password are required.", service.login(null, ADMIN_PASSWORD).message());
         assertEquals("ID and password are required.", service.login(" ", ADMIN_PASSWORD).message());
@@ -87,11 +84,10 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("trims login id and stores authenticated current user")
     void loginTrimsLoginIdAndStoresCurrentUser() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
+        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
 
         assertFalse(service.currentUser().isPresent());
-        AuthenticationResult result = service.logIn(" admin ", ADMIN_PASSWORD);
+        AuthenticationResult result = service.login(" admin ", ADMIN_PASSWORD);
 
         assertTrue(result.success());
         assertTrue(service.currentUser().isPresent());
@@ -101,8 +97,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("logout clears authenticated current user")
     void logoutClearsCurrentUser() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of(
-                user("admin", ADMIN_PASSWORD, Role.ADMIN, true))));
+        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
 
         assertTrue(service.login("admin", ADMIN_PASSWORD).success());
         assertTrue(service.currentUser().isPresent());
@@ -115,7 +110,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("rejects unknown account")
     void loginRejectsUnknownAccount() {
-        var service = new AuthenticationService(new FakeUserRepository(List.of()));
+        var service = service(List.of());
 
         AuthenticationResult result = service.login("missing", ADMIN_PASSWORD);
 
@@ -127,6 +122,10 @@ class AuthenticationServiceTest {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
         return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp,
                 timestamp);
+    }
+
+    private static AuthenticationService service(List<User> users) {
+        return new AuthenticationService(new FakeUserRepository(users), PASSWORD_HASHER, new SessionStore());
     }
 
     private static final class FakeUserRepository implements UserRepository {

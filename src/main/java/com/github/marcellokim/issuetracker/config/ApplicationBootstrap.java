@@ -13,6 +13,7 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseEnvironment;
 import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
+import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AccountService;
@@ -28,6 +29,7 @@ import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -53,7 +55,8 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
 
     @Override
     public LoginCheckService loginCheckService() throws IOException, SQLException {
-        return new LoginCheckService(context().repositories().users());
+        var users = context().repositories().users();
+        return new LoginCheckService(users, authenticationService(users));
     }
 
     @Override
@@ -74,7 +77,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
         var assignmentRecommendations = repositories.assignmentRecommendations();
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         Clock clock = new Clock();
-        AuthenticationService authenticationService = new AuthenticationService(users);
+        AuthenticationService authenticationService = authenticationService(users);
         AccountService accountService = new AccountService(
                 permissionPolicy,
                 users,
@@ -145,6 +148,10 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                     new JdbcRepositoryFactory(connectionProvider));
         }
         return context;
+    }
+
+    private static AuthenticationService authenticationService(UserRepository users) {
+        return new AuthenticationService(users, new PasswordHasher(), new SessionStore());
     }
 
     private static DatabaseConnectionSummary connectionSummary(

@@ -399,7 +399,7 @@ class ProjectControllerTest {
         String loginId = role.name().toLowerCase();
         User user = active(loginId, role);
         SessionStore sessionStore = new SessionStore();
-        sessionStore.startSession(user);
+        sessionStore.start(user.getLoginId());
         FakeUserRepository users = new FakeUserRepository(user);
         return new AuthFixture(
                 new AuthenticationService(users, new PasswordHasher(), sessionStore),

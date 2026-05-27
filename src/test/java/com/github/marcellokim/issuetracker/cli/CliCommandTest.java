@@ -9,10 +9,12 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
+import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummary;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -199,7 +201,10 @@ class CliCommandTest {
             if (fail) {
                 throw new IOException("boom");
             }
-            return new LoginCheckService(new InMemoryUserRepository(loginUser));
+            var repository = new InMemoryUserRepository(loginUser);
+            return new LoginCheckService(
+                    repository,
+                    new AuthenticationService(repository, PASSWORD_HASHER, new SessionStore()));
         }
 
         @Override
