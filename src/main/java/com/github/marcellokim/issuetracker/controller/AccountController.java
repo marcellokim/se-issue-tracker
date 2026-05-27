@@ -24,18 +24,6 @@ public final class AccountController {
         return accountService.createAccount(loginId, name, password, role, user);
     }
 
-    // updateAccount = renameAccount + changeAccountRole이라 일단 테스트에서 빼고 나머지 메인 폴더에서는
-    // 주석처리만 했음
-    /*
-     * updateAccount is intentionally disabled because account name and role changes
-     * are exposed as separate operations.
-     *
-     * public UserResult updateAccount(String loginId, String name, Role role) {
-     * User user = requireCurrentUser();
-     * return accountService.updateAccount(loginId, name, role, user);
-     * }
-     */
-
     public UserResult renameAccount(String loginId, String name) {
         User user = requireCurrentUser();
         return accountService.renameAccount(loginId, name, user);

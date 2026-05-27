@@ -40,11 +40,6 @@ public final class StatisticsController {
         return viewStatistics(projectId, null, null, null, null);
     }
 
-    // public boolean canViewStatistics(long projectId) {
-    // User user = requireCurrentUser();
-    // return statisticsService.canViewStatistics(projectId, user);
-    // }
-
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));

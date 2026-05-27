@@ -279,7 +279,7 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
         return new IssueController(authService, issueService);
     }
 
@@ -294,7 +294,7 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
         return new IssueController(authService, issueService);
     }
 

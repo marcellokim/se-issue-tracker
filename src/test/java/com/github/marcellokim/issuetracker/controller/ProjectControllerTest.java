@@ -392,7 +392,7 @@ class ProjectControllerTest {
                 issues,
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     private static AuthFixture authenticated(Role role) {

@@ -178,7 +178,7 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue);
         DeletedIssueController controller = new DeletedIssueController(
                 auth.service(),
-                new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), java.time.LocalDateTime::now));
 
         List<IssueSummary> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
         IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
@@ -200,19 +200,19 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(101L, PROJECT_ID, IssueStatus.NEW));
         DeletedIssueController anonymousController = new DeletedIssueController(
                 anonymousAuth(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), java.time.LocalDateTime::now));
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), java.time.LocalDateTime::now));
         SecurityException adminFailure = assertThrows(SecurityException.class,
                 () -> adminController.deleteIssue(101L, "admin cannot delete"));
         assertEquals("Only PL can manage deleted issues.", adminFailure.getMessage());
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), new Clock()));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
 
@@ -224,7 +224,7 @@ class ControllerCoverageTest {
         ProjectController controller = ProjectController.create(
                 auth.service(),
                 ProjectService.create(projects, new FakeIssueRepository(), auth.users(), new PermissionPolicy(),
-                        new Clock()));
+                        java.time.LocalDateTime::now));
 
         controller.deleteProject(PROJECT_ID);
 
@@ -240,7 +240,7 @@ class ControllerCoverageTest {
         ProjectController adminController = ProjectController.create(
                 admin.service(),
                 ProjectService.create(projects, new FakeIssueRepository(), admin.users(), new PermissionPolicy(),
-                        new Clock()));
+                        java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(PROJECT_ID));
 
@@ -252,7 +252,7 @@ class ControllerCoverageTest {
                         new FakeIssueRepository(),
                         pl.users(),
                         new PermissionPolicy(),
-                        new Clock()));
+                        java.time.LocalDateTime::now));
         assertThrows(SecurityException.class, () -> plController.deleteProject(PROJECT_ID));
     }
 
@@ -274,7 +274,7 @@ class ControllerCoverageTest {
                         auth.users(),
                         policy,
                         recommendationService,
-                        new Clock()));
+                        java.time.LocalDateTime::now));
 
         AssignmentOptionsResult options = controller.startAssignment(issue.id());
 
@@ -300,7 +300,7 @@ class ControllerCoverageTest {
                         new FakeUserRepository(),
                         policy,
                         recommendations,
-                        new Clock()));
+                        java.time.LocalDateTime::now));
         assertThrows(SecurityException.class, () -> anonymousController.startAssignment(issue.id()));
 
         AssignmentController plController = new AssignmentController(
@@ -310,7 +310,7 @@ class ControllerCoverageTest {
                         new FakeUserRepository(),
                         policy,
                         recommendations,
-                        new Clock()));
+                        java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> plController.startAssignment(issue.id()));
     }
 
@@ -323,7 +323,8 @@ class ControllerCoverageTest {
         PasswordHasher hasher = new PasswordHasher();
         AccountController controller = new AccountController(
                 auth.service(),
-                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher));
+                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher,
+                        java.time.LocalDateTime::now));
 
         UserResult result = controller.createAccount("newdev", "New Dev", "pass123", Role.DEV);
 
@@ -343,7 +344,8 @@ class ControllerCoverageTest {
         PasswordHasher hasher = new PasswordHasher();
         AccountController controller = new AccountController(
                 auth.service(),
-                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher));
+                new AccountService(new PermissionPolicy(), auth.users(), projects, issues, hasher,
+                        java.time.LocalDateTime::now));
 
         UserResult renamed = controller.renameAccount("target1", "Renamed");
         assertEquals("Renamed", renamed.name());
@@ -364,7 +366,8 @@ class ControllerCoverageTest {
         AccountController controller = new AccountController(
                 anonymousAuth(),
                 new AccountService(new PermissionPolicy(), new FakeUserRepository(),
-                        new FakeProjectRepository(), new FakeIssueRepository(), new PasswordHasher()));
+                        new FakeProjectRepository(), new FakeIssueRepository(), new PasswordHasher(),
+                        java.time.LocalDateTime::now));
 
         assertThrows(SecurityException.class,
                 () -> controller.createAccount("x", "X", "pass", Role.DEV));
@@ -378,11 +381,11 @@ class ControllerCoverageTest {
         FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
         FakeIssueRepository issues = new FakeIssueRepository(issue(301L, PROJECT_ID, IssueStatus.NEW));
         PermissionPolicy policy = new PermissionPolicy();
-        Clock clock = new Clock();
+        Clock clock = java.time.LocalDateTime::now;
 
         assertDoesNotThrow(() -> new AccountController(
                 auth.service(),
-                new AccountService(policy, users, projects, issues, new PasswordHasher())));
+                new AccountService(policy, users, projects, issues, new PasswordHasher(), clock)));
         assertDoesNotThrow(() -> new IssueController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueService(

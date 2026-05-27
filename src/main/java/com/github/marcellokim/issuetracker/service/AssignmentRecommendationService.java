@@ -33,27 +33,6 @@ public final class AssignmentRecommendationService {
         };
     }
 
-    // findDevAssigneeCandidates()
-    // = 후보 유저만 반환
-
-    // findDevAssigneeCandidateDetails()
-    // = 후보 유저 + 추천 근거까지 반환
-    // public List<UserResult> findDevAssigneeCandidates(Issue issue) {
-    // Objects.requireNonNull(issue, ISSUE_REQUIRED);
-    // return
-    // topCandidates(recommendations.findDevAssigneeCandidates(issue.projectId())).stream()
-    // .map(candidate -> UserResult.from(candidate.user()))
-    // .toList();
-    // }
-
-    // public List<UserResult> findTesterVerifierCandidates(Issue issue) {
-    // Objects.requireNonNull(issue, ISSUE_REQUIRED);
-    // return
-    // topCandidates(recommendations.findTesterVerifierCandidates(issue.projectId())).stream()
-    // .map(candidate -> UserResult.from(candidate.user()))
-    // .toList();
-    // }
-
     public List<AssignmentCandidateResult> findDevAssigneeCandidateDetails(Issue issue) {
         Objects.requireNonNull(issue, ISSUE_REQUIRED);
         return topCandidateResults(findAllDevAssigneeCandidateDetails(issue));
@@ -94,10 +73,4 @@ public final class AssignmentRecommendationService {
                 .toList();
     }
 
-    // private static List<AssignmentCandidate>
-    // topCandidates(List<AssignmentCandidate> candidates) {
-    // return candidates.stream()
-    // .limit(MAX_CANDIDATES)
-    // .toList();
-    // }
 }

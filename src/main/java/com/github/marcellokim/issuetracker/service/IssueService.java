@@ -477,8 +477,7 @@ public final class IssueService {
                 issue.updatedAt(),
                 comments,
                 histories,
-                dependencies,
-                List.of());
+                dependencies);
     }
 
     private static CommentResult toCommentResult(Comment comment) {

@@ -223,15 +223,18 @@ class AccountServiceTest {
         PermissionPolicy policy = new PermissionPolicy();
 
         assertThrows(NullPointerException.class,
-                () -> new AccountService(policy, users, null, new InMemoryIssueRepository(), PASSWORD_HASHER));
+                () -> new AccountService(policy, users, null, new InMemoryIssueRepository(), PASSWORD_HASHER,
+                        java.time.LocalDateTime::now));
         assertThrows(NullPointerException.class,
-                () -> new AccountService(policy, users, new FakeProjectRepository(), null, PASSWORD_HASHER));
+                () -> new AccountService(policy, users, new FakeProjectRepository(), null, PASSWORD_HASHER,
+                        java.time.LocalDateTime::now));
         assertNotNull(new AccountService(
                 policy,
                 users,
                 new FakeProjectRepository(),
                 new InMemoryIssueRepository(),
-                PASSWORD_HASHER));
+                PASSWORD_HASHER,
+                java.time.LocalDateTime::now));
     }
 
     private static AccountService service(InMemoryUserRepository users) {
@@ -242,7 +245,8 @@ class AccountServiceTest {
             InMemoryUserRepository users,
             ProjectRepository projects,
             InMemoryIssueRepository issues) {
-        return new AccountService(new PermissionPolicy(), users, projects, issues, PASSWORD_HASHER);
+        return new AccountService(new PermissionPolicy(), users, projects, issues, PASSWORD_HASHER,
+                java.time.LocalDateTime::now);
     }
 
     private static User actor(InMemoryUserRepository users, String loginId) {

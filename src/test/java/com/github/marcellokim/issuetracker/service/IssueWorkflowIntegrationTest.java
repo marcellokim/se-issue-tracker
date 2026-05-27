@@ -84,13 +84,13 @@ class IssueWorkflowIntegrationTest {
                 userRepository,
                 policy,
                 new AssignmentRecommendationService(new EmptyAssignmentRecommendationRepository()),
-                new Clock());
+                java.time.LocalDateTime::now);
         var stateService = new IssueStateService(
                 issueRepository,
                 new FakeIssueDependencyRepository(),
                 userRepository,
                 policy,
-                new Clock());
+                java.time.LocalDateTime::now);
 
         assignmentService.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId());
         stateService.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());

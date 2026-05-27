@@ -33,7 +33,7 @@ class DeletedIssueServiceTest {
                 new InMemoryIssueRepository(deletedIssue()),
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
 
         assertThrows(SecurityException.class,
                 () -> service.viewDeletedIssues(PROJECT_ID, otherProjectPl));
@@ -48,7 +48,7 @@ class DeletedIssueServiceTest {
                 new InMemoryIssueRepository(issueWithStatus(IssueStatus.ASSIGNED)),
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
 
         assertThrows(SecurityException.class,
                 () -> service.deleteIssue(ISSUE_ID, "delete rejected", projectPl));

@@ -1149,7 +1149,8 @@ class OracleRepositoryIntegrationTest {
                 repositories.users(),
                 repositories.projects(),
                 repositories.issues(),
-                new PasswordHasher());
+                new PasswordHasher(),
+                java.time.LocalDateTime::now);
     }
 
     private static ProjectService projectService() {
@@ -1158,7 +1159,7 @@ class OracleRepositoryIntegrationTest {
                 repositories.issues(),
                 repositories.users(),
                 permissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     private static IssueService issueService() {
@@ -1170,7 +1171,7 @@ class OracleRepositoryIntegrationTest {
                 repositories.issueHistory(),
                 repositories.users(),
                 permissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     private static AssignmentService assignmentService() {
@@ -1179,7 +1180,7 @@ class OracleRepositoryIntegrationTest {
                 repositories.users(),
                 permissionPolicy(),
                 new AssignmentRecommendationService(repositories.assignmentRecommendations()),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     private static IssueStateService issueStateService() {
@@ -1188,7 +1189,7 @@ class OracleRepositoryIntegrationTest {
                 repositories.issueDependencies(),
                 repositories.users(),
                 permissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     private static DeletedIssueService deletedIssueService() {
@@ -1196,7 +1197,7 @@ class OracleRepositoryIntegrationTest {
                 repositories.issues(),
                 repositories.users(),
                 permissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     private static StatisticsService statisticsService() {

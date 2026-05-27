@@ -222,7 +222,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("blocking issue가 미해결이면 resolve할 수 없다")
+    @DisplayName("unresolved blocking issue prevents resolve")
     void rejectResolveWhenBlockingIssueUnresolved() {
         var blockedIssue = fixedIssue();
         var blockingIssue = newIssue(2L, "ISSUE-2");
@@ -236,7 +236,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("여러 blocking issue 중 하나라도 미해결이면 resolve할 수 없다")
+    @DisplayName("any unresolved blocking issue prevents resolve")
     void rejectResolveWhenAnyBlockingIssueUnresolved() {
         var blockedIssue = fixedIssue();
         var resolvedBlocking = resolvedIssue(2L, "ISSUE-2");
@@ -267,7 +267,7 @@ class IssueStateServiceTest {
                 depRepo,
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
     }
 
     // private Issue newIssue() {

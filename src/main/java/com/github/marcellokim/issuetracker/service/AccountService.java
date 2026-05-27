@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import java.time.LocalDateTime;
 import java.util.Objects;
 
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -9,6 +8,7 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import java.time.LocalDateTime;
 
 public final class AccountService {
 
@@ -19,15 +19,6 @@ public final class AccountService {
     private final IssueRepository issueRepository;
     private final PasswordHasher passwordHasher;
     private final Clock clock;
-
-    public AccountService(
-            PermissionPolicy permissionPolicy,
-            UserRepository userRepository,
-            ProjectRepository projectRepository,
-            IssueRepository issueRepository,
-            PasswordHasher passwordHasher) {
-        this(permissionPolicy, userRepository, projectRepository, issueRepository, passwordHasher, new Clock());
-    }
 
     public AccountService(
             PermissionPolicy permissionPolicy,
@@ -70,23 +61,6 @@ public final class AccountService {
                 now);
         return UserResult.from(userRepository.save(user));
     }
-
-    // 중복 메서드
-    // public UserResult updateAccount(String loginId, String name, Role role, User
-    // actor) {
-    // requireActor(actor);
-    // permissionPolicy.assertCanManageAccount(actor);
-    // requireDifferentAccount(loginId, actor.getLoginId());
-    // User target = findUser(loginId);
-    // Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);
-    // requireNonAdminTarget(target);
-    // requireNonAdminAccount(loginId, newRole);
-    // rejectRoleChangeWithProjectResponsibility(target, newRole);
-    // LocalDateTime now = clock.now();
-    // target.rename(name, now);
-    // target.changeRole(newRole, now);
-    // return UserResult.from(userRepository.save(target));
-    // }
 
     public UserResult renameAccount(String loginId, String name, User actor) {
         loginId = requireText(loginId, "loginId");
