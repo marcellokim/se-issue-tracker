@@ -33,18 +33,6 @@ public final class AssignmentRecommendationService {
         };
     }
 
-    // public List<AssignmentCandidateResult> findDevAssigneeCandidateDetails(Issue
-    // issue) {
-    // Objects.requireNonNull(issue, ISSUE_REQUIRED);
-    // return topCandidateResults(findAllDevAssigneeCandidateDetails(issue));
-    // }
-
-    // public List<AssignmentCandidateResult>
-    // findTesterVerifierCandidateDetails(Issue issue) {
-    // Objects.requireNonNull(issue, ISSUE_REQUIRED);
-    // return topCandidateResults(findAllTesterVerifierCandidateDetails(issue));
-    // }
-
     private static AssignmentOptionsResult options(
             List<AssignmentCandidateResult> allDevCandidates,
             List<AssignmentCandidateResult> allTesterCandidates) {

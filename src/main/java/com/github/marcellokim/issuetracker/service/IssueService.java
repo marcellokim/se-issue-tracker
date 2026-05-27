@@ -101,16 +101,6 @@ public final class IssueService {
         return toIssueDetailResult(issue, comments, histories, dependencies);
     }
 
-    // public List<IssueSummary> searchIssues(
-    // long projectId,
-    // String keyword,
-    // IssueStatus status,
-    // Priority priority,
-    // String currentUserId) {
-    // return searchIssues(projectId, keyword, status, priority, null, null, null,
-    // null, null, currentUserId);
-    // }
-
     public List<IssueSummary> searchIssues(
             long projectId,
             String keyword,
@@ -133,7 +123,7 @@ public final class IssueService {
                 optionalText(reporterId),
                 optionalText(assigneeId),
                 optionalText(verifierId),
-                keyword,
+                optionalText(keyword),
                 reportedFrom,
                 reportedTo,
                 false)).stream()
