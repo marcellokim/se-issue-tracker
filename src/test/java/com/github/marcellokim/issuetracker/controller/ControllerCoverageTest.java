@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
-import com.github.marcellokim.issuetracker.domain.AssignmentOptions;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -200,19 +199,22 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(101L, PROJECT_ID, IssueStatus.NEW));
         DeletedIssueController anonymousController = new DeletedIssueController(
                 anonymousAuth(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), java.time.LocalDateTime::now));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                        java.time.LocalDateTime::now));
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), java.time.LocalDateTime::now));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                        java.time.LocalDateTime::now));
         SecurityException adminFailure = assertThrows(SecurityException.class,
                 () -> adminController.deleteIssue(101L, "admin cannot delete"));
         assertEquals("Only PL can manage deleted issues.", adminFailure.getMessage());
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(), java.time.LocalDateTime::now));
+                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                        java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
 
