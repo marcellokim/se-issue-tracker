@@ -223,9 +223,9 @@ class ControllerCoverageTest {
     void projectControllerDeletesProjectForAdmin() {
         AuthFixture auth = authenticated(Role.ADMIN);
         FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
-        ProjectController controller = ProjectController.create(
+        ProjectController controller = new ProjectController(
                 auth.service(),
-                ProjectService.create(projects, new FakeIssueRepository(), auth.users(), new PermissionPolicy(),
+                new ProjectService(projects, new FakeIssueRepository(), auth.users(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
 
         controller.deleteProject(PROJECT_ID);
@@ -239,17 +239,17 @@ class ControllerCoverageTest {
     void projectControllerRejectsInvalidDeleteRequests() {
         AuthFixture admin = authenticated(Role.ADMIN);
         FakeProjectRepository projects = new FakeProjectRepository();
-        ProjectController adminController = ProjectController.create(
+        ProjectController adminController = new ProjectController(
                 admin.service(),
-                ProjectService.create(projects, new FakeIssueRepository(), admin.users(), new PermissionPolicy(),
+                new ProjectService(projects, new FakeIssueRepository(), admin.users(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(PROJECT_ID));
 
         AuthFixture pl = authenticated(Role.PL);
-        ProjectController plController = ProjectController.create(
+        ProjectController plController = new ProjectController(
                 pl.service(),
-                ProjectService.create(
+                new ProjectService(
                         new FakeProjectRepository(project(PROJECT_ID)),
                         new FakeIssueRepository(),
                         pl.users(),

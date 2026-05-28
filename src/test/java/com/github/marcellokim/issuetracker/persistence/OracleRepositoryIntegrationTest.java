@@ -1257,7 +1257,7 @@ class OracleRepositoryIntegrationTest {
         }
 
         private static ProjectService projectService() {
-                return ProjectService.create(
+                return new ProjectService(
                                 repositories.projects(),
                                 repositories.issues(),
                                 repositories.users(),

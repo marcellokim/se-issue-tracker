@@ -18,9 +18,8 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
-import com.github.marcellokim.issuetracker.service.ProjectDetail;
+import com.github.marcellokim.issuetracker.service.ProjectAdminDetail;
 import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
@@ -49,9 +48,11 @@ class ProjectControllerTest {
         FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
         ProjectController controller = controller(auth, projects, users);
 
-        assertThrows(IllegalArgumentException.class, () -> controller.viewProject(0L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectNonAdminDetail(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(0L));
-        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectDetail(0L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectAdminDetail(0L));
+        assertThrows(IllegalArgumentException.class, () -> controller.renameProject(0L, "renamed-project"));
+        assertThrows(IllegalArgumentException.class, () -> controller.changeProjectDescription(0L, "updated description"));
         assertThrows(IllegalArgumentException.class, () -> controller.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.addProjectParticipant(0L, "dev1"));
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(0L, "dev1"));
@@ -75,13 +76,10 @@ class ProjectControllerTest {
                 new FakeUserRepository(auth.user(), active("pl1", Role.PL), active("dev1", Role.DEV)),
                 issues);
 
-        List<ProjectResult> viewedProjects = controller.viewProjects();
-        ProjectResult viewedProject = controller.viewProject(1L);
         List<ProjectMemberResult> viewedParticipants = controller.viewProjectParticipants(1L);
-        ProjectDetail viewedDetail = controller.viewProjectDetail(1L);
+        ProjectAdminDetail viewedDetail = controller.viewProjectAdminDetail(1L);
 
-        assertEquals(2, viewedProjects.size());
-        assertEquals("project-one", viewedProject.name());
+        assertEquals("project-one", viewedDetail.project().name());
         assertEquals(List.of("pl1", "dev1"), viewedParticipants.stream()
                 .map(ProjectMemberResult::userId)
                 .toList());
@@ -89,12 +87,9 @@ class ProjectControllerTest {
         assertEquals(List.of("pl1", "dev1"), viewedDetail.participants().stream()
                 .map(ProjectMemberResult::userId)
                 .toList());
-        assertEquals(List.of(101L), viewedDetail.issues().stream()
-                .map(IssueSummary::id)
-                .toList());
-        assertThrows(IllegalArgumentException.class, () -> controller.viewProject(404L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectNonAdminDetail(404L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(404L));
-        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectDetail(404L));
+        assertThrows(IllegalArgumentException.class, () -> controller.viewProjectAdminDetail(404L));
     }
 
     @Test
@@ -113,6 +108,22 @@ class ProjectControllerTest {
         assertNotNull(created.createdDate());
         assertNotNull(created.updatedAt());
         assertTrue(projects.findById(created.id()).isPresent());
+    }
+
+    @Test
+    @DisplayName("ADMIN updates project name and description")
+    void adminUpdatesProjectNameAndDescription() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
+
+        ProjectResult renamed = controller.renameProject(1L, " project-renamed ");
+        ProjectResult updatedDescription = controller.changeProjectDescription(1L, " updated description ");
+
+        assertEquals("project-renamed", renamed.name());
+        assertEquals("project-renamed", updatedDescription.name());
+        assertEquals("updated description", updatedDescription.description());
+        assertEquals("updated description", projects.findById(1L).orElseThrow().getDescription());
     }
 
     @Test
@@ -136,11 +147,12 @@ class ProjectControllerTest {
             FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
             ProjectController controller = controller(auth, projects, users);
 
-            assertThrows(SecurityException.class, controller::viewProjects);
-            assertThrows(SecurityException.class, () -> controller.viewProject(1L));
+            assertThrows(SecurityException.class, () -> controller.viewProjectNonAdminDetail(1L));
             assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(1L));
-            assertThrows(SecurityException.class, () -> controller.viewProjectDetail(1L));
+            assertThrows(SecurityException.class, () -> controller.viewProjectAdminDetail(1L));
             assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
+            assertThrows(SecurityException.class, () -> controller.renameProject(1L, "blocked-project"));
+            assertThrows(SecurityException.class, () -> controller.changeProjectDescription(1L, "blocked"));
             assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
             assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
             assertThrows(SecurityException.class, () -> controller.removeProjectParticipant(1L, "dev1"));
@@ -152,15 +164,16 @@ class ProjectControllerTest {
     void anonymousUsersCannotManageProjects() {
         FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
         FakeUserRepository users = new FakeUserRepository(active("dev1", Role.DEV));
-        ProjectController controller = ProjectController.create(
+        ProjectController controller = new ProjectController(
                 anonymousAuth(),
                 service(projects, users));
 
-        assertThrows(SecurityException.class, controller::viewProjects);
-        assertThrows(SecurityException.class, () -> controller.viewProject(1L));
+        assertThrows(SecurityException.class, () -> controller.viewProjectNonAdminDetail(1L));
         assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(1L));
-        assertThrows(SecurityException.class, () -> controller.viewProjectDetail(1L));
+        assertThrows(SecurityException.class, () -> controller.viewProjectAdminDetail(1L));
         assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
+        assertThrows(SecurityException.class, () -> controller.renameProject(1L, "blocked-project"));
+        assertThrows(SecurityException.class, () -> controller.changeProjectDescription(1L, "blocked"));
         assertThrows(SecurityException.class, () -> controller.deleteProject(1L));
         assertThrows(SecurityException.class, () -> controller.addProjectParticipant(1L, "dev1"));
         assertThrows(SecurityException.class, () -> controller.removeProjectParticipant(1L, "dev1"));
@@ -170,20 +183,37 @@ class ProjectControllerTest {
     @DisplayName("blank project names are rejected")
     void blankProjectNamesAreRejected() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository();
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         assertThrows(IllegalArgumentException.class, () -> controller.createProject(" ", "blank"));
+        assertThrows(IllegalArgumentException.class, () -> controller.renameProject(1L, " "));
+    }
+
+    @Test
+    @DisplayName("blank project descriptions are rejected")
+    void blankProjectDescriptionsAreRejected() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
+
+        assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-one", null));
+        assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-one", " "));
+        assertThrows(IllegalArgumentException.class, () -> controller.changeProjectDescription(1L, null));
+        assertThrows(IllegalArgumentException.class, () -> controller.changeProjectDescription(1L, " "));
     }
 
     @Test
     @DisplayName("duplicate project names are rejected")
     void duplicateProjectNamesAreRejected() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        FakeProjectRepository projects = new FakeProjectRepository(
+                project(1L, "project-one"),
+                project(2L, "project-two"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-one", "duplicate"));
+        assertThrows(IllegalArgumentException.class, () -> controller.renameProject(2L, "project-one"));
     }
 
     @Test
@@ -359,7 +389,7 @@ class ProjectControllerTest {
             AuthFixture auth,
             FakeProjectRepository projects,
             FakeUserRepository users) {
-        return ProjectController.create(
+        return new ProjectController(
                 auth.service(),
                 service(projects, users));
     }
@@ -369,7 +399,7 @@ class ProjectControllerTest {
             FakeProjectRepository projects,
             FakeUserRepository users,
             FakeIssueRepository issues) {
-        return ProjectController.create(
+        return new ProjectController(
                 auth.service(),
                 service(projects, users, issues));
     }
@@ -385,7 +415,7 @@ class ProjectControllerTest {
             FakeUserRepository users,
             FakeIssueRepository issues) {
         users.attachProjects(projects);
-        return ProjectService.create(
+        return new ProjectService(
                 projects,
                 issues,
                 users,

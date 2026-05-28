@@ -118,7 +118,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 users,
                                 permissionPolicy,
                                 clock);
-                ProjectService projectService = ProjectService.create(
+                ProjectService projectService = new ProjectService(
                                 projects,
                                 issues,
                                 users,
@@ -135,7 +135,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 new AuthenticationController(authenticationService),
                                 new AccountController(authenticationService, accountService),
                                 new DashboardController(authenticationService, dashboardSummaryService),
-                                ProjectController.create(authenticationService, projectService),
+                                new ProjectController(authenticationService, projectService),
                                 new IssueController(authenticationService, issueService),
                                 new AssignmentController(authenticationService, assignmentService),
                                 new IssueStateController(authenticationService, issueStateService),
