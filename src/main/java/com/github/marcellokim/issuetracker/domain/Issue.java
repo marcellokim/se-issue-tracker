@@ -460,8 +460,8 @@ public class Issue {
     }
 
     /*
-     * Keep the User reference and loginId snapshot in sync.
-     * Domain transition methods should not duplicate field/id sync rules.
+     * User reference와 loginId snapshot 함께 갱신.
+     * 도메인 전이 메서드가 association 변경 규칙에 집중하도록 field/id 동기화 한 곳에 모음.
      */
     private void setAssignee(User assignee) {
         this.assignee = assignee;

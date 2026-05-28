@@ -24,44 +24,13 @@ public final class StatisticsReport {
             Map<IssueStatus, Integer> statusCounts,
             Map<Priority, Integer> priorityCounts,
             List<DailyIssueCount> dailyCounts,
-            List<MonthlyIssueCount> monthlyCounts
-    ) {
-        return create(statusCounts, priorityCounts, dailyCounts, monthlyCounts, Map.of(), Map.of());
-    }
-
-    public static StatisticsReport create(
-            Map<IssueStatus, Integer> statusCounts,
-            Map<Priority, Integer> priorityCounts,
-            List<DailyIssueCount> dailyCounts,
-            List<MonthlyIssueCount> monthlyCounts,
-            Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts,
-            Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts
-    ) {
-        return create(
-                statusCounts,
-                priorityCounts,
-                dailyCounts,
-                monthlyCounts,
-                monthlyStatusCounts,
-                monthlyPriorityCounts,
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of());
-    }
-
-    public static StatisticsReport create(
-            Map<IssueStatus, Integer> statusCounts,
-            Map<Priority, Integer> priorityCounts,
-            List<DailyIssueCount> dailyCounts,
             List<MonthlyIssueCount> monthlyCounts,
             Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts,
             Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts,
             List<DailyIssueCount> dailyStatusChangeCounts,
             List<MonthlyIssueCount> monthlyStatusChangeCounts,
             List<DailyIssueCount> dailyCommentCounts,
-            List<MonthlyIssueCount> monthlyCommentCounts
-    ) {
+            List<MonthlyIssueCount> monthlyCommentCounts) {
         return new StatisticsReport(
                 statusCounts,
                 priorityCounts,
@@ -85,8 +54,7 @@ public final class StatisticsReport {
             List<DailyIssueCount> dailyStatusChangeCounts,
             List<MonthlyIssueCount> monthlyStatusChangeCounts,
             List<DailyIssueCount> dailyCommentCounts,
-            List<MonthlyIssueCount> monthlyCommentCounts
-    ) {
+            List<MonthlyIssueCount> monthlyCommentCounts) {
         this.statusCounts = Map.copyOf(statusCounts);
         this.priorityCounts = Map.copyOf(priorityCounts);
         this.dailyCounts = List.copyOf(dailyCounts);

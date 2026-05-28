@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
+import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -147,7 +149,7 @@ class DomainValueObjectsTest {
     @Test
     @DisplayName("all issue search criteria defaults to active issues")
     void allIssueSearchCriteriaDefaultsToActiveIssues() {
-        IssueSearchCriteria criteria = IssueSearchCriteria.all(1L);
+        IssueSearchCriteria criteria = IssueSearchCriteriaTestFactory.all(1L);
 
         assertEquals(1L, criteria.projectId());
         assertNull(criteria.status());
@@ -177,7 +179,7 @@ class DomainValueObjectsTest {
         Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts = new java.util.LinkedHashMap<>();
         monthlyPriorityCounts.put(YearMonth.of(2026, 5), Map.of(Priority.MAJOR, 2));
 
-        StatisticsReport report = StatisticsReport.create(
+        StatisticsReport report = StatisticsReportTestFactory.create(
                 statusCounts,
                 priorityCounts,
                 dailyCounts,
@@ -208,7 +210,7 @@ class DomainValueObjectsTest {
     void statisticsReportHasValueSemantics() {
         StatisticsReport report = report();
         StatisticsReport sameReport = report();
-        StatisticsReport differentReport = StatisticsReport.create(
+        StatisticsReport differentReport = StatisticsReportTestFactory.create(
                 Map.of(IssueStatus.CLOSED, 2),
                 Map.of(Priority.CRITICAL, 3),
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 4)),
@@ -223,7 +225,7 @@ class DomainValueObjectsTest {
         assertTrue(report.toString().contains("monthlyCounts="));
         assertTrue(report.toString().contains("monthlyStatusCounts="));
         assertThrows(NullPointerException.class,
-                () -> StatisticsReport.create(null, Map.of(), List.of(), List.of()));
+                () -> StatisticsReportTestFactory.create(null, Map.of(), List.of(), List.of()));
     }
 
     @Test
@@ -308,7 +310,7 @@ class DomainValueObjectsTest {
     }
 
     private static StatisticsReport report() {
-        return StatisticsReport.create(
+        return StatisticsReportTestFactory.create(
                 Map.of(IssueStatus.NEW, 1),
                 Map.of(Priority.MAJOR, 2),
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)),

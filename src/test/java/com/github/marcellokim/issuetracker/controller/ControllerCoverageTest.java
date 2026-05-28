@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
+import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -472,7 +473,7 @@ class ControllerCoverageTest {
         statusCounts.put(IssueStatus.NEW, 1);
         Map<Priority, Integer> priorityCounts = new EnumMap<>(Priority.class);
         priorityCounts.put(Priority.MAJOR, 1);
-        return StatisticsReport.create(
+        return StatisticsReportTestFactory.create(
                 statusCounts,
                 priorityCounts,
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 1)),

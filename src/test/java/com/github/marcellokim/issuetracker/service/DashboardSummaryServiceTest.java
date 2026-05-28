@@ -17,6 +17,7 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -439,7 +440,7 @@ class DashboardSummaryServiceTest {
                 LocalDate dailyToInclusive,
                 YearMonth monthlyFromInclusive,
                 YearMonth monthlyToInclusive) {
-            return StatisticsReport.create(
+            return StatisticsReportTestFactory.create(
                     countByStatus(projectId),
                     countByPriority(projectId),
                     List.of(),
