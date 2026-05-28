@@ -55,6 +55,10 @@
 | `scripts/validate-workflow-guard.sh` | 구현 | 정해진 PR/브랜치 흐름과 관리자 우회 정책 검증 | GitHub Actions에서 자동 실행 |
 | `scripts/validate-public-attribution.sh` | 구현 | commit message와 tracked file의 공개 이력 표기 정책 검증 | commit hook / audit에서 자동 실행 |
 
+PR 제목은 자동화 실패 조건으로 두지 않고 팀 작성 기준으로 관리한다. 기본 형식은 `type: 한국어 요약`이며,
+필요한 경우 `docs(api): ...`처럼 scope를 붙인다. `scripts/open-pr.sh`는 브랜치 타입과 이슈 제목을
+기준으로 이 형식의 기본 제목을 생성한다.
+
 `프로젝트 정합성 유지` 워크플로우는 이슈/PR 이벤트가 짧은 시간에 몰릴 때 같은 기준선의 중복
 실행만 취소하고, GitHub GraphQL 잔여량이 낮으면 프로젝트 정렬을 성공 상태로 건너뛴다. 이 경우
 저장소나 프로젝트 데이터가 망가진 것이 아니라 외부 API 한도 보호가 동작한 것이므로, 다음 예약
