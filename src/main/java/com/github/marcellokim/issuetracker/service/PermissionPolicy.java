@@ -142,7 +142,7 @@ public final class PermissionPolicy {
     }
 
     public boolean canViewAllProjectIssues(User user) {
-        return isActiveUser(user) && (user.getRole() == Role.ADMIN || user.getRole() == Role.PL);
+        return isActiveUser(user) && user.getRole() == Role.PL;
     }
 
     public void assertCanViewStatistics(User user) {

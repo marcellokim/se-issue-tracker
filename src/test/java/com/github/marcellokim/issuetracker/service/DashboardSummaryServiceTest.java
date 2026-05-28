@@ -101,8 +101,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("admin sees all issues across all projects via relatedIssuesFor")
-    void adminSeesAllRelatedIssues() {
+    @DisplayName("admin does not see issues via relatedIssuesFor")
+    void adminDoesNotSeeRelatedIssues() {
         User admin = user("admin", Role.ADMIN);
         User dev = user("dev", Role.DEV);
         Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
@@ -118,8 +118,32 @@ class DashboardSummaryServiceTest {
 
         List<IssueSummary> issues = service.relatedIssuesFor(admin);
 
-        assertEquals(1, issues.size());
-        assertEquals(101L, issues.getFirst().id());
+        assertEquals(List.of(), issues);
+    }
+
+    @Test
+    @DisplayName("PL sees all issues in participating projects via relatedIssuesFor")
+    void plSeesAllProjectIssues() {
+        User pl = user("pl", Role.PL);
+        User reporter = user("reporter", Role.DEV);
+        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
+        Issue issue1 = issue(101L, IssueStatus.NEW);
+        Issue issue2 = issue(102L, IssueStatus.ASSIGNED);
+
+        DashboardSummaryService service = new DashboardSummaryService(
+                new FakeProjectRepository(project1, List.of(
+                        ProjectMember.create(project1.getId(), pl.getLoginId(), NOW),
+                        ProjectMember.create(project1.getId(), reporter.getLoginId(), NOW))),
+                new FakeIssueRepository(List.of(issue1, issue2), List.of()),
+                new FakeStatisticsRepository(Map.of()),
+                new FakeUserRepository(List.of(pl, reporter)),
+                new PermissionPolicy());
+
+        List<IssueSummary> issues = service.relatedIssuesFor(pl);
+
+        assertEquals(List.of(101L, 102L), issues.stream()
+                .map(IssueSummary::id)
+                .toList());
     }
 
     @Test

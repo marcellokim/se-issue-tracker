@@ -98,6 +98,19 @@ class ArchitectureBoundaryTest {
     }
 
     @Test
+    @DisplayName("jdbc repositories do not create password hashing implementations")
+    void jdbcRepositoriesDoNotCreatePasswordHasherImplementation() throws IOException {
+        assertNoSourceText(
+                ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcRepositoryFactory.java"),
+                ROOT_PACKAGE + ".technical.PasswordHasher",
+                "new PasswordHasher");
+        assertNoSourceText(
+                ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcUserRepository.java"),
+                ROOT_PACKAGE + ".technical.PasswordHasher",
+                "new PasswordHasher");
+    }
+
+    @Test
     @DisplayName("controllers delegate to services instead of repositories or persistence")
     void controllersDoNotDependOnRepositoriesOrPersistence() throws IOException {
         assertNoForbiddenReferences(
@@ -167,6 +180,16 @@ class ArchitectureBoundaryTest {
                 violations.isEmpty(),
                 () -> "Forbidden architecture references found:%n%s".formatted(formatViolations(violations))
         );
+    }
+
+    private static void assertNoSourceText(Path sourcePath, String... forbiddenTexts) throws IOException {
+        String source = Files.readString(sourcePath);
+        for (String forbiddenText : forbiddenTexts) {
+            assertTrue(
+                    !source.contains(forbiddenText),
+                    () -> sourcePath + " must not contain " + forbiddenText
+            );
+        }
     }
 
     private static boolean isForbidden(String importedType, Set<String> forbiddenPrefixes) {

@@ -13,7 +13,6 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 
 public final class JdbcRepositoryFactory {
 
@@ -25,11 +24,11 @@ public final class JdbcRepositoryFactory {
         this.passwordHashing = Objects.requireNonNull(passwordHashing, "passwordHashing");
     }
 
-    public static JdbcRepositoryFactory fromEnvironment() {
-        return new JdbcRepositoryFactory(
-                DriverManagerConnectionProvider.fromEnvironment(),
-                new PasswordHasher());
-    }
+    // public static JdbcRepositoryFactory fromEnvironment() {
+    // return new JdbcRepositoryFactory(
+    // DriverManagerConnectionProvider.fromEnvironment(),
+    // passwordHashing);
+    // }
 
     public UserRepository users() {
         return new JdbcUserRepository(connectionProvider, passwordHashing);

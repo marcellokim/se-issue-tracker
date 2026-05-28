@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
@@ -40,6 +41,7 @@ import java.sql.SQLException;
 public final class ApplicationBootstrap implements ApplicationRuntime {
 
         private RepositoryContext context;
+        private final PasswordHashing passwordHashing = new PasswordHasher();
 
         @Override
         public boolean hasDatabaseEnvironment() {
@@ -88,7 +90,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 users,
                                 projects,
                                 issues,
-                                new PasswordHasher(),
+                                passwordHashing,
                                 clock);
                 IssueService issueService = new IssueService(
                                 projects,
@@ -152,13 +154,13 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                         context = new RepositoryContext(
                                         environment,
                                         connectionProvider,
-                                        new JdbcRepositoryFactory(connectionProvider, new PasswordHasher()));
+                                        new JdbcRepositoryFactory(connectionProvider, passwordHashing));
                 }
                 return context;
         }
 
-        private static AuthenticationService authenticationService(UserRepository users) {
-                return new AuthenticationService(users, new PasswordHasher(), new SessionStore());
+        private AuthenticationService authenticationService(UserRepository users) {
+                return new AuthenticationService(users, passwordHashing, new SessionStore());
         }
 
         private static DatabaseConnectionSummary connectionSummary(

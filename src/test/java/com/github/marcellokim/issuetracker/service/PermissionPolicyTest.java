@@ -188,9 +188,9 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("canViewAllProjectIssues grants access to ADMIN and PL only")
-        void canViewAllProjectIssuesGrantsAdminAndPl() {
-                assertTrue(policy.canViewAllProjectIssues(admin));
+        @DisplayName("canViewAllProjectIssues grants access only to active PL")
+        void canViewAllProjectIssuesGrantsOnlyActivePl() {
+                assertFalse(policy.canViewAllProjectIssues(admin));
                 assertTrue(policy.canViewAllProjectIssues(pl));
                 assertFalse(policy.canViewAllProjectIssues(dev));
                 assertFalse(policy.canViewAllProjectIssues(tester));

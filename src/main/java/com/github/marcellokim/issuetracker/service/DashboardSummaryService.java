@@ -55,6 +55,9 @@ public final class DashboardSummaryService {
 
         public List<IssueSummary> relatedIssuesFor(User user) {
                 Objects.requireNonNull(user, "user");
+                if (user.getRole() == Role.ADMIN) {
+                        return List.of();
+                }
                 if (!user.isActive()) {
                         throw new SecurityException("Only active users can view dashboard issues.");
                 }

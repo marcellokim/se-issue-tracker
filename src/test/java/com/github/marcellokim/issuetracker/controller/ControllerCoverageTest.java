@@ -90,7 +90,7 @@ class ControllerCoverageTest {
                         new PermissionPolicy()));
 
         assertEquals(1, controller.viewProjects().size());
-        assertEquals(1, controller.viewRelatedIssues().size());
+        assertEquals(0, controller.viewRelatedIssues().size());
         assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
                 .map(UserResult::loginId)
                 .toList());
