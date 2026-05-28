@@ -1,5 +1,6 @@
-package com.github.marcellokim.issuetracker.domain;
+package com.github.marcellokim.issuetracker.support;
 
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import java.util.Objects;
 
 public final class AssignmentContext {
@@ -13,8 +14,7 @@ public final class AssignmentContext {
             long issueId,
             IssueStatus status,
             String assigneeId,
-            String verifierId
-    ) {
+            String verifierId) {
         return new AssignmentContext(issueId, status, assigneeId, verifierId);
     }
 

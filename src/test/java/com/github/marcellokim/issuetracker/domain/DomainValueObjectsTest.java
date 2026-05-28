@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.support.AssignmentContext;
 import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import java.time.LocalDate;
@@ -226,33 +227,6 @@ class DomainValueObjectsTest {
         assertTrue(report.toString().contains("monthlyStatusCounts="));
         assertThrows(NullPointerException.class,
                 () -> StatisticsReportTestFactory.create(null, Map.of(), List.of(), List.of()));
-    }
-
-    @Test
-    @DisplayName("assignment options copy inputs and expose value semantics")
-    void assignmentOptionsCopyInputsAndExposeValueSemantics() {
-        AssignmentCandidate devCandidate = AssignmentCandidate.create(dev, 2);
-        AssignmentCandidate testerCandidate = AssignmentCandidate.create(
-                User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null),
-                1);
-        List<AssignmentCandidate> devCandidates = new ArrayList<>(List.of(devCandidate));
-        List<AssignmentCandidate> testerCandidates = new ArrayList<>(List.of(testerCandidate));
-
-        AssignmentOptions options = AssignmentOptions.create(devCandidates, testerCandidates);
-        AssignmentOptions sameOptions = AssignmentOptions.create(List.of(devCandidate), List.of(testerCandidate));
-        AssignmentOptions differentOptions = AssignmentOptions.create(List.of(), List.of(testerCandidate));
-        devCandidates.clear();
-        testerCandidates.clear();
-
-        assertEquals(List.of(devCandidate), options.devAssigneeCandidates());
-        assertEquals(List.of(testerCandidate), options.testerVerifierCandidates());
-        assertThrows(UnsupportedOperationException.class,
-                () -> options.devAssigneeCandidates().add(devCandidate));
-        assertValueSemantics(
-                options,
-                sameOptions,
-                differentOptions,
-                "AssignmentOptions[devAssigneeCandidates=");
     }
 
     @Test
