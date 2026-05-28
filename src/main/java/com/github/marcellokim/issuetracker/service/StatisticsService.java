@@ -33,8 +33,12 @@ public final class StatisticsService {
          * 기간 검증은 statistics use-case 경계 책임.
          * repository query input은 service 한 곳에서 보호.
          */
-        permissionPolicy.assertCanViewStatistics(actor);
+        if (projectId <= 0L) {
+            throw new IllegalArgumentException(" project Id must be positive");
+        }
+        Objects.requireNonNull(actor, "actor");
         requireActiveProjectMember(actor, projectId);
+        permissionPolicy.assertCanViewStatistics(actor);
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
