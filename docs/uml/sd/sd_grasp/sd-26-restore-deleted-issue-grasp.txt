@@ -2,7 +2,7 @@ SD 26 Restore Deleted Issue - GRASP 적용 설명
 
 관련 산출물:
 - UC9 Manage Deleted Issue: PL이 DELETED 이슈를 삭제 직전 상태 NEW 또는 CLOSED로 복구
-- SSD 26: viewDeletedIssues(projectId), restoreIssue(issueId)
+- SSD 26: viewDeletedIssues(projectId), restoreIssue(issueId, comment)
 - OC-11: 기존 Issue를 복구, restoreTargetStatus는 delete history.previousValue에서 결정, assignee/verifier null 유지, dependency 자동 복원 없음
 - 기본 가정사항: 복구 대상 상태는 별도 Issue 속성이 아니라 delete history.previousValue에서 읽으며, 미존재/영구 삭제된 이슈는 복구할 수 없음
 - Logical Architecture: DeletedIssueController.restoreIssue()

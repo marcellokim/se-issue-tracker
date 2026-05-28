@@ -23,7 +23,7 @@ class IssueAssignmentRoleTest {
     @Test
     @DisplayName("NEW issue assignment sets assignee and verifier")
     void assignFromNewIssue() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var assignedAt = createdAt.plusMinutes(10);
 
         issue.assignFromNew(assignee, verifier, pl, assignedAt);
@@ -96,9 +96,9 @@ class IssueAssignmentRoleTest {
     @Test
     @DisplayName("assignee must be DEV and verifier must be TESTER")
     void rejectInvalidAssignmentRoles() {
-        var invalidAssigneeIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
+        var invalidAssigneeIssue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
                 createdAt);
-        var invalidVerifierIssue = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter,
+        var invalidVerifierIssue = IssueTestFactory.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter,
                 createdAt);
 
         assertThrows(IllegalArgumentException.class,
@@ -115,13 +115,13 @@ class IssueAssignmentRoleTest {
         inactiveAssignee.deactivate(createdAt.plusMinutes(1));
         inactiveVerifier.deactivate(createdAt.plusMinutes(1));
 
-        var issueForAssignee = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
+        var issueForAssignee = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
                 createdAt);
         assertThrows(IllegalArgumentException.class,
                 () -> issueForAssignee.assignFromNew(inactiveAssignee, verifier, pl,
                         createdAt.plusMinutes(10)));
 
-        var issueForVerifier = Issue.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter,
+        var issueForVerifier = IssueTestFactory.create("ISSUE-2", "Signup fails", "Cannot sign up", null, reporter,
                 createdAt);
         assertThrows(IllegalArgumentException.class,
                 () -> issueForVerifier.assignFromNew(assignee, inactiveVerifier, pl,
@@ -131,7 +131,7 @@ class IssueAssignmentRoleTest {
     @Test
     @DisplayName("assignFromNew requires NEW status")
     void rejectAssignFromNewWhenStatusIsNotNew() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
 
         assertThrows(IllegalStateException.class,
@@ -141,7 +141,7 @@ class IssueAssignmentRoleTest {
     @Test
     @DisplayName("assignment changes require matching status branch")
     void rejectAssignmentChangesForInvalidStatus() {
-        var newIssue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var newIssue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var assignedIssue = assignedIssue();
 
         assertThrows(IllegalStateException.class,
@@ -187,13 +187,13 @@ class IssueAssignmentRoleTest {
     }
 
     private Issue assignedIssue() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
         return issue;
     }
 
     private Issue reopenedIssue() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
         issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
         issue.resolve(verifier, "Verified", createdAt.plusMinutes(30));

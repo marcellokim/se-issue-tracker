@@ -2,7 +2,7 @@ SD 12 Delete Issue - GRASP 적용 설명
 
 관련 산출물:
 - UC9 Manage Deleted Issue: PL이 NEW/CLOSED 이슈를 DELETED로 soft-delete
-- SSD 12: deleteIssue(issueId)
+- SSD 12: deleteIssue(issueId, comment)
 - OC-10: status=DELETED, 관련 IssueDependency 제거, STATUS_CHANGED history, FIFO 30개 보관 정책
 - 기본 가정사항: deleted transition time은 IssueHistory.changedDate에서 결정, 삭제 dependency는 restore 시 자동 복원하지 않음
 - Logical Architecture: DeletedIssueController.deleteIssue()

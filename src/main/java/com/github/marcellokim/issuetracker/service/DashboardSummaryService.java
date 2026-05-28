@@ -53,23 +53,23 @@ public final class DashboardSummaryService {
                                 .toList();
         }
 
-        public List<IssueSummary> relatedIssuesFor(User user) {
-                Objects.requireNonNull(user, "user");
-                if (user.getRole() == Role.ADMIN) {
-                        return List.of();
-                }
-                if (!user.isActive()) {
-                        throw new SecurityException("Only active users can view dashboard issues.");
-                }
-                return projectRepository.findAll().stream()
-                                .filter(project -> permissionPolicy.canViewAllProjects(user)
-                                                || isParticipant(project.getId(), user.getLoginId()))
-                                .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
-                                .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
-                                                || isRelatedIssue(issue, user.getLoginId()))
-                                .map(DashboardSummaryService::toIssueSummary)
-                                .toList();
-        }
+        // public List<IssueSummary> relatedIssuesFor(User user) {
+        // Objects.requireNonNull(user, "user");
+        // if (user.getRole() == Role.ADMIN) {
+        // return List.of();
+        // }
+        // if (!user.isActive()) {
+        // throw new SecurityException("Only active users can view dashboard issues.");
+        // }
+        // return projectRepository.findAll().stream()
+        // .filter(project -> permissionPolicy.canViewAllProjects(user)
+        // || isParticipant(project.getId(), user.getLoginId()))
+        // .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
+        // .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
+        // || isRelatedIssue(issue, user.getLoginId()))
+        // .map(DashboardSummaryService::toIssueSummary)
+        // .toList();
+        // }
 
         private DashboardProjectSummary summarizeProject(Project project) {
                 return new DashboardProjectSummary(

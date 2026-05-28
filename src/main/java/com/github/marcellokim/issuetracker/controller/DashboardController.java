@@ -16,15 +16,15 @@ public final class DashboardController {
 
     public DashboardController(
             AuthenticationService authenticationService,
-            DashboardSummaryService dashboardSummaryService
-    ) {
+            DashboardSummaryService dashboardSummaryService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.dashboardSummaryService = Objects.requireNonNull(dashboardSummaryService, "dashboardSummaryService");
     }
 
-    public List<IssueSummary> viewRelatedIssues() {
-        return dashboardSummaryService.relatedIssuesFor(requireCurrentUser());
-    }
+    // // 얘도 뭔가 애매함
+    // public List<IssueSummary> viewRelatedIssues() {
+    // return dashboardSummaryService.relatedIssuesFor(requireCurrentUser());
+    // }
 
     public List<DashboardProjectSummary> viewProjects() {
         return dashboardSummaryService.projectSummariesFor(requireCurrentUser());

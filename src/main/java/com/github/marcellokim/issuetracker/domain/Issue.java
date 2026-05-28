@@ -72,38 +72,6 @@ public class Issue {
         }
     }
 
-    private Issue(
-            String issueId,
-            String title,
-            String description,
-            Priority priority,
-            User reporter,
-            LocalDateTime reportedDate) {
-        this.id = 0L;
-        this.projectId = 0L;
-        this.issueId = requireText(issueId, "issueId");
-        this.title = requireText(title, "title");
-        this.description = requireText(description, "description");
-        this.priority = priority == null ? Priority.MAJOR : priority;
-        this.status = IssueStatus.NEW;
-        this.reporter = Objects.requireNonNull(reporter, "reporter must not be null");
-        this.reporterId = reporter.getLoginId();
-        this.reportedDate = Objects.requireNonNull(reportedDate, "reportedDate must not be null");
-        this.updatedAt = reportedDate;
-        recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter,
-                reportedDate);
-    }
-
-    public static Issue create( // 테스트용 생성 메서드. 실제 생성은 Persistence 계층의 PersistedState 경유.
-            String issueId,
-            String title,
-            String description,
-            Priority priority,
-            User reporter,
-            LocalDateTime reportedDate) {
-        return new Issue(issueId, title, description, priority, reporter, reportedDate);
-    }
-
     public static Issue create(PersistedState state) {
         return new Issue(state, false);
     }
@@ -492,8 +460,8 @@ public class Issue {
     }
 
     /*
-     * User reference와 loginId snapshot 함께 갱신.
-     * 도메인 전이 메서드가 association 변경 규칙에 집중하도록 field/id 동기화 한 곳에 모음.
+     * Keep the User reference and loginId snapshot in sync.
+     * Domain transition methods should not duplicate field/id sync rules.
      */
     private void setAssignee(User assignee) {
         this.assignee = assignee;

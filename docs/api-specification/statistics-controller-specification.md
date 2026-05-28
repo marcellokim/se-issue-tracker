@@ -7,6 +7,9 @@
 
 Controller는 통계 계산, DB 접근, 세부 권한 정책을 직접 처리하지 않는다.
 
+UI 배치 정책상 통계는 전역 대시보드나 이슈 상세 화면이 아니라, 사용자가 프로젝트를 선택한 뒤 진입한 프로젝트 화면에서 해당 프로젝트 기준으로 조회한다.
+JavaFX와 Swing UI는 각각 다른 화면을 구현하더라도 동일한 Controller/Service 계층을 호출해야 한다.
+
 관련 파일:
 
 - `src/main/java/com/github/marcellokim/issuetracker/controller/StatisticsController.java`

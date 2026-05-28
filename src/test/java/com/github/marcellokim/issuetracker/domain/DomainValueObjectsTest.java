@@ -227,35 +227,6 @@ class DomainValueObjectsTest {
     }
 
     @Test
-    @DisplayName("validation result factories preserve status and messages")
-    void validationResultFactoriesPreserveStatusAndMessages() {
-        ValidationResult ok = ValidationResult.ok();
-        ValidationResult failure = ValidationResult.failure("blocked by dependency");
-
-        assertTrue(ok.valid());
-        assertEquals("", ok.message());
-        assertFalse(failure.valid());
-        assertEquals("blocked by dependency", failure.message());
-    }
-
-    @Test
-    @DisplayName("validation result has value semantics")
-    void validationResultHasValueSemantics() {
-        ValidationResult failure = ValidationResult.failure("blocked by dependency");
-        ValidationResult sameFailure = ValidationResult.failure("blocked by dependency");
-        ValidationResult differentFailure = ValidationResult.failure("different reason");
-
-        assertValueSemantics(
-                failure,
-                sameFailure,
-                differentFailure,
-                "ValidationResult[valid=false");
-        ValidationResult ok = ValidationResult.ok();
-        assertEquals(ok, ValidationResult.ok());
-        assertNotEquals(ok, failure);
-    }
-
-    @Test
     @DisplayName("assignment options copy inputs and expose value semantics")
     void assignmentOptionsCopyInputsAndExposeValueSemantics() {
         AssignmentCandidate devCandidate = AssignmentCandidate.create(dev, 2);

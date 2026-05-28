@@ -4,6 +4,8 @@
 
 `StatisticsController` exposes project statistics read APIs. This document is based on current `origin/dev` implementation.
 
+Statistics are shown from the selected project screen, not from a global dashboard or an issue detail screen. JavaFX and Swing may render different UI screens, but both toolkits reuse the same controller and service APIs.
+
 ## Public Operations
 
 | Operation | Service call | Result |
