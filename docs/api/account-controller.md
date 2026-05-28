@@ -42,7 +42,8 @@ Account creation hashes the password through `PasswordHasher`, rejects duplicate
 
 - Requires login at controller boundary.
 - Requires `PermissionPolicy.assertCanManageAccount`, which allows only active ADMIN users.
-- Throws `IllegalArgumentException` for duplicate accounts, missing target accounts, ADMIN account operations, self-management, role-change/deactivation responsibility conflicts, and null `role`.
+- Throws `IllegalArgumentException` for duplicate accounts, missing target accounts, ADMIN account operations, self-management, and role-change/deactivation responsibility conflicts.
+- Throws `NullPointerException("role must not be null")` when account creation, update, or role-change receives a null `role`.
 - Throws `SecurityException` when the current user is missing or is not ADMIN.
 
 ## Evidence
