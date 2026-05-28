@@ -10,7 +10,10 @@ import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,12 +21,21 @@ public final class IssueController {
 
     private final AuthenticationService authenticationService;
     private final IssueService issueService;
+    private final IssueWorkflowService issueWorkflowService;
 
     public IssueController(
             AuthenticationService authenticationService,
             IssueService issueService) {
+        this(authenticationService, issueService, null);
+    }
+
+    public IssueController(
+            AuthenticationService authenticationService,
+            IssueService issueService,
+            IssueWorkflowService issueWorkflowService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.issueService = Objects.requireNonNull(issueService, "issueService");
+        this.issueWorkflowService = issueWorkflowService;
     }
 
     public IssueResult registerIssue(long projectId, String title, String description, Priority priority) {
@@ -31,9 +43,19 @@ public final class IssueController {
         return issueService.registerIssue(projectId, title, description, priority, user.getLoginId());
     }
 
+    public boolean canRegisterIssue(long projectId) {
+        User user = requireCurrentUser();
+        return issueService.canRegisterIssue(projectId, user.getLoginId());
+    }
+
     public IssueDetailResult viewIssueDetail(long issueId) {
         User user = requireCurrentUser();
-        return issueService.viewIssueDetail(issueId, user.getLoginId());
+        IssueDetailResult detail = issueService.viewIssueDetail(issueId, user.getLoginId());
+        if (issueWorkflowService == null) {
+            return detail;
+        }
+        return detail.withAvailableActions(availableActionNames(
+                issueWorkflowService.viewAvailableActions(issueId, user.getLoginId())));
     }
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
@@ -115,9 +137,81 @@ public final class IssueController {
         return issueService.updateComment(issueId, commentId, content, user.getLoginId());
     }
 
+    public IssueWorkflowActions viewAvailableActions(long issueId) {
+        User user = requireCurrentUser();
+        return requireIssueWorkflowService().viewAvailableActions(issueId, user.getLoginId());
+    }
+
+    public boolean canUpdateComment(long issueId, long commentId) {
+        User user = requireCurrentUser();
+        return requireIssueWorkflowService().canUpdateComment(issueId, commentId, user.getLoginId());
+    }
+
+    public boolean canDeleteComment(long issueId, long commentId) {
+        User user = requireCurrentUser();
+        return requireIssueWorkflowService().canDeleteComment(issueId, commentId, user.getLoginId());
+    }
+
     private User requireCurrentUser() {
         return authenticationService.currentUser()
                 .orElseThrow(() -> new SecurityException("Login is required."));
+    }
+
+    private IssueWorkflowService requireIssueWorkflowService() {
+        if (issueWorkflowService == null) {
+            throw new IllegalStateException("Issue workflow service is not configured.");
+        }
+        return issueWorkflowService;
+    }
+
+    private static List<String> availableActionNames(IssueWorkflowActions actions) {
+        ArrayList<String> names = new ArrayList<>();
+        if (actions.canUpdateIssue()) {
+            names.add("UPDATE_ISSUE");
+        }
+        if (actions.canChangePriority()) {
+            names.add("CHANGE_PRIORITY");
+        }
+        if (actions.canStartAssignment()) {
+            names.add("START_ASSIGNMENT");
+        }
+        if (actions.canAssign()) {
+            names.add("ASSIGN");
+        }
+        if (actions.canReassign()) {
+            names.add("REASSIGN_DEV");
+        }
+        if (actions.canChangeVerifier()) {
+            names.add("CHANGE_TESTER");
+        }
+        if (actions.canMarkFixed()) {
+            names.add("MARK_FIXED");
+        }
+        if (actions.canRejectFix()) {
+            names.add("REJECT_FIX");
+        }
+        if (actions.canResolve()) {
+            names.add("RESOLVE");
+        }
+        if (actions.canClose()) {
+            names.add("CLOSE");
+        }
+        if (actions.canReopen()) {
+            names.add("REOPEN");
+        }
+        if (actions.canAddDependency()) {
+            names.add("ADD_DEPENDENCY");
+        }
+        if (actions.canRemoveDependency()) {
+            names.add("REMOVE_DEPENDENCY");
+        }
+        if (actions.canAddComment()) {
+            names.add("ADD_COMMENT");
+        }
+        if (actions.canSoftDelete()) {
+            names.add("SOFT_DELETE");
+        }
+        return List.copyOf(names);
     }
 
 }

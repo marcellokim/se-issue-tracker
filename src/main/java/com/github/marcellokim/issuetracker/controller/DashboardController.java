@@ -21,10 +21,9 @@ public final class DashboardController {
         this.dashboardSummaryService = Objects.requireNonNull(dashboardSummaryService, "dashboardSummaryService");
     }
 
-    // // 얘도 뭔가 애매함
-    // public List<IssueSummary> viewRelatedIssues() {
-    // return dashboardSummaryService.relatedIssuesFor(requireCurrentUser());
-    // }
+    public List<IssueSummary> viewRelatedIssues() {
+        return dashboardSummaryService.relatedIssuesFor(requireCurrentUser());
+    }
 
     public List<DashboardProjectSummary> viewProjects() {
         return dashboardSummaryService.projectSummariesFor(requireCurrentUser());

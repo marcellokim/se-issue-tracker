@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
@@ -93,8 +94,8 @@ class ArchitectureBoundaryTest {
                 PasswordHashing.class
         );
 
-        assertTrue(repositoryConstructor.getParameterTypes()[1].equals(PasswordHashing.class));
-        assertTrue(factoryConstructor.getParameterTypes()[1].equals(PasswordHashing.class));
+        assertEquals(PasswordHashing.class, repositoryConstructor.getParameterTypes()[1]);
+        assertEquals(PasswordHashing.class, factoryConstructor.getParameterTypes()[1]);
     }
 
     @Test

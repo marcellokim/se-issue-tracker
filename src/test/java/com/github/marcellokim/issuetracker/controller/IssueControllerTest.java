@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
@@ -26,6 +27,7 @@ import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -145,6 +147,20 @@ class IssueControllerTest {
         assertEquals(ISSUE_ID, detail.id());
         assertEquals("Issue 1", detail.title());
         assertEquals(IssueStatus.NEW, detail.status());
+        assertTrue(detail.availableActions().contains("UPDATE_ISSUE"));
+        assertTrue(detail.availableActions().contains("ADD_COMMENT"));
+    }
+
+    @Test
+    @DisplayName("authenticated user views workflow actions")
+    void viewAvailableActions() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        var actions = controller.viewAvailableActions(ISSUE_ID);
+
+        assertTrue(actions.canUpdateIssue());
+        assertTrue(actions.canAddComment());
     }
 
     @Test
@@ -270,17 +286,21 @@ class IssueControllerTest {
         var sessionStore = new SessionStore();
         var authService = new AuthenticationService(users, hasher, sessionStore);
         authService.login(user.getLoginId(), PASSWORD);
+        var dependencies = new FakeIssueDependencyRepository();
+        var issueRepository = new InMemoryIssueRepository(issues);
+        var policy = new PermissionPolicy();
         var issueService = new IssueService(
                 new FakeProjectRepository(project),
-                new InMemoryIssueRepository(issues),
-                new FakeIssueDependencyRepository(),
+                issueRepository,
+                dependencies,
                 comments,
                 new FakeIssueHistoryRepository(),
                 users,
-                new PermissionPolicy(),
+                policy,
                 java.time.LocalDateTime::now,
                 IssueControllerTest::nextCommentId);
-        return new IssueController(authService, issueService);
+        var workflowService = new IssueWorkflowService(issueRepository, dependencies, comments, users, policy);
+        return new IssueController(authService, issueService, workflowService);
     }
 
     private IssueController unauthenticatedController() {

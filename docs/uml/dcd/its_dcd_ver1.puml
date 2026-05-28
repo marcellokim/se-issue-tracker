@@ -619,8 +619,8 @@ Non-admin project screens combine project detail with issue queries.
 end note
 
 note bottom of IssueDetailResult
-availableActions was removed from the detail result.
-Workflow button decisions are no longer modeled as a service DTO field.
+availableActions carries workflow action names for the issue detail screen.
+IssueController fills it when IssueWorkflowService is configured.
 end note
 
 @enduml

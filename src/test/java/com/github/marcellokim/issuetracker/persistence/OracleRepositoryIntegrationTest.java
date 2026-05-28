@@ -983,11 +983,12 @@ class OracleRepositoryIntegrationTest {
                         assertEquals("Oracle Account", stored.getName());
                         assertEquals(Role.DEV, stored.getRole());
                         assertTrue(new PasswordHasher().matches("TempPassword1!", stored.getPasswordHash()));
+                        String blankPasswordLoginId = uniqueId("blank_password");
                         assertThrows(IllegalArgumentException.class,
                                         () -> service.createAccount(loginId, "Duplicate", "TempPassword1!", Role.DEV,
                                                         admin));
                         assertThrows(IllegalArgumentException.class,
-                                        () -> service.createAccount(uniqueId("blank_password"), "Blank Password", " ",
+                                        () -> service.createAccount(blankPasswordLoginId, "Blank Password", " ",
                                                         Role.DEV, admin));
                         assertThrows(IllegalArgumentException.class,
                                         () -> service.deactivateAccount("dev1", admin));
@@ -1218,9 +1219,11 @@ class OracleRepositoryIntegrationTest {
                                         user("pl1"));
                         assertFalse(report.monthlyCounts().isEmpty());
                         assertFalse(report.monthlyStatusCounts().isEmpty());
+                        long projectId = project.getId();
+                        User outsideDeveloper = user("dev10");
                         assertThrows(SecurityException.class,
-                                        () -> statisticsService.viewStatistics(project.getId(), null, null, null, null,
-                                                        user("dev10")));
+                                        () -> statisticsService.viewStatistics(projectId, null, null, null, null,
+                                                        outsideDeveloper));
 
                         var issue = issueService.registerIssue(
                                         project.getId(),

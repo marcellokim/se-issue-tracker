@@ -53,23 +53,22 @@ public final class DashboardSummaryService {
                                 .toList();
         }
 
-        // public List<IssueSummary> relatedIssuesFor(User user) {
-        // Objects.requireNonNull(user, "user");
-        // if (user.getRole() == Role.ADMIN) {
-        // return List.of();
-        // }
-        // if (!user.isActive()) {
-        // throw new SecurityException("Only active users can view dashboard issues.");
-        // }
-        // return projectRepository.findAll().stream()
-        // .filter(project -> permissionPolicy.canViewAllProjects(user)
-        // || isParticipant(project.getId(), user.getLoginId()))
-        // .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
-        // .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
-        // || isRelatedIssue(issue, user.getLoginId()))
-        // .map(DashboardSummaryService::toIssueSummary)
-        // .toList();
-        // }
+        public List<IssueSummary> relatedIssuesFor(User user) {
+                Objects.requireNonNull(user, "user");
+                if (user.getRole() == Role.ADMIN) {
+                        return List.of();
+                }
+                if (!user.isActive()) {
+                        throw new SecurityException("Only active users can view dashboard issues.");
+                }
+                return projectRepository.findAll().stream()
+                                .filter(project -> isParticipant(project.getId(), user.getLoginId()))
+                                .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
+                                .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
+                                                || isRelatedIssue(issue, user.getLoginId()))
+                                .map(DashboardSummaryService::toIssueSummary)
+                                .toList();
+        }
 
         private DashboardProjectSummary summarizeProject(Project project) {
                 return new DashboardProjectSummary(
@@ -90,11 +89,12 @@ public final class DashboardSummaryService {
                                 .anyMatch(member -> member.userId().equals(loginId));
         }
 
-        // 자기가 리포트한거 + 현재 assignee거나 verifier면 true 반환 / fixer, resolver면 false 반환
         private static boolean isRelatedIssue(Issue issue, String loginId) {
                 return loginId.equals(issue.reporterId())
                                 || loginId.equals(issue.assigneeId())
-                                || loginId.equals(issue.verifierId());
+                                || loginId.equals(issue.verifierId())
+                                || loginId.equals(issue.fixerId())
+                                || loginId.equals(issue.resolverId());
         }
 
         private static IssueSummary toIssueSummary(Issue issue) {

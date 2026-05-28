@@ -22,11 +22,35 @@ public record IssueDetailResult(
         LocalDateTime updatedAt,
         List<CommentResult> comments,
         List<HistoryResult> histories,
-        List<DependencyResult> dependencies) {
+        List<DependencyResult> dependencies,
+        List<String> availableActions) {
 
     public IssueDetailResult {
         comments = List.copyOf(comments);
         histories = List.copyOf(histories);
         dependencies = List.copyOf(dependencies);
+        availableActions = List.copyOf(availableActions);
+    }
+
+    public IssueDetailResult withAvailableActions(List<String> nextAvailableActions) {
+        return new IssueDetailResult(
+                id,
+                projectId,
+                issueId,
+                status,
+                priority,
+                title,
+                description,
+                reporter,
+                assignee,
+                verifier,
+                fixer,
+                resolver,
+                reportedDate,
+                updatedAt,
+                comments,
+                histories,
+                dependencies,
+                nextAvailableActions);
     }
 }

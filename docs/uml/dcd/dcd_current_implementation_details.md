@@ -138,13 +138,13 @@ Presentation / CLI
 
 ### Issue Detail과 availableActions
 
-현재 `IssueDetailResult`에는 `availableActions`가 없다.
+현재 `IssueDetailResult`에는 `availableActions`가 있다.
 
 이 결정은 다음 의미를 가진다.
 
-- 상세 조회 DTO가 workflow 버튼 정보를 직접 제공하지 않는다.
-- 상태 전이, 배정, 댓글 수정/삭제 가능 여부는 Controller/Service의 실제 operation 호출과 정책 검사로 보장한다.
-- 향후 UI가 버튼 활성화 정보를 별도 모델로 요구하면 별도 use case로 추가할 수 있다.
+- 상세 조회 DTO가 댓글, 이력, 의존성뿐 아니라 상세 화면에서 노출할 수 있는 workflow action 이름 목록을 함께 제공한다.
+- `IssueController`는 `IssueWorkflowService`가 주입된 경우 `viewIssueDetail` 응답에 action 이름을 채운다.
+- 상태 전이, 배정, 댓글 수정/삭제 가능 여부는 여전히 Controller/Service operation과 `PermissionPolicy.assertCan...` 검사로 최종 보장한다.
 
 ### Deleted Issue Workflow
 

@@ -234,8 +234,8 @@ final class JdbcIssueDeleteOperations {
             LocalDateTime changedDate) throws SQLException {
         String sql = "update issues set updated_at = coalesce(?, current_timestamp) where id = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            JdbcSupport.setNullableTimestamp(statement, 1, changedDate);
             for (DependencyRemoval removal : removals) {
-                JdbcSupport.setNullableTimestamp(statement, 1, changedDate);
                 statement.setLong(2, removal.blockedIssueId());
                 statement.addBatch();
             }
@@ -255,11 +255,11 @@ final class JdbcIssueDeleteOperations {
                 values (?, ?, 'DEPENDENCY_CHANGED', ?, null, 'Dependency removed', coalesce(?, current_timestamp))
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(2, changedById);
+            JdbcSupport.setNullableTimestamp(statement, 4, changedDate);
             for (DependencyRemoval removal : removals) {
                 statement.setLong(1, removal.blockedIssueId());
-                statement.setString(2, changedById);
                 statement.setString(3, removal.dependencyId());
-                JdbcSupport.setNullableTimestamp(statement, 4, changedDate);
                 statement.addBatch();
             }
             statement.executeBatch();

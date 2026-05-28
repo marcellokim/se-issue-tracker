@@ -88,15 +88,14 @@ class IssueServiceTest {
         @DisplayName("rejects issue registration with invalid input")
         void registerIssueRejectsInvalidInput() {
                 var service = service(new InMemoryIssueRepository());
+                String devLoginId = dev.getLoginId();
 
                 assertThrows(IllegalArgumentException.class,
-                                () -> service.registerIssue(0L, "Bug", "desc", Priority.MAJOR, dev.getLoginId()));
+                                () -> service.registerIssue(0L, "Bug", "desc", Priority.MAJOR, devLoginId));
                 assertThrows(IllegalArgumentException.class,
-                                () -> service.registerIssue(PROJECT_ID, " ", "desc", Priority.MAJOR,
-                                                dev.getLoginId()));
+                                () -> service.registerIssue(PROJECT_ID, " ", "desc", Priority.MAJOR, devLoginId));
                 assertThrows(IllegalArgumentException.class,
-                                () -> service.registerIssue(PROJECT_ID, "Bug", null, Priority.MAJOR,
-                                                dev.getLoginId()));
+                                () -> service.registerIssue(PROJECT_ID, "Bug", null, Priority.MAJOR, devLoginId));
                 assertThrows(IllegalArgumentException.class,
                                 () -> service.registerIssue(PROJECT_ID, "Bug", "desc", Priority.MAJOR, " "));
         }
@@ -111,10 +110,11 @@ class IssueServiceTest {
                                 "Login bug",
                                 IssueStatus.DELETED);
                 var service = service(new InMemoryIssueRepository(deletedIssue));
+                String devLoginId = dev.getLoginId();
 
                 assertThrows(IllegalArgumentException.class,
                                 () -> service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR,
-                                                dev.getLoginId()));
+                                                devLoginId));
         }
 
         @Test
@@ -270,6 +270,7 @@ class IssueServiceTest {
         void searchProjectIssuesRejectsDeletedStatus() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
+                String devLoginId = dev.getLoginId();
 
                 assertThrows(SecurityException.class,
                                 () -> service.searchIssues(
@@ -282,7 +283,7 @@ class IssueServiceTest {
                                                 null,
                                                 null,
                                                 null,
-                                                dev.getLoginId()));
+                                                devLoginId));
         }
 
         @Test
@@ -290,6 +291,8 @@ class IssueServiceTest {
         void searchProjectIssuesRejectsInvalidReportedRange() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
+                String devLoginId = dev.getLoginId();
+                LocalDateTime reportedFrom = now.plusDays(1);
 
                 assertThrows(IllegalArgumentException.class,
                                 () -> service.searchIssues(
@@ -300,9 +303,9 @@ class IssueServiceTest {
                                                 null,
                                                 null,
                                                 null,
-                                                now.plusDays(1),
+                                                reportedFrom,
                                                 now,
-                                                dev.getLoginId()));
+                                                devLoginId));
         }
 
         @Test
@@ -316,6 +319,7 @@ class IssueServiceTest {
                                 new FakeIssueDependencyRepository(),
                                 new FakeCommentRepository(),
                                 users);
+                String devLoginId = dev.getLoginId();
 
                 assertThrows(SecurityException.class,
                                 () -> service.searchIssues(
@@ -328,7 +332,7 @@ class IssueServiceTest {
                                                 null,
                                                 null,
                                                 null,
-                                                dev.getLoginId()));
+                                                devLoginId));
         }
 
         @Test
@@ -369,13 +373,14 @@ class IssueServiceTest {
                 List<IssueSummary> devResults = service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId());
                 List<IssueSummary> testerResults = service.viewRelatedProjectIssues(PROJECT_ID, tester.getLoginId());
                 List<IssueSummary> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
+                String adminLoginId = admin.getLoginId();
 
                 assertEquals(2, devResults.size());
                 assertEquals(1, testerResults.size());
                 assertEquals(assignedDevIssue.id(), testerResults.getFirst().id());
                 assertEquals(2, plResults.size());
                 assertThrows(SecurityException.class,
-                                () -> service.viewRelatedProjectIssues(PROJECT_ID, admin.getLoginId()));
+                                () -> service.viewRelatedProjectIssues(PROJECT_ID, adminLoginId));
         }
 
         @Test
@@ -389,9 +394,10 @@ class IssueServiceTest {
                                 new FakeIssueDependencyRepository(),
                                 new FakeCommentRepository(),
                                 users);
+                String devLoginId = dev.getLoginId();
 
                 assertThrows(SecurityException.class,
-                                () -> service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId()));
+                                () -> service.viewRelatedProjectIssues(PROJECT_ID, devLoginId));
         }
 
         @Test
@@ -534,13 +540,15 @@ class IssueServiceTest {
                                 IssueStatus.CLOSED)) {
                         var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Issue " + status, status);
                         var service = service(new InMemoryIssueRepository(issue));
+                        String title = "Updated " + status;
+                        String devLoginId = dev.getLoginId();
 
                         assertThrows(SecurityException.class,
                                         () -> service.updateIssue(
                                                         ISSUE_ID,
-                                                        "Updated " + status,
+                                                        title,
                                                         "Updated description",
-                                                        dev.getLoginId()));
+                                                        devLoginId));
                 }
         }
 
@@ -591,10 +599,11 @@ class IssueServiceTest {
                                 new FakeIssueDependencyRepository(),
                                 new FakeCommentRepository(),
                                 users);
+                String otherProjectPlLoginId = otherProjectPl.getLoginId();
 
                 assertThrows(SecurityException.class,
                                 () -> service.changePriority(ISSUE_ID, Priority.CRITICAL,
-                                                otherProjectPl.getLoginId()));
+                                                otherProjectPlLoginId));
         }
 
         @Test
@@ -602,9 +611,10 @@ class IssueServiceTest {
         void changePriorityRejectsSamePriority() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
+                String plLoginId = pl.getLoginId();
 
                 assertThrows(IllegalArgumentException.class,
-                                () -> service.changePriority(ISSUE_ID, Priority.MAJOR, pl.getLoginId()));
+                                () -> service.changePriority(ISSUE_ID, Priority.MAJOR, plLoginId));
         }
 
         @Test
@@ -782,11 +792,12 @@ class IssueServiceTest {
                                 blockingIssue,
                                 resolvedBlockedIssue,
                                 closedBlockedIssue));
+                String plLoginId = pl.getLoginId();
 
                 assertThrows(IllegalStateException.class,
-                                () -> service.addDependency(1L, 2L, pl.getLoginId()));
+                                () -> service.addDependency(1L, 2L, plLoginId));
                 assertThrows(IllegalStateException.class,
-                                () -> service.addDependency(1L, 3L, pl.getLoginId()));
+                                () -> service.addDependency(1L, 3L, plLoginId));
         }
 
         @Test
@@ -876,12 +887,15 @@ class IssueServiceTest {
                 var service = service(new InMemoryIssueRepository(issueA, issueB), deps,
                                 new FakeCommentRepository(), users);
                 DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+                long blockingIssueId = result.blockingIssueId();
+                long blockedIssueId = result.blockedIssueId();
+                String otherProjectPlLoginId = otherProjectPl.getLoginId();
 
                 assertThrows(SecurityException.class,
                                 () -> service.removeDependency(
-                                                result.blockingIssueId(),
-                                                result.blockedIssueId(),
-                                                otherProjectPl.getLoginId()));
+                                                blockingIssueId,
+                                                blockedIssueId,
+                                                otherProjectPlLoginId));
                 assertTrue(deps.findById(result.id()).isPresent());
                 assertTrue(deps.findByDependencyId(result.dependencyId()).isPresent());
         }
@@ -1094,13 +1108,14 @@ class IssueServiceTest {
                 var histories = new FakeIssueHistoryRepository();
                 var service = service(new InMemoryIssueRepository(issue), new FakeIssueDependencyRepository(), comments,
                                 histories, new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
+                String devLoginId = dev.getLoginId();
 
                 assertThrows(IllegalArgumentException.class,
                                 () -> service.updateComment(
                                                 ISSUE_ID,
                                                 COMMENT_ID,
                                                 "Outdated investigation note",
-                                                dev.getLoginId()));
+                                                devLoginId));
                 assertEquals("Outdated investigation note", comments.findById(COMMENT_ID).orElseThrow().content());
                 assertTrue(histories.findByIssueId(ISSUE_ID).isEmpty());
         }

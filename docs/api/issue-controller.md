@@ -49,7 +49,7 @@ Dependency add/remove is PL-only, same-project only, rejects self-dependency, du
 | `viewIssueDetail` | UC4, SSD-04 and UI support | `Issue`, `Comment`, `IssueHistory`, `IssueDependency`, role associations returned through `IssueDetailResult` |
 | `searchIssues`, `viewRelatedProjectIssues` | UC3, SSD-03 and UI support | DCD `Issue` attributes status/priority/reporter/assignee/verifier; implementation `IssueSearchCriteria`, `IssueSummary` |
 | `updateIssue` | UC15, SSD-23 edit issue support | `Issue.updateTitleAndDescription`, `IssueHistory(TITLE_DESCRIPTION_UPDATED)`; priority/status handled by separate UCs |
-| `deleteComment`, `updateComment`, `canUpdateComment`, `canDeleteComment`, `viewAvailableActions` | Implementation support APIs without direct required OC | `Comment`, `IssueWorkflowActions`, `PermissionPolicy.can...` methods |
+| `deleteComment`, `updateComment`, `canUpdateComment`, `canDeleteComment`, `viewAvailableActions` | Implementation support APIs without direct required OC | `Comment`, `IssueWorkflowActions`, `PermissionPolicy.assertCan...` methods |
 
 ## Implementation And Design Gaps
 

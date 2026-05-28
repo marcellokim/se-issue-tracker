@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-// import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import java.util.List;

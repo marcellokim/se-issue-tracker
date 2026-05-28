@@ -158,9 +158,10 @@ class IssueStateServiceTest {
     void rejectInvalidIssueIdAndBlankCurrentUserId() {
         var issue = assignedIssue();
         var service = service(issue);
+        String assigneeLoginId = assignee.getLoginId();
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.changeStatus(0L, IssueStatus.FIXED, "Fix completed", assignee.getLoginId()));
+                () -> service.changeStatus(0L, IssueStatus.FIXED, "Fix completed", assigneeLoginId));
         assertThrows(IllegalArgumentException.class,
                 () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", " "));
     }
@@ -170,9 +171,10 @@ class IssueStateServiceTest {
     void rejectDeletedIssueStatusChange() {
         var issue = deletedIssue();
         var service = service(issue);
+        String assigneeLoginId = assignee.getLoginId();
 
         assertThrows(SecurityException.class,
-                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId()));
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assigneeLoginId));
     }
 
     @Test
@@ -296,10 +298,6 @@ class IssueStateServiceTest {
     private static String nextCommentId() {
         return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
-
-    // private Issue newIssue() {
-    // return newIssue(ISSUE_ID, "ISSUE-1");
-    // }
 
     private Issue newIssue(long id, String issueId) {
         return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)

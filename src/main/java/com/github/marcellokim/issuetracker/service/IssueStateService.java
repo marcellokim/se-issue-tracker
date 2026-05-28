@@ -16,6 +16,10 @@ import java.util.Objects;
 public final class IssueStateService {
 
     private static final String PROJECT_MEMBER_REQUIRED = "Only project members can change issue status.";
+    private static final String FIELD_ISSUE_ID = "issueId";
+    private static final String FIELD_TARGET_STATUS = "targetStatus";
+    private static final String FIELD_CURRENT_USER_ID = "currentUserId";
+
     private final IssueRepository issueRepository;
     private final IssueDependencyRepository dependencyRepository;
     private final UserRepository userRepository;
@@ -40,20 +44,20 @@ public final class IssueStateService {
 
     public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment,
             String currentLoginId) {
-        targetStatus = Objects.requireNonNull(targetStatus, "targetStatus");
-        issueId = requirePositive(issueId, "issueId");
-        currentLoginId = requireText(currentLoginId, "currentUserId");
-        comment = requireComment(comment);
-        Issue issue = findIssue(issueId);
+        IssueStatus requiredTargetStatus = Objects.requireNonNull(targetStatus, FIELD_TARGET_STATUS);
+        long requiredIssueId = requirePositive(issueId, FIELD_ISSUE_ID);
+        String requiredLoginId = requireText(currentLoginId, FIELD_CURRENT_USER_ID);
+        String requiredComment = requireComment(comment);
+        Issue issue = findIssue(requiredIssueId);
         requireNotDeleted(issue);
-        User actor = findUser(currentLoginId);
-        switch (targetStatus) {
-            case FIXED -> markFixed(issue, actor, comment);
-            case ASSIGNED -> rejectFix(issue, actor, comment);
-            case RESOLVED -> resolve(issue, actor, comment);
-            case CLOSED -> close(issue, actor, comment);
-            case REOPENED -> reopen(issue, actor, comment);
-            default -> throw new UnsupportedOperationException("Unsupported target status: " + targetStatus);
+        User actor = findUser(requiredLoginId);
+        switch (requiredTargetStatus) {
+            case FIXED -> markFixed(issue, actor, requiredComment);
+            case ASSIGNED -> rejectFix(issue, actor, requiredComment);
+            case RESOLVED -> resolve(issue, actor, requiredComment);
+            case CLOSED -> close(issue, actor, requiredComment);
+            case REOPENED -> reopen(issue, actor, requiredComment);
+            default -> throw new UnsupportedOperationException("Unsupported target status: " + requiredTargetStatus);
         }
         issueRepository.save(issue);
         return toResult(issue);

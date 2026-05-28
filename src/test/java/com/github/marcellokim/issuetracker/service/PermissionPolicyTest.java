@@ -47,21 +47,26 @@ class PermissionPolicyTest {
         @Test
         @DisplayName("does not grant issue workflow permissions to ADMIN")
         void adminDoesNotReceiveIssueWorkflowPermissions() {
-                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(admin, issue(IssueStatus.NEW)));
+                Issue newIssue = issue(IssueStatus.NEW);
+                Issue deletedIssue = issue(IssueStatus.DELETED);
+
+                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(admin, newIssue));
                 assertThrows(SecurityException.class,
-                                () -> policy.assertCanManageDeletedIssue(admin, issue(IssueStatus.DELETED)));
+                                () -> policy.assertCanManageDeletedIssue(admin, deletedIssue));
                 assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin));
         }
 
         @Test
         @DisplayName("rejects inactive users and invalid deleted issue project context")
         void rejectsInvalidPermissionRequests() {
+                User inactivePl = inactive("pl2", Role.PL);
+                Issue newIssue = issue(IssueStatus.NEW);
+                User inactiveDev = inactive("dev2", Role.DEV);
+
                 assertThrows(SecurityException.class, () -> policy.assertCanManageProject(null));
-                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(
-                                inactive("pl2", Role.PL),
-                                issue(IssueStatus.NEW)));
+                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(inactivePl, newIssue));
                 assertThrows(SecurityException.class,
-                                () -> policy.assertCanViewStatistics(inactive("dev2", Role.DEV)));
+                                () -> policy.assertCanViewStatistics(inactiveDev));
                 assertThrows(SecurityException.class, () -> policy.assertCanManageDeletedIssue(pl, 0L));
 
                 assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl));
