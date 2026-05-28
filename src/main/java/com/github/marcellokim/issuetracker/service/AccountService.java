@@ -42,7 +42,9 @@ public final class AccountService {
             User actor) {
         loginId = requireText(loginId, "loginId");
         name = requireText(name, "name");
-        password = requireText(password, "password");
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("password must not be blank");
+        }
         requireActor(actor);
         permissionPolicy.assertCanManageAccount(actor);
         Role newRole = Objects.requireNonNull(role, ROLE_REQUIRED);

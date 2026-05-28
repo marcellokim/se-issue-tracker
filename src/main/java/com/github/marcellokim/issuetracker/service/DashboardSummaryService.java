@@ -90,7 +90,7 @@ public final class DashboardSummaryService {
                                 .anyMatch(member -> member.userId().equals(loginId));
         }
 
-        // 자기가 리포트한거 + 현재 assignee거나 verifier / fixer, resolver면 false 반환
+        // 자기가 리포트한거 + 현재 assignee거나 verifier면 true 반환 / fixer, resolver면 false 반환
         private static boolean isRelatedIssue(Issue issue, String loginId) {
                 return loginId.equals(issue.reporterId())
                                 || loginId.equals(issue.assigneeId())

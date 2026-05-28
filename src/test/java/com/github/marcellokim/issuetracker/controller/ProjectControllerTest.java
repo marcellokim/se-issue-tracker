@@ -52,7 +52,8 @@ class ProjectControllerTest {
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectParticipants(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectAdminDetail(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.renameProject(0L, "renamed-project"));
-        assertThrows(IllegalArgumentException.class, () -> controller.changeProjectDescription(0L, "updated description"));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.changeProjectDescription(0L, "updated description"));
         assertThrows(IllegalArgumentException.class, () -> controller.deleteProject(0L));
         assertThrows(IllegalArgumentException.class, () -> controller.addProjectParticipant(0L, "dev1"));
         assertThrows(IllegalArgumentException.class, () -> controller.removeProjectParticipant(0L, "dev1"));
@@ -583,11 +584,6 @@ class ProjectControllerTest {
 
         private void attachProjects(FakeProjectRepository projects) {
             this.projects = Objects.requireNonNull(projects, "projects");
-        }
-
-        @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
         }
 
         @Override

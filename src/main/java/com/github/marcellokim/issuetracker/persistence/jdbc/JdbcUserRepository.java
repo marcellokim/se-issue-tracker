@@ -98,11 +98,6 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<User> findById(String userId) {
-        return findByLoginId(userId);
-    }
-
-    @Override
     public Optional<User> findByLoginId(String loginId) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(FIND_BY_LOGIN_ID_SQL)) {

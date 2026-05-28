@@ -446,11 +446,6 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
-        }
-
-        @Override
         public Optional<User> findByLoginId(String loginId) {
             return users.stream()
                     .filter(user -> user.getLoginId().equals(loginId))

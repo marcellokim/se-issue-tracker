@@ -138,7 +138,7 @@ public final class AssignmentService {
 
     private User findUser(String userId) {
         String requiredUserId = requireText(userId, "currentUserId");
-        return userRepository.findById(requiredUserId)
+        return userRepository.findByLoginId(requiredUserId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + requiredUserId));
     }
 

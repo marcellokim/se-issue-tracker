@@ -105,10 +105,10 @@ class RepositoryDemoSummaryServiceTest {
 
     private static Issue issue(long id, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                        PROJECT_ID,
-                        "Issue " + id,
-                        "Demo issue",
-                        user("reporter", Role.DEV, true))
+                PROJECT_ID,
+                "Issue " + id,
+                "Demo issue",
+                user("reporter", Role.DEV, true))
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
@@ -123,11 +123,6 @@ class RepositoryDemoSummaryServiceTest {
 
         private FakeUserRepository(List<User> users) {
             this.users = List.copyOf(users);
-        }
-
-        @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
         }
 
         @Override
@@ -210,7 +205,8 @@ class RepositoryDemoSummaryServiceTest {
 
         @Override
         public void addParticipant(long projectId, String userLoginId) {
-            throw new UnsupportedOperationException("addParticipant is not needed by RepositoryDemoSummaryServiceTest.");
+            throw new UnsupportedOperationException(
+                    "addParticipant is not needed by RepositoryDemoSummaryServiceTest.");
         }
 
         @Override

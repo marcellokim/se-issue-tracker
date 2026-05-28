@@ -654,11 +654,6 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
-        }
-
-        @Override
         public Optional<User> findByLoginId(String loginId) {
             return Optional.ofNullable(usersByLoginId.get(loginId));
         }
