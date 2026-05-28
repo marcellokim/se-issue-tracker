@@ -738,6 +738,11 @@ class ProjectControllerTest {
         }
 
         @Override
+        public int purgeDeletedById(long issueId) {
+            throw new UnsupportedOperationException("purgeDeletedById is not needed by ProjectControllerTest.");
+        }
+
+        @Override
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             return 0;
         }

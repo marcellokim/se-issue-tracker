@@ -3,7 +3,6 @@ package com.github.marcellokim.issuetracker.persistence.jdbc;
 import java.util.Objects;
 
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
-import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
@@ -23,12 +22,6 @@ public final class JdbcRepositoryFactory {
         this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider");
         this.passwordHashing = Objects.requireNonNull(passwordHashing, "passwordHashing");
     }
-
-    // public static JdbcRepositoryFactory fromEnvironment() {
-    // return new JdbcRepositoryFactory(
-    // DriverManagerConnectionProvider.fromEnvironment(),
-    // passwordHashing);
-    // }
 
     public UserRepository users() {
         return new JdbcUserRepository(connectionProvider, passwordHashing);

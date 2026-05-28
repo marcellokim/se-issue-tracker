@@ -59,6 +59,21 @@ public final class DeletedIssueService {
         return issueRepository.purgeDeletedBeyondLimit(projectId, MAX_DELETED_ISSUES_PER_PROJECT);
     }
 
+    public void purgeDeletedIssue(long issueId, User actor) {
+        requireIssueId(issueId);
+        Issue issue = findIssue(issueId);
+        requireDeletedIssuePermission(actor, issue.projectId());
+
+        if (issue.status() != IssueStatus.DELETED) {
+            throw new IllegalArgumentException("Only deleted issues can be purged.");
+        }
+
+        int deletedRows = issueRepository.purgeDeletedById(issueId);
+        if (deletedRows == 0) {
+            throw new IllegalStateException("Deleted issue was not purged: " + issueId);
+        }
+    }
+
     private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
                 .orElseThrow(() -> new IllegalArgumentException("Issue was not found: " + issueId));
@@ -82,6 +97,12 @@ public final class DeletedIssueService {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return value.trim();
+    }
+
+    private static void requireIssueId(long issueId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
     }
 
     private static IssueSummary toIssueSummary(Issue issue) {

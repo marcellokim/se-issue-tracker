@@ -243,20 +243,4 @@ public final class ProjectService {
                 .map(ProjectMember::userId)
                 .anyMatch(loginId::equals);
     }
-
-    // private static IssueSummary toIssueSummary(Issue issue) {
-    // return new IssueSummary(
-    // issue.id(),
-    // issue.getIssueId(),
-    // issue.projectId(),
-    // issue.status(),
-    // issue.priority(),
-    // issue.title(),
-    // issue.reporterId(),
-    // issue.assigneeId(),
-    // issue.verifierId(),
-    // issue.reportedDate(),
-    // issue.updatedAt());
-    // }
-
 }

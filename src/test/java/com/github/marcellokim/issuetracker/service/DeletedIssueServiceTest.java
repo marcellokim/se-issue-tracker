@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -67,6 +68,57 @@ class DeletedIssueServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.deleteIssue(ISSUE_ID, " ", projectPl));
+    }
+
+    @Test
+    @DisplayName("project PL can purge one deleted issue permanently")
+    void purgeDeletedIssueRemovesOnlyDeletedIssue() {
+        var issues = new InMemoryIssueRepository(deletedIssue());
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                issues,
+                users,
+                new PermissionPolicy(),
+                java.time.LocalDateTime::now);
+
+        service.purgeDeletedIssue(ISSUE_ID, projectPl);
+
+        assertTrue(issues.findById(ISSUE_ID).isEmpty());
+    }
+
+    @Test
+    @DisplayName("single issue purge accepts only deleted issues")
+    void purgeDeletedIssueRejectsNonDeletedIssue() {
+        var issues = new InMemoryIssueRepository(issueWithStatus(IssueStatus.NEW));
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                issues,
+                users,
+                new PermissionPolicy(),
+                java.time.LocalDateTime::now);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.purgeDeletedIssue(ISSUE_ID, projectPl));
+        assertTrue(issues.findById(ISSUE_ID).isPresent());
+    }
+
+    @Test
+    @DisplayName("single issue purge requires the project PL")
+    void purgeDeletedIssueRejectsOtherProjectPl() {
+        var issues = new InMemoryIssueRepository(deletedIssue());
+        var users = new InMemoryUserRepository(reporter, projectPl, otherProjectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                issues,
+                users,
+                new PermissionPolicy(),
+                java.time.LocalDateTime::now);
+
+        assertThrows(SecurityException.class,
+                () -> service.purgeDeletedIssue(ISSUE_ID, otherProjectPl));
+        assertTrue(issues.findById(ISSUE_ID).isPresent());
     }
 
     private Issue deletedIssue() {

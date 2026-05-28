@@ -121,6 +121,17 @@ final class JdbcIssueDeleteOperations {
         }
     }
 
+    int purgeDeletedById(long issueId) {
+        String sql = "delete from issues where id = ? and status = 'DELETED'";
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, issueId);
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to purge deleted issue.", exception);
+        }
+    }
+
     int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
         if (maxDeletedIssues < 0) {
             throw new IllegalArgumentException("maxDeletedIssues must not be negative");

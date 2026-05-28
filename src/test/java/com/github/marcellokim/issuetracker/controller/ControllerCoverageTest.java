@@ -174,7 +174,8 @@ class ControllerCoverageTest {
         AuthFixture auth = authenticated(Role.PL);
         Issue activeIssue = issue(101L, PROJECT_ID, IssueStatus.NEW);
         Issue deletedIssue = issue(102L, PROJECT_ID, IssueStatus.DELETED);
-        FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue);
+        Issue purgeTarget = issue(103L, PROJECT_ID, IssueStatus.DELETED);
+        FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue, purgeTarget);
         DeletedIssueController controller = new DeletedIssueController(
                 auth.service(),
                 new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), java.time.LocalDateTime::now));
@@ -183,14 +184,17 @@ class ControllerCoverageTest {
         IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
         IssueSummary restored = controller.restoreIssue(deletedIssue.id(), "restore for demo");
         int purged = controller.purgeOverflow(PROJECT_ID);
+        controller.purgeDeletedIssue(purgeTarget.id());
 
-        assertEquals(List.of(deletedIssue.id()), deletedIssues.stream().map(IssueSummary::id).toList());
+        assertEquals(List.of(deletedIssue.id(), purgeTarget.id()), deletedIssues.stream().map(IssueSummary::id).toList());
         assertEquals(IssueStatus.DELETED, softDeleted.status());
         assertEquals(IssueStatus.NEW, restored.status());
         assertEquals("pl", issues.lastChangedBy);
         assertEquals("restore for demo", issues.lastRestoreMessage);
         assertEquals(2, purged);
         assertEquals(30, issues.lastPurgeLimit);
+        assertEquals(purgeTarget.id(), issues.lastPurgedIssueId);
+        assertTrue(issues.findById(purgeTarget.id()).isEmpty());
     }
 
     @Test
@@ -483,6 +487,7 @@ class ControllerCoverageTest {
         private String lastChangedBy;
         private String lastRestoreMessage;
         private int lastPurgeLimit;
+        private long lastPurgedIssueId;
 
         private FakeIssueRepository(Issue... issues) {
             for (Issue issue : issues) {
@@ -574,6 +579,17 @@ class ControllerCoverageTest {
             Issue restored = copyWithStatus(findById(issueId).orElseThrow(), IssueStatus.NEW);
             issuesById.put(issueId, restored);
             return restored;
+        }
+
+        @Override
+        public int purgeDeletedById(long issueId) {
+            Issue issue = issuesById.get(issueId);
+            if (issue == null || issue.status() != IssueStatus.DELETED) {
+                return 0;
+            }
+            issuesById.remove(issueId);
+            lastPurgedIssueId = issueId;
+            return 1;
         }
 
         @Override

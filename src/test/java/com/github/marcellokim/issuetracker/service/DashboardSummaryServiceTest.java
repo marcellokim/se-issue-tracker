@@ -371,6 +371,11 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public int purgeDeletedById(long issueId) {
+            throw new UnsupportedOperationException("purgeDeletedById is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             throw new UnsupportedOperationException(
                     "purgeDeletedBeyondLimit is not needed by DashboardSummaryServiceTest.");

@@ -193,6 +193,11 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
+    public int purgeDeletedById(long issueId) {
+        return deleteOperations.purgeDeletedById(issueId);
+    }
+
+    @Override
     public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
         return deleteOperations.purgeDeletedBeyondLimit(projectId, maxDeletedIssues);
     }

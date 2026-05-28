@@ -313,6 +313,11 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public int purgeDeletedById(long issueId) {
+            throw new UnsupportedOperationException("purgeDeletedById is not needed by RepositoryDemoSummaryServiceTest.");
+        }
+
+        @Override
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             throw new UnsupportedOperationException(
                     "purgeDeletedBeyondLimit is not needed by RepositoryDemoSummaryServiceTest.");

@@ -14,8 +14,7 @@ public final class DeletedIssueController {
 
     public DeletedIssueController(
             AuthenticationService authenticationService,
-            DeletedIssueService deletedIssueService
-    ) {
+            DeletedIssueService deletedIssueService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.deletedIssueService = Objects.requireNonNull(deletedIssueService, "deletedIssueService");
     }
@@ -38,6 +37,11 @@ public final class DeletedIssueController {
     public int purgeOverflow(long projectId) {
         User user = requireCurrentUser();
         return deletedIssueService.purgeOverflow(projectId, user);
+    }
+
+    public void purgeDeletedIssue(long issueId) {
+        User user = requireCurrentUser();
+        deletedIssueService.purgeDeletedIssue(issueId, user);
     }
 
     private User requireCurrentUser() {
