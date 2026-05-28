@@ -37,6 +37,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 select status, count(*) as issue_count
                 from issues
                 where project_id = ?
+                  and status <> 'DELETED'
                 group by status
                 """;
         Map<IssueStatus, Integer> counts = new EnumMap<>(IssueStatus.class);
@@ -60,6 +61,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 select priority, count(*) as issue_count
                 from issues
                 where project_id = ?
+                  and status <> 'DELETED'
                 group by priority
                 """;
         Map<Priority, Integer> counts = new EnumMap<>(Priority.class);
@@ -91,6 +93,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 select trunc(reported_at) as reported_day, count(*) as issue_count
                 from issues
                 where project_id = ?
+                  and status <> 'DELETED'
                   and (? is null or reported_at >= ?)
                   and (? is null or reported_at < ?)
                 group by trunc(reported_at)
@@ -114,6 +117,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 select to_char(reported_at, 'YYYY-MM') as reported_month, count(*) as issue_count
                 from issues
                 where project_id = ?
+                  and status <> 'DELETED'
                   and (? is null or reported_at >= ?)
                   and (? is null or reported_at < ?)
                 group by to_char(reported_at, 'YYYY-MM')
@@ -133,6 +137,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 from issue_history h
                 join issues i on i.id = h.issue_id
                 where i.project_id = ?
+                  and i.status <> 'DELETED'
                   and h.action_type = 'STATUS_CHANGED'
                   and (? is null or h.changed_at >= ?)
                   and (? is null or h.changed_at < ?)
@@ -153,6 +158,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 from issue_history h
                 join issues i on i.id = h.issue_id
                 where i.project_id = ?
+                  and i.status <> 'DELETED'
                   and h.action_type = 'STATUS_CHANGED'
                   and (? is null or h.changed_at >= ?)
                   and (? is null or h.changed_at < ?)
@@ -173,6 +179,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 from comments c
                 join issues i on i.id = c.issue_id
                 where i.project_id = ?
+                  and i.status <> 'DELETED'
                   and (? is null or c.created_at >= ?)
                   and (? is null or c.created_at < ?)
                 group by trunc(c.created_at)
@@ -192,6 +199,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 from comments c
                 join issues i on i.id = c.issue_id
                 where i.project_id = ?
+                  and i.status <> 'DELETED'
                   and (? is null or c.created_at >= ?)
                   and (? is null or c.created_at < ?)
                 group by to_char(c.created_at, 'YYYY-MM')
@@ -214,6 +222,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                        count(*) as issue_count
                 from issues
                 where project_id = ?
+                  and status <> 'DELETED'
                   and (? is null or reported_at >= ?)
                   and (? is null or reported_at < ?)
                 group by to_char(reported_at, 'YYYY-MM'), status
@@ -255,6 +264,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                        count(*) as issue_count
                 from issues
                 where project_id = ?
+                  and status <> 'DELETED'
                   and (? is null or reported_at >= ?)
                   and (? is null or reported_at < ?)
                 group by to_char(reported_at, 'YYYY-MM'), priority

@@ -18,7 +18,7 @@ Statistics are shown from the selected project screen, not from a global dashboa
 
 The controller requires a current user before all methods. The full `viewStatistics` overload accepts optional daily and monthly ranges; null range endpoints mean unbounded in the repository query. The convenience overload queries the full period.
 
-`StatisticsReportResult` includes status counts, priority counts, daily/monthly issue counts, monthly status and priority counts, daily/monthly status-change counts, and daily/monthly comment counts.
+`StatisticsReportResult` includes status counts, priority counts, daily/monthly issue counts, monthly status and priority counts, daily/monthly status-change counts, and daily/monthly comment counts. These statistics exclude issues currently in `DELETED` status; deleted issues are exposed only through the deleted issue workflow.
 
 ## UC/OC/DCD Traceability
 

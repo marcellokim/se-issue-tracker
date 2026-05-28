@@ -45,7 +45,6 @@ class DashboardSummaryServiceTest {
         Issue deletedIssue = issue(102L, IssueStatus.DELETED);
         Map<IssueStatus, Integer> statusCounts = new EnumMap<>(IssueStatus.class);
         statusCounts.put(IssueStatus.NEW, 1);
-        statusCounts.put(IssueStatus.DELETED, 1);
 
         DashboardSummaryService service = new DashboardSummaryService(
                 new FakeProjectRepository(project, List.of(
@@ -67,6 +66,7 @@ class DashboardSummaryServiceTest {
         assertEquals(1, summary.visibleIssueCount());
         assertEquals(1, summary.deletedIssueCount());
         assertEquals(statusCounts, summary.statusCounts());
+        assertEquals(0, summary.statusCounts().getOrDefault(IssueStatus.DELETED, 0));
     }
 
     @Test
