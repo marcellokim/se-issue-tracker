@@ -55,6 +55,43 @@ if ! issue_title="$(gh issue view "$issue_number" --json title -q .title 2>/dev/
     exit 1
 fi
 
+normalize_pr_summary() {
+    local text="$1"
+
+    is_known_title_prefix() {
+        local normalized
+        normalized="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+
+        case "$normalized" in
+            feat|feature|fix|docs|test|ci|chore|refactor|기능|문서|테스트|작업|수정|버그|확인)
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    }
+
+    while [[ "$text" =~ ^[[:space:]]*\[([^]]+)\][[:space:]]*(.*)$ ]] && is_known_title_prefix "${BASH_REMATCH[1]}"; do
+        text="${BASH_REMATCH[2]}"
+    done
+
+    if [[ "$text" =~ ^[[:space:]]*([A-Za-z]+)(\([A-Za-z0-9._-]+\))?:[[:space:]]*(.+)$ ]] && is_known_title_prefix "${BASH_REMATCH[1]}"; then
+        text="${BASH_REMATCH[3]}"
+    fi
+
+    if [[ -z "$text" ]]; then
+        text="$1"
+    fi
+
+    printf '%s' "$text"
+}
+
+pr_type="${branch%%/*}"
+if [[ "$pr_type" == "feature" ]]; then
+    pr_type="feat"
+fi
+
 echo "[1/3] 로컬 검증 실행"
 ./gradlew check
 
@@ -146,7 +183,7 @@ if pr_url="$(gh pr view "$branch" --json url -q .url 2>/dev/null)"; then
     exit 0
 fi
 
-title="${issue_title}"
+title="${pr_type}: $(normalize_pr_summary "$issue_title")"
 body="## 요약
 - 작업 브랜치: \`$branch\`
 - 관련 이슈: #$issue_number
