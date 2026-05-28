@@ -295,11 +295,15 @@ class OracleRepositoryIntegrationTest {
         }
 
         @Test
-        @DisplayName("normal issue lists and statistics exclude DELETED issues")
-        void normalIssueQueriesAndStatisticsExcludeDeletedIssues() {
+        @DisplayName("normal issue lists hide DELETED issues but statistics include them")
+        void normalIssueQueriesHideDeletedIssuesButStatisticsIncludeThem() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 var admin = repositories.users().findByLoginId("admin").orElseThrow();
                 purgeIssuesByTitle(project.getId(), "Temporary deleted issue for repository policy test");
+                int deletedStatusBefore = repositories.statistics().countByStatus(project.getId())
+                                .getOrDefault(IssueStatus.DELETED, 0);
+                int trivialPriorityBefore = repositories.statistics().countByPriority(project.getId())
+                                .getOrDefault(Priority.TRIVIAL, 0);
 
                 Issue deletedIssue = repositories.issues().save(Issue.create(Issue.persistedState(
                                 project.getId(),
@@ -316,8 +320,11 @@ class OracleRepositoryIntegrationTest {
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
                         assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
-                        assertFalse(repositories.statistics().countByStatus(project.getId())
-                                        .containsKey(IssueStatus.DELETED));
+                        assertEquals(deletedStatusBefore + 1, repositories.statistics().countByStatus(project.getId())
+                                        .getOrDefault(IssueStatus.DELETED, 0));
+                        assertEquals(trivialPriorityBefore + 1,
+                                        repositories.statistics().countByPriority(project.getId())
+                                                        .getOrDefault(Priority.TRIVIAL, 0));
                 } finally {
                         purgeTestIssue(deletedIssue.id());
                         purgeIssuesByTitle(project.getId(), "Temporary deleted issue for repository policy test");

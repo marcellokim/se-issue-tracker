@@ -29,10 +29,6 @@ public final class StatisticsService {
             YearMonth monthlyFromInclusive,
             YearMonth monthlyToInclusive,
             User actor) {
-        /*
-         * 기간 검증은 statistics use-case 경계 책임.
-         * repository query input은 service 한 곳에서 보호.
-         */
         if (projectId <= 0L) {
             throw new IllegalArgumentException(" project Id must be positive");
         }
