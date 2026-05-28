@@ -36,43 +36,100 @@ public final class IssueWorkflowService {
     public IssueWorkflowActions viewAvailableActions(long issueId, String currentLoginId) {
         Issue issue = findIssue(issueId);
         User actor = findUser(currentLoginId);
-        boolean projectMember = isActiveProjectMember(actor, issue.projectId());
-        boolean projectLead = isProjectLead(actor, issue.projectId());
-        boolean canManageAssignment = projectLead && allows(() -> permissionPolicy.assertCanAssignIssue(actor, issue));
-        boolean canManageDependency = projectLead && allows(() -> permissionPolicy.assertCanManageDependency(actor, issue));
-        boolean canManageDeleted = projectLead
-                && allows(() -> permissionPolicy.assertCanManageDeletedIssue(actor, issue));
+        WorkflowAccess access = workflowAccess(actor, issue);
 
         return new IssueWorkflowActions(
-                projectMember && allows(() -> permissionPolicy.assertCanUpdateIssue(actor, issue)),
-                projectLead && allows(() -> permissionPolicy.assertCanChangePriority(actor, issue)),
-                canManageAssignment
-                        && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED, IssueStatus.ASSIGNED,
-                                IssueStatus.FIXED),
-                canManageAssignment && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED),
-                canManageAssignment && issue.status() == IssueStatus.ASSIGNED,
-                canManageAssignment && issue.status() == IssueStatus.FIXED,
-                issue.status() == IssueStatus.ASSIGNED
-                        && projectMember
-                        && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED)),
-                issue.status() == IssueStatus.FIXED
-                        && projectMember
-                        && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED)),
-                issue.status() == IssueStatus.FIXED
-                        && projectMember
-                        && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED))
-                        && canResolveBlockingDependencies(issue),
-                projectLead
-                        && issue.status() == IssueStatus.RESOLVED
-                        && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED)),
-                projectLead
-                        && isOneOf(issue, IssueStatus.RESOLVED, IssueStatus.CLOSED)
-                        && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.REOPENED)),
-                canManageDependency,
-                canManageDependency,
-                projectMember && allows(() -> permissionPolicy.assertCanAddComment(actor, issue)),
-                canManageDeleted
-                        && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED)));
+                canUpdateIssue(actor, issue, access),
+                canChangePriority(actor, issue, access),
+                canStartAssignment(issue, access),
+                canAssign(issue, access),
+                canReassign(issue, access),
+                canChangeVerifier(issue, access),
+                canMarkFixed(actor, issue, access),
+                canRejectFix(actor, issue, access),
+                canResolve(actor, issue, access),
+                canClose(actor, issue, access),
+                canReopen(actor, issue, access),
+                access.canManageDependency(),
+                access.canManageDependency(),
+                canAddComment(actor, issue, access),
+                canSoftDelete(actor, issue, access));
+    }
+
+    private WorkflowAccess workflowAccess(User actor, Issue issue) {
+        boolean projectMember = isActiveProjectMember(actor, issue.projectId());
+        boolean projectLead = isProjectLead(actor, issue.projectId());
+        return new WorkflowAccess(
+                projectMember,
+                projectLead,
+                projectLead && allows(() -> permissionPolicy.assertCanAssignIssue(actor, issue)),
+                projectLead && allows(() -> permissionPolicy.assertCanManageDependency(actor, issue)),
+                projectLead && allows(() -> permissionPolicy.assertCanManageDeletedIssue(actor, issue)));
+    }
+
+    private boolean canUpdateIssue(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectMember() && allows(() -> permissionPolicy.assertCanUpdateIssue(actor, issue));
+    }
+
+    private boolean canChangePriority(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectLead() && allows(() -> permissionPolicy.assertCanChangePriority(actor, issue));
+    }
+
+    private static boolean canStartAssignment(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment()
+                && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED, IssueStatus.ASSIGNED, IssueStatus.FIXED);
+    }
+
+    private static boolean canAssign(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment() && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED);
+    }
+
+    private static boolean canReassign(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment() && issue.status() == IssueStatus.ASSIGNED;
+    }
+
+    private static boolean canChangeVerifier(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment() && issue.status() == IssueStatus.FIXED;
+    }
+
+    private boolean canMarkFixed(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.ASSIGNED
+                && access.projectMember()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED));
+    }
+
+    private boolean canRejectFix(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.FIXED
+                && access.projectMember()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED));
+    }
+
+    private boolean canResolve(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.FIXED
+                && access.projectMember()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED))
+                && canResolveBlockingDependencies(issue);
+    }
+
+    private boolean canClose(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectLead()
+                && issue.status() == IssueStatus.RESOLVED
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED));
+    }
+
+    private boolean canReopen(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectLead()
+                && isOneOf(issue, IssueStatus.RESOLVED, IssueStatus.CLOSED)
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.REOPENED));
+    }
+
+    private boolean canAddComment(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectMember() && allows(() -> permissionPolicy.assertCanAddComment(actor, issue));
+    }
+
+    private boolean canSoftDelete(User actor, Issue issue, WorkflowAccess access) {
+        return access.canManageDeleted()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED));
     }
 
     public boolean canUpdateComment(long issueId, long commentId, String currentLoginId) {
@@ -148,5 +205,13 @@ public final class IssueWorkflowService {
                 || issue.status() == second
                 || issue.status() == third
                 || issue.status() == fourth;
+    }
+
+    private record WorkflowAccess(
+            boolean projectMember,
+            boolean projectLead,
+            boolean canManageAssignment,
+            boolean canManageDependency,
+            boolean canManageDeleted) {
     }
 }
