@@ -89,31 +89,31 @@ class ControllerCoverageTest {
     @Test
     @DisplayName("controller coverage test tracks every public controller method")
     void controllerCoverageTracksEveryPublicControllerMethod() {
-        Map<Class<?>, Set<String>> expected = Map.of(
-                AccountController.class, Set.of(
+        Map<Class<?>, Set<String>> expected = Map.ofEntries(
+                Map.entry(AccountController.class, Set.of(
                         "activateAccount(String)",
                         "changeAccountRole(String,Role)",
                         "createAccount(String,String,String,Role)",
                         "deactivateAccount(String)",
-                        "renameAccount(String,String)"),
-                AssignmentController.class, Set.of(
+                        "renameAccount(String,String)")),
+                Map.entry(AssignmentController.class, Set.of(
                         "assignIssue(long,String,String)",
                         "changeVerifier(long,String)",
                         "reassignIssue(long,String)",
-                        "startAssignment(long)"),
-                AuthenticationController.class, Set.of(
+                        "startAssignment(long)")),
+                Map.entry(AuthenticationController.class, Set.of(
                         "login(String,String)",
-                        "logout()"),
-                DashboardController.class, Set.of(
+                        "logout()")),
+                Map.entry(DashboardController.class, Set.of(
                         "viewProjects()",
-                        "viewUsers()"),
-                DeletedIssueController.class, Set.of(
+                        "viewUsers()")),
+                Map.entry(DeletedIssueController.class, Set.of(
                         "deleteIssue(long,String)",
                         "purgeDeletedIssue(long)",
                         "purgeOverflow(long)",
                         "restoreIssue(long,String)",
-                        "viewDeletedIssues(long)"),
-                IssueController.class, Set.of(
+                        "viewDeletedIssues(long)")),
+                Map.entry(IssueController.class, Set.of(
                         "addComment(long,String)",
                         "addDependency(long,long)",
                         "canDeleteComment(long,long)",
@@ -131,10 +131,10 @@ class ControllerCoverageTest {
                         "viewComments(long)",
                         "viewIssueDetail(long)",
                         "viewProjectDependencies(long)",
-                        "viewRelatedProjectIssues(long)"),
-                IssueStateController.class, Set.of(
-                        "changeStatus(long,IssueStatus,String)"),
-                ProjectController.class, Set.of(
+                        "viewRelatedProjectIssues(long)")),
+                Map.entry(IssueStateController.class, Set.of(
+                        "changeStatus(long,IssueStatus,String)")),
+                Map.entry(ProjectController.class, Set.of(
                         "addProjectParticipant(long,String)",
                         "changeProjectDescription(long,String)",
                         "createProject(String,String)",
@@ -143,10 +143,10 @@ class ControllerCoverageTest {
                         "renameProject(long,String)",
                         "viewProjectAdminDetail(long)",
                         "viewProjectNonAdminDetail(long)",
-                        "viewProjectParticipants(long)"),
-                StatisticsController.class, Set.of(
+                        "viewProjectParticipants(long)")),
+                Map.entry(StatisticsController.class, Set.of(
                         "viewStatistics(long)",
-                        "viewStatistics(long,LocalDate,LocalDate,YearMonth,YearMonth)"));
+                        "viewStatistics(long,LocalDate,LocalDate,YearMonth,YearMonth)")));
 
         expected.forEach((controllerType, signatures) ->
                 assertEquals(signatures, publicMethodSignatures(controllerType), controllerType.getSimpleName()));
@@ -425,6 +425,19 @@ class ControllerCoverageTest {
     }
 
     @Test
+    @DisplayName("issue controller rejects anonymous write paths")
+    void issueControllerRejectsAnonymousUsers() {
+        IssueController controller = unauthenticatedIssueController(persistedIssue(1L, "ISSUE-1", user("dev1", Role.DEV)));
+
+        assertThrows(SecurityException.class,
+                () -> controller.registerIssue(PROJECT_ID, "Bug", "desc", Priority.MAJOR));
+        assertThrows(SecurityException.class,
+                () -> controller.addComment(1L, "comment"));
+        assertThrows(SecurityException.class,
+                () -> controller.deleteComment(1L, 100L));
+    }
+
+    @Test
     @DisplayName("project controller covers admin project reads and mutations")
     void projectControllerCoversAdminProjectMethods() {
         AuthFixture auth = authenticated(Role.ADMIN);
@@ -498,14 +511,168 @@ class ControllerCoverageTest {
     }
 
     @Test
+    @DisplayName("project controller rejects non-admin management attempts")
+    void projectControllerRejectsNonAdminManagement() {
+        for (Role role : List.of(Role.PL, Role.DEV, Role.TESTER)) {
+            AuthFixture auth = authenticated(role);
+            InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+            FakeUserRepository users = new FakeUserRepository(auth.user(), user("dev1", Role.DEV));
+            ProjectController controller = projectController(auth, projects, users);
+
+            assertThrows(SecurityException.class, () -> controller.viewProjectNonAdminDetail(PROJECT_ID));
+            assertThrows(SecurityException.class, () -> controller.viewProjectParticipants(PROJECT_ID));
+            assertThrows(SecurityException.class, () -> controller.viewProjectAdminDetail(PROJECT_ID));
+            assertThrows(SecurityException.class, () -> controller.createProject("new-project", "blocked"));
+            assertThrows(SecurityException.class, () -> controller.renameProject(PROJECT_ID, "blocked-project"));
+            assertThrows(SecurityException.class, () -> controller.changeProjectDescription(PROJECT_ID, "blocked"));
+            assertThrows(SecurityException.class, () -> controller.deleteProject(PROJECT_ID));
+            assertThrows(SecurityException.class, () -> controller.addProjectParticipant(PROJECT_ID, "dev1"));
+            assertThrows(SecurityException.class, () -> controller.removeProjectParticipant(PROJECT_ID, "dev1"));
+        }
+    }
+
+    @Test
+    @DisplayName("project controller rejects invalid project data")
+    void projectControllerRejectsInvalidProjectData() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(
+                project(PROJECT_ID, "project-one"),
+                project(PROJECT_ID + 1, "project-two"));
+        ProjectController controller = projectController(auth, projects, new FakeUserRepository(auth.user()));
+
+        assertThrows(IllegalArgumentException.class, () -> controller.createProject(" ", "blank"));
+        assertThrows(IllegalArgumentException.class, () -> controller.renameProject(PROJECT_ID, " "));
+        assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-three", null));
+        assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-three", " "));
+        assertThrows(IllegalArgumentException.class, () -> controller.changeProjectDescription(PROJECT_ID, null));
+        assertThrows(IllegalArgumentException.class, () -> controller.changeProjectDescription(PROJECT_ID, " "));
+        assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-one", "duplicate"));
+        assertThrows(IllegalArgumentException.class, () -> controller.renameProject(PROJECT_ID + 1, "project-one"));
+    }
+
+    @Test
+    @DisplayName("project controller validates participant add rules")
+    void projectControllerValidatesParticipantAddRules() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User activeDev = user("dev1", Role.DEV);
+        User inactiveTester = inactiveUser("tester1", Role.TESTER);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+        FakeUserRepository users = new FakeUserRepository(auth.user(), activeDev, inactiveTester);
+        ProjectController controller = projectController(auth, projects, users);
+
+        controller.addProjectParticipant(PROJECT_ID, activeDev.getLoginId());
+
+        assertEquals(List.of(activeDev.getLoginId()), projects.participantIds(PROJECT_ID));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.addProjectParticipant(PROJECT_ID, activeDev.getLoginId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.addProjectParticipant(PROJECT_ID, auth.user().getLoginId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.addProjectParticipant(PROJECT_ID, inactiveTester.getLoginId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.addProjectParticipant(PROJECT_ID, "missing"));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.addProjectParticipant(404L, activeDev.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("project controller allows only one project lead")
+    void projectControllerAllowsOnlyOneProjectLead() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User pl1 = user("pl1", Role.PL);
+        User pl2 = user("pl2", Role.PL);
+        User inactivePl = inactiveUser("pl3", Role.PL);
+
+        InMemoryProjectRepository firstProject = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+        ProjectController firstController = projectController(
+                auth,
+                firstProject,
+                new FakeUserRepository(auth.user(), pl1, pl2));
+        firstController.addProjectParticipant(PROJECT_ID, pl1.getLoginId());
+        assertThrows(IllegalArgumentException.class,
+                () -> firstController.addProjectParticipant(PROJECT_ID, pl2.getLoginId()));
+        assertEquals(List.of(pl1.getLoginId()), firstProject.participantIds(PROJECT_ID));
+
+        InMemoryProjectRepository secondProject = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+        secondProject.withParticipant(PROJECT_ID, inactivePl.getLoginId());
+        ProjectController secondController = projectController(
+                auth,
+                secondProject,
+                new FakeUserRepository(auth.user(), inactivePl, pl2));
+        assertThrows(IllegalArgumentException.class,
+                () -> secondController.addProjectParticipant(PROJECT_ID, pl2.getLoginId()));
+        assertEquals(List.of(inactivePl.getLoginId()), secondProject.participantIds(PROJECT_ID));
+    }
+
+    @Test
+    @DisplayName("project controller validates participant remove rules")
+    void projectControllerValidatesParticipantRemoveRules() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User dev = user("dev1", Role.DEV);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"))
+                .withParticipant(PROJECT_ID, dev.getLoginId());
+        ProjectController controller = projectController(auth, projects, new FakeUserRepository(auth.user(), dev));
+
+        controller.removeProjectParticipant(PROJECT_ID, dev.getLoginId());
+
+        assertEquals(List.of(), projects.participantIds(PROJECT_ID));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(PROJECT_ID, dev.getLoginId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(404L, dev.getLoginId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(PROJECT_ID, " "));
+    }
+
+    @Test
+    @DisplayName("project controller blocks active assignee or verifier removal")
+    void projectControllerBlocksActiveAssigneeOrVerifierRemoval() {
+        assertParticipantRemovalBlockedFor(IssueStatus.ASSIGNED, user("dev1", Role.DEV), null);
+        assertParticipantRemovalBlockedFor(IssueStatus.FIXED, user("dev1", Role.DEV), null);
+        assertParticipantRemovalBlockedFor(IssueStatus.ASSIGNED, null, user("tester1", Role.TESTER));
+        assertParticipantRemovalBlockedFor(IssueStatus.FIXED, null, user("tester1", Role.TESTER));
+    }
+
+    @Test
+    @DisplayName("project controller allows resolved assignee and verifier removal")
+    void projectControllerAllowsResolvedAssigneeAndVerifierRemoval() {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User assignee = user("dev1", Role.DEV);
+        User verifier = user("tester1", Role.TESTER);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"))
+                .withParticipant(PROJECT_ID, assignee.getLoginId())
+                .withParticipant(PROJECT_ID, verifier.getLoginId());
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
+                issueWithAssigneeAndVerifier(101L, PROJECT_ID, IssueStatus.RESOLVED, assignee, verifier));
+        ProjectController controller = projectController(
+                auth,
+                projects,
+                new FakeUserRepository(auth.user(), assignee, verifier),
+                issues);
+
+        controller.removeProjectParticipant(PROJECT_ID, assignee.getLoginId());
+        controller.removeProjectParticipant(PROJECT_ID, verifier.getLoginId());
+
+        assertEquals(List.of(), projects.participantIds(PROJECT_ID));
+    }
+
+    @Test
     @DisplayName("assignment controller loads issue and returns status-aware recommendation options")
     void assignmentControllerStartsAssignment() {
         AuthFixture auth = authenticated(Role.PL);
-        auth.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
-                .withParticipant(PROJECT_ID, auth.user().getLoginId()));
+        User dev = user("dev1", Role.DEV);
+        User tester = user("tester1", Role.TESTER);
+        auth.users().save(dev);
+        auth.users().save(tester);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, auth.user().getLoginId())
+                .withParticipant(PROJECT_ID, dev.getLoginId())
+                .withParticipant(PROJECT_ID, tester.getLoginId());
+        auth.users().attachProjects(projects);
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
+        Issue completedIssue = issueWithCompletedOwners(202L, PROJECT_ID, dev, tester);
         PermissionPolicy policy = new PermissionPolicy();
-        FakeIssueRepository issues = new FakeIssueRepository(issue);
+        FakeIssueRepository issues = new FakeIssueRepository(issue, completedIssue);
         AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation());
         AssignmentController controller = new AssignmentController(
                 auth.service(),
@@ -518,8 +685,20 @@ class ControllerCoverageTest {
 
         AssignmentOptionsResult options = controller.startAssignment(issue.id());
 
-        assertNotNull(options.devAssigneeCandidates());
-        assertNotNull(options.testerVerifierCandidates());
+        assertEquals(List.of(dev.getLoginId()), options.devAssigneeCandidates().stream()
+                .map(candidate -> candidate.loginId())
+                .toList());
+        assertEquals(List.of(tester.getLoginId()), options.testerVerifierCandidates().stream()
+                .map(candidate -> candidate.loginId())
+                .toList());
+        assertEquals(List.of(dev.getLoginId()), options.allDevAssignees().stream()
+                .map(candidate -> candidate.loginId())
+                .toList());
+        assertEquals(List.of(tester.getLoginId()), options.allTesterVerifiers().stream()
+                .map(candidate -> candidate.loginId())
+                .toList());
+        assertEquals("recommended by similarity", options.devAssigneeCandidates().getFirst().reason());
+        assertEquals(1, options.devAssigneeCandidates().getFirst().completedIssueCount());
     }
 
     @Test
@@ -754,6 +933,32 @@ class ControllerCoverageTest {
         return new IssueController(authService, issueService, workflowService);
     }
 
+    private static IssueController unauthenticatedIssueController(Issue... issues) {
+        FakeUserRepository users = new FakeUserRepository(user("dev1", Role.DEV));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, "dev1");
+        users.attachProjects(projects);
+        FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
+        InMemoryIssueRepository issueRepository = new InMemoryIssueRepository(issues);
+        PermissionPolicy policy = new PermissionPolicy();
+        IssueService issueService = new IssueService(
+                projects,
+                issueRepository,
+                dependencies,
+                new FakeCommentRepository(),
+                new FakeIssueHistoryRepository(),
+                users,
+                policy,
+                () -> NOW);
+        IssueWorkflowService workflowService = new IssueWorkflowService(
+                issueRepository,
+                dependencies,
+                new FakeCommentRepository(),
+                users,
+                policy);
+        return new IssueController(anonymousAuth(), issueService, workflowService);
+    }
+
     private static Issue persistedIssue(long id, String issueId, User reporter) {
         return Issue.fromPersistence(Issue.persistedState(
                 PROJECT_ID,
@@ -838,6 +1043,22 @@ class ControllerCoverageTest {
                 .verifier(verifier));
     }
 
+    private static Issue issueWithCompletedOwners(long id, long projectId, User fixer, User resolver) {
+        return Issue.fromPersistence(Issue.persistedState(
+                projectId,
+                "Issue " + id,
+                "Controller test issue",
+                user("reporter", Role.DEV))
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(NOW)
+                .updatedAt(NOW)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.RESOLVED)
+                .fixer(fixer)
+                .resolver(resolver));
+    }
+
     private static String nextCommentId() {
         return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
@@ -859,6 +1080,10 @@ class ControllerCoverageTest {
 
     private static User user(String loginId, Role role) {
         return User.fromPersistence(loginId, loginId, "stored-password", role, true, NOW, NOW);
+    }
+
+    private static User inactiveUser(String loginId, Role role) {
+        return User.fromPersistence(loginId, loginId, "stored-password", role, false, NOW, NOW);
     }
 
     private static Project project(long projectId) {
@@ -903,6 +1128,27 @@ class ControllerCoverageTest {
                 priorityCounts,
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 1)),
                 List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 1)));
+    }
+
+    private static void assertParticipantRemovalBlockedFor(
+            IssueStatus status,
+            User assignee,
+            User verifier) {
+        AuthFixture auth = authenticated(Role.ADMIN);
+        User participant = assignee == null ? verifier : assignee;
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"))
+                .withParticipant(PROJECT_ID, participant.getLoginId());
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
+                issueWithAssigneeAndVerifier(101L, PROJECT_ID, status, assignee, verifier));
+        ProjectController controller = projectController(
+                auth,
+                projects,
+                new FakeUserRepository(auth.user(), participant),
+                issues);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.removeProjectParticipant(PROJECT_ID, participant.getLoginId()));
+        assertEquals(List.of(participant.getLoginId()), projects.participantIds(PROJECT_ID));
     }
 
     private record AuthFixture(AuthenticationService service, FakeUserRepository users, User user) {
@@ -1023,6 +1269,11 @@ class ControllerCoverageTest {
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             lastPurgeLimit = maxDeletedIssues;
             return 2;
+        }
+
+        @Override
+        public List<Issue> findRecommendationForAssignment(long projectId) {
+            return findByProject(projectId);
         }
 
     }
@@ -1214,7 +1465,7 @@ class ControllerCoverageTest {
             Comment comment = comments.get(commentId);
             if (comment == null
                     || comment.issueId() != issueId
-                    || !comment.writerId().equals(writerLoginId)
+                    || !Objects.equals(comment.writerId(), writerLoginId)
                     || comment.purpose() != CommentPurpose.GENERAL) {
                 throw new IllegalArgumentException(
                         "Comment was not deleted because it does not exist, is not owned by the writer, "
