@@ -61,17 +61,6 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public List<Issue> findByProject(long projectId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_PROJECT_SQL)) {
-            statement.setLong(1, projectId);
-            return executeIssueList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list issues by project.", exception);
-        }
-    }
-
-    @Override
     public List<Issue> findDeletedByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection

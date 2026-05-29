@@ -515,13 +515,6 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public List<Issue> findByProject(long projectId) {
-            return issuesById.values().stream()
-                    .filter(issue -> issue.projectId() == projectId)
-                    .toList();
-        }
-
-        @Override
         public List<Issue> findDeletedByProject(long projectId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.projectId() == projectId)

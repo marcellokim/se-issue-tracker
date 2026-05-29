@@ -39,15 +39,6 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
-    public List<Issue> findByProject(long projectId) {
-        return issues.values().stream()
-                .filter(issue -> issue.projectId() == projectId)
-                .filter(issue -> issue.status() != IssueStatus.DELETED)
-                .sorted(Comparator.comparingLong(Issue::id))
-                .toList();
-    }
-
-    @Override
     public List<Issue> findDeletedByProject(long projectId) {
         return issues.values().stream()
                 .filter(issue -> issue.projectId() == projectId)

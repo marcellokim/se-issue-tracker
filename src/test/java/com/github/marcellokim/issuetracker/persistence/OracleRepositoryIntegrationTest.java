@@ -340,7 +340,7 @@ class OracleRepositoryIntegrationTest {
                                         reportedMonth,
                                         reportedMonth);
 
-                        assertFalse(repositories.issues().findByProject(project.getId()).stream()
+                        assertFalse(repositories.issues().findByCriteria(activeIssueCriteria(project.getId())).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
                         assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
@@ -699,7 +699,7 @@ class OracleRepositoryIntegrationTest {
                                         .resolver(assigned.getResolver())
                                         .updatedAt(LocalDateTime.now())));
 
-                        assertFalse(repositories.issues().findByProject(project.getId()).stream()
+                        assertFalse(repositories.issues().findByCriteria(activeIssueCriteria(project.getId())).stream()
                                         .anyMatch(issue -> issue.id() == deleted.id()));
                         assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deleted.id()));
@@ -1380,6 +1380,10 @@ class OracleRepositoryIntegrationTest {
                                 .filter(issue -> issue.title().equals(title))
                                 .findFirst()
                                 .orElseThrow();
+        }
+
+        private static IssueSearchCriteria activeIssueCriteria(long projectId) {
+                return IssueSearchCriteria.create(projectId, null, null, null, null, null, null, null, null, false);
         }
 
         private static Issue findIssueByTitleIncludingDeleted(long projectId, String title) {

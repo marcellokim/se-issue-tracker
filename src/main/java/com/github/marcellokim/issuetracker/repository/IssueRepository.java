@@ -13,8 +13,6 @@ public interface IssueRepository {
 
     List<Issue> findAllById(List<Long> issueIds);
 
-    List<Issue> findByProject(long projectId);
-
     List<Issue> findDeletedByProject(long projectId);
 
     List<Issue> findByCriteria(IssueSearchCriteria criteria);
