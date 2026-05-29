@@ -1,10 +1,11 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 
 final class JdbcIssueQueries {
 
@@ -74,6 +75,9 @@ final class JdbcIssueQueries {
               and id <> ?
             fetch first 1 rows only
             """;
+            
+    static final String FIND_RESOLVED_OR_CLOSED_BY_PROJECT_SQL =
+        BASE_SELECT + " where i.project_id = ? and i.status in ('RESOLVED', 'CLOSED') order by i.id";
 
     private JdbcIssueQueries() {
     }

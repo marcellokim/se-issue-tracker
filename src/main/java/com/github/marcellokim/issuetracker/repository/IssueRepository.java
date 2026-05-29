@@ -1,10 +1,11 @@
 package com.github.marcellokim.issuetracker.repository;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 
 public interface IssueRepository {
 
@@ -36,4 +37,5 @@ public interface IssueRepository {
 
     int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues);
 
+    default List<Issue> findRecommendationForAssignment(long projectId) { return List.of(); }
 }

@@ -11,7 +11,7 @@ import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -83,7 +83,7 @@ class IssueWorkflowIntegrationTest {
                 issueRepository,
                 userRepository,
                 policy,
-                new AssignmentRecommendationService(new EmptyAssignmentRecommendationRepository()),
+                new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation()),
                 java.time.LocalDateTime::now);
         var stateService = new IssueStateService(
                 issueRepository,
@@ -118,18 +118,5 @@ class IssueWorkflowIntegrationTest {
 
     private static String nextCommentId() {
         return "COMMENT-test-" + java.util.UUID.randomUUID();
-    }
-
-    private static final class EmptyAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
-
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of();
-        }
-
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of();
-        }
     }
 }

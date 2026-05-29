@@ -16,6 +16,7 @@ import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactor
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
@@ -106,7 +107,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 issues,
                                 users,
                                 permissionPolicy,
-                                new AssignmentRecommendationService(assignmentRecommendations),
+                                new AssignmentRecommendationService(issues, users, new KNNAssignmentRecommendation()),
                                 clock);
                 IssueStateService issueStateService = new IssueStateService(
                                 issues,

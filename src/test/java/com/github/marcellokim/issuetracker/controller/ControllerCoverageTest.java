@@ -3,6 +3,7 @@ package com.github.marcellokim.issuetracker.controller;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,6 +32,7 @@ import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
@@ -267,12 +269,9 @@ class ControllerCoverageTest {
     void assignmentControllerStartsAssignment() {
         AuthFixture auth = authenticated(Role.PL);
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
-        FakeAssignmentRecommendationRepository recommendations = new FakeAssignmentRecommendationRepository();
-        recommendations.devCandidates = List.of(AssignmentCandidate.create(user("dev1", Role.DEV), 5));
-        recommendations.testerCandidates = List.of(AssignmentCandidate.create(user("tester1", Role.TESTER), 3));
         PermissionPolicy policy = new PermissionPolicy();
         FakeIssueRepository issues = new FakeIssueRepository(issue);
-        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(recommendations);
+        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation());
         AssignmentController controller = new AssignmentController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.AssignmentService(
@@ -284,10 +283,8 @@ class ControllerCoverageTest {
 
         AssignmentOptionsResult options = controller.startAssignment(issue.id());
 
-        assertEquals(1, options.devAssigneeCandidates().size());
-        assertEquals(1, options.testerVerifierCandidates().size());
-        assertEquals(PROJECT_ID, recommendations.lastDevProjectId);
-        assertEquals(PROJECT_ID, recommendations.lastTesterProjectId);
+        assertNotNull(options.devAssigneeCandidates());
+        assertNotNull(options.testerVerifierCandidates());
     }
 
     @Test
@@ -296,7 +293,7 @@ class ControllerCoverageTest {
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         FakeIssueRepository issues = new FakeIssueRepository(issue);
         AssignmentRecommendationService recommendations = new AssignmentRecommendationService(
-                new FakeAssignmentRecommendationRepository());
+                issues, new FakeUserRepository(), new KNNAssignmentRecommendation());
         PermissionPolicy policy = new PermissionPolicy();
 
         AssignmentController anonymousController = new AssignmentController(

@@ -9,12 +9,6 @@ public record AssignmentOptionsResult(
                 List<AssignmentCandidateResult> allDevAssignees,
                 List<AssignmentCandidateResult> allTesterVerifiers) {
 
-        public AssignmentOptionsResult(
-                        List<AssignmentCandidateResult> devAssigneeCandidates,
-                        List<AssignmentCandidateResult> testerVerifierCandidates) {
-                this(devAssigneeCandidates, testerVerifierCandidates, devAssigneeCandidates, testerVerifierCandidates);
-        }
-
         public AssignmentOptionsResult {
                 devAssigneeCandidates = List
                                 .copyOf(Objects.requireNonNull(devAssigneeCandidates, "devAssigneeCandidates"));

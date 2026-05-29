@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactor
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
@@ -1336,7 +1337,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                new AssignmentRecommendationService(repositories.assignmentRecommendations()),
+                                new AssignmentRecommendationService(repositories.issues(), repositories.users(), new KNNAssignmentRecommendation()),
                                 java.time.LocalDateTime::now);
         }
 
