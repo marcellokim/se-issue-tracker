@@ -15,7 +15,7 @@
 
 ### 1. Operation 이름 및 파라미터
 
-`registerIssue(title, description, priority)`
+`registerIssue(projectId, title, description, priority)`
 
 ### 2. Reference
 
@@ -25,6 +25,7 @@ Use Case: UC1 Register Issue
 
 - 현재 사용자는 `Auth User`로 로그인되어 있다.
 - 이슈를 등록할 대상 `Project`가 존재하고 선택되어 있다.
+- 현재 사용자는 선택된 `Project`의 active member이다.
 - 현재 사용자는 선택된 `Project`에 이슈를 등록할 권한을 가진다.
 - `title`과 `description`은 비어 있지 않다.
 
@@ -34,7 +35,7 @@ Use Case: UC1 Register Issue
   - 새로운 `Issue` instance가 생성되었다.
   - `actionType=CREATED`인 새로운 `IssueHistory` instance가 생성되었다.
 - Association 형성
-  - 새 `Issue.projectId`가 선택된 `Project`의 식별자를 참조한다. `Project` 객체 내부에 `Issue` collection을 추가하지 않는다.
+  - 새 `Issue.projectId`가 선택된 `Project`의 식별자를 참조하게 되었다. `Project` 객체 내부에 `Issue` collection은 추가되지 않았다.
   - 현재 `User`와 새 `Issue` 사이에 `reports` association이 형성되었다.
   - 새 `Issue`와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `User`와 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
@@ -78,7 +79,7 @@ Use Case: UC2 Add Comment
 - 속성값 변화
   - `Comment.content`는 `content`로 설정되었다.
   - `Comment.createdDate`는 현재 시각으로 설정되었다.
-  - `IssueHistory.message`는 `content` 또는 코멘트 등록 메시지로 설정되었다.
+  - `IssueHistory.message`는 코멘트 등록 메시지로 설정되었다.
 
 ---
 
@@ -97,6 +98,7 @@ Use Case: UC5 Assign / Update Issue Assignment
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `NEW`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 - `assigneeId`는 배정 가능한 `DEV`를 식별한다.
 - `verifierId`는 배정 가능한 `TESTER`를 식별한다.
 - UC8 Recommend Assignment Candidates가 대상 이슈 상태에 맞는 후보를 제공한 상태이다.
@@ -134,6 +136,7 @@ Use Case: UC5 Assign / Update Issue Assignment
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `ASSIGNED`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 - `assigneeId`는 배정 가능한 `DEV`를 식별한다.
 - 현재 사용자는 이슈 배정 정보를 변경할 권한을 가진다.
 - UC8 Recommend Assignment Candidates가 `DEV` assignee 후보를 제공한 상태이다.
@@ -170,6 +173,7 @@ Use Case: UC5 Assign / Update Issue Assignment
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `FIXED`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 - `verifierId`는 배정 가능한 `TESTER`를 식별한다.
 - 현재 사용자는 이슈 배정 정보를 변경할 권한을 가진다.
 - UC8 Recommend Assignment Candidates가 `TESTER` verifier 후보를 제공한 상태이다.
@@ -206,6 +210,7 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 `DEV`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - 현재 사용자는 대상 `Issue`의 현재 assignee이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active member이다.
 - `Issue.status`는 `ASSIGNED`이다.
 - UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `ASSIGNED -> FIXED` 전이를 수행할 권한을 가진다.
@@ -247,6 +252,7 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 `TESTER`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - 현재 사용자는 대상 `Issue`의 현재 verifier이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active member이다.
 - `Issue.status`는 `FIXED`이다.
 - 대상 `Issue`와 연결된 모든 blocking issue는 `RESOLVED` 또는 `CLOSED` 상태이다.
 - UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
@@ -266,13 +272,16 @@ Use Case: UC6 Change Issue State
   - 현재 `TESTER`와 새 `IssueHistory` instances 사이에 각각 `changes` association이 형성되었다.
 - Association 붕괴
   - 대상 `Issue`에 기존 resolver가 존재했다면, 기존 resolver `TESTER`와 대상 `Issue` 사이의 `resolves` association은 제거되었다.
+  - 기존 assignee `DEV`와 대상 `Issue` 사이의 `assigned to` association이 제거되었다.
+  - 기존 verifier `TESTER`와 대상 `Issue` 사이의 `verifies` association이 제거되었다.
 - 속성값 변화
   - `Issue.status`는 `FIXED`에서 `RESOLVED`로 변경되었다.
   - `Comment.content`는 `comment`로 설정되었다.
   - `Comment.createdDate`는 현재 시각으로 설정되었다.
   - `STATUS_CHANGED` history에는 `previousValue=FIXED`, `newValue=RESOLVED`가 기록되었다.
-  - 기존 `assigned to`, `verifies`, `fixes` association은 유지되었다.
+  - 기존 `fixes` association은 유지되었다.
   - `resolves` association은 현재 `TESTER`를 최신 resolver로 가리키도록 갱신되었다.
+  - `assigned to`와 `verifies` association은 없는 상태/null 상태가 되었다.
   - `BLOCK` 또는 `BLOCKED` `IssueStatus`는 생성되지 않았다.
 
 ---
@@ -292,6 +301,7 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `RESOLVED`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 - UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `RESOLVED -> CLOSED` 전이를 수행할 권한을 가진다.
 
@@ -333,6 +343,7 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `RESOLVED` 또는 `CLOSED`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 - UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `RESOLVED/CLOSED -> REOPENED` 전이를 수행할 권한을 가진다.
 
@@ -365,7 +376,7 @@ Use Case: UC6 Change Issue State
 
 ### 1. Operation 이름 및 파라미터
 
-`deleteIssue(issueId)`
+`deleteIssue(issueId, comment)`
 
 ### 2. Reference
 
@@ -376,25 +387,37 @@ Use Case: UC9 Manage Deleted Issue
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `NEW` 또는 `CLOSED`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
+- 삭제 사유인 `comment`는 비어 있지 않다.
 - 현재 사용자는 이슈를 삭제할 권한을 가진다.
 - 대상 이슈는 아직 물리적으로 삭제되지 않았다.
 
 ### 4. Postconditions
 
 - Instance 생성
+  - 삭제 사유를 저장하기 위한 새로운 `Comment` instance가 생성되었다.
+  - `actionType=COMMENTED`인 새로운 `IssueHistory` instance가 생성되었다.
   - `actionType=STATUS_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
+  - 삭제 과정에서 제거된 각 dependency에 대해 `actionType=DEPENDENCY_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
 - Instance 삭제
   - 대상 `Issue`와 연결된 모든 `IssueDependency` instance가 제거되었다.
-  - 이 operation 이후 `DELETED` 상태의 이슈가 30개를 초과한 경우, `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate` 기준으로 가장 오래된 `DELETED` 이슈가 물리적으로 삭제되었다.
+  - 이 operation 이후 `DELETED` 상태의 이슈가 30개를 초과한 경우, `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate` 기준으로 초과분에 해당하는 오래된 `DELETED` 이슈가 물리적으로 삭제되었다.
 - Association 형성
+  - 대상 `Issue`와 새 `Comment` 사이에 `has` association이 형성되었다.
+  - 현재 `PL`과 새 `Comment` 사이에 `writes` association이 형성되었다.
   - 대상 `Issue`와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `PL`과 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
+  - 제거된 각 dependency의 blocked issue와 dependency 제거 `IssueHistory` 사이에 `logs` association이 형성되었다.
+  - 현재 `PL`과 dependency 제거 `IssueHistory` 사이에 `changes` association이 형성되었다.
 - Association 붕괴
   - 제거된 각 `IssueDependency`에 대해 `blockingIssue` association이 제거되었다.
   - 제거된 각 `IssueDependency`에 대해 `blockedIssue` association이 제거되었다.
 - 속성값 변화
   - `Issue.status`는 `NEW` 또는 `CLOSED`에서 `DELETED`로 변경되었다.
+  - `Comment.content`는 삭제 사유 `comment`로 설정되었다.
+  - `Comment.createdDate`는 현재 시각으로 설정되었다.
   - `STATUS_CHANGED` history에는 `previousValue=NEW` 또는 `CLOSED`, `newValue=DELETED`가 기록되었다.
+  - `STATUS_CHANGED` history의 message에는 삭제 사유 `comment`가 기록되었다.
   - deleted transition time은 `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate`에서 결정되었다.
   - `NEW` 또는 `CLOSED` 대상은 활성 assignee/verifier가 없는 상태로 취급되었다.
   - 제거된 dependency는 `restoreIssue`에서 자동 복원되지 않았다.
@@ -405,7 +428,7 @@ Use Case: UC9 Manage Deleted Issue
 
 ### 1. Operation 이름 및 파라미터
 
-`restoreIssue(issueId)`
+`restoreIssue(issueId, comment)`
 
 ### 2. Reference
 
@@ -417,21 +440,30 @@ Use Case: UC9 Manage Deleted Issue
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `DELETED`이다.
 - 대상 `Issue`는 아직 물리적으로 삭제되지 않았다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
+- 복구 사유인 `comment`는 비어 있지 않다.
 - 복구할 상태는 `IssueHistory(STATUS_CHANGED, newValue=DELETED).previousValue`에서 확인할 수 있다.
 - 현재 사용자는 이슈를 복구할 권한을 가진다.
 
 ### 4. Postconditions
 
 - Instance 생성
+  - 복구 사유를 저장하기 위한 새로운 `Comment` instance가 생성되었다.
+  - `actionType=COMMENTED`인 새로운 `IssueHistory` instance가 생성되었다.
   - `actionType=STATUS_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
   - 새로운 `Issue` instance는 생성되지 않았고, 기존 `Issue` instance가 그대로 사용되었다.
 - Association 형성
+  - 대상 `Issue`와 새 `Comment` 사이에 `has` association이 형성되었다.
+  - 현재 `PL`과 새 `Comment` 사이에 `writes` association이 형성되었다.
   - 대상 `Issue`와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `PL`과 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
 - 속성값 변화
   - `Issue.status`는 `DELETED`에서 삭제 직전 상태인 `NEW` 또는 `CLOSED`로 변경되었다.
+  - `Comment.content`는 복구 사유 `comment`로 설정되었다.
+  - `Comment.createdDate`는 현재 시각으로 설정되었다.
   - 복구 상태는 별도 `Issue.preDeleteStatus` attribute가 아니라 이전 `STATUS_CHANGED` history에서 결정되었다.
   - 새 `STATUS_CHANGED` history에는 `previousValue=DELETED`, `newValue=NEW` 또는 `CLOSED`가 기록되었다.
+  - 새 `STATUS_CHANGED` history의 message에는 복구 사유 `comment`가 기록되었다.
   - 해당 이슈는 deleted 보관/FIFO 물리 삭제 대상에서 제외되었다.
   - 기존 reporter, fixer, resolver, comments, history는 유지되었다.
   - `assigned to`와 `verifies` association은 없는 상태/null 상태로 유지되었다.
@@ -460,6 +492,7 @@ Use Case: UC5 Assign / Update Issue Assignment
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `REOPENED`이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 - `assigneeId`는 배정 가능한 `DEV`를 식별한다.
 - `verifierId`는 배정 가능한 `TESTER`를 식별한다.
 - UC8 Recommend Assignment Candidates가 대상 이슈 상태에 맞는 후보를 제공한 상태이다.
@@ -502,6 +535,7 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 `TESTER`로 로그인되어 있다.
 - 대상 `Issue`가 존재한다.
 - 현재 사용자는 대상 `Issue`의 현재 verifier이다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active member이다.
 - `Issue.status`는 `FIXED`이다.
 - UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `FIXED -> ASSIGNED` 전이를 수행할 권한을 가진다.
@@ -542,9 +576,13 @@ Use Case: UC7 Manage Dependency
 - 현재 사용자는 `PL`로 로그인되어 있다.
 - `blockingIssueId`가 가리키는 `Issue`가 존재한다.
 - `blockedIssueId`가 가리키는 `Issue`가 존재한다.
+- blocking issue와 blocked issue는 같은 `Project`에 속한다.
+- blocking issue와 blocked issue는 `DELETED` 상태가 아니다.
+- blocked issue는 `RESOLVED` 또는 `CLOSED` 상태가 아니다.
 - blocking issue와 blocked issue는 서로 다른 이슈이다.
 - 새 dependency는 기존 dependency와 중복되지 않는다.
 - 새 dependency는 순환 dependency를 만들지 않는다.
+- 현재 사용자는 blocked issue가 속한 `Project`의 active PL이다.
 - 현재 사용자는 dependency를 추가할 권한을 가진다.
 
 ### 4. Postconditions
@@ -571,7 +609,7 @@ Use Case: UC7 Manage Dependency
 
 ### 1. Operation 이름 및 파라미터
 
-`removeDependency(dependencyId)`
+`removeDependency(blockingIssueId, blockedIssueId)`
 
 ### 2. Reference
 
@@ -580,7 +618,12 @@ Use Case: UC7 Manage Dependency
 ### 3. Preconditions
 
 - 현재 사용자는 `PL`로 로그인되어 있다.
-- `dependencyId`가 가리키는 `IssueDependency`가 존재한다.
+- `blockingIssueId`가 가리키는 `Issue`가 존재한다.
+- `blockedIssueId`가 가리키는 `Issue`가 존재한다.
+- blocking issue와 blocked issue는 같은 `Project`에 속한다.
+- blocking issue와 blocked issue는 `DELETED` 상태가 아니다.
+- blocking issue와 blocked issue 사이의 `IssueDependency`가 존재한다.
+- 현재 사용자는 blocked issue가 속한 `Project`의 active PL이다.
 - 현재 사용자는 dependency를 제거할 권한을 가진다.
 
 ### 4. Postconditions
@@ -590,7 +633,7 @@ Use Case: UC7 Manage Dependency
 - Instance 삭제
   - 대상 `IssueDependency` instance가 제거되었다.
 - Association 형성
-  - 제거 대상 `IssueDependency`의 제거 전 blocked issue와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
+  - 제거 대상 `IssueDependency`의 blocked issue와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `PL`과 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
 - Association 붕괴
   - 대상 `IssueDependency`와 blocking issue 사이의 `blockingIssue` association이 제거되었다.
