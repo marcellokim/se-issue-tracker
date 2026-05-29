@@ -38,7 +38,7 @@ public final class StatisticsService {
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
-        return StatisticsReportResult.from(statisticsRepository.buildReport(
+        return StatisticsReportResult.from(statisticsRepository.calculateProjectStatistics(
                 projectId,
                 dailyFromInclusive,
                 dailyToInclusive,

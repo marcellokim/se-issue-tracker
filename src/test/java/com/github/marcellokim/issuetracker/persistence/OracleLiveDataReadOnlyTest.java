@@ -119,7 +119,7 @@ class OracleLiveDataReadOnlyTest {
     @DisplayName("current project statistics are readable")
     void currentProjectStatisticsAreReadable() {
         for (DashboardProjectSnapshot project : repositories.dashboardSummaries().findAllProjectSummaries()) {
-            var report = repositories.statistics().buildReport(
+            var report = repositories.statistics().calculateProjectStatistics(
                     project.projectId(),
                     null,
                     null,

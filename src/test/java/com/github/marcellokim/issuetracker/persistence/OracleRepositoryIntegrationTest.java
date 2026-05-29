@@ -145,19 +145,20 @@ class OracleRepositoryIntegrationTest {
         void queryApisReturnStatisticsAndRecommendations() {
                 var project1 = repositories.projects().findByName("Project A").orElseThrow();
                 var project2 = repositories.projects().findByName("Project B").orElseThrow();
+                var project1Report = repositories.statistics().calculateProjectStatistics(
+                                project1.getId(), null, null, null, null);
+                var project2Report = repositories.statistics().calculateProjectStatistics(
+                                project2.getId(), null, null, null, null);
 
-                assertTrue(repositories.statistics().countByStatus(project1.getId()).get(IssueStatus.CLOSED) >= 1);
-                assertTrue(repositories.statistics().countByStatus(project1.getId()).get(IssueStatus.RESOLVED) >= 1);
-                assertTrue(repositories.statistics().countByStatus(project2.getId()).get(IssueStatus.CLOSED) >= 1);
-                assertTrue(repositories.statistics().countByStatus(project2.getId()).get(IssueStatus.RESOLVED) >= 1);
-                assertFalse(repositories.statistics().countReportedIssuesByDay(project1.getId()).isEmpty());
-                assertFalse(repositories.statistics().countStatusChangesByDay(project1.getId()).isEmpty());
-                assertFalse(repositories.statistics().countCommentsByDay(project1.getId()).isEmpty());
-                var report = repositories.statistics().buildReport(project1.getId(), null, null, null, null);
-                assertFalse(report.dailyStatusChangeCounts().isEmpty());
-                assertFalse(report.monthlyStatusChangeCounts().isEmpty());
-                assertFalse(report.dailyCommentCounts().isEmpty());
-                assertFalse(report.monthlyCommentCounts().isEmpty());
+                assertTrue(project1Report.statusCounts().get(IssueStatus.CLOSED) >= 1);
+                assertTrue(project1Report.statusCounts().get(IssueStatus.RESOLVED) >= 1);
+                assertTrue(project2Report.statusCounts().get(IssueStatus.CLOSED) >= 1);
+                assertTrue(project2Report.statusCounts().get(IssueStatus.RESOLVED) >= 1);
+                assertFalse(project1Report.dailyCounts().isEmpty());
+                assertFalse(project1Report.dailyStatusChangeCounts().isEmpty());
+                assertFalse(project1Report.dailyCommentCounts().isEmpty());
+                assertFalse(project1Report.monthlyStatusChangeCounts().isEmpty());
+                assertFalse(project1Report.monthlyCommentCounts().isEmpty());
                 assertFalse(repositories.assignmentRecommendations().findDevAssigneeCandidates(project1.getId())
                                 .isEmpty());
                 assertFalse(repositories.assignmentRecommendations().findTesterVerifierCandidates(project1.getId())
@@ -303,22 +304,19 @@ class OracleRepositoryIntegrationTest {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 var admin = repositories.users().findByLoginId("admin").orElseThrow();
                 purgeIssuesByTitle(project.getId(), "Temporary deleted issue for repository policy test");
-                int deletedStatusBefore = repositories.statistics().countByStatus(project.getId())
-                                .getOrDefault(IssueStatus.DELETED, 0);
-                int trivialPriorityBefore = repositories.statistics().countByPriority(project.getId())
-                                .getOrDefault(Priority.TRIVIAL, 0);
                 LocalDateTime reportedAt = LocalDateTime.now();
                 YearMonth reportedMonth = YearMonth.from(reportedAt);
-                int reportedDayBefore = countForDay(
-                                repositories.statistics().countReportedIssuesByDay(
-                                                project.getId(), reportedAt.toLocalDate(), reportedAt.toLocalDate()),
-                                reportedAt);
-                int reportedMonthBefore = countForMonth(
-                                repositories.statistics().countReportedIssuesByMonth(
-                                                project.getId(), reportedMonth, reportedMonth),
+                var beforeReport = repositories.statistics().calculateProjectStatistics(
+                                project.getId(),
+                                reportedAt.toLocalDate(),
+                                reportedAt.toLocalDate(),
+                                reportedMonth,
                                 reportedMonth);
-                int monthlyTrivialPriorityBefore = repositories.statistics()
-                                .countByPriorityByMonth(project.getId(), reportedMonth, reportedMonth)
+                int deletedStatusBefore = beforeReport.statusCounts().getOrDefault(IssueStatus.DELETED, 0);
+                int trivialPriorityBefore = beforeReport.priorityCounts().getOrDefault(Priority.TRIVIAL, 0);
+                int reportedDayBefore = countForDay(beforeReport.dailyCounts(), reportedAt);
+                int reportedMonthBefore = countForMonth(beforeReport.monthlyCounts(), reportedMonth);
+                int monthlyTrivialPriorityBefore = beforeReport.monthlyPriorityCounts()
                                 .getOrDefault(reportedMonth, java.util.Map.of())
                                 .getOrDefault(Priority.TRIVIAL, 0);
 
@@ -333,7 +331,7 @@ class OracleRepositoryIntegrationTest {
                                 .updatedAt(reportedAt)));
 
                 try {
-                        var report = repositories.statistics().buildReport(
+                        var report = repositories.statistics().calculateProjectStatistics(
                                         project.getId(),
                                         reportedAt.toLocalDate(),
                                         reportedAt.toLocalDate(),
@@ -344,26 +342,8 @@ class OracleRepositoryIntegrationTest {
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
                         assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
-                        assertEquals(deletedStatusBefore, repositories.statistics().countByStatus(project.getId())
-                                        .getOrDefault(IssueStatus.DELETED, 0));
-                        assertEquals(trivialPriorityBefore,
-                                        repositories.statistics().countByPriority(project.getId())
-                                                        .getOrDefault(Priority.TRIVIAL, 0));
-                        assertEquals(reportedDayBefore, countForDay(
-                                        repositories.statistics().countReportedIssuesByDay(
-                                                        project.getId(), reportedAt.toLocalDate(),
-                                                        reportedAt.toLocalDate()),
-                                        reportedAt));
-                        assertEquals(reportedMonthBefore, countForMonth(
-                                        repositories.statistics().countReportedIssuesByMonth(
-                                                        project.getId(), reportedMonth, reportedMonth),
-                                        reportedMonth));
-                        assertEquals(monthlyTrivialPriorityBefore,
-                                        repositories.statistics()
-                                                        .countByPriorityByMonth(project.getId(), reportedMonth,
-                                                                        reportedMonth)
-                                                        .getOrDefault(reportedMonth, java.util.Map.of())
-                                                        .getOrDefault(Priority.TRIVIAL, 0));
+                        assertEquals(deletedStatusBefore, report.statusCounts().getOrDefault(IssueStatus.DELETED, 0));
+                        assertEquals(trivialPriorityBefore, report.priorityCounts().getOrDefault(Priority.TRIVIAL, 0));
                         assertEquals(reportedDayBefore, countForDay(report.dailyCounts(), reportedAt));
                         assertEquals(reportedMonthBefore, countForMonth(report.monthlyCounts(), reportedMonth));
                         assertEquals(monthlyTrivialPriorityBefore,
@@ -972,10 +952,10 @@ class OracleRepositoryIntegrationTest {
         @DisplayName("Statistics and recommendation repositories reflect saved resolved issues")
         void statisticsAndRecommendationRepositoriesReflectSavedResolvedIssues() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
-                int resolvedBefore = repositories.statistics().countByStatus(project.getId())
-                                .getOrDefault(IssueStatus.RESOLVED, 0);
-                int criticalBefore = repositories.statistics().countByPriority(project.getId())
-                                .getOrDefault(Priority.CRITICAL, 0);
+                var beforeReport = repositories.statistics().calculateProjectStatistics(
+                                project.getId(), null, null, null, null);
+                int resolvedBefore = beforeReport.statusCounts().getOrDefault(IssueStatus.RESOLVED, 0);
+                int criticalBefore = beforeReport.priorityCounts().getOrDefault(Priority.CRITICAL, 0);
                 int dev5Before = completedIssueCountForDev("dev5", project.getId());
                 int tester4Before = completedIssueCountForTester("tester4", project.getId());
                 Issue issue = null;
@@ -993,12 +973,14 @@ class OracleRepositoryIntegrationTest {
                                         .resolver(user("tester4"))
                                         .updatedAt(LocalDateTime.now())));
 
-                        assertEquals(resolvedBefore + 1, repositories.statistics().countByStatus(project.getId())
-                                        .getOrDefault(IssueStatus.RESOLVED, 0));
-                        assertEquals(criticalBefore + 1, repositories.statistics().countByPriority(project.getId())
-                                        .getOrDefault(Priority.CRITICAL, 0));
-                        assertFalse(repositories.statistics().countReportedIssuesByDay(project.getId()).isEmpty());
-                        assertFalse(repositories.statistics().countReportedIssuesByMonth(project.getId()).isEmpty());
+                        var afterReport = repositories.statistics().calculateProjectStatistics(
+                                        project.getId(), null, null, null, null);
+                        assertEquals(resolvedBefore + 1,
+                                        afterReport.statusCounts().getOrDefault(IssueStatus.RESOLVED, 0));
+                        assertEquals(criticalBefore + 1,
+                                        afterReport.priorityCounts().getOrDefault(Priority.CRITICAL, 0));
+                        assertFalse(afterReport.dailyCounts().isEmpty());
+                        assertFalse(afterReport.monthlyCounts().isEmpty());
                         assertEquals(dev5Before + 1, completedIssueCountForDev("dev5", project.getId()));
                         assertEquals(tester4Before + 1, completedIssueCountForTester("tester4", project.getId()));
                 } finally {

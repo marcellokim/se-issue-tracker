@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public final class JdbcDashboardSummaryRepository implements DashboardSummaryRepository {
 
@@ -71,6 +72,7 @@ public final class JdbcDashboardSummaryRepository implements DashboardSummaryRep
     private final DatabaseConnectionProvider connectionProvider;
 
     public JdbcDashboardSummaryRepository(DatabaseConnectionProvider connectionProvider) {
+        Objects.requireNonNull(connectionProvider, "connectionProvider");
         this.connectionProvider = connectionProvider;
     }
 

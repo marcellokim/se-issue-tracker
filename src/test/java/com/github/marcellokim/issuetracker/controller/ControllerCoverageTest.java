@@ -684,43 +684,7 @@ class ControllerCoverageTest {
         private YearMonth monthlyTo;
 
         @Override
-        public Map<IssueStatus, Integer> countByStatus(long projectId) {
-            return report.statusCounts();
-        }
-
-        @Override
-        public Map<Priority, Integer> countByPriority(long projectId) {
-            return report.priorityCounts();
-        }
-
-        @Override
-        public List<DailyIssueCount> countReportedIssuesByDay(long projectId) {
-            return report.dailyCounts();
-        }
-
-        @Override
-        public List<DailyIssueCount> countReportedIssuesByDay(
-                long projectId,
-                LocalDate fromInclusive,
-                LocalDate toInclusive) {
-            return report.dailyCounts();
-        }
-
-        @Override
-        public List<MonthlyIssueCount> countReportedIssuesByMonth(long projectId) {
-            return report.monthlyCounts();
-        }
-
-        @Override
-        public List<MonthlyIssueCount> countReportedIssuesByMonth(
-                long projectId,
-                YearMonth fromInclusive,
-                YearMonth toInclusive) {
-            return report.monthlyCounts();
-        }
-
-        @Override
-        public StatisticsReport buildReport(
+        public StatisticsReport calculateProjectStatistics(
                 long projectId,
                 LocalDate dailyFromInclusive,
                 LocalDate dailyToInclusive,
