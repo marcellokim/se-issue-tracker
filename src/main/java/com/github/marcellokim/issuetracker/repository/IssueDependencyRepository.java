@@ -7,12 +7,6 @@ import java.util.Optional;
 
 public interface IssueDependencyRepository {
 
-    /*
-     * IssueDependency domain behavior is not finalized yet.
-     * Keep this repository contract as-is until the domain layer decides the
-     * dependency aggregate rules and service flow.
-     */
-
     Optional<IssueDependency> findById(long dependencyId);
 
     Optional<IssueDependency> findByDependencyId(String dependencyId);

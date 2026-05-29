@@ -31,7 +31,6 @@ public final class ProjectController {
         return projectService.viewProjectAdminDetail(projectId, user.getLoginId());
     }
 
-    // viewProjectAdminDetail에서 프로젝트 멤버가지지만 일단 남겨
     public List<ProjectMemberResult> viewProjectParticipants(long projectId) {
         User user = requireCurrentUser();
         return projectService.viewProjectParticipants(projectId, user.getLoginId());

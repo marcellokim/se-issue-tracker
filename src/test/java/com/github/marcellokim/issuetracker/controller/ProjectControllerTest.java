@@ -7,15 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.IssueRepository;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
@@ -23,6 +20,8 @@ import com.github.marcellokim.issuetracker.service.ProjectAdminDetail;
 import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
@@ -44,7 +43,7 @@ class ProjectControllerTest {
     @DisplayName("invalid project ids are rejected")
     void invalidProjectIdsAreRejected() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
         ProjectController controller = controller(auth, projects, users);
 
@@ -63,12 +62,12 @@ class ProjectControllerTest {
     @DisplayName("ADMIN views projects, participants, and project detail")
     void adminViewsProjectsAndProjectParticipants() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(
                 project(1L, "project-one"),
                 project(2L, "project-two"));
         projects.addParticipant(1L, "pl1");
         projects.addParticipant(1L, "dev1");
-        FakeIssueRepository issues = new FakeIssueRepository(
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issue(101L, 1L, IssueStatus.NEW),
                 issue(102L, 2L, IssueStatus.ASSIGNED));
         ProjectController controller = controller(
@@ -81,12 +80,12 @@ class ProjectControllerTest {
         ProjectAdminDetail viewedDetail = controller.viewProjectAdminDetail(1L);
 
         assertEquals("project-one", viewedDetail.project().name());
-        assertEquals(List.of("pl1", "dev1"), viewedParticipants.stream()
+        assertEquals(List.of("dev1", "pl1"), viewedParticipants.stream()
                 .map(ProjectMemberResult::userId)
                 .toList());
         assertEquals("project-one", viewedDetail.project().name());
         assertThrows(NoSuchMethodException.class, () -> ProjectAdminDetail.class.getMethod("issues"));
-        assertEquals(List.of("pl1", "dev1"), viewedDetail.participants().stream()
+        assertEquals(List.of("dev1", "pl1"), viewedDetail.participants().stream()
                 .map(ProjectMemberResult::userId)
                 .toList());
         assertThrows(IllegalArgumentException.class, () -> controller.viewProjectNonAdminDetail(404L));
@@ -98,7 +97,7 @@ class ProjectControllerTest {
     @DisplayName("ADMIN creates projects")
     void adminCreatesProjects() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository();
+        InMemoryProjectRepository projects = new InMemoryProjectRepository();
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         ProjectResult created = controller.createProject(" project-alpha ", "first project");
@@ -116,7 +115,7 @@ class ProjectControllerTest {
     @DisplayName("ADMIN updates project name and description")
     void adminUpdatesProjectNameAndDescription() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         ProjectResult renamed = controller.renameProject(1L, " project-renamed ");
@@ -132,7 +131,7 @@ class ProjectControllerTest {
     @DisplayName("ADMIN deletes projects")
     void adminDeletesProjects() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         controller.deleteProject(1L);
@@ -145,7 +144,7 @@ class ProjectControllerTest {
     void onlyAdminCanManageProjects() {
         for (Role role : List.of(Role.PL, Role.DEV, Role.TESTER)) {
             AuthFixture auth = authenticated(role);
-            FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+            InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
             FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
             ProjectController controller = controller(auth, projects, users);
 
@@ -164,7 +163,7 @@ class ProjectControllerTest {
     @Test
     @DisplayName("anonymous users cannot manage projects")
     void anonymousUsersCannotManageProjects() {
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         FakeUserRepository users = new FakeUserRepository(active("dev1", Role.DEV));
         ProjectController controller = new ProjectController(
                 anonymousAuth(),
@@ -185,7 +184,7 @@ class ProjectControllerTest {
     @DisplayName("blank project names are rejected")
     void blankProjectNamesAreRejected() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         assertThrows(IllegalArgumentException.class, () -> controller.createProject(" ", "blank"));
@@ -196,7 +195,7 @@ class ProjectControllerTest {
     @DisplayName("blank project descriptions are rejected")
     void blankProjectDescriptionsAreRejected() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
 
         assertThrows(IllegalArgumentException.class, () -> controller.createProject("project-one", null));
@@ -209,7 +208,7 @@ class ProjectControllerTest {
     @DisplayName("duplicate project names are rejected")
     void duplicateProjectNamesAreRejected() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(
                 project(1L, "project-one"),
                 project(2L, "project-two"));
         ProjectController controller = controller(auth, projects, new FakeUserRepository(auth.user()));
@@ -224,7 +223,7 @@ class ProjectControllerTest {
         AuthFixture auth = authenticated(Role.ADMIN);
         User activeDeveloper = active("dev1", Role.DEV);
         User inactiveTester = inactive("tester1", Role.TESTER);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         FakeUserRepository users = new FakeUserRepository(auth.user(), activeDeveloper, inactiveTester);
         ProjectController controller = controller(auth, projects, users);
 
@@ -243,7 +242,7 @@ class ProjectControllerTest {
     void participantAddAllowsFirstProjectLead() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User pl1 = active("pl1", Role.PL);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         FakeUserRepository users = new FakeUserRepository(auth.user(), pl1);
         ProjectController controller = controller(auth, projects, users);
 
@@ -258,7 +257,7 @@ class ProjectControllerTest {
         AuthFixture auth = authenticated(Role.ADMIN);
         User pl1 = active("pl1", Role.PL);
         User pl2 = active("pl2", Role.PL);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, "pl1");
         FakeUserRepository users = new FakeUserRepository(auth.user(), pl1, pl2);
         ProjectController controller = controller(auth, projects, users);
@@ -273,7 +272,7 @@ class ProjectControllerTest {
         AuthFixture auth = authenticated(Role.ADMIN);
         User inactivePl = inactive("pl1", Role.PL);
         User activePl = active("pl2", Role.PL);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, "pl1");
         FakeUserRepository users = new FakeUserRepository(auth.user(), inactivePl, activePl);
         ProjectController controller = controller(auth, projects, users);
@@ -286,7 +285,7 @@ class ProjectControllerTest {
     @DisplayName("participant remove requires current membership")
     void participantRemoveRequiresCurrentMembership() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, "dev1");
         FakeUserRepository users = new FakeUserRepository(auth.user(), active("dev1", Role.DEV));
         ProjectController controller = controller(auth, projects, users);
@@ -304,10 +303,10 @@ class ProjectControllerTest {
     void participantRemoveRejectsAssignedIssueAssignee() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User assignee = active("dev1", Role.DEV);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, assignee.getLoginId());
         FakeUserRepository users = new FakeUserRepository(auth.user(), assignee);
-        FakeIssueRepository issues = new FakeIssueRepository(
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.ASSIGNED, assignee, null));
         ProjectController controller = controller(auth, projects, users, issues);
 
@@ -321,10 +320,10 @@ class ProjectControllerTest {
     void participantRemoveRejectsFixedIssueVerifier() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User verifier = active("tester1", Role.TESTER);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, verifier.getLoginId());
         FakeUserRepository users = new FakeUserRepository(auth.user(), verifier);
-        FakeIssueRepository issues = new FakeIssueRepository(
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.FIXED, null, verifier));
         ProjectController controller = controller(auth, projects, users, issues);
 
@@ -338,10 +337,10 @@ class ProjectControllerTest {
     void participantRemoveRejectsFixedIssueAssignee() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User assignee = active("dev1", Role.DEV);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, assignee.getLoginId());
         FakeUserRepository users = new FakeUserRepository(auth.user(), assignee);
-        FakeIssueRepository issues = new FakeIssueRepository(
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.FIXED, assignee, null));
         ProjectController controller = controller(auth, projects, users, issues);
 
@@ -355,10 +354,10 @@ class ProjectControllerTest {
     void participantRemoveRejectsAssignedIssueVerifier() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User verifier = active("tester1", Role.TESTER);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, verifier.getLoginId());
         FakeUserRepository users = new FakeUserRepository(auth.user(), verifier);
-        FakeIssueRepository issues = new FakeIssueRepository(
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.ASSIGNED, null, verifier));
         ProjectController controller = controller(auth, projects, users, issues);
 
@@ -373,11 +372,11 @@ class ProjectControllerTest {
         AuthFixture auth = authenticated(Role.ADMIN);
         User assignee = active("dev1", Role.DEV);
         User verifier = active("tester1", Role.TESTER);
-        FakeProjectRepository projects = new FakeProjectRepository(project(1L, "project-one"));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(1L, "project-one"));
         projects.addParticipant(1L, assignee.getLoginId());
         projects.addParticipant(1L, verifier.getLoginId());
         FakeUserRepository users = new FakeUserRepository(auth.user(), assignee, verifier);
-        FakeIssueRepository issues = new FakeIssueRepository(
+        InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issueWithAssigneeAndVerifier(101L, 1L, IssueStatus.RESOLVED, assignee, verifier));
         ProjectController controller = controller(auth, projects, users, issues);
 
@@ -389,7 +388,7 @@ class ProjectControllerTest {
 
     private static ProjectController controller(
             AuthFixture auth,
-            FakeProjectRepository projects,
+            InMemoryProjectRepository projects,
             FakeUserRepository users) {
         return new ProjectController(
                 auth.service(),
@@ -398,24 +397,24 @@ class ProjectControllerTest {
 
     private static ProjectController controller(
             AuthFixture auth,
-            FakeProjectRepository projects,
+            InMemoryProjectRepository projects,
             FakeUserRepository users,
-            FakeIssueRepository issues) {
+            InMemoryIssueRepository issues) {
         return new ProjectController(
                 auth.service(),
                 service(projects, users, issues));
     }
 
     private static ProjectService service(
-            FakeProjectRepository projects,
+            InMemoryProjectRepository projects,
             FakeUserRepository users) {
-        return service(projects, users, new FakeIssueRepository());
+        return service(projects, users, new InMemoryIssueRepository());
     }
 
     private static ProjectService service(
-            FakeProjectRepository projects,
+            InMemoryProjectRepository projects,
             FakeUserRepository users,
-            FakeIssueRepository issues) {
+            InMemoryIssueRepository issues) {
         users.attachProjects(projects);
         return new ProjectService(
                 projects,
@@ -494,88 +493,10 @@ class ProjectControllerTest {
     private record AuthFixture(AuthenticationService service, User user) {
     }
 
-    private static final class FakeProjectRepository implements ProjectRepository {
-
-        private final Map<Long, Project> projectsById = new LinkedHashMap<>();
-        private final Map<Long, List<ProjectMember>> membersByProjectId = new LinkedHashMap<>();
-        private long nextProjectId = 100L;
-
-        private FakeProjectRepository(Project... projects) {
-            for (Project project : projects) {
-                projectsById.put(project.getId(), project);
-            }
-        }
-
-        @Override
-        public Optional<Project> findById(long projectId) {
-            return Optional.ofNullable(projectsById.get(projectId));
-        }
-
-        @Override
-        public Optional<Project> findByName(String name) {
-            return projectsById.values().stream()
-                    .filter(project -> project.getName().equals(name))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Project> findAll() {
-            return new ArrayList<>(projectsById.values());
-        }
-
-        @Override
-        public Project save(Project project) {
-            Project persistedProject = project.getId() == 0L
-                    ? Project.fromPersistence(nextProjectId++, project.getName(), project.getDescription(),
-                            project.getManagedByLoginId(),
-                            project.getCreatedDate(), project.getUpdatedAt())
-                    : project;
-            projectsById.put(persistedProject.getId(), persistedProject);
-            return persistedProject;
-        }
-
-        @Override
-        public void deleteById(long projectId) {
-            projectsById.remove(projectId);
-            membersByProjectId.remove(projectId);
-        }
-
-        @Override
-        public void addParticipant(long projectId, String userLoginId) {
-            membersByProjectId.computeIfAbsent(projectId, ignored -> new ArrayList<>())
-                    .add(ProjectMember.create(projectId, userLoginId, NOW));
-        }
-
-        @Override
-        public void removeParticipant(long projectId, String userLoginId) {
-            membersByProjectId.computeIfAbsent(projectId, ignored -> new ArrayList<>())
-                    .removeIf(member -> member.userId().equals(userLoginId));
-        }
-
-        @Override
-        public List<ProjectMember> findParticipants(long projectId) {
-            return List.copyOf(membersByProjectId.getOrDefault(projectId, List.of()));
-        }
-
-        @Override
-        public boolean existsByParticipant(String userLoginId) {
-            return membersByProjectId.values().stream()
-                    .flatMap(List::stream)
-                    .map(ProjectMember::userId)
-                    .anyMatch(userLoginId::equals);
-        }
-
-        private List<String> participantIds(long projectId) {
-            return findParticipants(projectId).stream()
-                    .map(ProjectMember::userId)
-                    .toList();
-        }
-    }
-
     private static final class FakeUserRepository implements UserRepository {
 
         private final Map<String, User> usersByLoginId = new LinkedHashMap<>();
-        private FakeProjectRepository projects;
+        private InMemoryProjectRepository projects;
 
         private FakeUserRepository(User... users) {
             for (User user : users) {
@@ -583,7 +504,7 @@ class ProjectControllerTest {
             }
         }
 
-        private void attachProjects(FakeProjectRepository projects) {
+        private void attachProjects(InMemoryProjectRepository projects) {
             this.projects = Objects.requireNonNull(projects, "projects");
         }
 
@@ -650,103 +571,4 @@ class ProjectControllerTest {
         }
     }
 
-    private static final class FakeIssueRepository implements IssueRepository {
-
-        private final Map<Long, Issue> issuesById = new LinkedHashMap<>();
-
-        private FakeIssueRepository(Issue... issues) {
-            for (Issue issue : issues) {
-                issuesById.put(issue.id(), issue);
-            }
-        }
-
-        @Override
-        public Optional<Issue> findById(long issueId) {
-            return Optional.ofNullable(issuesById.get(issueId));
-        }
-
-        @Override
-        public List<Issue> findAllById(List<Long> issueIds) {
-            return issueIds.stream()
-                    .filter(issuesById::containsKey)
-                    .map(issuesById::get)
-                    .toList();
-        }
-
-        @Override
-        public List<Issue> findByProject(long projectId) {
-            return issuesById.values().stream()
-                    .filter(issue -> issue.projectId() == projectId)
-                    .toList();
-        }
-
-        @Override
-        public List<Issue> findDeletedByProject(long projectId) {
-            return List.of();
-        }
-
-        @Override
-        public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
-            return new ArrayList<>(issuesById.values());
-        }
-
-        @Override
-        public boolean existsByProjectIdAndTitle(long projectId, String title) {
-            return issuesById.values().stream()
-                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
-        }
-
-        @Override
-        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
-            return issuesById.values().stream()
-                    .anyMatch(issue -> issue.id() != excludedIssueId
-                            && issue.projectId() == projectId
-                            && issue.title().equals(title));
-        }
-
-        @Override
-        public boolean existsByResponsibleUser(String userLoginId) {
-            return issuesById.values().stream()
-                    .filter(issue -> issue.status() != IssueStatus.DELETED)
-                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
-                            || userLoginId.equals(issue.verifierId())
-                            || userLoginId.equals(issue.fixerId())
-                            || userLoginId.equals(issue.resolverId()));
-        }
-
-        @Override
-        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
-            return issuesById.values().stream()
-                    .filter(issue -> issue.projectId() == projectId)
-                    .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
-                    .anyMatch(issue -> loginId.equals(issue.assigneeId()) || loginId.equals(issue.verifierId()));
-        }
-
-        @Override
-        public Issue save(Issue issue) {
-            issuesById.put(issue.id(), issue);
-            return issue;
-        }
-
-        @Override
-        public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
-            throw new UnsupportedOperationException("softDelete is not needed by ProjectControllerTest.");
-        }
-
-        @Override
-        public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
-            throw new UnsupportedOperationException("restore is not needed by ProjectControllerTest.");
-        }
-
-        @Override
-        public int purgeDeletedById(long issueId) {
-            throw new UnsupportedOperationException("purgeDeletedById is not needed by ProjectControllerTest.");
-        }
-
-        @Override
-        public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
-            return 0;
-        }
-
-    }
 }

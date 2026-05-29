@@ -14,9 +14,7 @@ import org.junit.jupiter.api.Test;
 @DisplayName("이슈 의존성")
 class IssueDependencyTest {
 
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, null, null);
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 

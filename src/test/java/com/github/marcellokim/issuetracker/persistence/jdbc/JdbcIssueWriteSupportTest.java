@@ -35,7 +35,7 @@ class JdbcIssueWriteSupportTest {
                     if ("toString".equals(method.getName())) {
                         return "FailingCleanupConnection";
                     }
-                    throw new UnsupportedOperationException(method.getName());
+                    throw new UnsupportedOperationException("Unexpected Connection call: " + method.getName());
                 }
         );
     }

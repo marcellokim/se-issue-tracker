@@ -35,11 +35,7 @@ class ArchitectureBoundaryTest {
     private static final Path ROOT_PACKAGE_PATH = MAIN_SOURCE_ROOT.resolve(ROOT_PACKAGE.replace('.', '/'));
     private static final Pattern IMPORT_PATTERN = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+)(?:\\.\\*)?;");
 
-    /*
-     * 임시 아키텍처 부채 표시자.
-     * 각 흐름이 의도한 service/presenter 경계로 이동하면 예외 제거 필요.
-     */
-    private static final Set<AllowedReference> TEMPORARY_ALLOWED_REFERENCES = Set.of();
+    private static final Set<AllowedReference> ALLOWED_REFERENCES = Set.of();
 
     @Test
     @DisplayName("domain package does not depend on outer layers")
@@ -154,7 +150,7 @@ class ArchitectureBoundaryTest {
         for (JavaSource source : productionSources(packageSegment)) {
             for (SourceReference importedType : source.importedTypes()) {
                 if (isForbidden(importedType.reference(), forbiddenPrefixes)
-                        && !TEMPORARY_ALLOWED_REFERENCES.contains(
+                        && !ALLOWED_REFERENCES.contains(
                                 new AllowedReference(source.relativePath(), importedType.reference()))) {
                     violations.add(new Violation(
                             source.relativePath(),
@@ -165,7 +161,7 @@ class ArchitectureBoundaryTest {
                 }
             }
             for (SourceReference reference : forbiddenFullyQualifiedReferences(source, forbiddenPrefixes)) {
-                if (!TEMPORARY_ALLOWED_REFERENCES.contains(
+                if (!ALLOWED_REFERENCES.contains(
                         new AllowedReference(source.relativePath(), reference.reference()))) {
                     violations.add(new Violation(
                             source.relativePath(),
@@ -207,7 +203,6 @@ class ArchitectureBoundaryTest {
                 .resolve(ROOT_PACKAGE.replace('.', '/'))
                 .resolve(packageSegment);
         if (!Files.exists(packagePath)) {
-            // Task 1 guard 선설치 후 Task 2 cli 패키지 생성 전까지만 빈 검사 대상 허용.
             if ("cli".equals(packageSegment) || "ui".equals(packageSegment)) {
                 return List.of();
             }

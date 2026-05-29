@@ -356,7 +356,7 @@ class DriverManagerConnectionProviderTest {
                     if ("toString".equals(method.getName())) {
                         return "connection-proxy";
                     }
-                    throw new UnsupportedOperationException(method.getName());
+                    throw new UnsupportedOperationException("Unexpected Connection call: " + method.getName());
                 });
     }
 }

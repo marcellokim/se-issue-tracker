@@ -75,7 +75,6 @@ public final class Comment {
         updatedDate = Objects.requireNonNull(changedAt, "changedAt must not be null");
     }
 
-    // --- getters ---
     public long id() {
         return id;
     }
