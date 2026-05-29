@@ -1,14 +1,31 @@
 @startuml ssd-20-add-project-member
 !include ssd-style.puml
-title SSD 20 - UC13 프로젝트 멤버 추가
+title SSD 20 - UC13 Add Project Member
+
 actor "Admin" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
-사전조건: Admin 로그인, Project와 active User 존재, 아직 참여자가 아님, UC14 권한 검사
+사전조건:
+- Admin이 로그인되어 있다.
+- 대상 Project가 존재한다.
+- 추가할 User가 존재한다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
-A -> S: addProjectParticipant(projectId, userId)
-S --> A: projectParticipantAdded(projectId, userId, confirmation)
+
+A -> S: addProjectParticipant(projectId, loginId)
+S --> A: projectParticipantAdded(projectId, loginId, confirmation)
+
 note over S
-결과: User participates-in Project association 설정, 해당 Project 작업 가능
+결과:
+- User participates-in Project association이 생성된다.
+- 추가된 User는 해당 Project 범위의 작업에 참여할 수 있다.
+
+정책:
+- active User만 프로젝트 참여자로 추가할 수 있다.
+- ADMIN 계정은 프로젝트 참여자로 추가할 수 없다.
+- 이미 참여 중인 User는 다시 추가할 수 없다.
+- Project에는 PL을 한 명만 추가할 수 있다.
 end note
+
 @enduml

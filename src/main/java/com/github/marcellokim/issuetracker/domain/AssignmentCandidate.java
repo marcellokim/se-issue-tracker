@@ -17,7 +17,8 @@ public final class AssignmentCandidate {
                         : "Fallback active project member with no resolved/closed history yet");
     }
 
-    public static AssignmentCandidate create(User user, int completedIssueCount, String reason) {
+    public static AssignmentCandidate create(User user, int completedIssueCount,
+            String reason) {
         return new AssignmentCandidate(user, completedIssueCount, reason);
     }
 

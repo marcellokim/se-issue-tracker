@@ -1,14 +1,31 @@
 @startuml ssd-21-remove-project-member
 !include ssd-style.puml
-title SSD 21 - UC13 프로젝트 멤버 제거
+title SSD 21 - UC13 Remove Project Member
+
 actor "Admin" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
-사전조건: Admin 로그인, User participates-in Project association 존재, UC14 권한 검사
+사전조건:
+- Admin이 로그인되어 있다.
+- 대상 Project가 존재한다.
+- 제거할 User가 대상 Project에 참여 중이다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
-A -> S: removeProjectParticipant(projectId, userId)
-S --> A: projectParticipantRemoved(projectId, userId)
+
+A -> S: removeProjectParticipant(projectId, loginId)
+S --> A: projectParticipantRemoved(projectId, loginId, confirmation)
+
 note over S
-결과: User participates-in Project association 제거, 해당 Project 접근 제한
+결과:
+- User participates-in Project association이 제거된다.
+- 제거된 User는 해당 Project의 일반 작업 범위에서 제외된다.
+
+정책:
+- 대상 User가 현재 진행 중인 Issue의 assignee 또는 verifier이면 제거할 수 없다.
+- 현재 진행 중인 책임은 ASSIGNED/FIXED 상태의 assignee/verifier를 기준으로 판단한다.
+- fixer/resolver는 완료 이력으로 보며 제거 차단 조건으로 보지 않는다.
+- PL participant 제거는 허용한다.
 end note
+
 @enduml
