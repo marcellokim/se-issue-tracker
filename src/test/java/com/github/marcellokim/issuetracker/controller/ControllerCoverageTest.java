@@ -559,20 +559,23 @@ class ControllerCoverageTest {
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
         FakeUserRepository users = new FakeUserRepository(auth.user(), activeDev, inactiveTester);
         ProjectController controller = projectController(auth, projects, users);
+        String activeDevLoginId = activeDev.getLoginId();
+        String adminLoginId = auth.user().getLoginId();
+        String inactiveTesterLoginId = inactiveTester.getLoginId();
 
-        controller.addProjectParticipant(PROJECT_ID, activeDev.getLoginId());
+        controller.addProjectParticipant(PROJECT_ID, activeDevLoginId);
 
-        assertEquals(List.of(activeDev.getLoginId()), projects.participantIds(PROJECT_ID));
+        assertEquals(List.of(activeDevLoginId), projects.participantIds(PROJECT_ID));
         assertThrows(IllegalArgumentException.class,
-                () -> controller.addProjectParticipant(PROJECT_ID, activeDev.getLoginId()));
+                () -> controller.addProjectParticipant(PROJECT_ID, activeDevLoginId));
         assertThrows(IllegalArgumentException.class,
-                () -> controller.addProjectParticipant(PROJECT_ID, auth.user().getLoginId()));
+                () -> controller.addProjectParticipant(PROJECT_ID, adminLoginId));
         assertThrows(IllegalArgumentException.class,
-                () -> controller.addProjectParticipant(PROJECT_ID, inactiveTester.getLoginId()));
+                () -> controller.addProjectParticipant(PROJECT_ID, inactiveTesterLoginId));
         assertThrows(IllegalArgumentException.class,
                 () -> controller.addProjectParticipant(PROJECT_ID, "missing"));
         assertThrows(IllegalArgumentException.class,
-                () -> controller.addProjectParticipant(404L, activeDev.getLoginId()));
+                () -> controller.addProjectParticipant(404L, activeDevLoginId));
     }
 
     @Test
@@ -588,20 +591,24 @@ class ControllerCoverageTest {
                 auth,
                 firstProject,
                 new FakeUserRepository(auth.user(), pl1, pl2));
-        firstController.addProjectParticipant(PROJECT_ID, pl1.getLoginId());
+        String pl1LoginId = pl1.getLoginId();
+        String pl2LoginId = pl2.getLoginId();
+        String inactivePlLoginId = inactivePl.getLoginId();
+
+        firstController.addProjectParticipant(PROJECT_ID, pl1LoginId);
         assertThrows(IllegalArgumentException.class,
-                () -> firstController.addProjectParticipant(PROJECT_ID, pl2.getLoginId()));
-        assertEquals(List.of(pl1.getLoginId()), firstProject.participantIds(PROJECT_ID));
+                () -> firstController.addProjectParticipant(PROJECT_ID, pl2LoginId));
+        assertEquals(List.of(pl1LoginId), firstProject.participantIds(PROJECT_ID));
 
         InMemoryProjectRepository secondProject = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
-        secondProject.withParticipant(PROJECT_ID, inactivePl.getLoginId());
+        secondProject.withParticipant(PROJECT_ID, inactivePlLoginId);
         ProjectController secondController = projectController(
                 auth,
                 secondProject,
                 new FakeUserRepository(auth.user(), inactivePl, pl2));
         assertThrows(IllegalArgumentException.class,
-                () -> secondController.addProjectParticipant(PROJECT_ID, pl2.getLoginId()));
-        assertEquals(List.of(inactivePl.getLoginId()), secondProject.participantIds(PROJECT_ID));
+                () -> secondController.addProjectParticipant(PROJECT_ID, pl2LoginId));
+        assertEquals(List.of(inactivePlLoginId), secondProject.participantIds(PROJECT_ID));
     }
 
     @Test
@@ -609,17 +616,18 @@ class ControllerCoverageTest {
     void projectControllerValidatesParticipantRemoveRules() {
         AuthFixture auth = authenticated(Role.ADMIN);
         User dev = user("dev1", Role.DEV);
+        String devLoginId = dev.getLoginId();
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"))
-                .withParticipant(PROJECT_ID, dev.getLoginId());
+                .withParticipant(PROJECT_ID, devLoginId);
         ProjectController controller = projectController(auth, projects, new FakeUserRepository(auth.user(), dev));
 
-        controller.removeProjectParticipant(PROJECT_ID, dev.getLoginId());
+        controller.removeProjectParticipant(PROJECT_ID, devLoginId);
 
         assertEquals(List.of(), projects.participantIds(PROJECT_ID));
         assertThrows(IllegalArgumentException.class,
-                () -> controller.removeProjectParticipant(PROJECT_ID, dev.getLoginId()));
+                () -> controller.removeProjectParticipant(PROJECT_ID, devLoginId));
         assertThrows(IllegalArgumentException.class,
-                () -> controller.removeProjectParticipant(404L, dev.getLoginId()));
+                () -> controller.removeProjectParticipant(404L, devLoginId));
         assertThrows(IllegalArgumentException.class,
                 () -> controller.removeProjectParticipant(PROJECT_ID, " "));
     }
@@ -1136,8 +1144,9 @@ class ControllerCoverageTest {
             User verifier) {
         AuthFixture auth = authenticated(Role.ADMIN);
         User participant = assignee == null ? verifier : assignee;
+        String participantLoginId = participant.getLoginId();
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"))
-                .withParticipant(PROJECT_ID, participant.getLoginId());
+                .withParticipant(PROJECT_ID, participantLoginId);
         InMemoryIssueRepository issues = new InMemoryIssueRepository(
                 issueWithAssigneeAndVerifier(101L, PROJECT_ID, status, assignee, verifier));
         ProjectController controller = projectController(
@@ -1147,8 +1156,8 @@ class ControllerCoverageTest {
                 issues);
 
         assertThrows(IllegalArgumentException.class,
-                () -> controller.removeProjectParticipant(PROJECT_ID, participant.getLoginId()));
-        assertEquals(List.of(participant.getLoginId()), projects.participantIds(PROJECT_ID));
+                () -> controller.removeProjectParticipant(PROJECT_ID, participantLoginId));
+        assertEquals(List.of(participantLoginId), projects.participantIds(PROJECT_ID));
     }
 
     private record AuthFixture(AuthenticationService service, FakeUserRepository users, User user) {
