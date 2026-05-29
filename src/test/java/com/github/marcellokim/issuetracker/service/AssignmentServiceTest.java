@@ -5,13 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
@@ -45,8 +43,8 @@ class AssignmentServiceTest {
 
         var options = service.startAssignment(ISSUE_ID, pl.getLoginId());
 
-        assertEquals(1, options.devAssigneeCandidates().size());
-        assertEquals(1, options.testerVerifierCandidates().size());
+        assertEquals(2, options.allDevAssignees().size());
+        assertEquals(2, options.allTesterVerifiers().size());
     }
 
     @Test
@@ -228,7 +226,7 @@ class AssignmentServiceTest {
                 issueRepository,
                 userRepository,
                 new PermissionPolicy(),
-                new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository()),
+                new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation()),
                 new Clock()
         );
     }
@@ -287,16 +285,4 @@ class AssignmentServiceTest {
         return LocalDateTime.of(2026, 5, 18, 10, 0);
     }
 
-    private final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
-
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of(AssignmentCandidate.create(assignee, 1));
-        }
-
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of(AssignmentCandidate.create(verifier, 1));
-        }
-    }
 }

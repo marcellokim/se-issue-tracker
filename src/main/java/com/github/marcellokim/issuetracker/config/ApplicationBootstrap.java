@@ -15,6 +15,7 @@ import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionPr
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
@@ -72,7 +73,6 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
         var issueHistory = repositories.issueHistory();
         var issueDependencies = repositories.issueDependencies();
         var statistics = repositories.statistics();
-        var assignmentRecommendations = repositories.assignmentRecommendations();
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         Clock clock = new Clock();
         AuthenticationService authenticationService = new AuthenticationService(users);
@@ -96,7 +96,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 issues,
                 users,
                 permissionPolicy,
-                new AssignmentRecommendationService(assignmentRecommendations),
+                new AssignmentRecommendationService(issues, users, new KNNAssignmentRecommendation()),
                 clock);
         IssueStateService issueStateService = new IssueStateService(
                 issues,

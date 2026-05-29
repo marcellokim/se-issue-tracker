@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -17,7 +16,6 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -61,7 +59,7 @@ class IssueWorkflowServiceTest {
                 issueRepository,
                 userRepository,
                 policy,
-                new AssignmentRecommendationService(new EmptyAssignmentRecommendationRepository()),
+                new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation()),
                 new Clock()
         );
         var stateService = new IssueStateService(issueRepository, new FakeIssueDependencyRepository(), userRepository, policy, new Clock());
@@ -343,19 +341,6 @@ class IssueWorkflowServiceTest {
                 commentRepository,
                 userRepository,
                 new PermissionPolicy());
-    }
-
-    private static final class EmptyAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
-
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of();
-        }
-
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of();
-        }
     }
 
     private static final class FakeCommentRepository implements CommentRepository {

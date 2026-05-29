@@ -1,17 +1,17 @@
 package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,14 +20,30 @@ class AssignmentRecommendationServiceTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 12, 0);
 
+    private final User dev1 = user("dev1", Role.DEV);
+    private final User tester1 = user("tester1", Role.TESTER);
+    private final InMemoryIssueRepository issueRepository = new InMemoryIssueRepository();
+    private final InMemoryUserRepository userRepository = new InMemoryUserRepository(dev1, tester1);
     private final AssignmentRecommendationService service =
-            new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository());
+            new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation());
 
     @Test
-    @DisplayName("returns both DEV and TESTER candidates for NEW and REOPENED issues")
-    void recommendsBothCandidateTypesForNewAndReopenedIssues() {
-        assertBothCandidateTypes(issue(IssueStatus.NEW));
-        assertBothCandidateTypes(issue(IssueStatus.REOPENED));
+    @DisplayName("returns all active DEV and TESTER for NEW issue")
+    void returnsAllActiveCandidatesForNewIssue() {
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+
+        assertFalse(options.allDevAssignees().isEmpty());
+        assertFalse(options.allTesterVerifiers().isEmpty());
+    }
+
+    @Test
+    @DisplayName("returns fixer as priority DEV candidate for REOPENED issue")
+    void returnsFixerAsPriorityCandidateForReopenedIssue() {
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.REOPENED));
+
+        assertFalse(options.devAssigneeCandidates().isEmpty());
+        assertFalse(options.allDevAssignees().isEmpty());
+        assertFalse(options.allTesterVerifiers().isEmpty());
     }
 
     @Test
@@ -49,25 +65,14 @@ class AssignmentRecommendationServiceTest {
     }
 
     @Test
-    @DisplayName("returns no candidates for terminal or deleted issues")
-    void recommendsNoCandidatesForTerminalOrDeletedIssues() {
-        assertNoCandidates(issue(IssueStatus.RESOLVED));
-        assertNoCandidates(issue(IssueStatus.CLOSED));
-        assertNoCandidates(issue(IssueStatus.DELETED));
-    }
-
-    private void assertBothCandidateTypes(Issue issue) {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue);
-
-        assertFalse(options.devAssigneeCandidates().isEmpty());
-        assertFalse(options.testerVerifierCandidates().isEmpty());
-    }
-
-    private void assertNoCandidates(Issue issue) {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue);
-
-        assertTrue(options.devAssigneeCandidates().isEmpty());
-        assertTrue(options.testerVerifierCandidates().isEmpty());
+    @DisplayName("throws for terminal or deleted issues")
+    void throwsForTerminalOrDeletedIssues() {
+        assertThrows(IllegalStateException.class,
+                () -> service.recommendAssignmentCandidates(issue(IssueStatus.RESOLVED)));
+        assertThrows(IllegalStateException.class,
+                () -> service.recommendAssignmentCandidates(issue(IssueStatus.CLOSED)));
+        assertThrows(IllegalStateException.class,
+                () -> service.recommendAssignmentCandidates(issue(IssueStatus.DELETED)));
     }
 
     private static Issue issue(IssueStatus status) {
@@ -86,18 +91,5 @@ class AssignmentRecommendationServiceTest {
 
     private static User user(String loginId, Role role) {
         return User.fromPersistence(loginId, loginId, "hash", role, true, null, null);
-    }
-
-    private static final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
-
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of(AssignmentCandidate.create(user("dev1", Role.DEV), 2));
-        }
-
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of(AssignmentCandidate.create(user("tester1", Role.TESTER), 3));
-        }
     }
 }
