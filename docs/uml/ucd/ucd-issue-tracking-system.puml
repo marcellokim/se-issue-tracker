@@ -79,6 +79,7 @@ UC6 .[#8D6E63].> UC2 : <<include>>
 UC6 .[#8D6E63].> UC14 : <<include>>
 UC7 .[#8D6E63].> UC14 : <<include>>
 UC9 .[#8D6E63].> UC14 : <<include>>
+UC9 .[#8D6E63].> UC2 : <<include>>
 UC10 .[#8D6E63].> UC14 : <<include>>
 UC12 .[#8D6E63].> UC14 : <<include>>
 UC13 .[#8D6E63].> UC14 : <<include>>
@@ -94,7 +95,8 @@ legend bottom
   actor association은 실제 user-goal use case ellipse에 직접 연결한다. UC2 Add Comment와 UC15 Edit Issue는 subfunction이므로 Auth User와 직접 연결하지 않는다.
   UC8은 UC5의 상태별 배정 후보 추천 subfunction이고, UC14는 권한 검사 subfunction이다.
   Admin은 Auth User의 하위 actor가 아니며 이슈 업무에는 접근하지 않는다.
-  UC5 코멘트는 선택이고, UC6 상태 변경 코멘트는 필수이다.
+  UC5 코멘트는 선택이고, UC6 상태 변경과 UC9 삭제/복구 사유 코멘트는 필수이다.
+  UC9의 코멘트 include는 soft delete와 restore 경로에 적용되며, 영구 삭제/FIFO 정리에는 적용하지 않는다.
   dependency는 UC6 FIXED -> RESOLVED guard로만 작동하며 BLOCK/BLOCKED IssueStatus는 없다.
 endlegend
 @enduml

@@ -1,15 +1,37 @@
 @startuml ssd-23-edit-issue
 !include ssd-style.puml
-title SSD 23 - UC15 이슈 수정
+title SSD 23 - UC15 Edit Issue
+
 actor "Reporter" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
-사전조건: Reporter 로그인, 본인이 등록한 Issue, status=NEW, UC14 권한 검사
+사전조건:
+- Reporter가 로그인되어 있다.
+- 대상 Issue가 존재한다.
+- Reporter는 대상 Issue를 등록한 사용자이다.
+- 대상 Issue가 속한 Project의 active member이다.
+- 대상 Issue는 DELETED 상태가 아니다.
+- 대상 Issue.status는 NEW 또는 REOPENED이다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
-A -> S: updateIssue(issueId, newTitle, newDescription)
-S --> A: issueUpdated(issueId, title, description)
+
+A -> S: updateIssue(issueId, title, description)
+S --> A: issueUpdated(issueId, title, description, confirmation)
+
 note over S
-결과: title/description 수정, IssueHistory(TITLE_DESCRIPTION_UPDATED) 기록
-priority 변경은 UC16, status 변경은 UC6에서만 처리
+결과:
+- Issue.title이 변경된다.
+- Issue.description이 변경된다.
+- Issue.updatedAt이 갱신된다.
+- IssueHistory(TITLE_DESCRIPTION_UPDATED)가 기록된다.
+
+정책:
+- 같은 Project 안에서 다른 Issue와 title이 중복되면 수정할 수 없다.
+- 같은 title/description으로 수정하는 경우는 변경으로 보지 않는다.
+- priority 변경은 UC16 Change Priority에서 처리한다.
+- status 변경은 UC6 Change Issue State에서 처리한다.
+- assigned 이후의 정정이나 보충 설명은 comment로 남긴다.
 end note
+
 @enduml

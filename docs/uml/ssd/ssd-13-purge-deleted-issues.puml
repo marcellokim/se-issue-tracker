@@ -1,10 +1,38 @@
 @startuml ssd-13-purge-deleted-issues
 !include ssd-style.puml
-title SSD 13 - UC9 삭제 이슈 보관 정책 Reference
+title SSD 13 - UC9 Purge Deleted Issue / Deleted Issue Retention
+
+actor "PL" as A
 participant ":Issue Tracking System" as S
-note over S
-이 그림은 actor-goal SSD가 아니라 UC9 deleteIssue(issueId) 내부 보관 정책 참고도이다.
-DELETED Issue가 30개를 초과하면 deleted transition time 기준 oldest-first FIFO로 오래된 DELETED Issue를 물리 삭제한다.
-보관 정책은 별도 외부 system operation으로 공개하지 않는다.
+
+note over A, S
+사전조건:
+- PL이 로그인되어 있다.
+- 단건 영구 삭제 대상 Issue가 DELETED 상태이다.
+- 대상 Issue가 아직 물리 삭제되지 않았다.
+- PL은 대상 Issue가 속한 Project의 active PL이다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
+
+alt PL이 DELETED 이슈 하나를 영구 삭제한다
+  A -> S: purgeDeletedIssue(issueId)
+  S --> A: deletedIssuePurged(issueId, confirmation)
+
+else soft delete 이후 DELETED 보관 한도가 초과된다
+  A -> S: deleteIssue(issueId, comment)
+  S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+end
+
+note over S
+결과:
+- 단건 영구 삭제는 선택한 DELETED Issue를 시스템에서 물리 삭제한다.
+- Issue와 관련된 comments, issue histories, dependencies는 함께 제거된다.
+- 단건 영구 삭제는 삭제/복구 사유 comment를 요구하지 않는다.
+
+자동 FIFO 정리:
+- 사용자가 직접 30개를 한꺼번에 purge하는 사용자 목표가 아니다.
+- soft delete 이후 DELETED Issue가 보관 한도 30개를 초과하면 시스템 내부 정책으로 수행된다.
+- 기준은 deleted transition time이며, 오래된 DELETED Issue부터 물리 삭제한다.
+end note
+
 @enduml
