@@ -4,11 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
@@ -17,14 +18,15 @@ import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
+import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
@@ -32,29 +34,49 @@ import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
-import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
+import com.github.marcellokim.issuetracker.service.AssignmentResult;
+import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
+import com.github.marcellokim.issuetracker.service.DependencyResult;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
+import com.github.marcellokim.issuetracker.service.IssueResult;
+import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueStateResult;
+import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectAdminDetail;
+import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
+import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +85,72 @@ class ControllerCoverageTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 10, 0);
     private static final long PROJECT_ID = 10L;
+
+    @Test
+    @DisplayName("controller coverage test tracks every public controller method")
+    void controllerCoverageTracksEveryPublicControllerMethod() {
+        Map<Class<?>, Set<String>> expected = Map.of(
+                AccountController.class, Set.of(
+                        "activateAccount(String)",
+                        "changeAccountRole(String,Role)",
+                        "createAccount(String,String,String,Role)",
+                        "deactivateAccount(String)",
+                        "renameAccount(String,String)"),
+                AssignmentController.class, Set.of(
+                        "assignIssue(long,String,String)",
+                        "changeVerifier(long,String)",
+                        "reassignIssue(long,String)",
+                        "startAssignment(long)"),
+                AuthenticationController.class, Set.of(
+                        "login(String,String)",
+                        "logout()"),
+                DashboardController.class, Set.of(
+                        "viewProjects()",
+                        "viewUsers()"),
+                DeletedIssueController.class, Set.of(
+                        "deleteIssue(long,String)",
+                        "purgeDeletedIssue(long)",
+                        "purgeOverflow(long)",
+                        "restoreIssue(long,String)",
+                        "viewDeletedIssues(long)"),
+                IssueController.class, Set.of(
+                        "addComment(long,String)",
+                        "addDependency(long,long)",
+                        "canDeleteComment(long,long)",
+                        "canRegisterIssue(long)",
+                        "canUpdateComment(long,long)",
+                        "changePriority(long,Priority)",
+                        "deleteComment(long,long)",
+                        "registerIssue(long,String,String,Priority)",
+                        "removeDependency(long,long)",
+                        "searchIssues(long,String,IssueStatus,Priority)",
+                        "searchIssues(long,String,IssueStatus,Priority,String,String,String,LocalDateTime,LocalDateTime)",
+                        "updateComment(long,long,String)",
+                        "updateIssue(long,String,String)",
+                        "viewAvailableActions(long)",
+                        "viewComments(long)",
+                        "viewIssueDetail(long)",
+                        "viewProjectDependencies(long)",
+                        "viewRelatedProjectIssues(long)"),
+                IssueStateController.class, Set.of(
+                        "changeStatus(long,IssueStatus,String)"),
+                ProjectController.class, Set.of(
+                        "addProjectParticipant(long,String)",
+                        "changeProjectDescription(long,String)",
+                        "createProject(String,String)",
+                        "deleteProject(long)",
+                        "removeProjectParticipant(long,String)",
+                        "renameProject(long,String)",
+                        "viewProjectAdminDetail(long)",
+                        "viewProjectNonAdminDetail(long)",
+                        "viewProjectParticipants(long)"),
+                StatisticsController.class, Set.of(
+                        "viewStatistics(long)",
+                        "viewStatistics(long,LocalDate,LocalDate,YearMonth,YearMonth)"));
+
+        expected.forEach((controllerType, signatures) ->
+                assertEquals(signatures, publicMethodSignatures(controllerType), controllerType.getSimpleName()));
+    }
 
     @Test
     @DisplayName("authentication controller delegates login and logout")
@@ -116,6 +204,8 @@ class ControllerCoverageTest {
     @DisplayName("statistics controller delegates report query after auth and range validation")
     void statisticsControllerDelegatesReportQuery() {
         AuthFixture auth = authenticated(Role.DEV);
+        auth.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, auth.user().getLoginId()));
         FakeStatisticsRepository statistics = new FakeStatisticsRepository();
         StatisticsReport expectedReport = report();
         statistics.report = expectedReport;
@@ -136,6 +226,12 @@ class ControllerCoverageTest {
         assertEquals(PROJECT_ID, statistics.reportProjectId);
         assertEquals(LocalDate.of(2026, 5, 1), statistics.dailyFrom);
         assertEquals(YearMonth.of(2026, 6), statistics.monthlyTo);
+
+        StatisticsReportResult defaultRangeReport = controller.viewStatistics(PROJECT_ID);
+        assertEquals(expectedReport.statusCounts(), defaultRangeReport.statusCounts());
+        assertEquals(PROJECT_ID, statistics.reportProjectId);
+        assertNull(statistics.dailyFrom);
+        assertNull(statistics.monthlyTo);
     }
 
     @Test
@@ -147,10 +243,12 @@ class ControllerCoverageTest {
                         new FakeUserRepository()));
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
+        AuthFixture pl = authenticated(Role.PL);
+        pl.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, pl.user().getLoginId()));
         StatisticsController controller = new StatisticsController(
-                authenticated(Role.PL).service(),
-                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), new FakeUserRepository(
-                        user("pl", Role.PL))));
+                pl.service(),
+                new StatisticsService(new PermissionPolicy(), new FakeStatisticsRepository(), pl.users()));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> controller.viewStatistics(
@@ -173,6 +271,8 @@ class ControllerCoverageTest {
     @DisplayName("deleted issue controller lists, soft-deletes, restores, and purges for PL")
     void deletedIssueControllerManagesDeletedIssues() {
         AuthFixture auth = authenticated(Role.PL);
+        auth.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, auth.user().getLoginId()));
         Issue activeIssue = issue(101L, PROJECT_ID, IssueStatus.NEW);
         Issue deletedIssue = issue(102L, PROJECT_ID, IssueStatus.DELETED);
         Issue purgeTarget = issue(103L, PROJECT_ID, IssueStatus.DELETED);
@@ -225,49 +325,184 @@ class ControllerCoverageTest {
     }
 
     @Test
-    @DisplayName("project controller deletes an existing project only for ADMIN")
-    void projectControllerDeletesProjectForAdmin() {
+    @DisplayName("issue controller registers, reads, searches, updates, and reprioritizes issues")
+    void issueControllerCoversIssueReadAndWriteMethods() {
+        User dev = user("dev1", Role.DEV);
+        Issue issue = persistedIssue(1L, "ISSUE-1", dev);
+        IssueController devController = issueController(dev, issue);
+
+        IssueResult created = devController.registerIssue(PROJECT_ID, "New issue", "Registration path",
+                Priority.MAJOR);
+        assertNotNull(created.issueId());
+        assertEquals(IssueStatus.NEW, created.status());
+        assertEquals("New issue", created.title());
+        assertTrue(devController.canRegisterIssue(PROJECT_ID));
+
+        IssueDetailResult detail = devController.viewIssueDetail(issue.id());
+        assertEquals(issue.id(), detail.id());
+        assertTrue(detail.availableActions().contains("UPDATE_ISSUE"));
+
+        List<IssueSummary> simpleSearch = devController.searchIssues(PROJECT_ID, null, null, null);
+        assertEquals(List.of(issue.id(), created.id()), simpleSearch.stream().map(IssueSummary::id).toList());
+
+        List<IssueSummary> filteredSearch = devController.searchIssues(
+                PROJECT_ID,
+                "Issue",
+                IssueStatus.NEW,
+                Priority.MAJOR,
+                dev.getLoginId(),
+                null,
+                null,
+                NOW.minusDays(1),
+                NOW.plusDays(1));
+        assertEquals(List.of(issue.id(), created.id()), filteredSearch.stream().map(IssueSummary::id).toList());
+
+        List<IssueSummary> relatedIssues = devController.viewRelatedProjectIssues(PROJECT_ID);
+        assertEquals(List.of(issue.id(), created.id()), relatedIssues.stream().map(IssueSummary::id).toList());
+
+        IssueResult updated = devController.updateIssue(issue.id(), "Updated title", "Updated description");
+        assertEquals("Updated title", updated.title());
+
+        User pl = user("pl1", Role.PL);
+        IssueController plController = issueController(pl, persistedIssue(2L, "ISSUE-2", dev));
+        IssueResult priorityChanged = plController.changePriority(2L, Priority.CRITICAL);
+        assertEquals(Priority.CRITICAL, priorityChanged.priority());
+    }
+
+    @Test
+    @DisplayName("issue controller adds, views, updates, deletes, and checks comment actions")
+    void issueControllerCoversCommentMethods() {
+        User dev = user("dev1", Role.DEV);
+        Issue issue = persistedIssue(1L, "ISSUE-1", dev);
+        FakeCommentRepository comments = new FakeCommentRepository(Comment.fromPersistence(
+                100L,
+                issue.id(),
+                dev.getLoginId(),
+                "Original comment",
+                CommentPurpose.GENERAL,
+                NOW,
+                NOW));
+        IssueController controller = issueController(dev, comments, issue);
+
+        CommentResult added = controller.addComment(issue.id(), "Confirmed this bug");
+        assertEquals("Confirmed this bug", added.content());
+        assertEquals(dev.getLoginId(), added.writerLoginId());
+
+        List<CommentResult> viewed = controller.viewComments(issue.id());
+        assertEquals(List.of("100", "101"), viewed.stream().map(CommentResult::commentId).toList());
+
+        assertTrue(controller.canUpdateComment(issue.id(), 100L));
+        assertTrue(controller.canDeleteComment(issue.id(), 100L));
+
+        CommentResult updated = controller.updateComment(issue.id(), 100L, "Edited comment");
+        assertEquals("Edited comment", updated.content());
+
+        controller.deleteComment(issue.id(), 100L);
+        assertFalse(comments.findById(100L).isPresent());
+    }
+
+    @Test
+    @DisplayName("issue controller adds, views, removes dependencies and exposes workflow actions")
+    void issueControllerCoversDependencyAndWorkflowMethods() {
+        User pl = user("pl1", Role.PL);
+        Issue blockingIssue = persistedIssue(1L, "ISSUE-1", user("reporter1", Role.DEV));
+        Issue blockedIssue = persistedIssue(2L, "ISSUE-2", user("reporter2", Role.DEV));
+        IssueController controller = issueController(pl, blockingIssue, blockedIssue);
+
+        DependencyResult dependency = controller.addDependency(blockingIssue.id(), blockedIssue.id());
+        assertNotNull(dependency.dependencyId());
+        assertEquals(blockingIssue.id(), dependency.blockingIssueId());
+        assertEquals(blockedIssue.id(), dependency.blockedIssueId());
+
+        List<DependencyResult> dependencies = controller.viewProjectDependencies(PROJECT_ID);
+        assertEquals(List.of(dependency.dependencyId()),
+                dependencies.stream().map(DependencyResult::dependencyId).toList());
+
+        assertTrue(controller.viewAvailableActions(blockedIssue.id()).canAddDependency());
+
+        controller.removeDependency(blockingIssue.id(), blockedIssue.id());
+        assertEquals(List.of(), controller.viewProjectDependencies(PROJECT_ID));
+    }
+
+    @Test
+    @DisplayName("project controller covers admin project reads and mutations")
+    void projectControllerCoversAdminProjectMethods() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
-        ProjectController controller = new ProjectController(
-                auth.service(),
-                new ProjectService(projects, new FakeIssueRepository(), auth.users(), new PermissionPolicy(),
-                        java.time.LocalDateTime::now));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+        projects.withParticipant(PROJECT_ID, "dev1");
+        FakeUserRepository users = new FakeUserRepository(auth.user(), user("dev1", Role.DEV));
+        ProjectController controller = projectController(auth, projects, users);
+
+        List<ProjectMemberResult> participants = controller.viewProjectParticipants(PROJECT_ID);
+        ProjectAdminDetail adminDetail = controller.viewProjectAdminDetail(PROJECT_ID);
+        assertEquals(List.of("dev1"), participants.stream().map(ProjectMemberResult::userId).toList());
+        assertEquals("project-one", adminDetail.project().name());
+        assertThrows(NoSuchMethodException.class, () -> ProjectAdminDetail.class.getMethod("issues"));
+
+        ProjectResult created = controller.createProject(" project-two ", "second project");
+        assertEquals("project-two", created.name());
+        assertEquals("second project", created.description());
+
+        ProjectResult renamed = controller.renameProject(PROJECT_ID, " project-renamed ");
+        assertEquals("project-renamed", renamed.name());
+
+        ProjectResult changed = controller.changeProjectDescription(PROJECT_ID, " updated description ");
+        assertEquals("updated description", changed.description());
 
         controller.deleteProject(PROJECT_ID);
-
         assertEquals(PROJECT_ID, projects.lastDeletedProjectId());
         assertFalse(projects.findById(PROJECT_ID).isPresent());
     }
 
     @Test
-    @DisplayName("project controller rejects invalid id, missing project, and non-admin users")
-    void projectControllerRejectsInvalidDeleteRequests() {
+    @DisplayName("project controller covers non-admin detail and participant mutations")
+    void projectControllerCoversNonAdminDetailAndParticipants() {
         AuthFixture admin = authenticated(Role.ADMIN);
-        InMemoryProjectRepository projects = new InMemoryProjectRepository();
-        ProjectController adminController = new ProjectController(
-                admin.service(),
-                new ProjectService(projects, new FakeIssueRepository(), admin.users(), new PermissionPolicy(),
-                        java.time.LocalDateTime::now));
-        assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(0L));
-        assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(PROJECT_ID));
+        User dev = user("dev", Role.DEV);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+        FakeUserRepository users = new FakeUserRepository(admin.user(), dev, user("tester1", Role.TESTER));
+        ProjectController adminController = projectController(admin, projects, users);
 
-        AuthFixture pl = authenticated(Role.PL);
-        ProjectController plController = new ProjectController(
-                pl.service(),
-                new ProjectService(
-                        new InMemoryProjectRepository(project(PROJECT_ID)),
-                        new FakeIssueRepository(),
-                        pl.users(),
-                        new PermissionPolicy(),
-                        java.time.LocalDateTime::now));
-        assertThrows(SecurityException.class, () -> plController.deleteProject(PROJECT_ID));
+        adminController.addProjectParticipant(PROJECT_ID, dev.getLoginId());
+        assertEquals(List.of(dev.getLoginId()), projects.participantIds(PROJECT_ID));
+
+        AuthFixture devAuth = authenticated(Role.DEV);
+        ProjectController devController = projectController(devAuth, projects, new FakeUserRepository(devAuth.user()));
+        ProjectResult nonAdminDetail = devController.viewProjectNonAdminDetail(PROJECT_ID);
+        assertEquals("project-one", nonAdminDetail.name());
+
+        adminController.removeProjectParticipant(PROJECT_ID, dev.getLoginId());
+        assertEquals(List.of(), projects.participantIds(PROJECT_ID));
+    }
+
+    @Test
+    @DisplayName("project controller rejects invalid ids and unauthenticated users")
+    void projectControllerRejectsInvalidRequests() {
+        AuthFixture admin = authenticated(Role.ADMIN);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
+        ProjectController adminController = projectController(admin, projects, new FakeUserRepository(admin.user()));
+
+        assertThrows(IllegalArgumentException.class, () -> adminController.viewProjectNonAdminDetail(0L));
+        assertThrows(IllegalArgumentException.class, () -> adminController.viewProjectParticipants(0L));
+        assertThrows(IllegalArgumentException.class, () -> adminController.viewProjectAdminDetail(0L));
+        assertThrows(IllegalArgumentException.class, () -> adminController.renameProject(0L, "renamed"));
+        assertThrows(IllegalArgumentException.class, () -> adminController.changeProjectDescription(0L, "changed"));
+        assertThrows(IllegalArgumentException.class, () -> adminController.deleteProject(0L));
+        assertThrows(IllegalArgumentException.class, () -> adminController.addProjectParticipant(0L, "dev1"));
+        assertThrows(IllegalArgumentException.class, () -> adminController.removeProjectParticipant(0L, "dev1"));
+
+        ProjectController anonymousController = new ProjectController(
+                anonymousAuth(),
+                projectService(projects, new FakeUserRepository(user("dev1", Role.DEV))));
+        assertThrows(SecurityException.class, () -> anonymousController.createProject("blocked", "blocked"));
     }
 
     @Test
     @DisplayName("assignment controller loads issue and returns status-aware recommendation options")
     void assignmentControllerStartsAssignment() {
         AuthFixture auth = authenticated(Role.PL);
+        auth.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, auth.user().getLoginId()));
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         PermissionPolicy policy = new PermissionPolicy();
         FakeIssueRepository issues = new FakeIssueRepository(issue);
@@ -285,6 +520,42 @@ class ControllerCoverageTest {
 
         assertNotNull(options.devAssigneeCandidates());
         assertNotNull(options.testerVerifierCandidates());
+    }
+
+    @Test
+    @DisplayName("assignment controller assigns, reassigns, and changes verifier")
+    void assignmentControllerCoversAssignmentMutations() {
+        AuthFixture auth = authenticated(Role.PL);
+        User dev1 = user("dev1", Role.DEV);
+        User dev2 = user("dev2", Role.DEV);
+        User tester1 = user("tester1", Role.TESTER);
+        User tester2 = user("tester2", Role.TESTER);
+        auth.users().save(dev1);
+        auth.users().save(dev2);
+        auth.users().save(tester1);
+        auth.users().save(tester2);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
+        projects.withParticipant(PROJECT_ID, auth.user().getLoginId());
+        projects.withParticipant(PROJECT_ID, dev1.getLoginId());
+        projects.withParticipant(PROJECT_ID, dev2.getLoginId());
+        projects.withParticipant(PROJECT_ID, tester1.getLoginId());
+        projects.withParticipant(PROJECT_ID, tester2.getLoginId());
+        auth.users().attachProjects(projects);
+        Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
+        FakeIssueRepository issues = new FakeIssueRepository(issue);
+        AssignmentController controller = assignmentController(auth, issues);
+
+        AssignmentResult assigned = controller.assignIssue(issue.id(), dev1.getLoginId(), tester1.getLoginId());
+        assertEquals(IssueStatus.ASSIGNED, assigned.status());
+        assertEquals(dev1.getLoginId(), assigned.assignee().loginId());
+        assertEquals(tester1.getLoginId(), assigned.verifier().loginId());
+
+        AssignmentResult reassigned = controller.reassignIssue(issue.id(), dev2.getLoginId());
+        assertEquals(dev2.getLoginId(), reassigned.assignee().loginId());
+
+        issues.save(issueWithAssigneeAndVerifier(issue.id(), PROJECT_ID, IssueStatus.FIXED, dev2, tester1));
+        AssignmentResult verifierChanged = controller.changeVerifier(issue.id(), tester2.getLoginId());
+        assertEquals(tester2.getLoginId(), verifierChanged.verifier().loginId());
     }
 
     @Test
@@ -315,6 +586,34 @@ class ControllerCoverageTest {
                         recommendations,
                         java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> plController.startAssignment(issue.id()));
+    }
+
+    @Test
+    @DisplayName("issue state controller changes issue status")
+    void issueStateControllerChangesStatus() {
+        AuthFixture auth = authenticated(Role.DEV);
+        User tester = user("tester1", Role.TESTER);
+        auth.users().save(tester);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
+        projects.withParticipant(PROJECT_ID, auth.user().getLoginId());
+        projects.withParticipant(PROJECT_ID, tester.getLoginId());
+        auth.users().attachProjects(projects);
+        Issue issue = issueWithAssigneeAndVerifier(301L, PROJECT_ID, IssueStatus.ASSIGNED, auth.user(), tester);
+        FakeIssueRepository issues = new FakeIssueRepository(issue);
+        IssueStateController controller = new IssueStateController(
+                auth.service(),
+                new IssueStateService(
+                        issues,
+                        new FakeIssueDependencyRepository(),
+                        auth.users(),
+                        new PermissionPolicy(),
+                        () -> NOW,
+                        ControllerCoverageTest::nextCommentId));
+
+        IssueStateResult result = controller.changeStatus(issue.id(), IssueStatus.FIXED, "fixed in controller test");
+
+        assertEquals(IssueStatus.FIXED, result.status());
+        assertEquals(auth.user().getLoginId(), result.fixer().loginId());
     }
 
     @Test
@@ -405,6 +704,138 @@ class ControllerCoverageTest {
                 new com.github.marcellokim.issuetracker.service.IssueStateService(issues,
                         new FakeIssueDependencyRepository(), users, policy, clock,
                         ControllerCoverageTest::nextCommentId)));
+    }
+
+    private static Set<String> publicMethodSignatures(Class<?> controllerType) {
+        return Arrays.stream(controllerType.getDeclaredMethods())
+                .filter(method -> Modifier.isPublic(method.getModifiers()))
+                .filter(method -> !method.isBridge())
+                .filter(method -> !method.isSynthetic())
+                .map(ControllerCoverageTest::methodSignature)
+                .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    private static String methodSignature(Method method) {
+        return method.getName() + "(" + Arrays.stream(method.getParameterTypes())
+                .map(Class::getSimpleName)
+                .collect(Collectors.joining(",")) + ")";
+    }
+
+    private static IssueController issueController(User user, Issue... issues) {
+        return issueController(user, new FakeCommentRepository(), issues);
+    }
+
+    private static IssueController issueController(User user, FakeCommentRepository comments, Issue... issues) {
+        FakeUserRepository users = new FakeUserRepository(user);
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID))
+                .withParticipant(PROJECT_ID, user.getLoginId());
+        users.attachProjects(projects);
+        SessionStore sessionStore = new SessionStore();
+        sessionStore.start(user.getLoginId());
+        AuthenticationService authService = new AuthenticationService(users, new PasswordHasher(), sessionStore);
+        FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
+        InMemoryIssueRepository issueRepository = new InMemoryIssueRepository(issues);
+        PermissionPolicy policy = new PermissionPolicy();
+        IssueService issueService = new IssueService(
+                projects,
+                issueRepository,
+                dependencies,
+                comments,
+                new FakeIssueHistoryRepository(),
+                users,
+                policy,
+                () -> NOW);
+        IssueWorkflowService workflowService = new IssueWorkflowService(
+                issueRepository,
+                dependencies,
+                comments,
+                users,
+                policy);
+        return new IssueController(authService, issueService, workflowService);
+    }
+
+    private static Issue persistedIssue(long id, String issueId, User reporter) {
+        return Issue.fromPersistence(Issue.persistedState(
+                PROJECT_ID,
+                "Issue " + id,
+                "Controller test issue " + id,
+                reporter)
+                .id(id)
+                .issueId(issueId)
+                .reportedDate(NOW)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.NEW)
+                .updatedAt(NOW));
+    }
+
+    private static ProjectController projectController(
+            AuthFixture auth,
+            InMemoryProjectRepository projects,
+            FakeUserRepository users) {
+        return projectController(auth, projects, users, new InMemoryIssueRepository());
+    }
+
+    private static ProjectController projectController(
+            AuthFixture auth,
+            InMemoryProjectRepository projects,
+            FakeUserRepository users,
+            InMemoryIssueRepository issues) {
+        return new ProjectController(auth.service(), projectService(projects, users, issues));
+    }
+
+    private static ProjectService projectService(
+            InMemoryProjectRepository projects,
+            FakeUserRepository users) {
+        return projectService(projects, users, new InMemoryIssueRepository());
+    }
+
+    private static ProjectService projectService(
+            InMemoryProjectRepository projects,
+            FakeUserRepository users,
+            InMemoryIssueRepository issues) {
+        users.attachProjects(projects);
+        return new ProjectService(
+                projects,
+                issues,
+                users,
+                new PermissionPolicy(),
+                () -> NOW);
+    }
+
+    private static Project project(long projectId, String name) {
+        return Project.fromPersistence(projectId, name, "description", "admin", NOW, NOW);
+    }
+
+    private static AssignmentController assignmentController(AuthFixture auth, FakeIssueRepository issues) {
+        return new AssignmentController(
+                auth.service(),
+                new AssignmentService(
+                        issues,
+                        auth.users(),
+                        new PermissionPolicy(),
+                        new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation()),
+                        () -> NOW));
+    }
+
+    private static Issue issueWithAssigneeAndVerifier(
+            long id,
+            long projectId,
+            IssueStatus status,
+            User assignee,
+            User verifier) {
+        return Issue.fromPersistence(Issue.persistedState(
+                projectId,
+                "Issue " + id,
+                "Controller test issue",
+                user("reporter", Role.DEV))
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(NOW)
+                .updatedAt(NOW)
+                .priority(Priority.MAJOR)
+                .status(status)
+                .assignee(assignee)
+                .verifier(verifier));
     }
 
     private static String nextCommentId() {
@@ -599,11 +1030,16 @@ class ControllerCoverageTest {
     private static final class FakeUserRepository implements UserRepository {
 
         private final Map<String, User> usersByLoginId = new LinkedHashMap<>();
+        private InMemoryProjectRepository projects;
 
         private FakeUserRepository(User... users) {
             for (User user : users) {
                 usersByLoginId.put(user.getLoginId(), user);
             }
+        }
+
+        private void attachProjects(InMemoryProjectRepository projects) {
+            this.projects = Objects.requireNonNull(projects, "projects");
         }
 
         @Override
@@ -618,14 +1054,33 @@ class ControllerCoverageTest {
 
         @Override
         public List<User> findByRole(long projectId, Role role) {
-            return usersByLoginId.values().stream()
+            if (projects == null) {
+                return usersByLoginId.values().stream()
+                        .filter(user -> user.getRole() == role)
+                        .toList();
+            }
+
+            return projects.findParticipants(projectId).stream()
+                    .map(ProjectMember::userId)
+                    .map(usersByLoginId::get)
+                    .filter(Objects::nonNull)
                     .filter(user -> user.getRole() == role)
                     .toList();
         }
 
         @Override
         public List<User> findActiveByRole(long projectId, Role role) {
-            return usersByLoginId.values().stream()
+            if (projects == null) {
+                return usersByLoginId.values().stream()
+                        .filter(User::isActive)
+                        .filter(user -> user.getRole() == role)
+                        .toList();
+            }
+
+            return projects.findParticipants(projectId).stream()
+                    .map(ProjectMember::userId)
+                    .map(usersByLoginId::get)
+                    .filter(Objects::nonNull)
                     .filter(User::isActive)
                     .filter(user -> user.getRole() == role)
                     .toList();
@@ -709,28 +1164,63 @@ class ControllerCoverageTest {
 
     private static final class FakeCommentRepository implements CommentRepository {
 
+        private final Map<Long, Comment> comments = new LinkedHashMap<>();
+        private long nextId = 100L;
+
+        private FakeCommentRepository(Comment... comments) {
+            for (Comment comment : comments) {
+                save(comment);
+            }
+        }
+
         @Override
         public Optional<Comment> findById(long commentId) {
-            return Optional.empty();
+            return Optional.ofNullable(comments.get(commentId));
         }
 
         @Override
         public List<Comment> findByIssueId(long issueId) {
-            return List.of();
+            return comments.values().stream()
+                    .filter(comment -> comment.issueId() == issueId)
+                    .toList();
         }
 
         @Override
         public Comment save(Comment comment) {
-            return comment;
+            if (comment.id() != 0L) {
+                comments.put(comment.id(), comment);
+                nextId = Math.max(nextId, comment.id() + 1L);
+                return comment;
+            }
+            Comment saved = Comment.fromPersistence(
+                    nextId++,
+                    comment.issueId(),
+                    comment.writerId(),
+                    comment.content(),
+                    comment.purpose(),
+                    comment.createdDate(),
+                    comment.updatedDate());
+            comments.put(saved.id(), saved);
+            return saved;
         }
 
         @Override
         public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
-            return comment;
+            return save(comment);
         }
 
         @Override
         public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
+            Comment comment = comments.get(commentId);
+            if (comment == null
+                    || comment.issueId() != issueId
+                    || !comment.writerId().equals(writerLoginId)
+                    || comment.purpose() != CommentPurpose.GENERAL) {
+                throw new IllegalArgumentException(
+                        "Comment was not deleted because it does not exist, is not owned by the writer, "
+                                + "or is not a GENERAL comment.");
+            }
+            comments.remove(commentId);
         }
 
         @Override
@@ -739,26 +1229,8 @@ class ControllerCoverageTest {
                 long commentId,
                 String writerLoginId,
                 IssueHistory history) {
+            deleteGeneralById(issueId, commentId, writerLoginId);
         }
     }
 
-    private static final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
-
-        private List<AssignmentCandidate> devCandidates = List.of();
-        private List<AssignmentCandidate> testerCandidates = List.of();
-        private long lastDevProjectId;
-        private long lastTesterProjectId;
-
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            lastDevProjectId = projectId;
-            return devCandidates;
-        }
-
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            lastTesterProjectId = projectId;
-            return testerCandidates;
-        }
-    }
 }
