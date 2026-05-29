@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 class DomainValueObjectsTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 14, 0);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User dev = User.fromPersistence("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
     @Test

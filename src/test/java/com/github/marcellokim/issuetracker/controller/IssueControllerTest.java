@@ -13,11 +13,9 @@ import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
@@ -30,11 +28,11 @@ import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -299,7 +297,7 @@ class IssueControllerTest {
         var issueRepository = new InMemoryIssueRepository(issues);
         var policy = new PermissionPolicy();
         var issueService = new IssueService(
-                new FakeProjectRepository(project),
+                new InMemoryProjectRepository(project),
                 issueRepository,
                 dependencies,
                 comments,
@@ -315,7 +313,7 @@ class IssueControllerTest {
         var users = new InMemoryUserRepository(dev);
         var authService = new AuthenticationService(users, hasher, new SessionStore());
         var issueService = new IssueService(
-                new FakeProjectRepository(project),
+                new InMemoryProjectRepository(project),
                 new InMemoryIssueRepository(),
                 new FakeIssueDependencyRepository(),
                 new FakeCommentRepository(),
@@ -339,61 +337,6 @@ class IssueControllerTest {
                         .priority(Priority.MAJOR)
                         .status(IssueStatus.NEW)
                         .updatedAt(now));
-    }
-
-    private static final class FakeProjectRepository implements ProjectRepository {
-
-        private final Map<Long, Project> projects = new LinkedHashMap<>();
-
-        private FakeProjectRepository(Project... projects) {
-            for (Project p : projects) {
-                this.projects.put(p.getId(), p);
-            }
-        }
-
-        @Override
-        public Optional<Project> findById(long projectId) {
-            return Optional.ofNullable(projects.get(projectId));
-        }
-
-        @Override
-        public Optional<Project> findByName(String name) {
-            return Optional.empty();
-        }
-
-        @Override
-        public List<Project> findAll() {
-            return new ArrayList<>(projects.values());
-        }
-
-        @Override
-        public Project save(Project project) {
-            projects.put(project.getId(), project);
-            return project;
-        }
-
-        @Override
-        public void deleteById(long projectId) {
-            projects.remove(projectId);
-        }
-
-        @Override
-        public void addParticipant(long projectId, String userLoginId) {
-        }
-
-        @Override
-        public void removeParticipant(long projectId, String userLoginId) {
-        }
-
-        @Override
-        public List<ProjectMember> findParticipants(long projectId) {
-            return List.of();
-        }
-
-        @Override
-        public boolean existsByParticipant(String userLoginId) {
-            return false;
-        }
     }
 
     private static final class FakeCommentRepository implements CommentRepository {

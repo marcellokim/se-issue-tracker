@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 @DisplayName("이슈 생성")
 class IssueCreationTest {
 
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 18, 10, 0);
 

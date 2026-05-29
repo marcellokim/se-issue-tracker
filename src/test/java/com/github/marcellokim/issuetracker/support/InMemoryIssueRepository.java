@@ -5,6 +5,7 @@ import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,8 @@ public final class InMemoryIssueRepository implements IssueRepository {
     public List<Issue> findByProject(long projectId) {
         return issues.values().stream()
                 .filter(issue -> issue.projectId() == projectId)
+                .filter(issue -> issue.status() != IssueStatus.DELETED)
+                .sorted(Comparator.comparingLong(Issue::id))
                 .toList();
     }
 
@@ -49,6 +52,8 @@ public final class InMemoryIssueRepository implements IssueRepository {
         return issues.values().stream()
                 .filter(issue -> issue.projectId() == projectId)
                 .filter(issue -> issue.status() == IssueStatus.DELETED)
+                .sorted(Comparator.comparing(Issue::reportedDate).reversed()
+                        .thenComparing(Comparator.comparingLong(Issue::id).reversed()))
                 .toList();
     }
 
@@ -108,12 +113,12 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     @Override
     public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        throw new UnsupportedOperationException("softDelete is not needed by these service tests");
+        throw unexpectedRepositoryCall("softDelete");
     }
 
     @Override
     public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        throw new UnsupportedOperationException("restore is not needed by these service tests");
+        throw unexpectedRepositoryCall("restore");
     }
 
     @Override
@@ -156,5 +161,9 @@ public final class InMemoryIssueRepository implements IssueRepository {
         String normalizedKeyword = keyword.toLowerCase();
         return issue.title().toLowerCase().contains(normalizedKeyword)
                 || issue.description().toLowerCase().contains(normalizedKeyword);
+    }
+
+    private static UnsupportedOperationException unexpectedRepositoryCall(String methodName) {
+        return new UnsupportedOperationException("Unexpected repository call: " + methodName);
     }
 }

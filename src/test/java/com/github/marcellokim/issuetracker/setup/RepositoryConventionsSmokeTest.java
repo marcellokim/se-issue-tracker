@@ -131,7 +131,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("build.gradle", "id 'application'"),
                 new ScriptExpectation("build.gradle", "id 'org.openjfx.javafxplugin' version '0.1.0'"),
                 new ScriptExpectation("build.gradle", "version = '21.0.6'"),
-                new ScriptExpectation("build.gradle", "modules = ['javafx.controls', 'javafx.fxml']"),
+                new ScriptExpectation("build.gradle", "modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']"),
                 new ScriptExpectation("build.gradle", "mainClass = 'com.github.marcellokim.issuetracker.Main'"),
                 new ScriptExpectation("build.gradle", "providers.gradleProperty('pythonExecutable')"),
                 new ScriptExpectation("build.gradle", "? 'python' : 'python3'"),

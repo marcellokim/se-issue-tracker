@@ -137,6 +137,10 @@ class CliCommandTest {
         return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(PASSWORD), role, active, NOW, NOW);
     }
 
+    private static UnsupportedOperationException unexpectedRuntimeCall(String methodName) {
+        return new UnsupportedOperationException("Unexpected runtime call: " + methodName);
+    }
+
     private static final class RecordingOutput implements CliOutput {
 
         private final StringBuilder text = new StringBuilder();
@@ -193,7 +197,7 @@ class CliCommandTest {
             if (fail) {
                 throw new IOException("boom");
             }
-            throw new UnsupportedOperationException("repository demo summary is injected directly in this test.");
+            throw unexpectedRuntimeCall("repositoryDemoSummaryService");
         }
 
         @Override

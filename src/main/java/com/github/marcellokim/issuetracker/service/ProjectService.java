@@ -32,7 +32,6 @@ public final class ProjectService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    // Non-Admin -> 단순 프로젝트 기본정보만
     public ProjectResult viewProjectNonAdminDetail(long projectId, String currentLoginId) {
         requireProjectId(projectId);
         User actor = findUser(currentLoginId);
@@ -41,7 +40,6 @@ public final class ProjectService {
         return ProjectResult.from(project);
     }
 
-    // Admin 기능 -> 프로젝트 기본정보 + 참여자 정보
     public ProjectAdminDetail viewProjectAdminDetail(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
@@ -51,7 +49,6 @@ public final class ProjectService {
                 participantResults(projectId));
     }
 
-    // 일단 controller쪽에서 중복 기능인데 남기는쪽으로
     public List<ProjectMemberResult> viewProjectParticipants(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);

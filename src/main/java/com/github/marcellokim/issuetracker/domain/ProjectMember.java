@@ -11,13 +11,11 @@ public final class ProjectMember {
 
     public static ProjectMember create(long projectId, String userId,
             LocalDateTime joinedAt) {
-        // New project memberships are created by application flow before persistence.
         return new ProjectMember(projectId, userId, joinedAt);
     }
 
     public static ProjectMember fromPersistence(long projectId, String userId,
             LocalDateTime joinedAt) {
-        // Persistence reconstruction keeps the stored membership row exactly as read.
         return new ProjectMember(projectId, userId, joinedAt);
     }
 

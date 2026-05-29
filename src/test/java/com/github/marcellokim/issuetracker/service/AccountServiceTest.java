@@ -10,19 +10,15 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -93,7 +89,7 @@ class AccountServiceTest {
         InMemoryUserRepository users = new InMemoryUserRepository(
                 admin(),
                 user("dev1", Role.DEV, true));
-        FakeProjectRepository projects = new FakeProjectRepository()
+        InMemoryProjectRepository projects = new InMemoryProjectRepository()
                 .withProject(project(1L, "project1"))
                 .withParticipant(1L, "dev1");
         AccountService service = service(users, projects, new InMemoryIssueRepository());
@@ -108,7 +104,7 @@ class AccountServiceTest {
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
         InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
-        FakeProjectRepository projects = new FakeProjectRepository()
+        InMemoryProjectRepository projects = new InMemoryProjectRepository()
                 .withProject(project(1L, "project1"));
         InMemoryIssueRepository issues = new InMemoryIssueRepository(assignedIssue(dev, tester));
         AccountService service = service(users, projects, issues);
@@ -138,7 +134,7 @@ class AccountServiceTest {
         InMemoryUserRepository users = new InMemoryUserRepository(
                 admin(),
                 user("pl1", Role.PL, true));
-        FakeProjectRepository projects = new FakeProjectRepository()
+        InMemoryProjectRepository projects = new InMemoryProjectRepository()
                 .withProject(project(1L, "project1"))
                 .withParticipant(1L, "pl1");
         AccountService service = service(users, projects, new InMemoryIssueRepository());
@@ -154,7 +150,7 @@ class AccountServiceTest {
         User tester = user("tester1", Role.TESTER, true);
         InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
         InMemoryIssueRepository issues = new InMemoryIssueRepository(assignedIssue(dev, tester));
-        AccountService service = service(users, new FakeProjectRepository(), issues);
+        AccountService service = service(users, new InMemoryProjectRepository(), issues);
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.deactivateAccount("dev1", actor(users, "admin")));
@@ -169,7 +165,7 @@ class AccountServiceTest {
         User tester = user("tester1", Role.TESTER, true);
         InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
         InMemoryIssueRepository issues = new InMemoryIssueRepository(completedIssueWithAudit(dev, tester));
-        AccountService service = service(users, new FakeProjectRepository(), issues);
+        AccountService service = service(users, new InMemoryProjectRepository(), issues);
 
         UserResult result = service.deactivateAccount("dev1", actor(users, "admin"));
 
@@ -226,19 +222,19 @@ class AccountServiceTest {
                 () -> new AccountService(policy, users, null, new InMemoryIssueRepository(), PASSWORD_HASHER,
                         java.time.LocalDateTime::now));
         assertThrows(NullPointerException.class,
-                () -> new AccountService(policy, users, new FakeProjectRepository(), null, PASSWORD_HASHER,
+                () -> new AccountService(policy, users, new InMemoryProjectRepository(), null, PASSWORD_HASHER,
                         java.time.LocalDateTime::now));
         assertNotNull(new AccountService(
                 policy,
                 users,
-                new FakeProjectRepository(),
+                new InMemoryProjectRepository(),
                 new InMemoryIssueRepository(),
                 PASSWORD_HASHER,
                 java.time.LocalDateTime::now));
     }
 
     private static AccountService service(InMemoryUserRepository users) {
-        return service(users, new FakeProjectRepository(), new InMemoryIssueRepository());
+        return service(users, new InMemoryProjectRepository(), new InMemoryIssueRepository());
     }
 
     private static AccountService service(
@@ -301,73 +297,4 @@ class AccountServiceTest {
                 .updatedAt(now));
     }
 
-    private static final class FakeProjectRepository implements ProjectRepository {
-
-        private final Map<Long, Project> projects = new LinkedHashMap<>();
-        private final Map<Long, List<ProjectMember>> participants = new LinkedHashMap<>();
-
-        FakeProjectRepository withProject(Project project) {
-            projects.put(project.getId(), project);
-            return this;
-        }
-
-        FakeProjectRepository withParticipant(long projectId, String loginId) {
-            participants.computeIfAbsent(projectId, ignored -> new ArrayList<>())
-                    .add(ProjectMember.create(projectId, loginId, LocalDateTime.of(2026, 5, 1, 0, 0)));
-            return this;
-        }
-
-        @Override
-        public Optional<Project> findById(long projectId) {
-            return Optional.ofNullable(projects.get(projectId));
-        }
-
-        @Override
-        public Optional<Project> findByName(String name) {
-            return projects.values().stream()
-                    .filter(project -> project.getName().equals(name))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Project> findAll() {
-            return List.copyOf(projects.values());
-        }
-
-        @Override
-        public Project save(Project project) {
-            projects.put(project.getId(), project);
-            return project;
-        }
-
-        @Override
-        public void deleteById(long projectId) {
-            projects.remove(projectId);
-            participants.remove(projectId);
-        }
-
-        @Override
-        public void addParticipant(long projectId, String userLoginId) {
-            withParticipant(projectId, userLoginId);
-        }
-
-        @Override
-        public void removeParticipant(long projectId, String userLoginId) {
-            participants.computeIfAbsent(projectId, ignored -> new ArrayList<>())
-                    .removeIf(participant -> participant.userId().equals(userLoginId));
-        }
-
-        @Override
-        public List<ProjectMember> findParticipants(long projectId) {
-            return List.copyOf(participants.getOrDefault(projectId, List.of()));
-        }
-
-        @Override
-        public boolean existsByParticipant(String userLoginId) {
-            return participants.values().stream()
-                    .flatMap(List::stream)
-                    .map(ProjectMember::userId)
-                    .anyMatch(userLoginId::equals);
-        }
-    }
 }

@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.domain;
 
-// 확정
 public enum ActionType {
     CREATED,
     TITLE_DESCRIPTION_UPDATED,

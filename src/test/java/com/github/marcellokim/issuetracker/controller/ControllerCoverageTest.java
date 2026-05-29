@@ -16,7 +16,6 @@ import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -25,8 +24,8 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import com.github.marcellokim.issuetracker.service.AccountService;
@@ -83,7 +82,7 @@ class ControllerCoverageTest {
     @DisplayName("dashboard controller reads dashboard data through service after auth")
     void dashboardControllerDelegatesDashboardReads() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
         FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
         DashboardController controller = new DashboardController(
                 auth.service(),
@@ -102,7 +101,7 @@ class ControllerCoverageTest {
         DashboardController controller = new DashboardController(
                 anonymousAuth(),
                 new DashboardSummaryService(
-                        new FakeProjectRepository(),
+                        new InMemoryProjectRepository(),
                         new FakeIssueRepository(),
                         new FakeStatisticsRepository(),
                         new FakeUserRepository(),
@@ -227,7 +226,7 @@ class ControllerCoverageTest {
     @DisplayName("project controller deletes an existing project only for ADMIN")
     void projectControllerDeletesProjectForAdmin() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
         ProjectController controller = new ProjectController(
                 auth.service(),
                 new ProjectService(projects, new FakeIssueRepository(), auth.users(), new PermissionPolicy(),
@@ -235,7 +234,7 @@ class ControllerCoverageTest {
 
         controller.deleteProject(PROJECT_ID);
 
-        assertEquals(PROJECT_ID, projects.deletedProjectId);
+        assertEquals(PROJECT_ID, projects.lastDeletedProjectId());
         assertFalse(projects.findById(PROJECT_ID).isPresent());
     }
 
@@ -243,7 +242,7 @@ class ControllerCoverageTest {
     @DisplayName("project controller rejects invalid id, missing project, and non-admin users")
     void projectControllerRejectsInvalidDeleteRequests() {
         AuthFixture admin = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository();
+        InMemoryProjectRepository projects = new InMemoryProjectRepository();
         ProjectController adminController = new ProjectController(
                 admin.service(),
                 new ProjectService(projects, new FakeIssueRepository(), admin.users(), new PermissionPolicy(),
@@ -255,7 +254,7 @@ class ControllerCoverageTest {
         ProjectController plController = new ProjectController(
                 pl.service(),
                 new ProjectService(
-                        new FakeProjectRepository(project(PROJECT_ID)),
+                        new InMemoryProjectRepository(project(PROJECT_ID)),
                         new FakeIssueRepository(),
                         pl.users(),
                         new PermissionPolicy(),
@@ -325,7 +324,7 @@ class ControllerCoverageTest {
     @DisplayName("account controller creates account through service after auth")
     void accountControllerCreatesAccount() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        FakeProjectRepository projects = new FakeProjectRepository();
+        InMemoryProjectRepository projects = new InMemoryProjectRepository();
         FakeIssueRepository issues = new FakeIssueRepository();
         PasswordHasher hasher = new PasswordHasher();
         AccountController controller = new AccountController(
@@ -346,7 +345,7 @@ class ControllerCoverageTest {
         AuthFixture auth = authenticated(Role.ADMIN);
         User target = user("target1", Role.DEV);
         auth.users().save(target);
-        FakeProjectRepository projects = new FakeProjectRepository();
+        InMemoryProjectRepository projects = new InMemoryProjectRepository();
         FakeIssueRepository issues = new FakeIssueRepository();
         PasswordHasher hasher = new PasswordHasher();
         AccountController controller = new AccountController(
@@ -373,7 +372,7 @@ class ControllerCoverageTest {
         AccountController controller = new AccountController(
                 anonymousAuth(),
                 new AccountService(new PermissionPolicy(), new FakeUserRepository(),
-                        new FakeProjectRepository(), new FakeIssueRepository(), new PasswordHasher(),
+                        new InMemoryProjectRepository(), new FakeIssueRepository(), new PasswordHasher(),
                         java.time.LocalDateTime::now));
 
         assertThrows(SecurityException.class,
@@ -381,11 +380,11 @@ class ControllerCoverageTest {
     }
 
     @Test
-    @DisplayName("stub controllers keep DCD layer dependencies injectable")
-    void stubControllersAcceptLayerDependencies() {
+    @DisplayName("controllers keep DCD layer dependencies injectable")
+    void controllersAcceptLayerDependencies() {
         AuthFixture auth = authenticated(Role.ADMIN);
         FakeUserRepository users = auth.users();
-        FakeProjectRepository projects = new FakeProjectRepository(project(PROJECT_ID));
+        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
         FakeIssueRepository issues = new FakeIssueRepository(issue(301L, PROJECT_ID, IssueStatus.NEW));
         PermissionPolicy policy = new PermissionPolicy();
         Clock clock = java.time.LocalDateTime::now;
@@ -598,74 +597,6 @@ class ControllerCoverageTest {
             return 2;
         }
 
-    }
-
-    private static final class FakeProjectRepository implements ProjectRepository {
-
-        private final Map<Long, Project> projectsById = new LinkedHashMap<>();
-        private final Map<Long, List<ProjectMember>> membersByProjectId = new LinkedHashMap<>();
-        private long deletedProjectId;
-
-        private FakeProjectRepository(Project... projects) {
-            for (Project project : projects) {
-                projectsById.put(project.getId(), project);
-            }
-        }
-
-        private FakeProjectRepository(Project project, List<ProjectMember> members) {
-            this(project);
-            membersByProjectId.put(project.getId(), List.copyOf(members));
-        }
-
-        @Override
-        public Optional<Project> findById(long projectId) {
-            return Optional.ofNullable(projectsById.get(projectId));
-        }
-
-        @Override
-        public Optional<Project> findByName(String name) {
-            return projectsById.values().stream()
-                    .filter(project -> project.getName().equals(name))
-                    .findFirst();
-        }
-
-        @Override
-        public List<Project> findAll() {
-            return new ArrayList<>(projectsById.values());
-        }
-
-        @Override
-        public Project save(Project project) {
-            projectsById.put(project.getId(), project);
-            return project;
-        }
-
-        @Override
-        public void deleteById(long projectId) {
-            deletedProjectId = projectId;
-            projectsById.remove(projectId);
-        }
-
-        @Override
-        public void addParticipant(long projectId, String userLoginId) {
-        }
-
-        @Override
-        public void removeParticipant(long projectId, String userLoginId) {
-        }
-
-        @Override
-        public List<ProjectMember> findParticipants(long projectId) {
-            return membersByProjectId.getOrDefault(projectId, List.of());
-        }
-
-        @Override
-        public boolean existsByParticipant(String userLoginId) {
-            return membersByProjectId.values().stream()
-                    .flatMap(List::stream)
-                    .map(ProjectMember::userId)
-                    .anyMatch(userLoginId::equals);
-        }
     }
 
     private static final class FakeUserRepository implements UserRepository {

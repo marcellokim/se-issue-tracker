@@ -15,18 +15,16 @@ import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1291,7 +1289,7 @@ class IssueServiceTest {
                         InMemoryUserRepository users) {
                 comments.recordHistoriesIn(histories);
                 return new IssueService(
-                                new FakeProjectRepository(project, otherProject),
+                                new InMemoryProjectRepository(project, otherProject),
                                 issues,
                                 dependencies,
                                 comments,
@@ -1358,63 +1356,6 @@ class IssueServiceTest {
                                 purpose,
                                 now,
                                 now);
-        }
-
-        private static final class FakeProjectRepository implements ProjectRepository {
-
-                private final Map<Long, Project> projects = new LinkedHashMap<>();
-
-                private FakeProjectRepository(Project... projects) {
-                        for (Project p : projects) {
-                                this.projects.put(p.getId(), p);
-                        }
-                }
-
-                @Override
-                public Optional<Project> findById(long projectId) {
-                        return Optional.ofNullable(projects.get(projectId));
-                }
-
-                @Override
-                public Optional<Project> findByName(String name) {
-                        return projects.values().stream()
-                                        .filter(p -> p.getName().equals(name))
-                                        .findFirst();
-                }
-
-                @Override
-                public List<Project> findAll() {
-                        return new ArrayList<>(projects.values());
-                }
-
-                @Override
-                public Project save(Project project) {
-                        projects.put(project.getId(), project);
-                        return project;
-                }
-
-                @Override
-                public void deleteById(long projectId) {
-                        projects.remove(projectId);
-                }
-
-                @Override
-                public void addParticipant(long projectId, String userLoginId) {
-                }
-
-                @Override
-                public void removeParticipant(long projectId, String userLoginId) {
-                }
-
-                @Override
-                public List<ProjectMember> findParticipants(long projectId) {
-                        return List.of();
-                }
-
-                @Override
-                public boolean existsByParticipant(String userLoginId) {
-                        return false;
-                }
         }
 
         private static final class FakeCommentRepository implements CommentRepository {

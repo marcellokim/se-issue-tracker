@@ -84,7 +84,6 @@ public class Issue {
         return new Issue(state);
     }
 
-    // --- getters ---
     public long id() {
         return id;
     }
@@ -197,7 +196,6 @@ public class Issue {
         return Collections.unmodifiableList(blockedByDependencies);
     }
 
-    // --- status management ---
     public void assignFromNew(User assignee, User verifier, User changedBy, LocalDateTime changedDate) {
         requireStatus(IssueStatus.NEW);
         assign(assignee, verifier, changedBy, changedDate, "Issue assigned from NEW");
@@ -299,7 +297,6 @@ public class Issue {
         changeStatusTo(IssueStatus.ASSIGNED, requiredComment, tester, changedDate);
     }
 
-    // --- other methods ---
     public IssueDependency addDependency(
             String dependencyId,
             Issue blockingIssue,
@@ -417,7 +414,6 @@ public class Issue {
                 changedDate);
     }
 
-    // --- general-purpose private methods ---
     private void changeStatusTo(IssueStatus targetStatus, String message, User changedBy, LocalDateTime changedDate) {
         Objects.requireNonNull(targetStatus, "targetStatus must not be null");
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);
