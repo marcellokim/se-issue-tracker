@@ -69,7 +69,6 @@ package "Controller Layer\n(system operation receivers)" #FFF8E1 {
   class DashboardController <<control>> {
     +viewProjects(): List<DashboardProjectSummary>
     +viewUsers(): List<UserResult>
-    +viewRelatedIssues(): List<IssueSummary>
   }
 
   class AccountController <<control>> {
@@ -143,7 +142,6 @@ package "Service Layer\n(application services, policies, ports, DTO/results)" #F
   class DashboardSummaryService <<service>> {
     +projectSummariesFor(user): List<DashboardProjectSummary>
     +usersFor(user): List<UserResult>
-    +relatedIssuesFor(user): List<IssueSummary>
   }
 
   class AccountService <<service>> {

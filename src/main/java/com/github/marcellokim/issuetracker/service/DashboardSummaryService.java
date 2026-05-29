@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -53,23 +52,6 @@ public final class DashboardSummaryService {
                                 .toList();
         }
 
-        public List<IssueSummary> relatedIssuesFor(User user) {
-                Objects.requireNonNull(user, "user");
-                if (user.getRole() == Role.ADMIN) {
-                        return List.of();
-                }
-                if (!user.isActive()) {
-                        throw new SecurityException("Only active users can view dashboard issues.");
-                }
-                return projectRepository.findAll().stream()
-                                .filter(project -> isParticipant(project.getId(), user.getLoginId()))
-                                .flatMap(project -> issueRepository.findByProject(project.getId()).stream())
-                                .filter(issue -> permissionPolicy.canViewAllProjectIssues(user)
-                                                || isRelatedIssue(issue, user.getLoginId()))
-                                .map(DashboardSummaryService::toIssueSummary)
-                                .toList();
-        }
-
         private DashboardProjectSummary summarizeProject(Project project) {
                 return new DashboardProjectSummary(
                                 project.getId(),
@@ -87,26 +69,5 @@ public final class DashboardSummaryService {
         private boolean isParticipant(long projectId, String loginId) {
                 return projectRepository.findParticipants(projectId).stream()
                                 .anyMatch(member -> member.userId().equals(loginId));
-        }
-
-        private static boolean isRelatedIssue(Issue issue, String loginId) {
-                return loginId.equals(issue.reporterId())
-                                || loginId.equals(issue.assigneeId())
-                                || loginId.equals(issue.verifierId());
-        }
-
-        private static IssueSummary toIssueSummary(Issue issue) {
-                return new IssueSummary(
-                                issue.id(),
-                                issue.getIssueId(),
-                                issue.projectId(),
-                                issue.status(),
-                                issue.priority(),
-                                issue.title(),
-                                issue.reporterId(),
-                                issue.assigneeId(),
-                                issue.verifierId(),
-                                issue.reportedDate(),
-                                issue.updatedAt());
         }
 }

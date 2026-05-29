@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -49,10 +48,7 @@ public final class ProjectService {
         Project project = findProject(projectId);
         return ProjectAdminDetail.create(
                 ProjectResult.from(project),
-                participantResults(projectId),
-                issueRepository.findByProject(projectId).stream()
-                        .map(ProjectService::toIssueSummary)
-                        .toList());
+                participantResults(projectId));
     }
 
     // 일단 controller쪽에서 중복 기능인데 남기는쪽으로
@@ -248,18 +244,4 @@ public final class ProjectService {
                 .anyMatch(loginId::equals);
     }
 
-    private static IssueSummary toIssueSummary(Issue issue) {
-        return new IssueSummary(
-                issue.id(),
-                issue.getIssueId(),
-                issue.projectId(),
-                issue.status(),
-                issue.priority(),
-                issue.title(),
-                issue.reporterId(),
-                issue.assigneeId(),
-                issue.verifierId(),
-                issue.reportedDate(),
-                issue.updatedAt());
-    }
 }

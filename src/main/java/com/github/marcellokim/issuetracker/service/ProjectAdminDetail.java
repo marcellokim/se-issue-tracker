@@ -7,22 +7,18 @@ public final class ProjectAdminDetail {
 
     private final ProjectResult project;
     private final List<ProjectMemberResult> participants;
-    private final List<IssueSummary> issues;
 
     private ProjectAdminDetail(
             ProjectResult project,
-            List<ProjectMemberResult> participants,
-            List<IssueSummary> issues) {
+            List<ProjectMemberResult> participants) {
         this.project = Objects.requireNonNull(project, "project");
         this.participants = List.copyOf(participants);
-        this.issues = List.copyOf(issues);
     }
 
     public static ProjectAdminDetail create(
             ProjectResult project,
-            List<ProjectMemberResult> participants,
-            List<IssueSummary> issues) {
-        return new ProjectAdminDetail(project, participants, issues);
+            List<ProjectMemberResult> participants) {
+        return new ProjectAdminDetail(project, participants);
     }
 
     public ProjectResult project() {
@@ -31,9 +27,5 @@ public final class ProjectAdminDetail {
 
     public List<ProjectMemberResult> participants() {
         return participants;
-    }
-
-    public List<IssueSummary> issues() {
-        return issues;
     }
 }

@@ -29,7 +29,7 @@ Statistics controller documentation now lives in `docs/api/statistics-controller
 | `AccountController` | `createAccount`, `renameAccount`, `changeAccountRole`, `activateAccount`, `deactivateAccount` |
 | `AssignmentController` | `startAssignment`, `assignIssue`, `reassignIssue`, `changeVerifier` |
 | `AuthenticationController` | `login`, `logout` |
-| `DashboardController` | `viewRelatedIssues` (disabled), `viewProjects`, `viewUsers` |
+| `DashboardController` | `viewProjects`, `viewUsers` |
 | `DeletedIssueController` | `viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeOverflow`, `purgeDeletedIssue` |
 | `IssueController` | `registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewRelatedProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`, `viewAvailableActions`, `canUpdateComment`, `canDeleteComment` |
 | `IssueStateController` | `changeStatus` |

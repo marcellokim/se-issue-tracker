@@ -133,7 +133,7 @@ Presentation / CLI
 
 - `Issue.projectId`가 프로젝트 소속을 나타낸다.
 - 프로젝트 삭제, 참여자 관리, 이슈 조회 조합은 Service/Repository가 담당한다.
-- Admin project detail은 project, participants, project issue list를 함께 포함한다.
+- Admin project detail은 project와 participants만 포함하며, 프로젝트 issue list는 포함하지 않는다.
 - Non-admin project 화면에 필요한 이슈 목록은 별도 issue 조회 경로로 가져온다.
 
 ### Issue Detail과 availableActions

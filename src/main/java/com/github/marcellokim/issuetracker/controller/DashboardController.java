@@ -4,7 +4,6 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
-import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.List;
 import java.util.Objects;
@@ -19,11 +18,6 @@ public final class DashboardController {
             DashboardSummaryService dashboardSummaryService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.dashboardSummaryService = Objects.requireNonNull(dashboardSummaryService, "dashboardSummaryService");
-    }
-
-    public List<IssueSummary> viewRelatedIssues() {
-        requireCurrentUser();
-        return List.of();
     }
 
     public List<DashboardProjectSummary> viewProjects() {

@@ -20,7 +20,7 @@
 
 ## Operation Details
 
-All UI operations require a current user and pass `user.getLoginId()` to the service. `ProjectResult` contains project id, name, description, manager login id, created date, and updated time. `ProjectAdminDetail` combines project, participants, and project issues for ADMIN users. Non-admin project participants use `viewProjectNonAdminDetail`, which returns project metadata only.
+All UI operations require a current user and pass `user.getLoginId()` to the service. `ProjectResult` contains project id, name, description, manager login id, created date, and updated time. `ProjectAdminDetail` combines project and participants for ADMIN users; it does not include the project's issue list. Non-admin project participants use `viewProjectNonAdminDetail`, which returns project metadata only.
 
 Project operations require positive project ids. Project creation rejects blank and duplicate names. Adding participants rejects inactive users, ADMIN users, duplicates, and a second PL. Removing participants rejects unknown participants and users with active assignment/verifier responsibility in the project.
 
@@ -31,7 +31,7 @@ Project operations require positive project ids. Project creation rejects blank 
 | `createProject` | UC13, SSD-19 create project; supporting API, not required OC | `Project` class and Admin manages association in `docs/uml/dcd/its_dcd_ver2.puml`; implementation `Project.create`, `ProjectResult.from` |
 | `addProjectParticipant` | UC13, SSD-20 add project member; supporting API, not required OC | DCD `User participates in Project`; implementation `ProjectRepository.addParticipant`, `ProjectMemberResult` |
 | `removeProjectParticipant` | UC13, SSD-21 remove project member; supporting API, not required OC | DCD `User participates in Project`; implementation `ProjectRepository.removeParticipant`, active assignment guard |
-| view/delete project operations | UC13 admin support APIs | DCD `Project`, `Issue` composition/reference by `projectId`; implementation `ProjectService.viewProjectAdminDetail`, `viewProjectNonAdminDetail`, `deleteProject` |
+| view/delete project operations | UC13 admin support APIs | DCD `Project` identity and membership; implementation `ProjectService.viewProjectAdminDetail`, `viewProjectNonAdminDetail`, `deleteProject` |
 
 ## Implementation And Design Gaps
 
@@ -54,4 +54,3 @@ Project operations require positive project ids. Project creation rejects blank 
 - `src/main/java/com/github/marcellokim/issuetracker/service/ProjectResult.java`: `ProjectResult`
 - `src/main/java/com/github/marcellokim/issuetracker/service/ProjectMemberResult.java`: `ProjectMemberResult`
 - `src/main/java/com/github/marcellokim/issuetracker/service/ProjectAdminDetail.java`: `ProjectAdminDetail`
-- `src/main/java/com/github/marcellokim/issuetracker/service/IssueSummary.java`: `IssueSummary`

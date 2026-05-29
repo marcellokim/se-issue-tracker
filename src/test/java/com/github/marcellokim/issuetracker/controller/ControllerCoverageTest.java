@@ -91,26 +91,9 @@ class ControllerCoverageTest {
                         new PermissionPolicy()));
 
         assertEquals(1, controller.viewProjects().size());
-        assertEquals(0, controller.viewRelatedIssues().size());
         assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
                 .map(UserResult::loginId)
                 .toList());
-    }
-
-    @Test
-    @DisplayName("dashboard related issue view is disabled")
-    void dashboardControllerKeepsRelatedIssueViewDisabled() {
-        AuthFixture auth = authenticated(Role.PL);
-        FakeProjectRepository projects = new FakeProjectRepository(
-                project(PROJECT_ID),
-                List.of(ProjectMember.create(PROJECT_ID, auth.user().getLoginId(), NOW)));
-        FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
-        DashboardController controller = new DashboardController(
-                auth.service(),
-                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(),
-                        new PermissionPolicy()));
-
-        assertEquals(List.of(), controller.viewRelatedIssues());
     }
 
     @Test
