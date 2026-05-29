@@ -1,8 +1,21 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcUserRepository;
+import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.CommentIdProvider;
+import com.github.marcellokim.issuetracker.service.CurrentUserSession;
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
+import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
+import com.github.marcellokim.issuetracker.technical.SystemClock;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -22,11 +35,7 @@ class ArchitectureBoundaryTest {
     private static final Path ROOT_PACKAGE_PATH = MAIN_SOURCE_ROOT.resolve(ROOT_PACKAGE.replace('.', '/'));
     private static final Pattern IMPORT_PATTERN = Pattern.compile("^import\\s+(?:static\\s+)?([\\w.]+)(?:\\.\\*)?;");
 
-    /*
-     * 임시 아키텍처 부채 표시자.
-     * 각 흐름이 의도한 service/presenter 경계로 이동하면 예외 제거 필요.
-     */
-    private static final Set<AllowedReference> TEMPORARY_ALLOWED_REFERENCES = Set.of();
+    private static final Set<AllowedReference> ALLOWED_REFERENCES = Set.of();
 
     @Test
     @DisplayName("domain package does not depend on outer layers")
@@ -54,9 +63,48 @@ class ArchitectureBoundaryTest {
                         ROOT_PACKAGE + ".controller",
                         ROOT_PACKAGE + ".persistence",
                         ROOT_PACKAGE + ".ui",
-                        ROOT_PACKAGE + ".config"
+                        ROOT_PACKAGE + ".config",
+                        ROOT_PACKAGE + ".technical"
                 )
         );
+    }
+
+    @Test
+    @DisplayName("technical implementations satisfy service ports")
+    void technicalImplementationsSatisfyServicePorts() {
+        assertTrue(Clock.class.isAssignableFrom(SystemClock.class));
+        assertTrue(CommentIdProvider.class.isAssignableFrom(CommentIdGenerator.class));
+        assertTrue(CurrentUserSession.class.isAssignableFrom(SessionStore.class));
+        assertTrue(PasswordHashing.class.isAssignableFrom(PasswordHasher.class));
+    }
+
+    @Test
+    @DisplayName("jdbc user repository depends on password hashing port")
+    void jdbcUserRepositoryDependsOnPasswordHashingPort() throws NoSuchMethodException {
+        Constructor<JdbcUserRepository> repositoryConstructor = JdbcUserRepository.class.getConstructor(
+                DatabaseConnectionProvider.class,
+                PasswordHashing.class
+        );
+        Constructor<JdbcRepositoryFactory> factoryConstructor = JdbcRepositoryFactory.class.getConstructor(
+                DatabaseConnectionProvider.class,
+                PasswordHashing.class
+        );
+
+        assertEquals(PasswordHashing.class, repositoryConstructor.getParameterTypes()[1]);
+        assertEquals(PasswordHashing.class, factoryConstructor.getParameterTypes()[1]);
+    }
+
+    @Test
+    @DisplayName("jdbc repositories do not create password hashing implementations")
+    void jdbcRepositoriesDoNotCreatePasswordHasherImplementation() throws IOException {
+        assertNoSourceText(
+                ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcRepositoryFactory.java"),
+                ROOT_PACKAGE + ".technical.PasswordHasher",
+                "new PasswordHasher");
+        assertNoSourceText(
+                ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcUserRepository.java"),
+                ROOT_PACKAGE + ".technical.PasswordHasher",
+                "new PasswordHasher");
     }
 
     @Test
@@ -102,7 +150,7 @@ class ArchitectureBoundaryTest {
         for (JavaSource source : productionSources(packageSegment)) {
             for (SourceReference importedType : source.importedTypes()) {
                 if (isForbidden(importedType.reference(), forbiddenPrefixes)
-                        && !TEMPORARY_ALLOWED_REFERENCES.contains(
+                        && !ALLOWED_REFERENCES.contains(
                                 new AllowedReference(source.relativePath(), importedType.reference()))) {
                     violations.add(new Violation(
                             source.relativePath(),
@@ -113,7 +161,7 @@ class ArchitectureBoundaryTest {
                 }
             }
             for (SourceReference reference : forbiddenFullyQualifiedReferences(source, forbiddenPrefixes)) {
-                if (!TEMPORARY_ALLOWED_REFERENCES.contains(
+                if (!ALLOWED_REFERENCES.contains(
                         new AllowedReference(source.relativePath(), reference.reference()))) {
                     violations.add(new Violation(
                             source.relativePath(),
@@ -131,6 +179,16 @@ class ArchitectureBoundaryTest {
         );
     }
 
+    private static void assertNoSourceText(Path sourcePath, String... forbiddenTexts) throws IOException {
+        String source = Files.readString(sourcePath);
+        for (String forbiddenText : forbiddenTexts) {
+            assertTrue(
+                    !source.contains(forbiddenText),
+                    () -> sourcePath + " must not contain " + forbiddenText
+            );
+        }
+    }
+
     private static boolean isForbidden(String importedType, Set<String> forbiddenPrefixes) {
         for (String forbiddenPrefix : forbiddenPrefixes) {
             if (importedType.equals(forbiddenPrefix) || importedType.startsWith(forbiddenPrefix + ".")) {
@@ -145,7 +203,6 @@ class ArchitectureBoundaryTest {
                 .resolve(ROOT_PACKAGE.replace('.', '/'))
                 .resolve(packageSegment);
         if (!Files.exists(packagePath)) {
-            // Task 1 guard 선설치 후 Task 2 cli 패키지 생성 전까지만 빈 검사 대상 허용.
             if ("cli".equals(packageSegment) || "ui".equals(packageSegment)) {
                 return List.of();
             }

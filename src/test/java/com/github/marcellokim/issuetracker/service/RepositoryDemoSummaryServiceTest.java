@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -16,17 +15,16 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
-import com.github.marcellokim.issuetracker.repository.IssueRepository;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
-import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -42,16 +40,16 @@ class RepositoryDemoSummaryServiceTest {
         User admin = user("admin", Role.ADMIN, true);
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
-        Project project = Project.fromPersistence(PROJECT_ID, "project1", "Demo", "admin", NOW, NOW);
+        Project project = Project.fromPersistence(PROJECT_ID, "Project A", "Demo", "admin", NOW, NOW);
         Issue issue = issue(101L, IssueStatus.NEW);
 
         RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(
-                new FakeUserRepository(List.of(admin, dev, tester)),
-                new FakeProjectRepository(project, List.of(
+                new InMemoryUserRepository(admin, dev, tester),
+                new InMemoryProjectRepository(project).withParticipants(PROJECT_ID, List.of(
                         ProjectMember.create(PROJECT_ID, admin.getLoginId(), NOW),
                         ProjectMember.create(PROJECT_ID, dev.getLoginId(), NOW),
-                        ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))),
-                new FakeIssueRepository(List.of(issue)),
+                        ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))).rejectWrites(),
+                new InMemoryIssueRepository(issue),
                 new FakeStatisticsRepository(),
                 new FakeAssignmentRecommendationRepository(dev, tester));
 
@@ -63,7 +61,7 @@ class RepositoryDemoSummaryServiceTest {
         assertTrue(summary.admin().orElseThrow().active());
 
         RepositoryDemoSummary.ProjectSummary projectSummary = summary.project().orElseThrow();
-        assertEquals("project1", projectSummary.projectName());
+        assertEquals("Project A", projectSummary.projectName());
         assertEquals(3, projectSummary.memberCount());
         assertEquals(1, projectSummary.activeDevCount());
         assertEquals(1, projectSummary.activeTesterCount());
@@ -84,12 +82,12 @@ class RepositoryDemoSummaryServiceTest {
         Issue issue = issue(101L, IssueStatus.NEW);
 
         RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(
-                new FakeUserRepository(List.of(admin, dev, tester)),
-                new FakeProjectRepository(project, List.of(
+                new InMemoryUserRepository(admin, dev, tester),
+                new InMemoryProjectRepository(project).withParticipants(PROJECT_ID, List.of(
                         ProjectMember.create(PROJECT_ID, admin.getLoginId(), NOW),
                         ProjectMember.create(PROJECT_ID, dev.getLoginId(), NOW),
-                        ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))),
-                new FakeIssueRepository(List.of(issue)),
+                        ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))).rejectWrites(),
+                new InMemoryIssueRepository(issue),
                 new FakeStatisticsRepository(),
                 new FakeAssignmentRecommendationRepository(dev, tester));
 
@@ -105,10 +103,10 @@ class RepositoryDemoSummaryServiceTest {
 
     private static Issue issue(long id, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                        PROJECT_ID,
-                        "Issue " + id,
-                        "Demo issue",
-                        user("reporter", Role.DEV, true))
+                PROJECT_ID,
+                "Issue " + id,
+                "Demo issue",
+                user("reporter", Role.DEV, true))
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
@@ -117,215 +115,8 @@ class RepositoryDemoSummaryServiceTest {
                 .updatedAt(NOW));
     }
 
-    private static final class FakeUserRepository implements UserRepository {
-
-        private final List<User> users;
-
-        private FakeUserRepository(List<User> users) {
-            this.users = List.copyOf(users);
-        }
-
-        @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
-        }
-
-        @Override
-        public Optional<User> findByLoginId(String loginId) {
-            return users.stream()
-                    .filter(user -> user.getLoginId().equals(loginId))
-                    .findFirst();
-        }
-
-        @Override
-        public List<User> findAll() {
-            return users;
-        }
-
-        @Override
-        public List<User> findByRole(long projectId, Role role) {
-            return users.stream()
-                    .filter(user -> user.getRole() == role)
-                    .toList();
-        }
-
-        @Override
-        public List<User> findActiveByRole(long projectId, Role role) {
-            return users.stream()
-                    .filter(User::isActive)
-                    .filter(user -> user.getRole() == role)
-                    .toList();
-        }
-
-        @Override
-        public User save(User user) {
-            throw new UnsupportedOperationException("save is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public void activate(String loginId) {
-            throw new UnsupportedOperationException("activate is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public void deactivate(String loginId) {
-            throw new UnsupportedOperationException("deactivate is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-    }
-
-    private static final class FakeProjectRepository implements ProjectRepository {
-
-        private final Project project;
-        private final List<ProjectMember> members;
-
-        private FakeProjectRepository(Project project, List<ProjectMember> members) {
-            this.project = project;
-            this.members = List.copyOf(members);
-        }
-
-        @Override
-        public Optional<Project> findById(long projectId) {
-            return project.getId() == projectId ? Optional.of(project) : Optional.empty();
-        }
-
-        @Override
-        public Optional<Project> findByName(String name) {
-            return project.getName().equals(name) ? Optional.of(project) : Optional.empty();
-        }
-
-        @Override
-        public List<Project> findAll() {
-            return List.of(project);
-        }
-
-        @Override
-        public Project save(Project project) {
-            throw new UnsupportedOperationException("save is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public void deleteById(long projectId) {
-            throw new UnsupportedOperationException("deleteById is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public void addParticipant(long projectId, String userLoginId) {
-            throw new UnsupportedOperationException("addParticipant is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public void removeParticipant(long projectId, String userLoginId) {
-            throw new UnsupportedOperationException(
-                    "removeParticipant is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public List<ProjectMember> findParticipants(long projectId) {
-            return project.getId() == projectId ? members : List.of();
-        }
-
-        @Override
-        public boolean existsByParticipant(String userLoginId) {
-            return members.stream()
-                    .map(ProjectMember::userId)
-                    .anyMatch(userLoginId::equals);
-        }
-    }
-
-    private static final class FakeIssueRepository implements IssueRepository {
-
-        private final List<Issue> issues;
-
-        private FakeIssueRepository(List<Issue> issues) {
-            this.issues = List.copyOf(issues);
-        }
-
-        @Override
-        public Optional<Issue> findById(long issueId) {
-            return issues.stream()
-                    .filter(issue -> issue.id() == issueId)
-                    .findFirst();
-        }
-
-        @Override
-        public List<Issue> findAllById(List<Long> issueIds) {
-            return issues.stream()
-                    .filter(issue -> issueIds.contains(issue.id()))
-                    .toList();
-        }
-
-        @Override
-        public List<Issue> findByProject(long projectId) {
-            return issues.stream()
-                    .filter(issue -> issue.projectId() == projectId)
-                    .toList();
-        }
-
-        @Override
-        public List<Issue> findDeletedByProject(long projectId) {
-            return List.of();
-        }
-
-        @Override
-        public List<Issue> findByCriteria(IssueSearchCriteria criteria) {
-            return issues;
-        }
-
-        @Override
-        public boolean existsByProjectIdAndTitle(long projectId, String title) {
-            return issues.stream()
-                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
-        }
-
-        @Override
-        public boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId) {
-            return issues.stream()
-                    .anyMatch(issue -> issue.id() != excludedIssueId
-                            && issue.projectId() == projectId
-                            && issue.title().equals(title));
-        }
-
-        @Override
-        public boolean existsByResponsibleUser(String userLoginId) {
-            return issues.stream()
-                    .filter(issue -> issue.status() != IssueStatus.DELETED)
-                    .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
-                            || userLoginId.equals(issue.verifierId())
-                            || userLoginId.equals(issue.fixerId())
-                            || userLoginId.equals(issue.resolverId()));
-        }
-
-        @Override
-        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
-            throw new UnsupportedOperationException(
-                    "existsActiveAssignmentByProjectAndUser is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public Issue save(Issue issue) {
-            throw new UnsupportedOperationException("save is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
-            throw new UnsupportedOperationException("softDelete is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
-            throw new UnsupportedOperationException("restore is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
-            throw new UnsupportedOperationException(
-                    "purgeDeletedBeyondLimit is not needed by RepositoryDemoSummaryServiceTest.");
-        }
-
-        @Override
-        public void purge(long issueId) {
-            throw new UnsupportedOperationException("purge is not needed by RepositoryDemoSummaryServiceTest.");
-        }
+    private static UnsupportedOperationException unexpectedRepositoryCall(String methodName) {
+        return new UnsupportedOperationException("Unexpected repository call: " + methodName);
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {
@@ -377,7 +168,7 @@ class RepositoryDemoSummaryServiceTest {
                 LocalDate dailyToInclusive,
                 YearMonth monthlyFromInclusive,
                 YearMonth monthlyToInclusive) {
-            throw new UnsupportedOperationException("buildReport is not needed by RepositoryDemoSummaryServiceTest.");
+            throw unexpectedRepositoryCall("buildReport");
         }
     }
 

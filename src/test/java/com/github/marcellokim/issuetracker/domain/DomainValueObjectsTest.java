@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.support.AssignmentContext;
+import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
+import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -21,7 +24,6 @@ import org.junit.jupiter.api.Test;
 class DomainValueObjectsTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 14, 0);
-    // userId 제거: 5-param → 7-param 통합 (DCD ver1 기준)
     private final User dev = User.fromPersistence("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
     @Test
@@ -147,7 +149,7 @@ class DomainValueObjectsTest {
     @Test
     @DisplayName("all issue search criteria defaults to active issues")
     void allIssueSearchCriteriaDefaultsToActiveIssues() {
-        IssueSearchCriteria criteria = IssueSearchCriteria.all(1L);
+        IssueSearchCriteria criteria = IssueSearchCriteriaTestFactory.all(1L);
 
         assertEquals(1L, criteria.projectId());
         assertNull(criteria.status());
@@ -177,7 +179,7 @@ class DomainValueObjectsTest {
         Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts = new java.util.LinkedHashMap<>();
         monthlyPriorityCounts.put(YearMonth.of(2026, 5), Map.of(Priority.MAJOR, 2));
 
-        StatisticsReport report = StatisticsReport.create(
+        StatisticsReport report = StatisticsReportTestFactory.create(
                 statusCounts,
                 priorityCounts,
                 dailyCounts,
@@ -208,7 +210,7 @@ class DomainValueObjectsTest {
     void statisticsReportHasValueSemantics() {
         StatisticsReport report = report();
         StatisticsReport sameReport = report();
-        StatisticsReport differentReport = StatisticsReport.create(
+        StatisticsReport differentReport = StatisticsReportTestFactory.create(
                 Map.of(IssueStatus.CLOSED, 2),
                 Map.of(Priority.CRITICAL, 3),
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 4)),
@@ -223,63 +225,7 @@ class DomainValueObjectsTest {
         assertTrue(report.toString().contains("monthlyCounts="));
         assertTrue(report.toString().contains("monthlyStatusCounts="));
         assertThrows(NullPointerException.class,
-                () -> StatisticsReport.create(null, Map.of(), List.of(), List.of()));
-    }
-
-    @Test
-    @DisplayName("validation result factories preserve status and messages")
-    void validationResultFactoriesPreserveStatusAndMessages() {
-        ValidationResult ok = ValidationResult.ok();
-        ValidationResult failure = ValidationResult.failure("blocked by dependency");
-
-        assertTrue(ok.valid());
-        assertEquals("", ok.message());
-        assertFalse(failure.valid());
-        assertEquals("blocked by dependency", failure.message());
-    }
-
-    @Test
-    @DisplayName("validation result has value semantics")
-    void validationResultHasValueSemantics() {
-        ValidationResult failure = ValidationResult.failure("blocked by dependency");
-        ValidationResult sameFailure = ValidationResult.failure("blocked by dependency");
-        ValidationResult differentFailure = ValidationResult.failure("different reason");
-
-        assertValueSemantics(
-                failure,
-                sameFailure,
-                differentFailure,
-                "ValidationResult[valid=false");
-        ValidationResult ok = ValidationResult.ok();
-        assertEquals(ok, ValidationResult.ok());
-        assertNotEquals(ok, failure);
-    }
-
-    @Test
-    @DisplayName("assignment options copy inputs and expose value semantics")
-    void assignmentOptionsCopyInputsAndExposeValueSemantics() {
-        AssignmentCandidate devCandidate = AssignmentCandidate.create(dev, 2);
-        AssignmentCandidate testerCandidate = AssignmentCandidate.create(
-                User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null),
-                1);
-        List<AssignmentCandidate> devCandidates = new ArrayList<>(List.of(devCandidate));
-        List<AssignmentCandidate> testerCandidates = new ArrayList<>(List.of(testerCandidate));
-
-        AssignmentOptions options = AssignmentOptions.create(devCandidates, testerCandidates);
-        AssignmentOptions sameOptions = AssignmentOptions.create(List.of(devCandidate), List.of(testerCandidate));
-        AssignmentOptions differentOptions = AssignmentOptions.create(List.of(), List.of(testerCandidate));
-        devCandidates.clear();
-        testerCandidates.clear();
-
-        assertEquals(List.of(devCandidate), options.devAssigneeCandidates());
-        assertEquals(List.of(testerCandidate), options.testerVerifierCandidates());
-        assertThrows(UnsupportedOperationException.class,
-                () -> options.devAssigneeCandidates().add(devCandidate));
-        assertValueSemantics(
-                options,
-                sameOptions,
-                differentOptions,
-                "AssignmentOptions[devAssigneeCandidates=");
+                () -> StatisticsReportTestFactory.create(null, Map.of(), List.of(), List.of()));
     }
 
     @Test
@@ -337,7 +283,7 @@ class DomainValueObjectsTest {
     }
 
     private static StatisticsReport report() {
-        return StatisticsReport.create(
+        return StatisticsReportTestFactory.create(
                 Map.of(IssueStatus.NEW, 1),
                 Map.of(Priority.MAJOR, 2),
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)),

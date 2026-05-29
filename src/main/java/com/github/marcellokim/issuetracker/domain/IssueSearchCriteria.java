@@ -40,10 +40,6 @@ public final class IssueSearchCriteria {
                 includeDeleted);
     }
 
-    public static IssueSearchCriteria all(long projectId) {
-        return create(projectId, null, null, null, null, null, null, null, null, false);
-    }
-
     private IssueSearchCriteria(
             long projectId,
             IssueStatus status,

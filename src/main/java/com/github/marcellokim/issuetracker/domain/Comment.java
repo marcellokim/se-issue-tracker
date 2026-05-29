@@ -59,12 +59,22 @@ public final class Comment {
                 writer, content, purpose, createdDate, createdDate);
     }
 
+    public static Comment newForIssue(
+            long issueId,
+            String content,
+            User writer,
+            CommentPurpose purpose,
+            LocalDateTime createdDate) {
+        Objects.requireNonNull(writer, "writer must not be null");
+        return new Comment(0L, requirePositive(issueId, "issueId"), "NEW-COMMENT", writer.getLoginId(),
+                writer, content, purpose, createdDate, createdDate);
+    }
+
     public void changeContent(String newContent, LocalDateTime changedAt) {
         content = requireText(newContent, "content");
         updatedDate = Objects.requireNonNull(changedAt, "changedAt must not be null");
     }
 
-    // --- getters ---
     public long id() {
         return id;
     }
@@ -120,6 +130,13 @@ public final class Comment {
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value;
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
         }
         return value;
     }

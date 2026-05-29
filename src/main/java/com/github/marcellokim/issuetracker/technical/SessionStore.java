@@ -1,22 +1,27 @@
 package com.github.marcellokim.issuetracker.technical;
 
-import com.github.marcellokim.issuetracker.domain.User;
-import java.util.Objects;
+import com.github.marcellokim.issuetracker.service.CurrentUserSession;
 import java.util.Optional;
 
-public final class SessionStore {
+public final class SessionStore implements CurrentUserSession {
 
-    private User currentUser;
+    private String currentLoginId;
 
-    public void startSession(User user) {
-        currentUser = Objects.requireNonNull(user, "user");
+    @Override
+    public void start(String loginId) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new IllegalArgumentException("loginId must not be blank");
+        }
+        currentLoginId = loginId.trim();
     }
 
-    public Optional<User> currentUser() {
-        return Optional.ofNullable(currentUser);
+    @Override
+    public Optional<String> currentLoginId() {
+        return Optional.ofNullable(currentLoginId);
     }
 
+    @Override
     public void clear() {
-        currentUser = null;
+        currentLoginId = null;
     }
 }

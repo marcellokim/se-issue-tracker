@@ -16,7 +16,6 @@ public class Project {
             String description,
             String managedByLoginId,
             LocalDateTime now) {
-        // New projects are transient; the repository assigns the database id on save.
         LocalDateTime timestamp = Objects.requireNonNull(now, "now");
         return new Project(0L, name, description, managedByLoginId, timestamp, timestamp);
     }
@@ -28,7 +27,6 @@ public class Project {
             String managedByLoginId,
             LocalDateTime createdDate,
             LocalDateTime updatedAt) {
-        // Persistence reconstruction keeps stored id and timestamps exactly as read.
         requirePositive(id, "id");
         return new Project(id, name, description, managedByLoginId, createdDate, updatedAt);
     }
@@ -49,20 +47,6 @@ public class Project {
         this.createdDate = createdDate;
         this.updatedAt = updatedAt;
     }
-
-    // public Issue registerIssue(
-    // String issueId,
-    // String title,
-    // String description,
-    // Priority priority,
-    // User reporter,
-    // LocalDateTime now) {
-    // return Issue.create(Issue.persistedState(id, title, description, reporter)
-    // .issueId(issueId)
-    // .priority(priority == null ? Priority.MAJOR : priority)
-    // .reportedDate(now)
-    // .updatedAt(now));
-    // }
 
     public void rename(String newName, LocalDateTime updatedAt) {
         this.name = requireText(newName, "name");

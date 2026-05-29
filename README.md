@@ -119,6 +119,7 @@ git commit
 ```
 
 이 스크립트는 최신 `dev` 기준선 확인, push, PR 생성, 이슈 상태 라벨 이동, 프로젝트 정렬까지 처리합니다.
+PR 제목은 브랜치 타입을 기준으로 `type: 한국어 요약` 형식을 사용합니다. 예를 들어 `docs/160-api-reverse-extraction` 브랜치는 `docs: 전체 API 명세 역추출 및 정리`처럼 작성합니다. scope가 필요하면 `docs(api): ...`처럼 붙입니다. 이 형식은 팀 작성 기준이며 별도 자동화 실패 조건은 아닙니다.
 
 `dev`는 팀 작업이 먼저 합쳐지는 통합 브랜치라 `main`보다 앞설 수 있습니다. 이 상태는 정상입니다. 그래도 팀원은 `dev`에 직접 들어가서 수정하지 말고, 항상 `./scripts/start-task.sh`로 `dev`에서 새 작업 브랜치를 만들어 작업합니다.
 
@@ -222,6 +223,7 @@ git commit
 - `main` 대상 PR, `main` 직접 커밋, `dev` 직접 커밋, 보호 자동화 수정은 일반 작업 흐름에서 금지
 - 저장소 관리자는 릴리즈/보호 규칙 정비 같은 예외 상황에서만 우회하며, 우회 계정은 `WORKFLOW_BYPASS_USERS`로 명시
 - 구현 내용은 문서, 스크린샷, 테스트와 함께 남깁니다.
+- 코드 수정이나 리뷰 전에는 `docs/uml/README.md`를 시작점으로 UCD, domain model, logical architecture, SSD, SD, DCD, Operation Contract를 확인하고 현재 구현 구조를 파악합니다. 설계 판단은 다이어그램, 구현 세부 문서, 실제 호출 경로를 함께 대조합니다.
 - 공개 GitHub 이력에는 팀원 이름과 저장소 계정만 남깁니다. 외부 도구명, 자동 생성 표기, 공동작성자 trailer는 commit hook과 저장소 감사에서 차단합니다.
 
 ## 11. 제출 직전 반드시 확인할 것

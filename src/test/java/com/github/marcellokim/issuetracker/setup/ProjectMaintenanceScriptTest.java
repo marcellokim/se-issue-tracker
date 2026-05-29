@@ -113,7 +113,7 @@ class ProjectMaintenanceScriptTest {
                     if args[:2] == ["pr", "list"]:
                         return [{
                             "number": 9006,
-                            "title": "temporary cli failure",
+                            "title": "cli lookup failure",
                             "body": "## 관련 이슈\\n- Closes #9998\\n",
                             "closingIssuesReferences": []
                         }]

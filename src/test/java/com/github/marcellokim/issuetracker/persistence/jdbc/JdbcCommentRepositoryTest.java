@@ -50,7 +50,7 @@ class JdbcCommentRepositoryTest {
                     if ("getTimestamp".equals(name)) {
                         return (Timestamp) values.get((String) args[0]);
                     }
-                    throw new UnsupportedOperationException(name);
+                    throw new UnsupportedOperationException("Unexpected ResultSet call: " + name);
                 }
         );
     }

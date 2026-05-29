@@ -11,6 +11,7 @@ public class Issue {
 
     private static final String CREATED_PREVIOUS_VALUE = null;
     private static final String COMMENT_FIELD = "comment";
+    private static final String COMMENT_ADDED_MESSAGE = "comment added";
     private static final String COMMENT_DELETED_MESSAGE = "comment deleted";
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
@@ -71,38 +72,6 @@ public class Issue {
         }
     }
 
-    private Issue(
-            String issueId,
-            String title,
-            String description,
-            Priority priority,
-            User reporter,
-            LocalDateTime reportedDate) {
-        this.id = 0L;
-        this.projectId = 0L;
-        this.issueId = requireText(issueId, "issueId");
-        this.title = requireText(title, "title");
-        this.description = requireText(description, "description");
-        this.priority = priority == null ? Priority.MAJOR : priority;
-        this.status = IssueStatus.NEW;
-        this.reporter = Objects.requireNonNull(reporter, "reporter must not be null");
-        this.reporterId = reporter.getLoginId();
-        this.reportedDate = Objects.requireNonNull(reportedDate, "reportedDate must not be null");
-        this.updatedAt = reportedDate;
-        recordHistory(ActionType.CREATED, CREATED_PREVIOUS_VALUE, IssueStatus.NEW.name(), "Issue created", reporter,
-                reportedDate);
-    }
-
-    public static Issue create( // 테스트용 생성 메서드. 실제 생성은 Persistence 계층의 PersistedState 경유.
-            String issueId,
-            String title,
-            String description,
-            Priority priority,
-            User reporter,
-            LocalDateTime reportedDate) {
-        return new Issue(issueId, title, description, priority, reporter, reportedDate);
-    }
-
     public static Issue create(PersistedState state) {
         return new Issue(state, false);
     }
@@ -115,7 +84,6 @@ public class Issue {
         return new Issue(state);
     }
 
-    // --- getters ---
     public long id() {
         return id;
     }
@@ -228,7 +196,6 @@ public class Issue {
         return Collections.unmodifiableList(blockedByDependencies);
     }
 
-    // --- status management ---
     public void assignFromNew(User assignee, User verifier, User changedBy, LocalDateTime changedDate) {
         requireStatus(IssueStatus.NEW);
         assign(assignee, verifier, changedBy, changedDate, "Issue assigned from NEW");
@@ -330,7 +297,6 @@ public class Issue {
         changeStatusTo(IssueStatus.ASSIGNED, requiredComment, tester, changedDate);
     }
 
-    // --- other methods ---
     public IssueDependency addDependency(
             String dependencyId,
             Issue blockingIssue,
@@ -388,7 +354,8 @@ public class Issue {
             CommentPurpose purpose) {
         var comment = Comment.create(commentId, content, writer, purpose, createdDate);
         comments.add(comment);
-        recordHistory(ActionType.COMMENTED, null, content, content, writer, createdDate);
+        String message = purpose == CommentPurpose.GENERAL ? COMMENT_ADDED_MESSAGE : content;
+        recordHistory(ActionType.COMMENTED, null, content, message, writer, createdDate);
         return comment;
     }
 
@@ -447,7 +414,6 @@ public class Issue {
                 changedDate);
     }
 
-    // --- general-purpose private methods ---
     private void changeStatusTo(IssueStatus targetStatus, String message, User changedBy, LocalDateTime changedDate) {
         Objects.requireNonNull(targetStatus, "targetStatus must not be null");
         Objects.requireNonNull(changedBy, CHANGED_BY_REQUIRED);

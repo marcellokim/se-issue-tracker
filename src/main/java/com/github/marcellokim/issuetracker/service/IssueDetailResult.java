@@ -23,8 +23,7 @@ public record IssueDetailResult(
         List<CommentResult> comments,
         List<HistoryResult> histories,
         List<DependencyResult> dependencies,
-        List<String> availableActions
-) {
+        List<String> availableActions) {
 
     public IssueDetailResult {
         comments = List.copyOf(comments);

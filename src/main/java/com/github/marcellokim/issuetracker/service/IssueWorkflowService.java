@@ -25,8 +25,7 @@ public final class IssueWorkflowService {
             IssueDependencyRepository dependencyRepository,
             CommentRepository commentRepository,
             UserRepository userRepository,
-            PermissionPolicy permissionPolicy
-    ) {
+            PermissionPolicy permissionPolicy) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.commentRepository = Objects.requireNonNull(commentRepository, "commentRepository");
@@ -34,61 +33,169 @@ public final class IssueWorkflowService {
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
     }
 
-    public IssueWorkflowActions viewAvailableActions(long issueId, String currentUserId) {
-        Issue issue = findIssue(issueId);
-        User actor = findUser(currentUserId);
-        boolean projectMember = isActiveProjectMember(actor, issue.projectId());
-        boolean projectLead = canProjectLead(actor, issue.projectId());
-        boolean canManageAssignment = projectLead && permissionPolicy.canAssignIssue(actor, issue);
-        boolean canManageDependency = projectLead && permissionPolicy.canManageDependency(actor, issue);
-        boolean canCloseOrReopen = projectLead;
-        boolean canManageDeleted = projectLead && permissionPolicy.canManageDeletedIssue(actor, issue);
+    public IssueWorkflowActions viewAvailableActions(long issueId, String currentLoginId) {
+        long requiredIssueId = requirePositive(issueId, "issueId");
+        String requiredLoginId = requireText(currentLoginId, "currentLoginId");
+        Issue issue = findIssue(requiredIssueId);
+        User actor = findUser(requiredLoginId);
 
+        if (issue.status() == IssueStatus.DELETED) {
+            return noActions();
+        }
+
+        WorkflowAccess access = workflowAccess(actor, issue);
         return new IssueWorkflowActions(
-                projectMember && permissionPolicy.canUpdateIssue(actor, issue),
-                projectLead && permissionPolicy.canChangePriority(actor, issue),
-                canManageAssignment && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED,
-                        IssueStatus.ASSIGNED, IssueStatus.FIXED),
-                canManageAssignment && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED),
-                canManageAssignment && issue.status() == IssueStatus.ASSIGNED,
-                canManageAssignment && issue.status() == IssueStatus.FIXED,
-                issue.status() == IssueStatus.ASSIGNED
-                        && projectMember
-                        && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.FIXED),
-                issue.status() == IssueStatus.FIXED
-                        && projectMember
-                        && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.ASSIGNED),
-                issue.status() == IssueStatus.FIXED
-                        && projectMember
-                        && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.RESOLVED)
-                        && canResolveBlockingDependencies(issue),
-                canCloseOrReopen && issue.status() == IssueStatus.RESOLVED
-                        && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.CLOSED),
-                canCloseOrReopen && isOneOf(issue, IssueStatus.RESOLVED, IssueStatus.CLOSED)
-                        && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.REOPENED),
-                canManageDependency,
-                canManageDependency,
-                projectMember && permissionPolicy.canAddComment(actor, issue),
-                canManageDeleted && permissionPolicy.canChangeStatus(actor, issue, IssueStatus.DELETED)
-        );
+                canUpdateIssue(actor, issue, access),
+                canChangePriority(actor, issue, access),
+                canStartAssignment(issue, access),
+                canAssign(issue, access),
+                canReassign(issue, access),
+                canChangeVerifier(issue, access),
+                canMarkFixed(actor, issue, access),
+                canRejectFix(actor, issue, access),
+                canResolve(actor, issue, access),
+                canClose(actor, issue, access),
+                canReopen(actor, issue, access),
+                canAddDependency(issue, access),
+                canRemoveDependency(access),
+                canAddComment(actor, issue, access),
+                canSoftDelete(actor, issue, access));
     }
 
-    public boolean canUpdateComment(long issueId, long commentId, String currentUserId) {
-        Issue issue = findIssue(issueId);
-        Comment comment = findComment(commentId);
-        User actor = findUser(currentUserId);
-        return comment.issueId() == issue.id()
-                && isActiveProjectMember(actor, issue.projectId())
-                && permissionPolicy.canUpdateComment(actor, comment);
+    public boolean canUpdateComment(long issueId, long commentId, String currentLoginId) {
+        return canManageComment(issueId, commentId, currentLoginId,
+                (actor, comment) -> permissionPolicy.assertCanUpdateComment(actor, comment));
     }
 
-    public boolean canDeleteComment(long issueId, long commentId, String currentUserId) {
-        Issue issue = findIssue(issueId);
-        Comment comment = findComment(commentId);
-        User actor = findUser(currentUserId);
-        return comment.issueId() == issue.id()
-                && isActiveProjectMember(actor, issue.projectId())
-                && permissionPolicy.canDeleteComment(actor, comment);
+    public boolean canDeleteComment(long issueId, long commentId, String currentLoginId) {
+        return canManageComment(issueId, commentId, currentLoginId,
+                (actor, comment) -> permissionPolicy.assertCanDeleteComment(actor, comment));
+    }
+
+    private boolean canManageComment(
+            long issueId,
+            long commentId,
+            String currentLoginId,
+            CommentPermissionCheck permissionCheck) {
+        try {
+            long requiredIssueId = requirePositive(issueId, "issueId");
+            long requiredCommentId = requirePositive(commentId, "commentId");
+            String requiredLoginId = requireText(currentLoginId, "currentLoginId");
+            Issue issue = findIssue(requiredIssueId);
+            if (issue.status() == IssueStatus.DELETED) {
+                return false;
+            }
+            Comment comment = findComment(requiredCommentId);
+            User actor = findUser(requiredLoginId);
+            return comment.issueId() == issue.id()
+                    && isActiveProjectMember(actor, issue.projectId())
+                    && allows(() -> permissionCheck.check(actor, comment));
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private WorkflowAccess workflowAccess(User actor, Issue issue) {
+        boolean projectMember = isActiveProjectMember(actor, issue.projectId());
+        boolean projectLead = isProjectLead(actor, issue.projectId());
+        return new WorkflowAccess(
+                projectMember,
+                projectLead,
+                projectLead && allows(() -> permissionPolicy.assertCanAssignIssue(actor, issue)),
+                projectLead && allows(() -> permissionPolicy.assertCanManageDependency(actor, issue)),
+                projectLead && allows(() -> permissionPolicy.assertCanManageDeletedIssue(actor, issue)));
+    }
+
+    private boolean canUpdateIssue(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectMember()
+                && allows(() -> permissionPolicy.assertCanUpdateIssue(actor, issue));
+    }
+
+    private boolean canChangePriority(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectLead()
+                && allows(() -> permissionPolicy.assertCanChangePriority(actor, issue));
+    }
+
+    private static boolean canStartAssignment(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment()
+                && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED, IssueStatus.ASSIGNED, IssueStatus.FIXED);
+    }
+
+    private static boolean canAssign(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment()
+                && isOneOf(issue, IssueStatus.NEW, IssueStatus.REOPENED);
+    }
+
+    private static boolean canReassign(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment()
+                && issue.status() == IssueStatus.ASSIGNED;
+    }
+
+    private static boolean canChangeVerifier(Issue issue, WorkflowAccess access) {
+        return access.canManageAssignment()
+                && issue.status() == IssueStatus.FIXED;
+    }
+
+    private boolean canMarkFixed(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.ASSIGNED
+                && access.projectMember()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.FIXED));
+    }
+
+    private boolean canRejectFix(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.FIXED
+                && access.projectMember()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.ASSIGNED));
+    }
+
+    private boolean canResolve(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.FIXED
+                && access.projectMember()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.RESOLVED))
+                && allBlockingIssuesResolvedOrClosed(issue);
+    }
+
+    private boolean canClose(User actor, Issue issue, WorkflowAccess access) {
+        return issue.status() == IssueStatus.RESOLVED
+                && access.projectLead()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.CLOSED));
+    }
+
+    private boolean canReopen(User actor, Issue issue, WorkflowAccess access) {
+        return isOneOf(issue, IssueStatus.RESOLVED, IssueStatus.CLOSED)
+                && access.projectLead()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.REOPENED));
+    }
+
+    private static boolean canAddDependency(Issue issue, WorkflowAccess access) {
+        return access.canManageDependency()
+                && issue.status() != IssueStatus.RESOLVED
+                && issue.status() != IssueStatus.CLOSED;
+    }
+
+    private static boolean canRemoveDependency(WorkflowAccess access) {
+        return access.canManageDependency();
+    }
+
+    private boolean canAddComment(User actor, Issue issue, WorkflowAccess access) {
+        return access.projectMember()
+                && allows(() -> permissionPolicy.assertCanAddComment(actor, issue));
+    }
+
+    private boolean canSoftDelete(User actor, Issue issue, WorkflowAccess access) {
+        return access.canManageDeleted()
+                && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED));
+    }
+
+    private boolean allBlockingIssuesResolvedOrClosed(Issue issue) {
+        for (IssueDependency dependency : dependencyRepository.findByBlockedIssueId(issue.id())) {
+            Issue blockingIssue = findIssue(dependency.blockingIssueId());
+            if (blockingIssue.status() != IssueStatus.RESOLVED
+                    && blockingIssue.status() != IssueStatus.CLOSED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private Issue findIssue(long issueId) {
@@ -101,12 +208,12 @@ public final class IssueWorkflowService {
                 .orElseThrow(() -> new IllegalArgumentException("Comment not found: " + commentId));
     }
 
-    private User findUser(String userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    private User findUser(String loginId) {
+        return userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + loginId));
     }
 
-    private boolean canProjectLead(User actor, long projectId) {
+    private boolean isProjectLead(User actor, long projectId) {
         return userRepository.findActiveByRole(projectId, Role.PL).stream()
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
     }
@@ -116,31 +223,70 @@ public final class IssueWorkflowService {
                 .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
     }
 
-    private boolean canResolveBlockingDependencies(Issue issue) {
-        for (IssueDependency dependency : dependencyRepository.findByBlockedIssueId(issue.id())) {
-            Issue blockingIssue = findIssue(dependency.blockingIssueId());
-            if (blockingIssue.status() != IssueStatus.RESOLVED
-                    && blockingIssue.status() != IssueStatus.CLOSED) {
-                return false;
-            }
+    private static boolean allows(Runnable check) {
+        try {
+            check.run();
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
         }
-        return true;
     }
 
     private static boolean isOneOf(Issue issue, IssueStatus first, IssueStatus second) {
         return issue.status() == first || issue.status() == second;
     }
 
-    private static boolean isOneOf(
-            Issue issue,
-            IssueStatus first,
-            IssueStatus second,
-            IssueStatus third,
-            IssueStatus fourth
-    ) {
+    private static boolean isOneOf(Issue issue, IssueStatus first, IssueStatus second, IssueStatus third,
+            IssueStatus fourth) {
         return issue.status() == first
                 || issue.status() == second
                 || issue.status() == third
                 || issue.status() == fourth;
+    }
+
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
+        }
+        return value;
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value.trim();
+    }
+
+    private static IssueWorkflowActions noActions() {
+        return new IssueWorkflowActions(
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false);
+    }
+
+    private record WorkflowAccess(
+            boolean projectMember,
+            boolean projectLead,
+            boolean canManageAssignment,
+            boolean canManageDependency,
+            boolean canManageDeleted) {
+    }
+
+    @FunctionalInterface
+    private interface CommentPermissionCheck {
+        void check(User actor, Comment comment);
     }
 }

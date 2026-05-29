@@ -132,11 +132,12 @@ class PersistenceResourceSmokeTest {
         assertTrue(seed.contains("'admin'"));
         assertTrue(seed.contains("'pl1'"));
         assertTrue(seed.contains("'pl2'"));
-        assertTrue(seed.contains("'project2'"));
+        assertTrue(seed.contains("'project a'"));
+        assertTrue(seed.contains("'project b'"));
         assertTrue(seed.contains("'dev10'"));
         assertTrue(seed.contains("'tester5'"));
         assertTrue(seed.contains("delete from project_members target"));
-        assertTrue(seed.contains("p.name in ( 'project1'"));
+        assertTrue(seed.contains("p.name in ( 'project a'"));
         assertTrue(seed.contains("'resolved'"));
         assertTrue(seed.contains("'closed'"));
         assertTrue(seed.contains("'reopened'"));

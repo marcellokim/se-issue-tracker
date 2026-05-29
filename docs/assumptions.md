@@ -114,6 +114,8 @@ UC10 Statistics의 조회 범위는 사용자가 임의의 role 값을 top-level
 - filters는 기간, 상태, 담당자 등 통계 조건을 표현한다.
 - filters.scope는 전체 이슈, 내 관련 이슈, 프로젝트 범위, 직군별 범위 등 조회 범위를 표현한다.
 - currentProject와 currentUserRole은 인증 및 현재 프로젝트 context에서 결정한다.
+- 통계는 전역 대시보드나 이슈 상세 화면이 아니라, 사용자가 프로젝트를 선택한 뒤 진입한 프로젝트 화면에서 해당 프로젝트 기준으로 조회한다.
+- JavaFX와 Swing UI는 서로 다른 화면 구현을 제공할 수 있지만, 통계 조회 로직은 동일한 `StatisticsController`와 `StatisticsService`를 재사용한다.
 
 ## 권한 가정
 초기 권한 모델은 단순화합니다.

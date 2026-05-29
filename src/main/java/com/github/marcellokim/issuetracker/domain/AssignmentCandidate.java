@@ -14,8 +14,7 @@ public final class AssignmentCandidate {
                 completedIssueCount,
                 completedIssueCount > 0
                         ? "Resolved/closed issue history count: " + completedIssueCount
-                        : "Fallback active project member with no resolved/closed history yet"
-        );
+                        : "Fallback active project member with no resolved/closed history yet");
     }
 
     public static AssignmentCandidate create(User user, int completedIssueCount, String reason) {

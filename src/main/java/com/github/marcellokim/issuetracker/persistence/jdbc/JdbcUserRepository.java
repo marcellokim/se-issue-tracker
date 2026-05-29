@@ -5,13 +5,14 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class JdbcUserRepository implements UserRepository {
@@ -89,20 +90,11 @@ public final class JdbcUserRepository implements UserRepository {
     private static final String DEACTIVATE_SQL = "update users set active = 0, updated_at = current_timestamp where login_id = ?";
 
     private final DatabaseConnectionProvider connectionProvider;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHashing passwordHashing;
 
-    public JdbcUserRepository(DatabaseConnectionProvider connectionProvider) {
-        this(connectionProvider, new PasswordHasher());
-    }
-
-    public JdbcUserRepository(DatabaseConnectionProvider connectionProvider, PasswordHasher passwordHasher) {
-        this.connectionProvider = connectionProvider;
-        this.passwordHasher = passwordHasher;
-    }
-
-    @Override
-    public Optional<User> findById(String userId) {
-        return findByLoginId(userId);
+    public JdbcUserRepository(DatabaseConnectionProvider connectionProvider, PasswordHashing passwordHashing) {
+        this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider");
+        this.passwordHashing = Objects.requireNonNull(passwordHashing, "passwordHashing");
     }
 
     @Override
@@ -265,8 +257,8 @@ public final class JdbcUserRepository implements UserRepository {
     private void upsertCredential(Connection connection, String loginId, String credential) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(UPSERT_CREDENTIAL_SQL)) {
             statement.setString(1, loginId);
-            statement.setString(2, passwordHasher.saltOf(credential));
-            statement.setString(3, passwordHasher.hashOf(credential));
+            statement.setString(2, passwordHashing.saltOf(credential));
+            statement.setString(3, passwordHashing.hashOf(credential));
             statement.executeUpdate();
         }
     }
@@ -288,10 +280,10 @@ public final class JdbcUserRepository implements UserRepository {
     }
 
     private String normalizedCredential(String passwordOrCredential) {
-        if (passwordHasher.isHashed(passwordOrCredential)) {
+        if (passwordHashing.isHashed(passwordOrCredential)) {
             return passwordOrCredential;
         }
-        return passwordHasher.hash(passwordOrCredential);
+        return passwordHashing.hash(passwordOrCredential);
     }
 
     static User mapUser(ResultSet resultSet) throws SQLException {

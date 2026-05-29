@@ -1,5 +1,7 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -75,16 +77,59 @@ class OpenPrScriptFailureTest {
         assertTrue(commandLog.contains("sync-project-board"), commandLog);
     }
 
+    @Test
+    @DisplayName("PR 제목은 브랜치 타입과 정리된 이슈 제목으로 생성한다")
+    void createsPullRequestTitleFromBranchTypeAndIssueTitle() throws IOException, InterruptedException {
+        var fixture = createFixture();
+
+        var result = fixture.run("normal", "feature/86-open-pr-status-race", "[feat] PR 자동화 레이스 수정");
+        var commandLog = Files.readString(fixture.log());
+
+        assertEquals(0, result.exitCode(), result.output());
+        assertTrue(commandLog.contains("--title feat: PR 자동화 레이스 수정"), commandLog);
+    }
+
+    @Test
+    @DisplayName("PR 제목 정리는 표준 type prefix만 제거한다")
+    void preservesNonConventionIssueTitlePrefixes() throws IOException, InterruptedException {
+        var scopedTitleFixture = createFixture();
+        var scopedTitleResult = scopedTitleFixture.run("normal", "docs/86-api-title", "docs(api): 로그인 흐름 구현");
+        var scopedTitleCommandLog = Files.readString(scopedTitleFixture.log());
+
+        assertEquals(0, scopedTitleResult.exitCode(), scopedTitleResult.output());
+        assertTrue(scopedTitleCommandLog.contains("--title docs: 로그인 흐름 구현"), scopedTitleCommandLog);
+
+        var apiTitleFixture = createFixture();
+        var apiTitleResult = apiTitleFixture.run("normal", "docs/86-api-title", "API: 로그인 흐름 구현");
+        var apiTitleCommandLog = Files.readString(apiTitleFixture.log());
+
+        assertEquals(0, apiTitleResult.exitCode(), apiTitleResult.output());
+        assertTrue(apiTitleCommandLog.contains("--title docs: API: 로그인 흐름 구현"), apiTitleCommandLog);
+
+        var urgentTitleFixture = createFixture();
+        var urgentTitleResult = urgentTitleFixture.run("normal", "fix/86-login-flow", "[긴급] 로그인 흐름 수정");
+        var urgentTitleCommandLog = Files.readString(urgentTitleFixture.log());
+
+        assertEquals(0, urgentTitleResult.exitCode(), urgentTitleResult.output());
+        assertTrue(urgentTitleCommandLog.contains("--title fix: [긴급] 로그인 흐름 수정"), urgentTitleCommandLog);
+    }
+
+    @Test
+    @DisplayName("PR 스크립트는 Bash 4 전용 소문자 확장을 사용하지 않는다")
+    void avoidsBashFourOnlyLowercaseExpansion() throws IOException {
+        var script = Files.readString(Path.of("scripts/open-pr.sh"));
+
+        assertFalse(script.contains(",,}"), "macOS 기본 Bash 3.2에서 깨지는 lowercase expansion을 쓰면 안 됩니다.");
+    }
+
     private Fixture createFixture() throws IOException {
-        var repo = tempDir.resolve("repo");
-        var bin = tempDir.resolve("bin");
-        var log = tempDir.resolve("commands.log");
+        var repo = Files.createTempDirectory(tempDir, "repo-");
+        var bin = Files.createTempDirectory(tempDir, "bin-");
+        var log = Files.createTempFile(tempDir, "commands-", ".log");
 
         Files.createDirectories(repo.resolve("scripts/lib"));
-        Files.createDirectories(bin);
-        Files.createFile(log);
-        var labelLookupCount = tempDir.resolve("label-lookups.count");
-        var labelState = tempDir.resolve("labels.txt");
+        var labelLookupCount = Files.createTempFile(tempDir, "label-lookups-", ".count");
+        var labelState = Files.createTempFile(tempDir, "labels-", ".txt");
         Files.writeString(labelLookupCount, "0");
         Files.writeString(labelState, "status:todo\n");
 
@@ -101,12 +146,17 @@ class OpenPrScriptFailureTest {
                 echo "sync-project-board" >> "$OPEN_PR_LOG"
                 exit 0
                 """);
+        writeExecutable(repo.resolve("scripts/lib/project_maintenance.py"), """
+                #!/usr/bin/env bash
+                echo "project_maintenance.py $*" >> "$OPEN_PR_LOG"
+                exit 0
+                """);
         writeExecutable(bin.resolve("git"), """
                 #!/usr/bin/env bash
                 echo "git $*" >> "$OPEN_PR_LOG"
                 case "$*" in
                   "rev-parse --show-toplevel") echo "$OPEN_PR_REPO";;
-                  "rev-parse --abbrev-ref HEAD") echo "chore/86-open-pr-status-race";;
+                  "rev-parse --abbrev-ref HEAD") echo "${OPEN_PR_BRANCH:-chore/86-open-pr-status-race}";;
                   "status --porcelain") ;;
                   "config --get-all remote.origin.fetch") echo "+refs/heads/*:refs/remotes/origin/*";;
                   "fetch origin dev --quiet") ;;
@@ -122,7 +172,7 @@ class OpenPrScriptFailureTest {
                   exit 0
                 fi
                 if [[ "$1 $2" == "issue view" && "$*" == *"--json title"* ]]; then
-                  echo "PR 자동화 레이스 수정"
+                  echo "${OPEN_PR_ISSUE_TITLE:-PR 자동화 레이스 수정}"
                   exit 0
                 fi
                 if [[ "$1 $2" == "issue view" && "$*" == *"--json labels"* ]]; then
@@ -190,6 +240,27 @@ class OpenPrScriptFailureTest {
             environment.put("OPEN_PR_GH_MODE", mode);
             environment.put("OPEN_PR_LABEL_LOOKUP_COUNT", bashPath(labelLookupCount));
             environment.put("OPEN_PR_LABEL_STATE", bashPath(labelState));
+
+            var process = processBuilder.start();
+            var output = new String(process.getInputStream().readAllBytes());
+            var exitCode = process.waitFor();
+            return new ScriptResult(exitCode, output);
+        }
+
+        ScriptResult run(String mode, String branch, String issueTitle) throws IOException, InterruptedException {
+            var command = "PATH=" + shellQuote(bashPath(bin)) + ":$PATH; export PATH; bash scripts/open-pr.sh";
+            var processBuilder = new ProcessBuilder("bash", "-lc", command);
+            processBuilder.directory(repo.toFile());
+            processBuilder.redirectErrorStream(true);
+
+            Map<String, String> environment = processBuilder.environment();
+            environment.put("OPEN_PR_REPO", bashPath(repo));
+            environment.put("OPEN_PR_LOG", bashPath(log));
+            environment.put("OPEN_PR_GH_MODE", mode);
+            environment.put("OPEN_PR_LABEL_LOOKUP_COUNT", bashPath(labelLookupCount));
+            environment.put("OPEN_PR_LABEL_STATE", bashPath(labelState));
+            environment.put("OPEN_PR_BRANCH", branch);
+            environment.put("OPEN_PR_ISSUE_TITLE", issueTitle);
 
             var process = processBuilder.start();
             var output = new String(process.getInputStream().readAllBytes());

@@ -37,10 +37,6 @@ public record DatabaseEnvironment(String url, String user, String password) {
         if (!isConfigured(environment)) {
             throw new IllegalStateException(MISSING_MESSAGE);
         }
-        /*
-         * Oracle application 환경 해석을 value object 한 곳에 모음.
-         * CLI, JavaFX startup, JDBC provider 생성이 같은 준비 상태 규칙 공유.
-         */
         return new DatabaseEnvironment(
                 environment.get(URL_VARIABLE),
                 environment.get(USER_VARIABLE),

@@ -2,7 +2,7 @@ package com.github.marcellokim.issuetracker.controller;
 
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.ProjectDetail;
+import com.github.marcellokim.issuetracker.service.ProjectAdminDetail;
 import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
@@ -14,28 +14,21 @@ public final class ProjectController {
     private final AuthenticationService authenticationService;
     private final ProjectService projectService;
 
-    // factory
-    public static ProjectController create(
-            AuthenticationService authenticationService,
-            ProjectService projectService) {
-        return new ProjectController(authenticationService, projectService);
-    }
-
-    private ProjectController(
+    public ProjectController(
             AuthenticationService authenticationService,
             ProjectService projectService) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.projectService = Objects.requireNonNull(projectService, "projectService");
     }
 
-    public List<ProjectResult> viewProjects() {
+    public ProjectResult viewProjectNonAdminDetail(long projectId) {
         User user = requireCurrentUser();
-        return projectService.viewProjects(user.getLoginId());
+        return projectService.viewProjectNonAdminDetail(projectId, user.getLoginId());
     }
 
-    public ProjectResult viewProject(long projectId) {
+    public ProjectAdminDetail viewProjectAdminDetail(long projectId) {
         User user = requireCurrentUser();
-        return projectService.viewProject(projectId, user.getLoginId());
+        return projectService.viewProjectAdminDetail(projectId, user.getLoginId());
     }
 
     public List<ProjectMemberResult> viewProjectParticipants(long projectId) {
@@ -43,14 +36,19 @@ public final class ProjectController {
         return projectService.viewProjectParticipants(projectId, user.getLoginId());
     }
 
-    public ProjectDetail viewProjectDetail(long projectId) {
-        User user = requireCurrentUser();
-        return projectService.viewProjectDetail(projectId, user.getLoginId());
-    }
-
     public ProjectResult createProject(String name, String description) {
         User user = requireCurrentUser();
         return projectService.createProject(name, description, user.getLoginId());
+    }
+
+    public ProjectResult renameProject(long projectId, String name) {
+        User user = requireCurrentUser();
+        return projectService.renameProject(projectId, name, user.getLoginId());
+    }
+
+    public ProjectResult changeProjectDescription(long projectId, String description) {
+        User user = requireCurrentUser();
+        return projectService.changeProjectDescription(projectId, description, user.getLoginId());
     }
 
     public void deleteProject(long projectId) {

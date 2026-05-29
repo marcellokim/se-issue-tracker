@@ -9,7 +9,9 @@
 - 첫 non-UI 수신 객체는 logical architecture의 Use Case Controller를 사용한다.
   - 예: `:IssueController`, `:AssignmentController`, `:IssueStateController`, `:DeletedIssueController`
 - SD의 중심은 UI/DB 호출 흐름이 아니라 도메인 객체 사이의 책임 협력이다.
-- UI, 권한 정책, 인증, 현재 시각, repository, persistence는 핵심 책임이 아닌 경우 lifeline으로 펼치지 않고 note 또는 guard로만 표현한다.
+- Controller는 system operation을 수신하고 흐름을 시작하는 객체로만 표현한다.
+- Service, repository, persistence, policy, clock, session 같은 구현 조정 객체는 핵심 책임이 아닌 경우 lifeline으로 펼치지 않고 note 또는 guard로만 표현한다.
+- 상태 변경, association 형성/제거, 이력 생성, 댓글 생성 같은 postcondition은 `Issue`, `Comment`, `IssueHistory`, `IssueDependency`, `Project`, `User` 같은 domain object 메시지로 표현한다.
 - Operation Contract의 postcondition은 도메인 객체 메시지로 실현한다.
 - Domain Model의 association과 enum/value type을 객체 책임 배정의 근거로 사용한다.
 - GRASP 패턴은 객체 선택의 근거로 둔다.
@@ -43,6 +45,14 @@ SD 작성 시 다음 artifact를 최우선 근거로 사용한다.
 4. Logical Architecture에서 어떤 Controller가 system operation을 받을지 확인한다.
 5. SD에서는 Controller가 흐름을 시작하고, 실제 postcondition은 도메인 객체 메시지로 표현한다.
 6. UC의 optional/alternative 흐름은 `alt`, `opt`, `ref` frame으로 표현한다.
+
+## 도메인 책임 표현 기준
+
+- SD는 현재 코드의 repository/JDBC 호출 순서를 그대로 복사하지 않는다.
+- 삭제/복구처럼 실제 구현에서는 repository 연산으로 처리되는 부분도, Operation Contract의 사후조건을 설명할 때는 도메인 객체 책임으로 표현할 수 있다.
+- 예: soft delete는 `targetIssue:Issue`가 `softDelete(currentPL, now)` 책임을 수행하고, 그 결과 `IssueHistory(STATUS_CHANGED)`와 dependency association 제거가 발생하는 것으로 표현한다.
+- 예: restore는 `targetIssue:Issue`가 삭제 이력에서 복구 대상 상태를 찾고 `restore(currentPL, now)` 책임을 수행하는 것으로 표현한다.
+- 이런 표현은 구현 코드의 호출 순서를 보여주기 위한 것이 아니라, Larman식 객체 설계에서 어떤 domain object가 postcondition을 책임지는지 보여주기 위한 것이다.
 
 ## 표기 규칙
 

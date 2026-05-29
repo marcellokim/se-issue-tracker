@@ -9,37 +9,48 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 public final class IssueStateService {
 
     private static final String PROJECT_MEMBER_REQUIRED = "Only project members can change issue status.";
+    private static final String FIELD_ISSUE_ID = "issueId";
+    private static final String FIELD_TARGET_STATUS = "targetStatus";
+    private static final String FIELD_CURRENT_USER_ID = "currentUserId";
+
     private final IssueRepository issueRepository;
     private final IssueDependencyRepository dependencyRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
+    private final CommentIdProvider commentIdProvider;
 
     public IssueStateService(
             IssueRepository issueRepository,
             IssueDependencyRepository dependencyRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock
-    ) {
+            Clock clock,
+            CommentIdProvider commentIdProvider) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.commentIdProvider = Objects.requireNonNull(commentIdProvider, "commentIdProvider");
     }
 
-    public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment, String currentUserId) {
-        IssueStatus requiredTargetStatus = Objects.requireNonNull(targetStatus, "targetStatus");
+    public IssueStateResult changeStatus(long issueId, IssueStatus targetStatus, String comment,
+            String currentLoginId) {
+        IssueStatus requiredTargetStatus = Objects.requireNonNull(targetStatus, FIELD_TARGET_STATUS);
+        long requiredIssueId = requirePositive(issueId, FIELD_ISSUE_ID);
+        String requiredLoginId = requireText(currentLoginId, FIELD_CURRENT_USER_ID);
         String requiredComment = requireComment(comment);
-        Issue issue = findIssue(issueId);
-        User actor = findUser(currentUserId);
+        Issue issue = findIssue(requiredIssueId);
+        requireNotDeleted(issue);
+        User actor = findUser(requiredLoginId);
         switch (requiredTargetStatus) {
             case FIXED -> markFixed(issue, actor, requiredComment);
             case ASSIGNED -> rejectFix(issue, actor, requiredComment);
@@ -58,7 +69,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.markFixed(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -71,7 +82,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.rejectFix(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -85,7 +96,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.resolve(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -98,7 +109,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.close(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -111,7 +122,7 @@ public final class IssueStateService {
         LocalDateTime changedAt = now();
         issue.reopen(actor, comment, changedAt);
         issue.addComment(
-                CommentIdGenerator.nextCommentId(),
+                commentIdProvider.nextCommentId(),
                 comment,
                 actor,
                 changedAt,
@@ -136,7 +147,7 @@ public final class IssueStateService {
     }
 
     private User findUser(String userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByLoginId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
     }
 
@@ -160,11 +171,31 @@ public final class IssueStateService {
         return clock.now();
     }
 
+    private static long requirePositive(long value, String fieldName) {
+        if (value <= 0L) {
+            throw new IllegalArgumentException(fieldName + " must be positive");
+        }
+        return value;
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value.trim();
+    }
+
     private static String requireComment(String comment) {
         if (comment == null || comment.isBlank()) {
             throw new IllegalArgumentException("comment must not be blank");
         }
-        return comment;
+        return comment.trim();
+    }
+
+    private static void requireNotDeleted(Issue issue) {
+        if (issue.status() == IssueStatus.DELETED) {
+            throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
+        }
     }
 
     private static IssueStateResult toResult(Issue issue) {
@@ -175,8 +206,7 @@ public final class IssueStateService {
                 toUserResult(issue.getAssignee()),
                 toUserResult(issue.getVerifier()),
                 toUserResult(issue.getFixer()),
-                toUserResult(issue.getResolver())
-        );
+                toUserResult(issue.getResolver()));
     }
 
     private static UserResult toUserResult(User user) {

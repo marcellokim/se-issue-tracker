@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
+import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
@@ -227,7 +229,7 @@ class AssignmentServiceTest {
                 userRepository,
                 new PermissionPolicy(),
                 new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation()),
-                new Clock()
+                java.time.LocalDateTime::now
         );
     }
 
@@ -284,5 +286,4 @@ class AssignmentServiceTest {
     private static LocalDateTime createdAt() {
         return LocalDateTime.of(2026, 5, 18, 10, 0);
     }
-
 }
