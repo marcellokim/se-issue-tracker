@@ -1,14 +1,42 @@
-@startuml ssd-18-deactivate-account
+@startuml ssd-18-activate-deactivate-account
 !include ssd-style.puml
-title SSD 18 - UC12 계정 관리: 계정 비활성화
+title SSD 18 - UC12 Activate / Deactivate Account
+
 actor "Admin" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
-사전조건: Admin 로그인, 대상 User 존재, User.isActive=true, UC14 권한 검사
+사전조건:
+- Admin이 로그인되어 있다.
+- 대상 User가 존재한다.
+- 대상 User는 ADMIN 계정이 아니다.
+- Admin은 자기 자신의 계정을 활성화/비활성화하지 않는다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
-A -> S: deactivateAccount(userId)
-S --> A: accountDeactivated(userId, isActive=false)
+
+alt 계정 비활성화
+  A -> S: deactivateAccount(loginId)
+  S --> A: accountDeactivated(loginId, isActive=false, confirmation)
+
+else 계정 활성화
+  A -> S: activateAccount(loginId)
+  S --> A: accountActivated(loginId, isActive=true, confirmation)
+end
+
 note over S
-결과: User.isActive=false, 이후 로그인/작업 제한
+결과:
+- 비활성화 경로에서는 User.isActive=false로 변경된다.
+- 활성화 경로에서는 User.isActive=true로 변경된다.
+- 변경 시 User.updatedAt이 갱신된다.
+
+비활성화 정책:
+- 대상 User가 프로젝트 participant이면 비활성화할 수 없다.
+- 대상 User가 현재 진행 중인 assignee/verifier 책임을 가지고 있으면 비활성화할 수 없다.
+- fixer/resolver는 완료 이력으로 보며 현재 책임으로 보지 않는다.
+
+활성화 정책:
+- 이미 active인 계정은 다시 활성화하지 않는다.
+- inactive 계정만 활성화할 수 있다.
 end note
+
 @enduml

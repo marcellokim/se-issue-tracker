@@ -8,6 +8,7 @@ note over A, S
 - Auth User가 로그인되어 있다.
 - 이슈를 등록할 Project가 선택되어 있다.
 - UC14 권한 검사는 시스템 내부에서 수행된다.
+- Auth User는 대상 Project의 active member이다.
 end note
 A -> S: registerIssue(projectId, title, description, priority)
 S --> A: issueRegistered(issueId, status=NEW, confirmation)

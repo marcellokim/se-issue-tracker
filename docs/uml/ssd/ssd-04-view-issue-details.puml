@@ -4,7 +4,7 @@ title SSD 04 - UC4 이슈 상세 조회
 actor "Auth User" as A
 participant ":Issue Tracking System" as S
 note over A, S
-사전조건: Auth User 로그인, Issue 존재
+사전조건: 대상 Issue는 DELETED 상태가 아니다, Auth User는 대상 Issue가 속한 Project의 active member이다.
 end note
 A -> S: viewIssueDetail(issueId)
 S --> A: issueDetails(issue, comments, history, dependencies, availableActions)

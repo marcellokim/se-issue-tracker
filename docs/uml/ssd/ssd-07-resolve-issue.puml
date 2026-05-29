@@ -11,7 +11,7 @@ A -> S: changeStatus(issueId, targetStatus=RESOLVED, comment)
 S --> A: updatedIssue(issueId, status=RESOLVED, resolver=currentTester)
 note over S
 UC6 includes UC2; the comment is mandatory and recorded with the status change.
-결과: status=RESOLVED, resolver=current Tester 기록, assignee/verifier/fixer 유지, 필수 Comment와 IssueHistory(STATUS_CHANGED, previousValue=FIXED, newValue=RESOLVED) 기록
+결과: status=RESOLVED, resolver=current Tester 기록, assignee/verifier 제거, fixer 보존, 필수 Comment와 IssueHistory(...) 기록
 blocking Issue 중 RESOLVED/CLOSED가 아닌 항목이 있으면 FIXED -> RESOLVED 전이를 거부
 별도 BLOCK/BLOCKED IssueStatus는 만들지 않음
 end note
