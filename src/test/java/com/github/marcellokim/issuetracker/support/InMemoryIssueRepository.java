@@ -88,7 +88,7 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
-    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+    public boolean hasCurrentIssueResponsibility(long projectId, String loginId) {
         return issues.values().stream()
                 .filter(issue -> issue.projectId() == projectId)
                 .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)

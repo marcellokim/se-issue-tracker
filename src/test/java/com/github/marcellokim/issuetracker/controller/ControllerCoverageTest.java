@@ -551,7 +551,7 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+        public boolean hasCurrentIssueResponsibility(long projectId, String loginId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.projectId() == projectId)
                     .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)

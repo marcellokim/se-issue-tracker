@@ -23,7 +23,7 @@ public interface IssueRepository {
 
     boolean hasCurrentIssueResponsibility(String userLoginId);
 
-    boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId);
+    boolean hasCurrentIssueResponsibility(long projectId, String loginId);
 
     Issue save(Issue issue);
 

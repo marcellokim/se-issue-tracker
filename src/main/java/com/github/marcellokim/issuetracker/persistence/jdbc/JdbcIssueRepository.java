@@ -142,7 +142,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+    public boolean hasCurrentIssueResponsibility(long projectId, String loginId) {
         String sql = """
                 select 1
                 from issues
