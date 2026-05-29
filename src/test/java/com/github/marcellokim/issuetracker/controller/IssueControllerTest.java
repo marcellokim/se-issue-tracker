@@ -382,7 +382,7 @@ class IssueControllerTest {
         }
 
         @Override
-        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+        public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
             return save(comment);
         }
 

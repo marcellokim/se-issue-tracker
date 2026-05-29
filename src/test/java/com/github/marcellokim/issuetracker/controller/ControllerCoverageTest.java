@@ -281,7 +281,8 @@ class ControllerCoverageTest {
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         PermissionPolicy policy = new PermissionPolicy();
         FakeIssueRepository issues = new FakeIssueRepository(issue);
-        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation());
+        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(issues,
+                auth.users(), new KNNAssignmentRecommendation());
         AssignmentController controller = new AssignmentController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.AssignmentService(
@@ -715,7 +716,7 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+        public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
             return comment;
         }
 
@@ -729,26 +730,6 @@ class ControllerCoverageTest {
                 long commentId,
                 String writerLoginId,
                 IssueHistory history) {
-        }
-    }
-
-    private static final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
-
-        private List<AssignmentCandidate> devCandidates = List.of();
-        private List<AssignmentCandidate> testerCandidates = List.of();
-        private long lastDevProjectId;
-        private long lastTesterProjectId;
-
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            lastDevProjectId = projectId;
-            return devCandidates;
-        }
-
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            lastTesterProjectId = projectId;
-            return testerCandidates;
         }
     }
 }

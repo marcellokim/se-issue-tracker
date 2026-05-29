@@ -13,7 +13,7 @@ public interface CommentRepository {
 
     Comment save(Comment comment);
 
-    Comment saveAndRecordIssueChange(Comment comment, IssueHistory history);
+    Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history);
 
     void deleteGeneralById(long issueId, long commentId, String writerLoginId);
 

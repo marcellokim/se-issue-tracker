@@ -240,7 +240,7 @@ public final class IssueService {
                 requiredContent,
                 "comment added",
                 now);
-        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
+        Comment saved = commentRepository.saveCommentAndRecordHistory(comment, history);
         return toCommentResult(saved, writer);
     }
 
@@ -367,7 +367,7 @@ public final class IssueService {
                 comment.content(),
                 "comment updated",
                 changedAt);
-        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
+        Comment saved = commentRepository.saveCommentAndRecordHistory(comment, history);
         return toCommentResult(saved);
     }
 
