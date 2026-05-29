@@ -18,12 +18,6 @@ import java.util.Optional;
 
 public final class JdbcIssueDependencyRepository implements IssueDependencyRepository {
 
-    /*
-     * IssueDependency domain behavior is not finalized yet.
-     * Keep this JDBC implementation aligned with the current repository
-     * contract, and revisit it after the domain/service rules are fixed.
-     */
-
     private static final String BASE_SELECT = "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at from issue_dependencies";
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_DEPENDENCY_ID_SQL = BASE_SELECT + " where dependency_id = ?";

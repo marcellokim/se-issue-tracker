@@ -275,8 +275,6 @@ public final class JdbcProjectRepository implements ProjectRepository {
     }
 
     static Project mapProject(ResultSet resultSet) throws SQLException {
-        // JDBC mappers reconstruct persisted rows rather than creating new domain
-        // objects.
         return Project.fromPersistence(
                 resultSet.getLong("id"),
                 resultSet.getString("name"),

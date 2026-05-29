@@ -41,6 +41,7 @@ public final class InMemoryIssueRepository implements IssueRepository {
     public List<Issue> findByProject(long projectId) {
         return issues.values().stream()
                 .filter(issue -> issue.projectId() == projectId)
+                .filter(issue -> issue.status() != IssueStatus.DELETED)
                 .toList();
     }
 
@@ -108,12 +109,12 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     @Override
     public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        throw new UnsupportedOperationException("softDelete is not needed by these service tests");
+        throw unexpectedRepositoryCall("softDelete");
     }
 
     @Override
     public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        throw new UnsupportedOperationException("restore is not needed by these service tests");
+        throw unexpectedRepositoryCall("restore");
     }
 
     @Override
@@ -156,5 +157,9 @@ public final class InMemoryIssueRepository implements IssueRepository {
         String normalizedKeyword = keyword.toLowerCase();
         return issue.title().toLowerCase().contains(normalizedKeyword)
                 || issue.description().toLowerCase().contains(normalizedKeyword);
+    }
+
+    private static UnsupportedOperationException unexpectedRepositoryCall(String methodName) {
+        return new UnsupportedOperationException("Unexpected repository call: " + methodName);
     }
 }

@@ -3,7 +3,7 @@ import org.apache.tools.ant.taskdefs.condition.Os
 plugins {
     id 'java'
     id 'jacoco'
-    id 'application' // JavaFX 실행을 위한 플러그인
+    id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'org.sonarqube' version '7.2.2.6593'
 }
@@ -17,7 +17,6 @@ java {
     }
 }
 
-// --- JavaFX 설정 ---
 javafx {
     version = '21.0.6'
     modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']
@@ -30,15 +29,6 @@ application {
 repositories {
     mavenCentral()
 }
-
-// javafx {
-//     version = '21.0.6'
-//     modules = ['javafx.controls', 'javafx.fxml']
-// }
-
-// application {
-//     mainClass = 'com.github.marcellokim.issuetracker.Main'
-// }
 
 sonar {
     properties {
@@ -65,26 +55,6 @@ sonar {
         property 'sonar.coverage.exclusions', coverageExcludedSources
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
 
-        // property 'sonar.exclusions', [
-        //     '.github/**',
-        //     'bin/**',
-        //     'config/**',
-        //     'docs/**',
-        //     'scripts/**',
-        //     'src/main/resources/db/oracle/**'
-        // ].join(',')
-        // property 'sonar.test.exclusions', [
-        //     'src/test/**'
-        // ].join(',')
-        // property 'sonar.cpd.exclusions', [
-        //     '.github/**',
-        //     'config/**',
-        //     'docs/**',
-        //     'scripts/**',
-        //     'src/main/resources/db/oracle/**',
-        //     'src/test/**'
-        // ].join(',')
-
     }
 }
 
@@ -109,7 +79,6 @@ tasks.named('sonar') {
     dependsOn tasks.named('jacocoTestReport')
 }
 
-// --- 인코딩 및 실행 설정 (윈도우 한글 깨짐 방지) ---
 tasks.register('oracleConnectionCheck', JavaExec) {
     group = 'application'
     description = 'Checks Oracle Database connectivity using ITS_DB_URL, ITS_DB_USER, and ITS_DB_PASSWORD.'
@@ -290,7 +259,6 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.withType(JavaExec).configureEach {
-    // JVM 실행 시 모든 입출력 인코딩을 UTF-8로 고정
     jvmArgs += [
         "-Dfile.encoding=UTF-8",
         "-Dconsole.encoding=UTF-8",
@@ -306,8 +274,6 @@ tasks.withType(Test).configureEach {
         exceptionFormat = 'full'
     }
 }
-
-// --- 팀장님의 자동화 및 검증 태스크 영역 ---
 
 def requiredAutomationPaths = [
     'SE_Term_Project_2026-1.pdf',
@@ -374,17 +340,9 @@ tasks.register('auditAutomation', Exec) {
     group = '검증'
     description = '로컬 저장소 자동화 문서, 스크립트, DB 표준 문구 정합성을 점검합니다.'
 
-    // 윈도우 환경 대응: python3 대신 python 자동 선택
-    def pythonCmd = Os.isFamily(Os.FAMILY_WINDOWS) ? 'python' : 'python3'
-    executable pythonCmd
-
-    args 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
-
-    // 파이썬 인코딩 강제 설정 (UnicodeDecodeError 방지)
     environment "PYTHONUTF8", "1"
     environment "PYTHONIOENCODING", "UTF-8"
 
-    // 자동화 감사 실패 시 Gradle check도 실패하게 둔다.
     ignoreExitValue = false
     commandLine pythonExecutable.get(), 'scripts/lib/project_maintenance.py', 'audit', '--local-only', '--skip-git-branches', '--quiet'
 }

@@ -151,7 +151,8 @@ class JdbcIssueQueriesTest {
                         if ("toString".equals(method.getName())) {
                             return "PreparedStatementRecorder";
                         }
-                        throw new UnsupportedOperationException("Unsupported method: " + method.getName());
+                        throw new UnsupportedOperationException(
+                                "Unexpected PreparedStatement call: " + method.getName());
                     });
         }
 
