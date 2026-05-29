@@ -43,19 +43,14 @@ public final class IssueController {
         return issueService.registerIssue(projectId, title, description, priority, user.getLoginId());
     }
 
-    public boolean canRegisterIssue(long projectId) {
-        User user = requireCurrentUser();
-        return issueService.canRegisterIssue(projectId, user.getLoginId());
-    }
-
     public IssueDetailResult viewIssueDetail(long issueId) {
         User user = requireCurrentUser();
         IssueDetailResult detail = issueService.viewIssueDetail(issueId, user.getLoginId());
         if (issueWorkflowService == null) {
             return detail;
         }
-        return detail.withAvailableActions(availableActionNames(
-                issueWorkflowService.viewAvailableActions(issueId, user.getLoginId())));
+        IssueWorkflowActions actions = issueWorkflowService.viewAvailableActions(issueId, user.getLoginId());
+        return detail.withAvailableActions(availableActionNames(actions));
     }
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,

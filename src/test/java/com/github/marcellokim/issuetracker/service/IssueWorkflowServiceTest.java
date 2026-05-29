@@ -29,6 +29,7 @@ class IssueWorkflowServiceTest {
 
     private static final long PROJECT_ID = 10L;
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 28, 10, 0);
+
     private final User reporter = user("reporter", Role.DEV);
     private final User assignee = user("assignee", Role.DEV);
     private final User tester = user("tester", Role.TESTER);
@@ -49,8 +50,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("project lead sees assignment, dependency, priority, and delete actions")
-    void projectLeadSeesManagementActions() {
+    @DisplayName("project lead sees management actions that match current issue status")
+    void projectLeadSeesStatusAwareManagementActions() {
         Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
 
         IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), pl.getLoginId());
@@ -67,7 +68,7 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("assignee can mark an assigned issue as fixed")
+    @DisplayName("assignee can mark assigned issue as fixed")
     void assigneeCanMarkAssignedIssueFixed() {
         Issue issue = issue(1L, IssueStatus.ASSIGNED, reporter, assignee, tester);
 
@@ -79,8 +80,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("tester resolves fixed issue only when blockers are complete")
-    void testerResolveRequiresCompleteBlockers() {
+    @DisplayName("tester resolves fixed issue only when blocking issues are complete")
+    void testerResolveRequiresCompleteBlockingIssues() {
         Issue blocking = issue(1L, IssueStatus.NEW, reporter, assignee, tester);
         Issue fixed = issue(2L, IssueStatus.FIXED, reporter, assignee, tester);
         FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
@@ -112,13 +113,28 @@ class IssueWorkflowServiceTest {
         assertTrue(resolvedActions.canClose());
         assertTrue(resolvedActions.canReopen());
         assertFalse(resolvedActions.canSoftDelete());
+        assertFalse(resolvedActions.canAddDependency());
         assertTrue(closedActions.canReopen());
         assertTrue(closedActions.canSoftDelete());
+        assertFalse(closedActions.canAddDependency());
     }
 
     @Test
-    @DisplayName("comment actions require same issue, active membership, and writer")
-    void commentActionsRequireMatchingWriterAndIssue() {
+    @DisplayName("deleted issue exposes no normal workflow actions")
+    void deletedIssueExposesNoNormalWorkflowActions() {
+        Issue deleted = issue(1L, IssueStatus.DELETED, reporter, null, null);
+
+        IssueWorkflowActions actions = service(deleted).viewAvailableActions(deleted.id(), pl.getLoginId());
+
+        assertFalse(actions.canUpdateIssue());
+        assertFalse(actions.canStartAssignment());
+        assertFalse(actions.canAddComment());
+        assertFalse(actions.canSoftDelete());
+    }
+
+    @Test
+    @DisplayName("comment actions require same issue, active membership, writer, and GENERAL purpose")
+    void commentActionsRequireWriterAndGeneralPurpose() {
         Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
         Issue otherIssue = issue(2L, IssueStatus.NEW, reporter, null, null);
         FakeCommentRepository comments = new FakeCommentRepository(
