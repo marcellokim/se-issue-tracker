@@ -83,6 +83,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 var issueDependencies = repositories.issueDependencies();
                 var statistics = repositories.statistics();
                 var assignmentRecommendations = repositories.assignmentRecommendations();
+                var dashboardSummaries = repositories.dashboardSummaries();
                 PermissionPolicy permissionPolicy = new PermissionPolicy();
                 Clock clock = new SystemClock();
                 CommentIdProvider commentIdProvider = new CommentIdGenerator();
@@ -135,9 +136,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 clock);
                 StatisticsService statisticsService = new StatisticsService(permissionPolicy, statistics, users);
                 DashboardSummaryService dashboardSummaryService = new DashboardSummaryService(
-                                projects,
-                                issues,
-                                statistics,
+                                dashboardSummaries,
                                 users,
                                 permissionPolicy);
                 return new ApplicationContext(

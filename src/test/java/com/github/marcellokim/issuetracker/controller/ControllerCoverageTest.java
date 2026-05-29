@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
+import com.github.marcellokim.issuetracker.domain.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
@@ -22,6 +23,7 @@ import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
@@ -84,12 +86,22 @@ class ControllerCoverageTest {
     @DisplayName("dashboard controller reads dashboard data through service after auth")
     void dashboardControllerDelegatesDashboardReads() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
-        FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
+        FakeDashboardSummaryRepository dashboardSummaries = new FakeDashboardSummaryRepository(
+                List.of(new DashboardProjectSnapshot(
+                        PROJECT_ID,
+                        "project",
+                        "description",
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        Map.of(IssueStatus.NEW, 1))),
+                List.of());
         DashboardController controller = new DashboardController(
                 auth.service(),
-                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(),
-                        new PermissionPolicy()));
+                new DashboardSummaryService(dashboardSummaries, auth.users(), new PermissionPolicy()));
 
         assertEquals(1, controller.viewProjects().size());
         assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
@@ -103,9 +115,7 @@ class ControllerCoverageTest {
         DashboardController controller = new DashboardController(
                 anonymousAuth(),
                 new DashboardSummaryService(
-                        new InMemoryProjectRepository(),
-                        new FakeIssueRepository(),
-                        new FakeStatisticsRepository(),
+                        new FakeDashboardSummaryRepository(List.of(), List.of()),
                         new FakeUserRepository(),
                         new PermissionPolicy()));
 
@@ -647,6 +657,29 @@ class ControllerCoverageTest {
         public void deactivate(String loginId) {
             LocalDateTime now = LocalDateTime.now();
             findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
+        }
+    }
+
+    private static final class FakeDashboardSummaryRepository implements DashboardSummaryRepository {
+
+        private final List<DashboardProjectSnapshot> allProjectSummaries;
+        private final List<DashboardProjectSnapshot> participantProjectSummaries;
+
+        private FakeDashboardSummaryRepository(
+                List<DashboardProjectSnapshot> allProjectSummaries,
+                List<DashboardProjectSnapshot> participantProjectSummaries) {
+            this.allProjectSummaries = List.copyOf(allProjectSummaries);
+            this.participantProjectSummaries = List.copyOf(participantProjectSummaries);
+        }
+
+        @Override
+        public List<DashboardProjectSnapshot> findAllProjectSummaries() {
+            return allProjectSummaries;
+        }
+
+        @Override
+        public List<DashboardProjectSnapshot> findProjectSummariesByParticipant(String loginId) {
+            return participantProjectSummaries;
         }
     }
 

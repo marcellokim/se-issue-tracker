@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.domain.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
-import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.sql.SQLException;
@@ -62,24 +62,24 @@ class OracleLiveDataReadOnlyTest {
     @DisplayName("current database contains readable users and projects")
     void currentDatabaseContainsReadableUsersAndProjects() {
         var users = repositories.users().findAll();
-        var projects = repositories.projects().findAll();
+        var projects = repositories.dashboardSummaries().findAllProjectSummaries();
 
         assertFalse(users.isEmpty(), "live database should contain at least one user");
         assertFalse(projects.isEmpty(), "live database should contain at least one project");
         assertTrue(users.stream().anyMatch(user -> user.isActive()), "live database should contain an active user");
-        assertTrue(projects.stream().allMatch(project -> project.getId() > 0L));
+        assertTrue(projects.stream().allMatch(project -> project.projectId() > 0L));
     }
 
     @Test
     @DisplayName("current projects expose members and issues")
     void currentProjectsExposeMembersAndIssues() {
-        List<Project> projects = repositories.projects().findAll();
+        List<DashboardProjectSnapshot> projects = repositories.dashboardSummaries().findAllProjectSummaries();
         long totalMembers = 0L;
         long totalIssues = 0L;
 
-        for (Project project : projects) {
-            var participants = repositories.projects().findParticipants(project.getId());
-            var issues = findAllIssues(project.getId());
+        for (DashboardProjectSnapshot project : projects) {
+            var participants = repositories.projects().findParticipants(project.projectId());
+            var issues = findAllIssues(project.projectId());
             assertNotNull(participants);
             assertNotNull(issues);
             totalMembers += participants.size();
@@ -93,8 +93,8 @@ class OracleLiveDataReadOnlyTest {
     @Test
     @DisplayName("current issue associations are readable")
     void currentIssueAssociationsAreReadable() {
-        List<Issue> issues = repositories.projects().findAll().stream()
-                .flatMap(project -> findAllIssues(project.getId()).stream())
+        List<Issue> issues = repositories.dashboardSummaries().findAllProjectSummaries().stream()
+                .flatMap(project -> findAllIssues(project.projectId()).stream())
                 .toList();
 
         assertFalse(issues.isEmpty(), "live database should contain issues");
@@ -118,9 +118,9 @@ class OracleLiveDataReadOnlyTest {
     @Test
     @DisplayName("current project statistics are readable")
     void currentProjectStatisticsAreReadable() {
-        for (Project project : repositories.projects().findAll()) {
+        for (DashboardProjectSnapshot project : repositories.dashboardSummaries().findAllProjectSummaries()) {
             var report = repositories.statistics().buildReport(
-                    project.getId(),
+                    project.projectId(),
                     null,
                     null,
                     null,
