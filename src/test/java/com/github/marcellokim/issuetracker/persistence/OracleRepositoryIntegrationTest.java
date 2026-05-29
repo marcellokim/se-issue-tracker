@@ -1328,8 +1328,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issueHistory(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                java.time.LocalDateTime::now,
-                                OracleRepositoryIntegrationTest::nextCommentId);
+                                java.time.LocalDateTime::now);
         }
 
         private static AssignmentService assignmentService() {

@@ -420,8 +420,7 @@ class ControllerCoverageTest {
                         new FakeIssueHistoryRepository(),
                         users,
                         policy,
-                        clock,
-                        ControllerCoverageTest::nextCommentId)));
+                        clock)));
         assertDoesNotThrow(() -> new IssueStateController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.IssueStateService(issues,

@@ -6,7 +6,7 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: User 존재, isActive=true
 end note
-A -> S: logIn(loginId, password)
+A -> S: login(loginId, password)
 alt 인증 성공
   S --> A: loginSucceeded(userId, role, name)
 else 인증 실패

@@ -85,6 +85,9 @@ class ProjectControllerTest {
                 .map(ProjectMemberResult::userId)
                 .toList());
         assertEquals("project-one", viewedDetail.project().name());
+        assertEquals(List.of(101L), viewedDetail.issues().stream()
+                .map(issue -> issue.id())
+                .toList());
         assertEquals(List.of("pl1", "dev1"), viewedDetail.participants().stream()
                 .map(ProjectMemberResult::userId)
                 .toList());

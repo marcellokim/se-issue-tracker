@@ -72,21 +72,16 @@ public final class JdbcCommentRepository implements CommentRepository {
     @Override
     public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
         Objects.requireNonNull(history, "history");
-        if (comment.id() == 0L) {
-            throw new IllegalArgumentException("Comment must be persisted before update.");
-        }
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
-                update(connection, comment);
+                Comment saved = comment.id() == 0L ? insert(connection, comment) : update(connection, comment);
                 writes.insertTransientHistories(connection, history.issueId(), List.of(history));
-                Comment updated = findById(connection, comment.id())
-                        .orElseThrow(() -> new RepositoryException("Updated comment was not found.", null));
                 connection.commit();
                 transactionSucceeded = true;
-                return updated;
+                return saved;
             } catch (SQLException | RuntimeException exception) {
                 writes.rollbackPreservingOriginalFailure(connection);
                 throw exception;
@@ -172,19 +167,40 @@ public final class JdbcCommentRepository implements CommentRepository {
                 """;
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
-            statement.setLong(1, comment.issueId());
-            statement.setString(2, comment.writerId());
-            statement.setString(3, comment.content());
-            statement.setString(4, comment.purpose().name());
-            JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
-            JdbcSupport.setNullableTimestamp(statement, 6, comment.updatedDate());
-            JdbcSupport.setNullableTimestamp(statement, 7, comment.createdDate());
-            statement.executeUpdate();
-            return findById(JdbcSupport.generatedId(statement))
-                    .orElseThrow(() -> new RepositoryException("Inserted comment was not found.", null));
+            return insert(statement, comment);
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to insert comment.", exception);
         }
+    }
+
+    private Comment insert(Connection connection, Comment comment) throws SQLException {
+        String sql = """
+                insert into comments (issue_id, writer_login_id, content, purpose, created_at, updated_at)
+                values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, coalesce(?, current_timestamp)))
+                """;
+        try (PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
+            bindInsert(statement, comment);
+            statement.executeUpdate();
+            return findById(connection, JdbcSupport.generatedId(statement))
+                    .orElseThrow(() -> new RepositoryException("Inserted comment was not found.", null));
+        }
+    }
+
+    private Comment insert(PreparedStatement statement, Comment comment) throws SQLException {
+        bindInsert(statement, comment);
+        statement.executeUpdate();
+        return findById(JdbcSupport.generatedId(statement))
+                .orElseThrow(() -> new RepositoryException("Inserted comment was not found.", null));
+    }
+
+    private static void bindInsert(PreparedStatement statement, Comment comment) throws SQLException {
+        statement.setLong(1, comment.issueId());
+        statement.setString(2, comment.writerId());
+        statement.setString(3, comment.content());
+        statement.setString(4, comment.purpose().name());
+        JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
+        JdbcSupport.setNullableTimestamp(statement, 6, comment.updatedDate());
+        JdbcSupport.setNullableTimestamp(statement, 7, comment.createdDate());
     }
 
     private Comment update(Comment comment) {
@@ -207,7 +223,7 @@ public final class JdbcCommentRepository implements CommentRepository {
         }
     }
 
-    private void update(Connection connection, Comment comment) throws SQLException {
+    private Comment update(Connection connection, Comment comment) throws SQLException {
         String sql = """
                 update comments
                 set content = ?,
@@ -219,6 +235,8 @@ public final class JdbcCommentRepository implements CommentRepository {
             JdbcSupport.setNullableTimestamp(statement, 2, comment.updatedDate());
             statement.setLong(3, comment.id());
             statement.executeUpdate();
+            return findById(connection, comment.id())
+                    .orElseThrow(() -> new RepositoryException("Updated comment was not found.", null));
         }
     }
 

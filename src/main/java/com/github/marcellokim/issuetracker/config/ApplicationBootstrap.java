@@ -101,8 +101,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 issueHistory,
                                 users,
                                 permissionPolicy,
-                                clock,
-                                commentIdProvider);
+                                clock);
                 AssignmentService assignmentService = new AssignmentService(
                                 issues,
                                 users,

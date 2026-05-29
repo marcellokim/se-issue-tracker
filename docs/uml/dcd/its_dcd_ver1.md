@@ -65,8 +65,8 @@
 - `PermissionPolicy`는 역할 기반 권한 검사를 중앙화한다.
 - `Issue`는 상태 전이, 배정 변경, 댓글, 의존성, history 생성의 Information Expert이다.
 - `Project`는 issue 목록을 in-memory collection으로 소유하지 않는다. 이슈는 `Issue.projectId`로 프로젝트와 연결된다.
-- Admin 프로젝트 상세 조회는 프로젝트 기본 정보와 참여자 정보만 반환한다.
-- 일반 사용자 프로젝트 상세 화면에서 필요한 이슈 목록은 `IssueService` 또는 `DashboardSummaryService`를 통해 별도로 조회한다.
+- Admin 프로젝트 상세 조회는 프로젝트 기본 정보, 참여자 정보, 프로젝트 이슈 목록을 반환한다.
+- 일반 사용자 프로젝트 상세 화면은 프로젝트 기본 정보만 반환하며, 별도 이슈 목록은 `IssueService` 또는 `DashboardSummaryService`를 통해 조회한다.
 - deleted 이슈 관리는 일반 이슈 조회/조작 경로와 분리되어 `DeletedIssueService`가 담당한다.
 
 ## 현재 설계 기준

@@ -375,7 +375,7 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: User 존재, isActive=true
 end note
-A -> S: logIn(loginId, password)
+A -> S: login(loginId, password)
 alt 인증 성공
   S --> A: loginSucceeded(userId, role, name)
 else 인증 실패
@@ -417,7 +417,8 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: Admin 로그인, 대상 User 존재, UC14 권한 검사
 end note
-A -> S: updateAccount(userId, name, role)
+A -> S: renameAccount(loginId, name)
+A -> S: changeAccountRole(loginId, role)
 S --> A: accountUpdated(userId, name, role)
 note over S
 결과: User의 name/role 수정, isActive 변경은 deactivateAccount에서 처리
@@ -513,7 +514,7 @@ note over A, S
 사전조건: Actor 로그인, 보호된 operation/resource 식별
 이 그림은 직접 사용자 목표 SSD가 아니라 include되는 공통 권한 검사 참고도이다.
 end note
-A -> S: verifyPermission(actorId, operation, resourceId)
+A -> S: assertCanProtectedOperation(actor, resource)
 alt 권한 있음
   S --> A: permissionVerified()
 else 권한 없음
@@ -536,7 +537,7 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: Reporter 로그인, 본인이 등록한 Issue, status=NEW, UC14 권한 검사
 end note
-A -> S: editIssue(issueId, newTitle, newDescription)
+A -> S: updateIssue(issueId, newTitle, newDescription)
 S --> A: issueUpdated(issueId, title, description)
 note over S
 결과: title/description 수정, IssueHistory(TITLE_DESCRIPTION_UPDATED) 기록

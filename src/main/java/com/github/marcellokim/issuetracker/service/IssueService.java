@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
@@ -45,7 +46,6 @@ public final class IssueService {
     private final IssueHistoryRepository issueHistoryRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
-    private final CommentIdProvider commentIdProvider;
     private final Clock clock;
 
     public IssueService(
@@ -56,8 +56,7 @@ public final class IssueService {
             IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            Clock clock,
-            CommentIdProvider commentIdProvider) {
+            Clock clock) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.dependencyRepository = Objects.requireNonNull(dependencyRepository, "dependencyRepository");
@@ -65,7 +64,6 @@ public final class IssueService {
         this.issueHistoryRepository = Objects.requireNonNull(issueHistoryRepository, "issueHistoryRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.commentIdProvider = Objects.requireNonNull(commentIdProvider, "commentIdProvider");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -233,9 +231,17 @@ public final class IssueService {
         permissionPolicy.assertCanAddComment(writer, issue);
         requireActiveProjectMember(writer, issue.projectId(), "Only project members can add issue comments.");
         LocalDateTime now = now();
-        Comment comment = issue.addComment(commentIdProvider.nextCommentId(), requiredContent, writer, now);
-        issueRepository.save(issue);
-        return toCommentResult(comment);
+        Comment comment = Comment.newForIssue(issue.id(), requiredContent, writer, CommentPurpose.GENERAL, now);
+        IssueHistory history = IssueHistory.newForPersistence(
+                issue.id(),
+                writer.getLoginId(),
+                ActionType.COMMENTED,
+                null,
+                requiredContent,
+                "comment added",
+                now);
+        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
+        return toCommentResult(saved, writer);
     }
 
     public List<CommentResult> viewComments(long issueId, String currentLoginId) {
@@ -556,12 +562,16 @@ public final class IssueService {
     }
 
     private static CommentResult toCommentResult(Comment comment) {
+        return toCommentResult(comment, comment.getWriter());
+    }
+
+    private static CommentResult toCommentResult(Comment comment, User writer) {
         return new CommentResult(
                 comment.getCommentId(),
                 comment.getContent(),
                 comment.getPurpose(),
                 comment.writerId(),
-                toUserResult(comment.getWriter()),
+                toUserResult(writer),
                 comment.getCreatedDate(),
                 comment.getUpdatedDate());
     }

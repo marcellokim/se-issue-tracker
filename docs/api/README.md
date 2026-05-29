@@ -26,17 +26,15 @@ Statistics controller documentation now lives in `docs/api/statistics-controller
 
 | Controller | Public operations |
 | --- | --- |
-| `AccountController` | `createAccount`, `updateAccount`, `renameAccount`, `changeAccountRole`, `activateAccount`, `deactivateAccount` |
+| `AccountController` | `createAccount`, `renameAccount`, `changeAccountRole`, `activateAccount`, `deactivateAccount` |
 | `AssignmentController` | `startAssignment`, `assignIssue`, `reassignIssue`, `changeVerifier` |
 | `AuthenticationController` | `login`, `logout` |
 | `DashboardController` | `viewRelatedIssues` (disabled), `viewProjects`, `viewUsers` |
-| `DeletedIssueController` | `viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeOverflow` |
+| `DeletedIssueController` | `viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeOverflow`, `purgeDeletedIssue` |
 | `IssueController` | `registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewRelatedProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`, `viewAvailableActions`, `canUpdateComment`, `canDeleteComment` |
 | `IssueStateController` | `changeStatus` |
-| `ProjectController` | `create`, `viewProjects`, `viewProject`, `viewProjectParticipants`, `viewProjectDetail`, `createProject`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant` |
-| `StatisticsController` | `viewStatistics`, `canViewStatistics` |
-
-`ProjectController.create(...)` is a static factory, not a UI operation.
+| `ProjectController` | `viewProjectNonAdminDetail`, `viewProjectAdminDetail`, `viewProjectParticipants`, `createProject`, `renameProject`, `changeProjectDescription`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant` |
+| `StatisticsController` | `viewStatistics` |
 
 ## UC/OC Mapping Summary
 
@@ -50,11 +48,11 @@ Statistics controller documentation now lives in `docs/api/statistics-controller
 | UC6 / OC-06, OC-07, OC-08, OC-09, OC-13 State change | `IssueStateController.changeStatus` |
 | UC7 / OC-14, OC-15 Dependency | `IssueController.addDependency`, `removeDependency` |
 | UC8 Recommend Assignment Candidates | `AssignmentController.startAssignment` |
-| UC9 / OC-10, OC-11 Deleted issue | `DeletedIssueController.deleteIssue`, `restoreIssue` |
-| UC10 Statistics | `StatisticsController.viewStatistics`, `canViewStatistics` |
+| UC9 / OC-10, OC-11 Deleted issue | `DeletedIssueController.deleteIssue`, `restoreIssue`, `purgeDeletedIssue` |
+| UC10 Statistics | `StatisticsController.viewStatistics` |
 | UC11 Log In | `AuthenticationController.login`, `logout` |
-| UC12 Manage Accounts | `AccountController.createAccount`, `updateAccount`, `renameAccount`, `changeAccountRole`, `activateAccount`, `deactivateAccount` |
-| UC13 Manage Projects | `ProjectController.createProject`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant`, project view APIs |
+| UC12 Manage Accounts | `AccountController.createAccount`, `renameAccount`, `changeAccountRole`, `activateAccount`, `deactivateAccount` |
+| UC13 Manage Projects | `ProjectController.createProject`, `renameProject`, `changeProjectDescription`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant`, project view APIs |
 | UC14 Verify Permission | `PermissionPolicy.assertCan...` and `can...` methods reached from protected controller APIs |
 | UC15 Edit Issue | `IssueController.updateIssue` |
 | UC16 / OC-16 Change Priority | `IssueController.changePriority` |

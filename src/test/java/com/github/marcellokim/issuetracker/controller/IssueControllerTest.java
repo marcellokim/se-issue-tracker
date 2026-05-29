@@ -83,6 +83,7 @@ class IssueControllerTest {
 
         CommentResult result = controller.addComment(ISSUE_ID, "Confirmed this bug");
 
+        assertEquals(String.valueOf(COMMENT_ID), result.commentId());
         assertEquals("Confirmed this bug", result.content());
         assertEquals(dev.getLoginId(), result.writerLoginId());
     }
@@ -305,8 +306,7 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 policy,
-                java.time.LocalDateTime::now,
-                IssueControllerTest::nextCommentId);
+                java.time.LocalDateTime::now);
         var workflowService = new IssueWorkflowService(issueRepository, dependencies, comments, users, policy);
         return new IssueController(authService, issueService, workflowService);
     }
@@ -322,13 +322,8 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                java.time.LocalDateTime::now,
-                IssueControllerTest::nextCommentId);
+                java.time.LocalDateTime::now);
         return new IssueController(authService, issueService);
-    }
-
-    private static String nextCommentId() {
-        return "COMMENT-test-" + java.util.UUID.randomUUID();
     }
 
     private Issue persistedIssue() {
@@ -404,6 +399,7 @@ class IssueControllerTest {
     private static final class FakeCommentRepository implements CommentRepository {
 
         private final Map<Long, Comment> comments = new LinkedHashMap<>();
+        private long nextId = COMMENT_ID;
 
         private FakeCommentRepository(Comment... comments) {
             for (Comment comment : comments) {
@@ -425,8 +421,21 @@ class IssueControllerTest {
 
         @Override
         public Comment save(Comment comment) {
-            comments.put(comment.id(), comment);
-            return comment;
+            if (comment.id() != 0L) {
+                comments.put(comment.id(), comment);
+                nextId = Math.max(nextId, comment.id() + 1L);
+                return comment;
+            }
+            Comment saved = Comment.fromPersistence(
+                    nextId++,
+                    comment.issueId(),
+                    comment.writerId(),
+                    comment.content(),
+                    comment.purpose(),
+                    comment.createdDate(),
+                    comment.updatedDate());
+            comments.put(saved.id(), saved);
+            return saved;
         }
 
         @Override

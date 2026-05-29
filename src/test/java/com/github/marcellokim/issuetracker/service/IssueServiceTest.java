@@ -641,15 +641,28 @@ class IssueServiceTest {
         @DisplayName("adds comment to existing issue")
         void addCommentSucceeds() {
                 var issue = persistedIssue();
-                var service = service(new InMemoryIssueRepository(issue));
+                var comments = new FakeCommentRepository();
+                var histories = new FakeIssueHistoryRepository();
+                var service = service(
+                                new InMemoryIssueRepository(issue),
+                                new FakeIssueDependencyRepository(),
+                                comments,
+                                histories,
+                                new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev));
 
                 CommentResult result = service.addComment(ISSUE_ID, "Looks like a real bug", dev.getLoginId());
 
-                assertNotNull(result.commentId());
+                assertEquals(String.valueOf(COMMENT_ID), result.commentId());
                 assertEquals(CommentPurpose.GENERAL, result.purpose());
                 assertEquals("Looks like a real bug", result.content());
                 assertEquals(dev.getLoginId(), result.writer().loginId());
                 assertNotNull(result.createdDate());
+                assertEquals("Looks like a real bug", comments.findById(COMMENT_ID).orElseThrow().content());
+                IssueHistory history = histories.findByIssueId(ISSUE_ID).getFirst();
+                assertEquals(ActionType.COMMENTED, history.actionType());
+                assertNull(history.previousValue());
+                assertEquals("Looks like a real bug", history.newValue());
+                assertEquals("comment added", history.message());
         }
 
         @Test
@@ -700,17 +713,16 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("general comment id is generated independently from hydrated comment count")
-        void addCommentUsesGeneratedCommentId() {
+        @DisplayName("general comment id uses persisted numeric id")
+        void addCommentUsesPersistedNumericCommentId() {
                 var issue = persistedIssue();
-                var service = service(new InMemoryIssueRepository(issue));
+                var comments = new FakeCommentRepository();
+                var service = service(new InMemoryIssueRepository(issue), comments);
 
                 CommentResult result = service.addComment(ISSUE_ID, "Looks like a real bug", dev.getLoginId());
 
                 assertEquals(CommentPurpose.GENERAL, result.purpose());
-                assertTrue(
-                                result.commentId().startsWith("COMMENT-"),
-                                "commentId should use the shared generated comment id contract");
+                assertEquals(String.valueOf(COMMENT_ID), result.commentId());
         }
 
         @Test
@@ -1286,12 +1298,7 @@ class IssueServiceTest {
                                 histories,
                                 users,
                                 new PermissionPolicy(),
-                                java.time.LocalDateTime::now,
-                                IssueServiceTest::nextCommentId);
-        }
-
-        private static String nextCommentId() {
-                return "COMMENT-test-" + java.util.UUID.randomUUID();
+                                java.time.LocalDateTime::now);
         }
 
         private Issue persistedIssue() {
@@ -1414,6 +1421,7 @@ class IssueServiceTest {
 
                 private final Map<Long, Comment> comments = new LinkedHashMap<>();
                 private FakeIssueHistoryRepository histories;
+                private long nextId = COMMENT_ID;
 
                 private FakeCommentRepository(Comment... comments) {
                         for (Comment comment : comments) {
@@ -1439,8 +1447,21 @@ class IssueServiceTest {
 
                 @Override
                 public Comment save(Comment comment) {
-                        comments.put(comment.id(), comment);
-                        return comment;
+                        if (comment.id() != 0L) {
+                                comments.put(comment.id(), comment);
+                                nextId = Math.max(nextId, comment.id() + 1L);
+                                return comment;
+                        }
+                        Comment saved = Comment.fromPersistence(
+                                        nextId++,
+                                        comment.issueId(),
+                                        comment.writerId(),
+                                        comment.content(),
+                                        comment.purpose(),
+                                        comment.createdDate(),
+                                        comment.updatedDate());
+                        comments.put(saved.id(), saved);
+                        return saved;
                 }
 
                 @Override

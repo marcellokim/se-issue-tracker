@@ -35,7 +35,7 @@ Search and detail APIs require active project membership and non-deleted issues.
 
 `viewRelatedProjectIssues` treats reporter, current assignee, and current verifier as related participants. Fixer and resolver are completion history and do not make an issue a current related issue.
 
-`updateIssue` is limited to the issue reporter and `NEW` or `REOPENED` status. `changePriority` is PL-only. General comment edit/delete is limited to the comment writer and only for `CommentPurpose.GENERAL`.
+`updateIssue` is limited to the issue reporter and `NEW` or `REOPENED` status. `changePriority` is PL-only. `addComment` returns the persisted numeric comment id as `CommentResult.commentId`; general comment edit/delete accepts that numeric id and is limited to the comment writer and only for `CommentPurpose.GENERAL`.
 
 Dependency add/remove is PL-only, same-project only, rejects self-dependency, duplicate dependency, and circular dependency.
 
@@ -44,7 +44,7 @@ Dependency add/remove is PL-only, same-project only, rejects self-dependency, du
 | API | UC/SSD/OC | DCD/domain evidence |
 | --- | --- | --- |
 | `registerIssue` | UC1, OC-01, SSD-01 | `IssueController.registerIssue`, `Issue.create`, `IssueHistory(CREATED)`, reporter association in `docs/uml/dcd/its_dcd_ver2.puml` |
-| `addComment` | UC2, OC-02, SSD-02 | `Issue.addComment`, `Comment`, `IssueHistory(COMMENTED)`, writer association |
+| `addComment` | UC2, OC-02, SSD-02 | `IssueService.addComment`, `Comment`, `IssueHistory(COMMENTED)`, writer association |
 | `addDependency` | UC7, OC-14, SSD-24 | `Issue.addDependency`, `IssueDependency`, blocking/blocked issue associations, `IssueHistory(DEPENDENCY_CHANGED)` |
 | `removeDependency` | UC7, OC-15, SSD-25 | DCD names `removeDependency(dependencyId)`; implementation uses `IssueService.removeDependency(blockingIssueId, blockedIssueId)` and `Issue.removeDependency` |
 | `changePriority` | UC16, OC-16, SSD-27 | `Issue.changePriority`, `Issue.verifyPriorityChange`, `IssueHistory(PRIORITY_CHANGED)`; status and role associations unchanged |
