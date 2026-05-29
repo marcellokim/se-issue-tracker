@@ -3,18 +3,25 @@
 title SSD 11 - UC8 Assignment Candidate 추천 Reference
 actor "PL" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
 사전조건: PL 로그인, 대상 Issue 존재, UC5 startAssignment 흐름에서 include됨
 end note
-A -> S: recommendAssignmentCandidates(issueId)
-S --> A: assignmentCandidates(assigneeCandidates, verifierCandidates, reasons)
+
+A -> S: startAssignment(issueId)
+S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
+
 note over S
 결과: Issue.status에 따라 UC5에 필요한 후보 종류를 반환한다.
-NEW/REOPENED: assignee DEV 후보와 verifier Tester 후보를 반환한다.
-ASSIGNED: assignee DEV 후보만 반환한다.
-FIXED: verifier Tester 후보만 반환한다.
+NEW/REOPENED: DEV assignee 후보와 TESTER verifier 후보를 반환한다.
+ASSIGNED: DEV assignee 후보만 반환한다.
+FIXED: TESTER verifier 후보만 반환한다.
+RESOLVED/CLOSED/DELETED: 배정 후보를 반환하지 않는다.
+
+devAssigneeCandidates와 testerVerifierCandidates는 각각 top 3 후보이다.
+allDevAssignees와 allTesterVerifiers는 프로젝트 소속 전체 후보이다.
 assignee 후보는 과거 RESOLVED/CLOSED Issue의 fixer 이력을 우선 참고한다.
 verifier 후보는 과거 RESOLVED/CLOSED Issue의 resolver 이력을 우선 참고한다.
-Recommendation 도메인 객체와 IssueHistory는 생성하지 않음
+Recommendation은 IssueHistory를 생성하지 않는다.
 end note
 @enduml
