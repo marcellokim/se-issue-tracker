@@ -118,7 +118,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public boolean existsByResponsibleUser(String userLoginId) {
+    public boolean hasCurrentIssueResponsibility(String userLoginId) {
         String sql = """
                 select 1
                 from issues

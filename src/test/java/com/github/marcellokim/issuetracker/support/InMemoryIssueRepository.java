@@ -59,7 +59,8 @@ public final class InMemoryIssueRepository implements IssueRepository {
                 .filter(issue -> criteria.assigneeId() == null || criteria.assigneeId().equals(issue.assigneeId()))
                 .filter(issue -> criteria.verifierId() == null || criteria.verifierId().equals(issue.verifierId()))
                 .filter(issue -> matchesKeyword(issue, criteria.keyword()))
-                .filter(issue -> criteria.reportedFrom() == null || !issue.reportedDate().isBefore(criteria.reportedFrom()))
+                .filter(issue -> criteria.reportedFrom() == null
+                        || !issue.reportedDate().isBefore(criteria.reportedFrom()))
                 .filter(issue -> criteria.reportedTo() == null || issue.reportedDate().isBefore(criteria.reportedTo()))
                 .toList();
     }
@@ -79,7 +80,7 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
-    public boolean existsByResponsibleUser(String userLoginId) {
+    public boolean hasCurrentIssueResponsibility(String userLoginId) {
         return issues.values().stream()
                 .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
                 .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
@@ -129,10 +130,10 @@ public final class InMemoryIssueRepository implements IssueRepository {
 
     private Issue persistNew(Issue issue) {
         return Issue.fromPersistence(Issue.persistedState(
-                        issue.projectId(),
-                        issue.title(),
-                        issue.description(),
-                        issue.getReporter())
+                issue.projectId(),
+                issue.title(),
+                issue.description(),
+                issue.getReporter())
                 .id(nextId++)
                 .issueId(issue.getIssueId())
                 .reportedDate(issue.reportedDate())

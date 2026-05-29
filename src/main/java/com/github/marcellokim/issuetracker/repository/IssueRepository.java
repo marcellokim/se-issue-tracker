@@ -21,7 +21,7 @@ public interface IssueRepository {
 
     boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId);
 
-    boolean existsByResponsibleUser(String userLoginId);
+    boolean hasCurrentIssueResponsibility(String userLoginId);
 
     boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId);
 

@@ -543,7 +543,7 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public boolean existsByResponsibleUser(String userLoginId) {
+        public boolean hasCurrentIssueResponsibility(String userLoginId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
                     .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
