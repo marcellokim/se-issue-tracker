@@ -1,67 +1,65 @@
 @startuml ssd-05-assign-issue
 !include ssd-style.puml
 title SSD 05 - UC5 Assign / Update Issue Assignment
+
 actor "PL" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
 사전조건:
 - PL이 로그인되어 있다.
-- Issue가 NEW, ASSIGNED, FIXED 또는 REOPENED 상태이다.
-- 필요한 DEV assignee 또는 Tester verifier 후보가 존재한다.
+- 대상 Issue가 존재한다.
+- Issue가 NEW, REOPENED, ASSIGNED 또는 FIXED 상태이다.
+- PL은 대상 Issue가 속한 Project의 active PL이다.
 - UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
 
-note over A, S
-공통 흐름:
-- 각 상태별 branch는 UC8 Recommend Assignment Candidates를 include한다.
-- UC2 코멘트 추가는 배정/변경 사유가 필요할 때 선택적으로 수행한다.
+A -> S: startAssignment(issueId)
+S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
+
+note over S
+UC5는 UC8 Recommend Assignment Candidates를 include한다.
+
+상태별 후보 반환:
+- NEW/REOPENED: DEV assignee 후보와 TESTER verifier 후보를 반환한다.
+- ASSIGNED: DEV assignee 후보를 반환한다.
+- FIXED: TESTER verifier 후보를 반환한다.
+
+devAssigneeCandidates와 testerVerifierCandidates는 top 3 후보이다.
+allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
+해결 이력이 없으면 completedIssueCount=0인 active project member가 후보로 반환된다.
+필요한 역할의 후보가 없으면 빈 후보 목록을 반환하고, PL은 배정을 완료할 수 없다.
 end note
 
-A -> S: startAssignment(issueId)
-alt Issue.status == NEW (NEW -> ASSIGNED)
-  ref over A, S : UC8 Recommend Assignment Candidates\nrecommendAssignmentCandidates(issueId)
-  S --> A: assignmentOptions(devList, testerList, assigneeCandidates, verifierCandidates)
-  note over S
-  If reporter is a Tester, the reporter is prioritized as the default verifier candidate.
-  end note
-  opt UC2 코멘트 추가 선택
+alt Issue.status == NEW or REOPENED
+  opt UC2 Add Comment 선택
     ref over A, S : UC2 Add Comment\naddComment(issueId, content)
   end
   A -> S: assignIssue(issueId, assigneeId, verifierId)
   S --> A: issueAssigned(issueId, status=ASSIGNED, confirmation)
-else Issue.status == ASSIGNED (ASSIGNED -> ASSIGNED)
-  ref over A, S : UC8 Recommend Assignment Candidates\nrecommendAssignmentCandidates(issueId)
-  S --> A: reassignmentOptions(devList, currentAssignee, assigneeCandidates)
-  opt UC2 코멘트 추가 선택
+
+else Issue.status == ASSIGNED
+  opt UC2 Add Comment 선택
     ref over A, S : UC2 Add Comment\naddComment(issueId, content)
   end
   A -> S: reassignIssue(issueId, assigneeId)
   S --> A: issueReassigned(issueId, status=ASSIGNED, confirmation)
-else Issue.status == FIXED (FIXED -> FIXED)
-  ref over A, S : UC8 Recommend Assignment Candidates\nrecommendAssignmentCandidates(issueId)
-  S --> A: verifierChangeOptions(testerList, currentVerifier, verifierCandidates)
-  opt UC2 코멘트 추가 선택
+
+else Issue.status == FIXED
+  opt UC2 Add Comment 선택
     ref over A, S : UC2 Add Comment\naddComment(issueId, content)
   end
   A -> S: changeVerifier(issueId, verifierId)
   S --> A: verifierChanged(issueId, status=FIXED, confirmation)
-else Issue.status == REOPENED (REOPENED -> ASSIGNED)
-  ref over A, S : UC8 Recommend Assignment Candidates\nrecommendAssignmentCandidates(issueId)
-  S --> A: assignmentOptions(devList, testerList, assigneeCandidates, verifierCandidates, preservedFixer, preservedResolver)
-  opt UC2 코멘트 추가 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
-  end
-  A -> S: assignIssue(issueId, assigneeId, verifierId)
-  S --> A: issueAssigned(issueId, status=ASSIGNED, fixer=preserved, resolver=preserved, confirmation)
 end
 
 note over S
 결과:
-- NEW -> ASSIGNED: assignee DEV와 verifier Tester association을 설정하고 status=ASSIGNED로 변경한다.
-- ASSIGNED -> ASSIGNED: assignee DEV만 변경하고 status=ASSIGNED를 유지한다. fixer/resolver는 변경하지 않는다.
-- FIXED -> FIXED: verifier Tester만 변경하고 status=FIXED를 유지한다. fixer/resolver는 변경하지 않는다.
-- REOPENED -> ASSIGNED: assignee와 verifier를 PL 선택값으로 재설정하고 status=ASSIGNED로 변경한다. 기존 fixer/resolver는 보존한다.
-- 모든 branch는 IssueHistory(ASSIGNMENT_CHANGED)를 기록한다.
-- NEW -> ASSIGNED와 REOPENED -> ASSIGNED는 IssueHistory(STATUS_CHANGED)도 함께 기록한다.
+- NEW/REOPENED -> ASSIGNED: assignee DEV와 verifier TESTER를 설정하고 status를 ASSIGNED로 변경한다.
+- ASSIGNED -> ASSIGNED: assignee DEV만 변경하고 status를 유지한다.
+- FIXED -> FIXED: verifier TESTER만 변경하고 status를 유지한다.
+- 모든 배정/변경 branch는 IssueHistory(ASSIGNMENT_CHANGED)를 기록한다.
+- NEW/REOPENED -> ASSIGNED는 IssueHistory(STATUS_CHANGED)도 함께 기록한다.
 end note
+
 @enduml

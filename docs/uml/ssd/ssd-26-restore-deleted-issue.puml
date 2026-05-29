@@ -1,23 +1,40 @@
 @startuml ssd-26-restore-deleted-issue
 !include ssd-style.puml
-title SSD 26 - UC9 Restore Closed/New Issue
+title SSD 26 - UC9 Restore Deleted Issue
+
 actor "PL" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
-사전조건: PL 로그인, Project 존재, 복구 대상 Issue가 DELETED 상태, 물리 삭제 전, UC14 권한 검사
+사전조건:
+- PL이 로그인되어 있다.
+- 대상 Project가 존재한다.
+- 복구 대상 Issue가 DELETED 상태이다.
+- 대상 Issue가 아직 물리 삭제되지 않았다.
+- PL은 대상 Issue가 속한 Project의 active PL이다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
+
 A -> S: viewDeletedIssues(projectId)
 S --> A: deletedIssueList(issues)
-A -> S: restoreIssue(issueId)
-S --> A: issueRestored(issueId, status=NEW or CLOSED)
+
+A -> S: restoreIssue(issueId, comment)
+S --> A: issueRestored(issueId, status=NEW or CLOSED, confirmation)
+
 note over S
-결과: status=preDeleteStatus(NEW 또는 CLOSED), 삭제 보관 정책 대상에서 제외
-preDeleteStatus는 NEW/CLOSED -> DELETED 전이 때 기록된 IssueHistory(STATUS_CHANGED).previousValue에서 결정
-새 Issue.preDeleteStatus attribute는 도입하지 않음
-IssueHistory(STATUS_CHANGED, previousValue=DELETED, newValue=preDeleteStatus) 기록
-reporter/fixer/resolver, comments, history는 유지하고 새 Issue는 생성하지 않음
-assignee와 verifier는 null 상태로 유지한다.
-삭제 시 제거된 dependency는 자동 복원하지 않으며 필요하면 UC7에서 다시 설정한다.
-preDeleteStatus가 CLOSED이고 재작업이 필요하면 UC6 Reopen Issue에서 CLOSED -> REOPENED를 수행한다.
+UC9는 UC2 Add Comment를 include한다.
+따라서 restoreIssue의 comment는 복구 사유로 필수 입력된다.
+
+결과:
+- Issue.status가 DELETED에서 삭제 직전 상태로 복구된다.
+- 삭제 직전 상태는 NEW/CLOSED -> DELETED 전이 때 기록된 IssueHistory(STATUS_CHANGED).previousValue에서 결정된다.
+- 별도 Issue.preDeleteStatus attribute는 두지 않는다.
+- IssueHistory(STATUS_CHANGED, previousValue=DELETED, newValue=preDeleteStatus)를 기록한다.
+- 복구 사유 comment가 대상 Issue에 기록된다.
+- reporter/fixer/resolver, comments, history는 유지하고 새 Issue는 생성하지 않는다.
+- assignee와 verifier는 null 상태로 유지한다.
+- 삭제 시 제거된 dependency는 자동 복원하지 않으며, 필요하면 UC7에서 다시 설정한다.
+- preDeleteStatus가 CLOSED이고 재작업이 필요하면 UC6 Reopen Issue를 별도로 수행한다.
 end note
+
 @enduml

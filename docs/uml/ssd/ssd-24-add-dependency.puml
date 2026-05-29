@@ -1,18 +1,37 @@
 @startuml ssd-24-add-dependency
 !include ssd-style.puml
-title SSD 24 - UC7 의존성 추가
+title SSD 24 - UC7 Add Dependency
+
 actor "PL" as A
 participant ":Issue Tracking System" as S
+
 note over A, S
-사전조건: PL 로그인, 두 Issue 존재, 자기참조/순환 아님, UC14 권한 검사
+사전조건:
+- PL이 로그인되어 있다.
+- blocking Issue와 blocked Issue가 존재한다.
+- 두 Issue는 같은 Project에 속한다.
+- 두 Issue는 DELETED 상태가 아니다.
+- blocked Issue는 RESOLVED 또는 CLOSED 상태가 아니다.
+- 자기참조 dependency가 아니다.
+- 순환 dependency가 아니다.
+- 동일한 dependency가 아직 존재하지 않는다.
+- PL은 대상 Project의 active PL이다.
+- UC14 권한 검사는 시스템 내부에서 수행된다.
 end note
+
 A -> S: addDependency(blockingIssueId, blockedIssueId)
-S --> A: dependencyAdded(dependencyId)
+S --> A: dependencyAdded(dependencyId, blockingIssueId, blockedIssueId, confirmation)
+
 note over S
-결과: IssueDependency 생성, blockingIssue/blockedIssue association 설정
-dependencyId는 blockingIssueId와 blockedIssueId 조합에서 파생
-별도 dependencyName/type 파라미터는 추가하지 않음
-의존성 효과는 UC6 FIXED -> RESOLVED guard에서만 검사
-IssueHistory(DEPENDENCY_CHANGED) 기록
+결과:
+- IssueDependency가 생성된다.
+- blocking Issue와 blocked Issue 사이의 dependency association이 설정된다.
+- dependencyId는 blockingIssueId와 blockedIssueId 조합에서 생성된다.
+- dependency 변경 내역은 blocked Issue의 IssueHistory(DEPENDENCY_CHANGED)에 기록된다.
+
+정책:
+- dependency는 comment가 아니라 구조화된 관계 데이터로 관리한다.
+- dependency 효과는 UC6 FIXED -> RESOLVED 전이에서 blocking Issue가 모두 RESOLVED/CLOSED인지 검사할 때 반영된다.
 end note
+
 @enduml
