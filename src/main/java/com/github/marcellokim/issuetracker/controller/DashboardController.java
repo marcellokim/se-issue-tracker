@@ -22,7 +22,8 @@ public final class DashboardController {
     }
 
     public List<IssueSummary> viewRelatedIssues() {
-        return dashboardSummaryService.relatedIssuesFor(requireCurrentUser());
+        requireCurrentUser();
+        return List.of();
     }
 
     public List<DashboardProjectSummary> viewProjects() {

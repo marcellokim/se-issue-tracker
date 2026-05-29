@@ -361,11 +361,25 @@ class IssueServiceTest {
                                 dev,
                                 dev,
                                 tester);
+                Issue completedHistoryOnlyIssue = Issue.fromPersistence(
+                                Issue.persistedState(PROJECT_ID, "Completed history only issue", "Description 13", pl)
+                                                .id(13L)
+                                                .issueId("ISSUE-13")
+                                                .reportedDate(now)
+                                                .priority(Priority.MAJOR)
+                                                .status(IssueStatus.CLOSED)
+                                                .fixer(dev)
+                                                .resolver(tester)
+                                                .updatedAt(now));
                 var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
                                 .withProjectMembers(PROJECT_ID, dev.getLoginId(), tester.getLoginId(), pl.getLoginId())
                                 .withProjectMembers(OTHER_PROJECT_ID, dev.getLoginId());
                 var service = service(
-                                new InMemoryIssueRepository(reporterOnlyIssue, assignedDevIssue, otherProjectIssue),
+                                new InMemoryIssueRepository(
+                                                reporterOnlyIssue,
+                                                assignedDevIssue,
+                                                completedHistoryOnlyIssue,
+                                                otherProjectIssue),
                                 new FakeIssueDependencyRepository(),
                                 new FakeCommentRepository(),
                                 users);
@@ -375,10 +389,16 @@ class IssueServiceTest {
                 List<IssueSummary> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
                 String adminLoginId = admin.getLoginId();
 
-                assertEquals(2, devResults.size());
-                assertEquals(1, testerResults.size());
-                assertEquals(assignedDevIssue.id(), testerResults.getFirst().id());
-                assertEquals(2, plResults.size());
+                assertEquals(List.of(reporterOnlyIssue.id(), assignedDevIssue.id()), devResults.stream()
+                                .map(IssueSummary::id)
+                                .toList());
+                assertEquals(List.of(assignedDevIssue.id()), testerResults.stream()
+                                .map(IssueSummary::id)
+                                .toList());
+                assertEquals(List.of(reporterOnlyIssue.id(), assignedDevIssue.id(), completedHistoryOnlyIssue.id()),
+                                plResults.stream()
+                                                .map(IssueSummary::id)
+                                                .toList());
                 assertThrows(SecurityException.class,
                                 () -> service.viewRelatedProjectIssues(PROJECT_ID, adminLoginId));
         }

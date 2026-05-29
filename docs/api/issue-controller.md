@@ -33,6 +33,8 @@
 
 Search and detail APIs require active project membership and non-deleted issues. `viewIssueDetail` returns comments, histories, dependencies, and optionally computed action names when the controller was constructed with `IssueWorkflowService`.
 
+`viewRelatedProjectIssues` treats reporter, current assignee, and current verifier as related participants. Fixer and resolver are completion history and do not make an issue a current related issue.
+
 `updateIssue` is limited to the issue reporter and `NEW` or `REOPENED` status. `changePriority` is PL-only. General comment edit/delete is limited to the comment writer and only for `CommentPurpose.GENERAL`.
 
 Dependency add/remove is PL-only, same-project only, rejects self-dependency, duplicate dependency, and circular dependency.

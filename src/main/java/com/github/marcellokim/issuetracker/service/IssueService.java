@@ -416,9 +416,7 @@ public final class IssueService {
     private static boolean isRelatedParticipant(Issue issue, String loginId) {
         return loginId.equals(issue.reporterId())
                 || loginId.equals(issue.assigneeId())
-                || loginId.equals(issue.verifierId())
-                || loginId.equals(issue.fixerId())
-                || loginId.equals(issue.resolverId());
+                || loginId.equals(issue.verifierId());
     }
 
     private static void requireSameProjectDependency(Issue blockingIssue, Issue blockedIssue) {

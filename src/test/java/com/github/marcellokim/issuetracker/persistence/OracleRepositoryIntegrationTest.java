@@ -10,11 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
+import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -304,18 +306,39 @@ class OracleRepositoryIntegrationTest {
                                 .getOrDefault(IssueStatus.DELETED, 0);
                 int trivialPriorityBefore = repositories.statistics().countByPriority(project.getId())
                                 .getOrDefault(Priority.TRIVIAL, 0);
+                LocalDateTime reportedAt = LocalDateTime.now();
+                YearMonth reportedMonth = YearMonth.from(reportedAt);
+                int reportedDayBefore = countForDay(
+                                repositories.statistics().countReportedIssuesByDay(
+                                                project.getId(), reportedAt.toLocalDate(), reportedAt.toLocalDate()),
+                                reportedAt);
+                int reportedMonthBefore = countForMonth(
+                                repositories.statistics().countReportedIssuesByMonth(
+                                                project.getId(), reportedMonth, reportedMonth),
+                                reportedMonth);
+                int monthlyTrivialPriorityBefore = repositories.statistics()
+                                .countByPriorityByMonth(project.getId(), reportedMonth, reportedMonth)
+                                .getOrDefault(reportedMonth, java.util.Map.of())
+                                .getOrDefault(Priority.TRIVIAL, 0);
 
                 Issue deletedIssue = repositories.issues().save(Issue.create(Issue.persistedState(
                                 project.getId(),
                                 "Temporary deleted issue for repository policy test",
                                 "Deleted issues should stay out of normal browse and statistics.",
                                 admin)
-                                .reportedDate(LocalDateTime.now())
+                                .reportedDate(reportedAt)
                                 .priority(Priority.TRIVIAL)
                                 .status(IssueStatus.DELETED)
-                                .updatedAt(LocalDateTime.now())));
+                                .updatedAt(reportedAt)));
 
                 try {
+                        var report = repositories.statistics().buildReport(
+                                        project.getId(),
+                                        reportedAt.toLocalDate(),
+                                        reportedAt.toLocalDate(),
+                                        reportedMonth,
+                                        reportedMonth);
+
                         assertFalse(repositories.issues().findByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
                         assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
@@ -324,6 +347,27 @@ class OracleRepositoryIntegrationTest {
                                         .getOrDefault(IssueStatus.DELETED, 0));
                         assertEquals(trivialPriorityBefore,
                                         repositories.statistics().countByPriority(project.getId())
+                                                        .getOrDefault(Priority.TRIVIAL, 0));
+                        assertEquals(reportedDayBefore, countForDay(
+                                        repositories.statistics().countReportedIssuesByDay(
+                                                        project.getId(), reportedAt.toLocalDate(),
+                                                        reportedAt.toLocalDate()),
+                                        reportedAt));
+                        assertEquals(reportedMonthBefore, countForMonth(
+                                        repositories.statistics().countReportedIssuesByMonth(
+                                                        project.getId(), reportedMonth, reportedMonth),
+                                        reportedMonth));
+                        assertEquals(monthlyTrivialPriorityBefore,
+                                        repositories.statistics()
+                                                        .countByPriorityByMonth(project.getId(), reportedMonth,
+                                                                        reportedMonth)
+                                                        .getOrDefault(reportedMonth, java.util.Map.of())
+                                                        .getOrDefault(Priority.TRIVIAL, 0));
+                        assertEquals(reportedDayBefore, countForDay(report.dailyCounts(), reportedAt));
+                        assertEquals(reportedMonthBefore, countForMonth(report.monthlyCounts(), reportedMonth));
+                        assertEquals(monthlyTrivialPriorityBefore,
+                                        report.monthlyPriorityCounts()
+                                                        .getOrDefault(reportedMonth, java.util.Map.of())
                                                         .getOrDefault(Priority.TRIVIAL, 0));
                 } finally {
                         purgeTestIssue(deletedIssue.id());
@@ -1424,6 +1468,20 @@ class OracleRepositoryIntegrationTest {
                                 .findFirst()
                                 .orElseThrow()
                                 .completedIssueCount();
+        }
+
+        private static int countForDay(List<DailyIssueCount> counts, LocalDateTime reportedAt) {
+                return counts.stream()
+                                .filter(count -> count.date().equals(reportedAt.toLocalDate()))
+                                .mapToInt(DailyIssueCount::count)
+                                .sum();
+        }
+
+        private static int countForMonth(List<MonthlyIssueCount> counts, YearMonth month) {
+                return counts.stream()
+                                .filter(count -> count.month().equals(month))
+                                .mapToInt(MonthlyIssueCount::count)
+                                .sum();
         }
 
         private static String uniqueId(String prefix) {

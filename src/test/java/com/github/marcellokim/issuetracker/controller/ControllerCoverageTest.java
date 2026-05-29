@@ -98,6 +98,22 @@ class ControllerCoverageTest {
     }
 
     @Test
+    @DisplayName("dashboard related issue view is disabled")
+    void dashboardControllerKeepsRelatedIssueViewDisabled() {
+        AuthFixture auth = authenticated(Role.PL);
+        FakeProjectRepository projects = new FakeProjectRepository(
+                project(PROJECT_ID),
+                List.of(ProjectMember.create(PROJECT_ID, auth.user().getLoginId(), NOW)));
+        FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
+        DashboardController controller = new DashboardController(
+                auth.service(),
+                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(),
+                        new PermissionPolicy()));
+
+        assertEquals(List.of(), controller.viewRelatedIssues());
+    }
+
+    @Test
     @DisplayName("dashboard controller rejects anonymous users")
     void dashboardControllerRejectsAnonymousUsers() {
         DashboardController controller = new DashboardController(
@@ -605,12 +621,18 @@ class ControllerCoverageTest {
     private static final class FakeProjectRepository implements ProjectRepository {
 
         private final Map<Long, Project> projectsById = new LinkedHashMap<>();
+        private final Map<Long, List<ProjectMember>> membersByProjectId = new LinkedHashMap<>();
         private long deletedProjectId;
 
         private FakeProjectRepository(Project... projects) {
             for (Project project : projects) {
                 projectsById.put(project.getId(), project);
             }
+        }
+
+        private FakeProjectRepository(Project project, List<ProjectMember> members) {
+            this(project);
+            membersByProjectId.put(project.getId(), List.copyOf(members));
         }
 
         @Override
@@ -652,12 +674,15 @@ class ControllerCoverageTest {
 
         @Override
         public List<ProjectMember> findParticipants(long projectId) {
-            return List.of();
+            return membersByProjectId.getOrDefault(projectId, List.of());
         }
 
         @Override
         public boolean existsByParticipant(String userLoginId) {
-            return false;
+            return membersByProjectId.values().stream()
+                    .flatMap(List::stream)
+                    .map(ProjectMember::userId)
+                    .anyMatch(userLoginId::equals);
         }
     }
 

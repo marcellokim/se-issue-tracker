@@ -68,6 +68,14 @@ class IssueControllerTest {
     }
 
     @Test
+    @DisplayName("authenticated user checks issue registration availability")
+    void canRegisterIssue() {
+        var controller = authenticatedController(dev);
+
+        assertTrue(controller.canRegisterIssue(PROJECT_ID));
+    }
+
+    @Test
     @DisplayName("authenticated user adds comment")
     void addComment() {
         var issue = persistedIssue();

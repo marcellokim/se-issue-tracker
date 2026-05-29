@@ -148,8 +148,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("dashboard includes issues fixed or resolved by a participant")
-    void relatedIssuesIncludeFixerAndResolver() {
+    @DisplayName("dashboard excludes issues only fixed or resolved by a participant")
+    void relatedIssuesExcludeFixerAndResolverOnlyMatches() {
         User dev = user("dev", Role.DEV);
         User tester = user("tester", Role.TESTER);
         Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
@@ -164,10 +164,10 @@ class DashboardSummaryServiceTest {
                 new FakeUserRepository(List.of(dev, tester)),
                 new PermissionPolicy());
 
-        assertEquals(List.of(completedIssue.id()), service.relatedIssuesFor(dev).stream()
+        assertEquals(List.of(), service.relatedIssuesFor(dev).stream()
                 .map(IssueSummary::id)
                 .toList());
-        assertEquals(List.of(completedIssue.id()), service.relatedIssuesFor(tester).stream()
+        assertEquals(List.of(), service.relatedIssuesFor(tester).stream()
                 .map(IssueSummary::id)
                 .toList());
     }

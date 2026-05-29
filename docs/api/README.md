@@ -1,10 +1,10 @@
 # Implementation API Specification
 
-Baseline: `origin/dev` at `0d3342a chore: sync project milestone metadata (#159)`.
+Baseline: PR branch based on `origin/dev` at `ac149af chore: PR 제목 표준과 생성 스크립트 정리`.
 
 ## Scope
 
-This directory documents the controller/service public contract currently implemented in the repository. It is reverse-extracted from `origin/dev`; it does not define new behavior.
+This directory documents the controller/service public contract currently implemented in the repository. It is reverse-extracted from implementation; it does not define new behavior.
 
 Statistics controller documentation now lives in `docs/api/statistics-controller.md` and has been rechecked against current code.
 
@@ -29,7 +29,7 @@ Statistics controller documentation now lives in `docs/api/statistics-controller
 | `AccountController` | `createAccount`, `updateAccount`, `renameAccount`, `changeAccountRole`, `activateAccount`, `deactivateAccount` |
 | `AssignmentController` | `startAssignment`, `assignIssue`, `reassignIssue`, `changeVerifier` |
 | `AuthenticationController` | `login`, `logout` |
-| `DashboardController` | `viewRelatedIssues`, `viewProjects`, `viewUsers` |
+| `DashboardController` | `viewRelatedIssues` (disabled), `viewProjects`, `viewUsers` |
 | `DeletedIssueController` | `viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeOverflow` |
 | `IssueController` | `registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewRelatedProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`, `viewAvailableActions`, `canUpdateComment`, `canDeleteComment` |
 | `IssueStateController` | `changeStatus` |

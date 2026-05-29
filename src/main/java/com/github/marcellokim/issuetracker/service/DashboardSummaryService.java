@@ -92,9 +92,7 @@ public final class DashboardSummaryService {
         private static boolean isRelatedIssue(Issue issue, String loginId) {
                 return loginId.equals(issue.reporterId())
                                 || loginId.equals(issue.assigneeId())
-                                || loginId.equals(issue.verifierId())
-                                || loginId.equals(issue.fixerId())
-                                || loginId.equals(issue.resolverId());
+                                || loginId.equals(issue.verifierId());
         }
 
         private static IssueSummary toIssueSummary(Issue issue) {
