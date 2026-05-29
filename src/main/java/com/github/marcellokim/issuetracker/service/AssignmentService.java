@@ -14,32 +14,39 @@ public final class AssignmentService {
     private final IssueRepository issueRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
-    private final AssignmentRecommendationService recommendationService;
+    private final AssignmentRecommendationService assignmentRecommendationService;
     private final Clock clock;
 
     public AssignmentService(
             IssueRepository issueRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
-            AssignmentRecommendationService recommendationService,
+            AssignmentRecommendationService assignmentRecommendationService,
             Clock clock) {
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
-        this.recommendationService = Objects.requireNonNull(recommendationService, "recommendationService");
+        this.assignmentRecommendationService = Objects.requireNonNull(
+                assignmentRecommendationService, "recommendationService");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public AssignmentOptionsResult startAssignment(long issueId, String currentUserId) {
+    public AssignmentOptionsResult startAssignment(long issueId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
-        User actor = findUser(currentUserId);
+        User actor = findUser(loginId);
         assertCanStartAssignment(actor, issue);
-        return recommendationService.recommendAssignmentCandidates(issue);
+        return assignmentRecommendationService.recommendAssignmentCandidates(issue);
     }
 
-    public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId, String currentUserId) {
+    public AssignmentResult assignIssue(long issueId, String assigneeId, String verifierId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
-        User actor = findUser(currentUserId);
+        User actor = findUser(loginId);
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         User verifier = findUser(verifierId);
@@ -61,9 +68,12 @@ public final class AssignmentService {
         return toResult(issue);
     }
 
-    public AssignmentResult reassignIssue(long issueId, String assigneeId, String currentUserId) {
+    public AssignmentResult reassignIssue(long issueId, String assigneeId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
-        User actor = findUser(currentUserId);
+        User actor = findUser(loginId);
         assertCanManageAssignment(actor, issue);
         User assignee = findUser(assigneeId);
         requireActiveProjectMember(
@@ -76,9 +86,12 @@ public final class AssignmentService {
         return toResult(issue);
     }
 
-    public AssignmentResult changeVerifier(long issueId, String verifierId, String currentUserId) {
+    public AssignmentResult changeVerifier(long issueId, String verifierId, String loginId) {
+        if (issueId <= 0L) {
+            throw new IllegalArgumentException("issueId must be positive");
+        }
         Issue issue = findIssue(issueId);
-        User actor = findUser(currentUserId);
+        User actor = findUser(loginId);
         assertCanManageAssignment(actor, issue);
         User verifier = findUser(verifierId);
         requireActiveProjectMember(verifier, issue.projectId(), Role.TESTER,
@@ -124,8 +137,9 @@ public final class AssignmentService {
     }
 
     private User findUser(String userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        String requiredUserId = requireText(userId, "currentUserId");
+        return userRepository.findByLoginId(requiredUserId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + requiredUserId));
     }
 
     private LocalDateTime now() {
@@ -143,5 +157,12 @@ public final class AssignmentService {
 
     private static UserResult toUserResult(User user) {
         return user == null ? null : UserResult.from(user);
+    }
+
+    private static String requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return value.trim();
     }
 }

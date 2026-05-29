@@ -17,6 +17,7 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -44,7 +45,6 @@ class DashboardSummaryServiceTest {
         Issue deletedIssue = issue(102L, IssueStatus.DELETED);
         Map<IssueStatus, Integer> statusCounts = new EnumMap<>(IssueStatus.class);
         statusCounts.put(IssueStatus.NEW, 1);
-        statusCounts.put(IssueStatus.DELETED, 1);
 
         DashboardSummaryService service = new DashboardSummaryService(
                 new FakeProjectRepository(project, List.of(
@@ -56,7 +56,7 @@ class DashboardSummaryServiceTest {
                 new FakeUserRepository(List.of(pl, dev, tester)),
                 new PermissionPolicy());
 
-        DashboardProjectSummary summary = service.projectSummaries().getFirst();
+        DashboardProjectSummary summary = service.projectSummariesFor(pl).getFirst();
 
         assertEquals("project1", summary.projectName());
         assertEquals(3, summary.memberCount());
@@ -66,6 +66,7 @@ class DashboardSummaryServiceTest {
         assertEquals(1, summary.visibleIssueCount());
         assertEquals(1, summary.deletedIssueCount());
         assertEquals(statusCounts, summary.statusCounts());
+        assertEquals(0, summary.statusCounts().getOrDefault(IssueStatus.DELETED, 0));
     }
 
     @Test
@@ -81,9 +82,10 @@ class DashboardSummaryServiceTest {
                 new FakeProjectRepository(
                         List.of(project1, project2),
                         Map.of(
-                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
-                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
-                        )),
+                                project1.getId(),
+                                List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(),
+                                List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW)))),
                 new FakeIssueRepository(List.of(), List.of()),
                 new FakeStatisticsRepository(Map.of()),
                 new FakeUserRepository(List.of(admin, dev, tester)),
@@ -100,48 +102,6 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("admin sees all issues across all projects via relatedIssuesFor")
-    void adminSeesAllRelatedIssues() {
-        User admin = user("admin", Role.ADMIN);
-        User dev = user("dev", Role.DEV);
-        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
-        Issue issue1 = issue(101L, IssueStatus.NEW);
-
-        DashboardSummaryService service = new DashboardSummaryService(
-                new FakeProjectRepository(project1, List.of(
-                        ProjectMember.create(project1.getId(), dev.getLoginId(), NOW))),
-                new FakeIssueRepository(List.of(issue1), List.of()),
-                new FakeStatisticsRepository(Map.of()),
-                new FakeUserRepository(List.of(admin, dev)),
-                new PermissionPolicy());
-
-        List<IssueSummary> issues = service.relatedIssuesFor(admin);
-
-        assertEquals(1, issues.size());
-        assertEquals(101L, issues.getFirst().id());
-    }
-
-    @Test
-    @DisplayName("dev sees only related issues in participating projects via relatedIssuesFor")
-    void devSeesOnlyRelatedIssues() {
-        User dev = user("dev", Role.DEV);
-        Project project1 = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
-        Issue issue1 = issue(101L, IssueStatus.NEW);
-
-        DashboardSummaryService service = new DashboardSummaryService(
-                new FakeProjectRepository(project1, List.of(
-                        ProjectMember.create(project1.getId(), dev.getLoginId(), NOW))),
-                new FakeIssueRepository(List.of(issue1), List.of()),
-                new FakeStatisticsRepository(Map.of()),
-                new FakeUserRepository(List.of(dev)),
-                new PermissionPolicy());
-
-        List<IssueSummary> issues = service.relatedIssuesFor(dev);
-
-        assertEquals(0, issues.size());
-    }
-
-    @Test
     @DisplayName("non-admin dashboard includes only participating projects")
     void nonAdminDashboardIncludesOnlyParticipatingProjects() {
         User dev = user("dev", Role.DEV);
@@ -153,9 +113,10 @@ class DashboardSummaryServiceTest {
                 new FakeProjectRepository(
                         List.of(project1, project2),
                         Map.of(
-                                project1.getId(), List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
-                                project2.getId(), List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW))
-                        )),
+                                project1.getId(),
+                                List.of(ProjectMember.create(project1.getId(), dev.getLoginId(), NOW)),
+                                project2.getId(),
+                                List.of(ProjectMember.create(project2.getId(), tester.getLoginId(), NOW)))),
                 new FakeIssueRepository(List.of(), List.of()),
                 new FakeStatisticsRepository(Map.of()),
                 new FakeUserRepository(List.of(dev, tester)),
@@ -175,10 +136,10 @@ class DashboardSummaryServiceTest {
 
     private static Issue issue(long id, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                        PROJECT_ID,
-                        "Issue " + id,
-                        "Demo issue",
-                        user("reporter", Role.DEV))
+                PROJECT_ID,
+                "Issue " + id,
+                "Demo issue",
+                user("reporter", Role.DEV))
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
@@ -298,7 +259,7 @@ class DashboardSummaryServiceTest {
             return activeIssues.stream()
                     .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title))
                     || deletedIssues.stream()
-                    .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
+                            .anyMatch(issue -> issue.projectId() == projectId && issue.title().equals(title));
         }
 
         @Override
@@ -308,9 +269,9 @@ class DashboardSummaryServiceTest {
                             && issue.projectId() == projectId
                             && issue.title().equals(title))
                     || deletedIssues.stream()
-                    .anyMatch(issue -> issue.id() != excludedIssueId
-                            && issue.projectId() == projectId
-                            && issue.title().equals(title));
+                            .anyMatch(issue -> issue.id() != excludedIssueId
+                                    && issue.projectId() == projectId
+                                    && issue.title().equals(title));
         }
 
         @Override
@@ -345,15 +306,16 @@ class DashboardSummaryServiceTest {
         }
 
         @Override
+        public int purgeDeletedById(long issueId) {
+            throw new UnsupportedOperationException("purgeDeletedById is not needed by DashboardSummaryServiceTest.");
+        }
+
+        @Override
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             throw new UnsupportedOperationException(
                     "purgeDeletedBeyondLimit is not needed by DashboardSummaryServiceTest.");
         }
 
-        @Override
-        public void purge(long issueId) {
-            throw new UnsupportedOperationException("purge is not needed by DashboardSummaryServiceTest.");
-        }
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {
@@ -383,8 +345,7 @@ class DashboardSummaryServiceTest {
         public List<DailyIssueCount> countReportedIssuesByDay(
                 long projectId,
                 LocalDate fromInclusive,
-                LocalDate toInclusive
-        ) {
+                LocalDate toInclusive) {
             return List.of();
         }
 
@@ -397,8 +358,7 @@ class DashboardSummaryServiceTest {
         public List<MonthlyIssueCount> countReportedIssuesByMonth(
                 long projectId,
                 YearMonth fromInclusive,
-                YearMonth toInclusive
-        ) {
+                YearMonth toInclusive) {
             return List.of();
         }
 
@@ -408,9 +368,8 @@ class DashboardSummaryServiceTest {
                 LocalDate dailyFromInclusive,
                 LocalDate dailyToInclusive,
                 YearMonth monthlyFromInclusive,
-                YearMonth monthlyToInclusive
-        ) {
-            return StatisticsReport.create(
+                YearMonth monthlyToInclusive) {
+            return StatisticsReportTestFactory.create(
                     countByStatus(projectId),
                     countByPriority(projectId),
                     List.of(),
@@ -424,11 +383,6 @@ class DashboardSummaryServiceTest {
 
         private FakeUserRepository(List<User> users) {
             this.users = List.copyOf(users);
-        }
-
-        @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
         }
 
         @Override

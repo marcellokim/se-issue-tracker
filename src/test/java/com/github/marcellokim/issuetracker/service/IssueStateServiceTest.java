@@ -154,6 +154,30 @@ class IssueStateServiceTest {
     }
 
     @Test
+    @DisplayName("issue id and current user id are required")
+    void rejectInvalidIssueIdAndBlankCurrentUserId() {
+        var issue = assignedIssue();
+        var service = service(issue);
+        String assigneeLoginId = assignee.getLoginId();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.changeStatus(0L, IssueStatus.FIXED, "Fix completed", assigneeLoginId));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", " "));
+    }
+
+    @Test
+    @DisplayName("deleted issue cannot be changed through normal state workflow")
+    void rejectDeletedIssueStatusChange() {
+        var issue = deletedIssue();
+        var service = service(issue);
+        String assigneeLoginId = assignee.getLoginId();
+
+        assertThrows(SecurityException.class,
+                () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assigneeLoginId));
+    }
+
+    @Test
     @DisplayName("verifier rejects fixed issue back to assigned")
     void rejectFixedIssueBackToAssigned() {
         var fixed = fixedIssue();
@@ -222,7 +246,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("blocking issue가 미해결이면 resolve할 수 없다")
+    @DisplayName("unresolved blocking issue prevents resolve")
     void rejectResolveWhenBlockingIssueUnresolved() {
         var blockedIssue = fixedIssue();
         var blockingIssue = newIssue(2L, "ISSUE-2");
@@ -236,7 +260,7 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("여러 blocking issue 중 하나라도 미해결이면 resolve할 수 없다")
+    @DisplayName("any unresolved blocking issue prevents resolve")
     void rejectResolveWhenAnyBlockingIssueUnresolved() {
         var blockedIssue = fixedIssue();
         var resolvedBlocking = resolvedIssue(2L, "ISSUE-2");
@@ -267,12 +291,13 @@ class IssueStateServiceTest {
                 depRepo,
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now,
+                IssueStateServiceTest::nextCommentId);
     }
 
-    // private Issue newIssue() {
-    // return newIssue(ISSUE_ID, "ISSUE-1");
-    // }
+    private static String nextCommentId() {
+        return "COMMENT-test-" + java.util.UUID.randomUUID();
+    }
 
     private Issue newIssue(long id, String issueId) {
         return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
@@ -281,6 +306,16 @@ class IssueStateServiceTest {
                 .reportedDate(createdAt())
                 .priority(Priority.MAJOR)
                 .status(IssueStatus.NEW)
+                .updatedAt(createdAt()));
+    }
+
+    private Issue deletedIssue() {
+        return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Deleted issue", "Removed", reporter)
+                .id(ISSUE_ID)
+                .issueId("ISSUE-1")
+                .reportedDate(createdAt())
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.DELETED)
                 .updatedAt(createdAt()));
     }
 

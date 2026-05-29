@@ -60,21 +60,6 @@ class AccountServiceTest {
     }
 
     @Test
-    @DisplayName("admin updates account name and role")
-    void adminUpdatesAccount() {
-        InMemoryUserRepository users = new InMemoryUserRepository(
-                admin(),
-                user("dev1", Role.DEV, true));
-        AccountService service = service(users);
-
-        UserResult updated = service.updateAccount("dev1", "Tester 1", Role.TESTER, actor(users, "admin"));
-
-        assertEquals("Tester 1", updated.name());
-        assertEquals(Role.TESTER, updated.role());
-        assertTrue(updated.active());
-    }
-
-    @Test
     @DisplayName("admin renames account without changing role")
     void adminRenamesAccountOnly() {
         InMemoryUserRepository users = new InMemoryUserRepository(
@@ -228,7 +213,7 @@ class AccountServiceTest {
                 () -> service.createAccount(" admin ", "Admin Clone", "TempPassword1!", Role.DEV,
                         actor(users, "admin")));
         assertThrows(IllegalArgumentException.class,
-                () -> service.updateAccount("dev1", "Promoted Admin", Role.ADMIN, actor(users, "admin")));
+                () -> service.changeAccountRole("dev1", Role.ADMIN, actor(users, "admin")));
     }
 
     @Test
@@ -238,15 +223,18 @@ class AccountServiceTest {
         PermissionPolicy policy = new PermissionPolicy();
 
         assertThrows(NullPointerException.class,
-                () -> new AccountService(policy, users, null, new InMemoryIssueRepository(), PASSWORD_HASHER));
+                () -> new AccountService(policy, users, null, new InMemoryIssueRepository(), PASSWORD_HASHER,
+                        java.time.LocalDateTime::now));
         assertThrows(NullPointerException.class,
-                () -> new AccountService(policy, users, new FakeProjectRepository(), null, PASSWORD_HASHER));
+                () -> new AccountService(policy, users, new FakeProjectRepository(), null, PASSWORD_HASHER,
+                        java.time.LocalDateTime::now));
         assertNotNull(new AccountService(
                 policy,
                 users,
                 new FakeProjectRepository(),
                 new InMemoryIssueRepository(),
-                PASSWORD_HASHER));
+                PASSWORD_HASHER,
+                java.time.LocalDateTime::now));
     }
 
     private static AccountService service(InMemoryUserRepository users) {
@@ -257,7 +245,8 @@ class AccountServiceTest {
             InMemoryUserRepository users,
             ProjectRepository projects,
             InMemoryIssueRepository issues) {
-        return new AccountService(new PermissionPolicy(), users, projects, issues, PASSWORD_HASHER);
+        return new AccountService(new PermissionPolicy(), users, projects, issues, PASSWORD_HASHER,
+                java.time.LocalDateTime::now);
     }
 
     private static User actor(InMemoryUserRepository users, String loginId) {

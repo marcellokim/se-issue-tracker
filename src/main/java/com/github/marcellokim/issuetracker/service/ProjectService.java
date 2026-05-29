@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -20,7 +19,7 @@ public final class ProjectService {
     private final PermissionPolicy permissionPolicy;
     private final Clock clock;
 
-    private ProjectService(
+    public ProjectService(
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
             UserRepository userRepository,
@@ -33,28 +32,26 @@ public final class ProjectService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public static ProjectService create(
-            ProjectRepository projectRepository,
-            IssueRepository issueRepository,
-            UserRepository userRepository,
-            PermissionPolicy permissionPolicy,
-            Clock clock) {
-        return new ProjectService(projectRepository, issueRepository, userRepository, permissionPolicy, clock);
+    // Non-Admin -> 단순 프로젝트 기본정보만
+    public ProjectResult viewProjectNonAdminDetail(long projectId, String currentLoginId) {
+        requireProjectId(projectId);
+        User actor = findUser(currentLoginId);
+        Project project = findProject(projectId);
+        requireNonAdminProjectParticipant(actor, projectId);
+        return ProjectResult.from(project);
     }
 
-    public List<ProjectResult> viewProjects(String currentUserId) {
-        requireProjectAdmin(currentUserId);
-        return projectRepository.findAll().stream()
-                .map(ProjectResult::from)
-                .toList();
-    }
-
-    public ProjectResult viewProject(long projectId, String currentUserId) {
+    // Admin 기능 -> 프로젝트 기본정보 + 참여자 정보
+    public ProjectAdminDetail viewProjectAdminDetail(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
-        return ProjectResult.from(findProject(projectId));
+        Project project = findProject(projectId);
+        return ProjectAdminDetail.create(
+                ProjectResult.from(project),
+                participantResults(projectId));
     }
 
+    // 일단 controller쪽에서 중복 기능인데 남기는쪽으로
     public List<ProjectMemberResult> viewProjectParticipants(long projectId, String currentUserId) {
         requireProjectId(projectId);
         requireProjectAdmin(currentUserId);
@@ -62,29 +59,45 @@ public final class ProjectService {
         return participantResults(projectId);
     }
 
-    public ProjectDetail viewProjectDetail(long projectId, String currentUserId) {
-        requireProjectId(projectId);
-        requireProjectAdmin(currentUserId);
-        Project project = findProject(projectId);
-        return ProjectDetail.create(
-                ProjectResult.from(project),
-                participantResults(projectId),
-                issueRepository.findByProject(projectId).stream()
-                        .map(ProjectService::toIssueSummary)
-                        .toList());
-    }
-
     public ProjectResult createProject(String name, String description, String currentUserId) {
         User admin = requireProjectAdmin(currentUserId);
         String projectName = requireProjectName(name);
-        rejectDuplicateProjectName(projectName);
+        String projectDescription = requireProjectDescription(description);
+        rejectProjectNameAlreadyUsed(projectName);
 
         LocalDateTime now = clock.now();
         return ProjectResult.from(projectRepository.save(Project.create(
                 projectName,
-                description,
+                projectDescription,
                 admin.getLoginId(),
                 now)));
+    }
+
+    public ProjectResult renameProject(long projectId, String name, String currentUserId) {
+        requireProjectId(projectId);
+        requireProjectAdmin(currentUserId);
+        Project project = findProject(projectId);
+        String projectName = requireProjectName(name);
+        rejectProjectNameUsedByAnotherProject(projectName, projectId);
+        if (Objects.equals(project.getName(), projectName)) {
+            throw new IllegalArgumentException("Project name is same as current name.");
+        }
+
+        project.rename(projectName, clock.now());
+        return ProjectResult.from(projectRepository.save(project));
+    }
+
+    public ProjectResult changeProjectDescription(long projectId, String description, String currentUserId) {
+        requireProjectId(projectId);
+        requireProjectAdmin(currentUserId);
+        Project project = findProject(projectId);
+        String projectDescription = requireProjectDescription(description);
+        if (Objects.equals(project.getDescription(), projectDescription)) {
+            throw new IllegalArgumentException("Project description is same as current description.");
+        }
+
+        project.changeDescription(projectDescription, clock.now());
+        return ProjectResult.from(projectRepository.save(project));
     }
 
     public void deleteProject(long projectId, String currentUserId) {
@@ -141,8 +154,24 @@ public final class ProjectService {
 
     private User findUser(String loginId) {
         String requiredLoginId = requireText(loginId, "loginId");
-        return userRepository.findById(requiredLoginId)
+        return userRepository.findByLoginId(requiredLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("User was not found."));
+    }
+
+    private void requireNonAdminProjectParticipant(User actor, long projectId) {
+        Objects.requireNonNull(actor, "actor");
+
+        if (!actor.isActive()) {
+            throw new SecurityException("Only active users can view project.");
+        }
+
+        if (actor.getRole() == Role.ADMIN) {
+            throw new SecurityException("ADMIN must use admin project detail.");
+        }
+
+        if (!isParticipant(projectRepository.findParticipants(projectId), actor.getLoginId())) {
+            throw new SecurityException("Only project participants can view project.");
+        }
     }
 
     private List<ProjectMemberResult> participantResults(long projectId) {
@@ -151,10 +180,18 @@ public final class ProjectService {
                 .toList();
     }
 
-    private void rejectDuplicateProjectName(String projectName) {
+    private void rejectProjectNameAlreadyUsed(String projectName) {
         projectRepository.findByName(projectName).ifPresent(existingProject -> {
             throw new IllegalArgumentException("Project name already exists.");
         });
+    }
+
+    private void rejectProjectNameUsedByAnotherProject(String projectName, long projectId) {
+        projectRepository.findByName(projectName)
+                .filter(existingProject -> existingProject.getId() != projectId)
+                .ifPresent(existingProject -> {
+                    throw new IllegalArgumentException("Project name already exists.");
+                });
     }
 
     private void rejectDuplicateParticipant(List<ProjectMember> participants, String loginId) {
@@ -190,6 +227,10 @@ public final class ProjectService {
         return requireText(name, "name");
     }
 
+    private static String requireProjectDescription(String description) {
+        return requireText(description, "description");
+    }
+
     private static String requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
@@ -201,21 +242,6 @@ public final class ProjectService {
         return participants.stream()
                 .map(ProjectMember::userId)
                 .anyMatch(loginId::equals);
-    }
-
-    private static IssueSummary toIssueSummary(Issue issue) {
-        return new IssueSummary(
-                issue.id(),
-                issue.getIssueId(),
-                issue.projectId(),
-                issue.status(),
-                issue.priority(),
-                issue.title(),
-                issue.reporterId(),
-                issue.assigneeId(),
-                issue.verifierId(),
-                issue.reportedDate(),
-                issue.updatedAt());
     }
 
 }

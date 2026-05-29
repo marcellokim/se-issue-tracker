@@ -1,7 +1,7 @@
 @startuml its_dcd_ver1
 !include ../_shared/its-uml-style.puml
 
-title Issue Tracking System - Design Class Diagram
+title Issue Tracking System - DCD ver1: Current Layered Implementation
 
 left to right direction
 hide circle
@@ -10,337 +10,436 @@ skinparam linetype ortho
 skinparam packageStyle rectangle
 skinparam nodesep 35
 skinparam ranksep 45
-scale 0.48
+scale 0.52
 
 legend left
-  == Type Notation ==
-  class: concrete class unless marked abstract
-  interface: contract type, implemented elsewhere
-  enum: enumeration value type
-  abstract class: <<abstract>> / italic name
-  note: no abstract class is currently required
-  == Visibility Notation ==
-  + public operation
-  - private attribute
-  # protected member
-  / derived attribute
-  note: no protected or derived members are currently required
+  == Purpose ==
+  ver1 shows the current implementation layers and dependency direction.
+  UI files are intentionally not modeled as completed JavaFX/Swing views.
+  Presentation/CLI boundaries must call controllers, not services/repositories.
+
+  == Dependency Rule ==
+  Controller -> Service -> Repository ports / Domain / Service ports
+  Persistence implements repository ports.
+  Technical adapters implement service ports.
+  ApplicationBootstrap is the composition root.
 endlegend
 
-package "Presentation Layer\n(concrete boundary)" #E3F2FD {
-  class JavaFxIssueView <<boundary>> {
-    +logIn(loginId, password)
-    +registerIssue(title, description, priority)
-    +addComment(issueId, content)
-    +searchIssues(filters)
-    +viewIssueDetail(issueId)
-    +assignIssue(issueId, assigneeId, verifierId)
-    +changeIssueState(issueId, targetStatus, comment)
-    +deleteIssue(issueId)
-    +restoreIssue(issueId)
-    +changePriority(issueId, newPriority)
-    +addDependency(blockingIssueId, blockedIssueId)
-    +viewStatistics(period, filters)
+package "Presentation / Entry Points" #E3F2FD {
+  class Main <<boundary>> {
+    +main(args)
   }
 
-  class SwingAdminView <<boundary>> {
-    +logIn(loginId, password)
-    +createAccount(loginId, name, password, role)
-    +updateAccount(loginId, name, role)
-    +deactivateAccount(loginId)
-    +createProject(name, description)
-    +deleteProject(projectId)
-    +addProjectParticipant(projectId, loginId)
-    +removeProjectParticipant(projectId, loginId)
-    +viewStatistics(period, filters)
+  class CommandLineEntryPoint <<boundary>> {
+    +main(args)
   }
 
-  note bottom of JavaFxIssueView
-  JavaFX boundary는 일반 사용자 이슈 흐름
-  UC1-UC10의 핵심 issue workflow를 대표한다.
-  end note
-
-  note bottom of SwingAdminView
-  Swing boundary는 Admin 중심의
-  account/project 관리 UI를 대표한다.
-  end note
+  class ConsoleCliOutput <<boundary>>
 }
 
-package "Application Layer\n(concrete controllers)" #FFF8E1 {
-  class IssueController <<control>> {
-    +registerIssue(title, description, priority): IssueDto
-    +addComment(issueId, content): CommentDto
-    +searchIssues(filters): List<IssueDto>
-    +viewIssueDetail(issueId): IssueDto
-    +editIssue(issueId, title, description): IssueDto
-    +changePriority(issueId, newPriority): IssueDto
-    +addDependency(blockingIssueId, blockedIssueId): DependencyDto
-    +removeDependency(dependencyId): void
+package "Composition Root / Runtime Config" #E8EAF6 {
+  class ApplicationBootstrap <<composition-root>> {
+    -context: RepositoryContext
+    -passwordHashing: PasswordHashing
+    +startUiContext(): ApplicationContext
+    +loginCheckService(): LoginCheckService
+    +repositoryDemoSummaryService(): RepositoryDemoSummaryService
+    +databaseConnectionSummary(): DatabaseConnectionSummary
   }
 
-  class AssignmentController <<control>> {
-    +startAssignment(issueId): AssignmentOptions
-    +assignIssue(issueId, assigneeId, verifierId): IssueDto
-    +reassignIssue(issueId, assigneeId): IssueDto
-    +changeVerifier(issueId, verifierId): IssueDto
+  class ApplicationContext <<runtime-context>> {
+    +authenticationController(): AuthenticationController
+    +accountController(): AccountController
+    +dashboardController(): DashboardController
+    +projectController(): ProjectController
+    +issueController(): IssueController
+    +assignmentController(): AssignmentController
+    +issueStateController(): IssueStateController
+    +deletedIssueController(): DeletedIssueController
+    +statisticsController(): StatisticsController
+  }
+}
+
+package "Controller Layer\n(system operation receivers)" #FFF8E1 {
+  class AuthenticationController <<control>> {
+    +login(loginId, password): AuthenticationResult
+    +logout(): void
   }
 
-  class IssueStateController <<control>> {
-    +changeStatus(issueId, targetStatus, comment): IssueDto
-  }
-
-  class DeletedIssueController <<control>> {
-    +viewDeletedIssues(projectId): List<IssueDto>
-    +deleteIssue(issueId): IssueDto
-    +restoreIssue(issueId): IssueDto
-    -enforceDeletedLimit(max): void
+  class DashboardController <<control>> {
+    +viewProjects(): List<DashboardProjectSummary>
+    +viewUsers(): List<UserResult>
   }
 
   class AccountController <<control>> {
-    +logIn(loginId, password): void
-    +createAccount(loginId, name, password, role): UserDto
-    +updateAccount(loginId, name, role): UserDto
-    +deactivateAccount(loginId): UserDto
+    +createAccount(loginId, name, password, role): UserResult
+    +renameAccount(loginId, name): UserResult
+    +changeAccountRole(loginId, role): UserResult
+    +activateAccount(loginId): UserResult
+    +deactivateAccount(loginId): UserResult
   }
 
   class ProjectController <<control>> {
-    +viewProjects(): List<ProjectDto>
-    +viewProject(projectId): ProjectDto
-    +viewProjectParticipants(projectId): List<ProjectMemberDto>
-    +viewProjectDetail(projectId): ProjectDetail
-    +createProject(name, description): ProjectDto
+    +viewProjectNonAdminDetail(projectId): ProjectResult
+    +viewProjectAdminDetail(projectId): ProjectAdminDetail
+    +viewProjectParticipants(projectId): List<ProjectMemberResult>
+    +createProject(name, description): ProjectResult
+    +renameProject(projectId, name): ProjectResult
+    +changeProjectDescription(projectId, description): ProjectResult
     +deleteProject(projectId): void
-    +addProjectParticipant(projectId, loginId): ProjectDto
-    +removeProjectParticipant(projectId, loginId): ProjectDto
+    +addProjectParticipant(projectId, loginId): void
+    +removeProjectParticipant(projectId, loginId): void
+  }
+
+  class IssueController <<control>> {
+    +registerIssue(projectId, title, description, priority): IssueResult
+    +viewIssueDetail(issueId): IssueDetailResult
+    +searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo): List<IssueSummary>
+    +viewRelatedProjectIssues(projectId): List<IssueSummary>
+    +updateIssue(issueId, title, description): IssueResult
+    +changePriority(issueId, priority): IssueResult
+    +addComment(issueId, content): CommentResult
+    +viewComments(issueId): List<CommentResult>
+    +updateComment(issueId, commentId, content): CommentResult
+    +deleteComment(issueId, commentId): void
+    +addDependency(blockingIssueId, blockedIssueId): DependencyResult
+    +viewProjectDependencies(projectId): List<DependencyResult>
+    +removeDependency(blockingIssueId, blockedIssueId): void
+  }
+
+  class AssignmentController <<control>> {
+    +startAssignment(issueId): AssignmentOptionsResult
+    +assignIssue(issueId, assigneeId, verifierId): AssignmentResult
+    +reassignIssue(issueId, assigneeId): AssignmentResult
+    +changeVerifier(issueId, verifierId): AssignmentResult
+  }
+
+  class IssueStateController <<control>> {
+    +changeStatus(issueId, targetStatus, comment): IssueStateResult
+  }
+
+  class DeletedIssueController <<control>> {
+    +viewDeletedIssues(projectId): List<IssueSummary>
+    +deleteIssue(issueId, comment): IssueSummary
+    +restoreIssue(issueId, comment): IssueSummary
+    +purgeOverflow(projectId): int
+    +purgeDeletedIssue(issueId): void
   }
 
   class StatisticsController <<control>> {
-    +viewStatistics(period, filters): StatisticsDto
+    +viewStatistics(projectId): StatisticsReportResult
+    +viewStatistics(projectId, dailyFrom, dailyTo, monthlyFrom, monthlyTo): StatisticsReportResult
   }
 }
 
-package "Application Services / Policies\n(concrete services and policies)" #FFF3E0 {
+package "Service Layer\n(application services, policies, ports, DTO/results)" #FFF3E0 {
   class AuthenticationService <<service>> {
-    +currentUser(): User
-    +logIn(loginId, password): User
+    +login(loginId, password): AuthenticationResult
+    +logout(): void
+    +currentUser(): Optional<User>
   }
 
-  class PermissionPolicy <<policy>> {
-    +verifyPermission(user, operation, resource): boolean
-    +assertCanRegisterIssue(user, project): void
-    +assertCanAssignIssue(user, issue): void
-    +assertCanChangeStatus(user, issue, targetStatus): void
-    +assertCanManageDeletedIssue(user, issue): void
-    +assertCanManageDependency(user, issue): void
-    +assertCanChangePriority(user, issue): void
-    +assertCanManageAccount(user): void
-    +assertCanManageProject(user): void
-    +assertCanViewStatistics(user, filters): void
+  class DashboardSummaryService <<service>> {
+    +projectSummariesFor(user): List<DashboardProjectSummary>
+    +usersFor(user): List<UserResult>
+  }
+
+  class AccountService <<service>> {
+    +createAccount(loginId, name, password, role, actor): UserResult
+    +renameAccount(loginId, name, actor): UserResult
+    +changeAccountRole(loginId, role, actor): UserResult
+    +activateAccount(loginId, actor): UserResult
+    +deactivateAccount(loginId, actor): UserResult
+  }
+
+  class ProjectService <<service>> {
+    +viewProjectNonAdminDetail(projectId, currentLoginId): ProjectResult
+    +viewProjectAdminDetail(projectId, currentLoginId): ProjectAdminDetail
+    +viewProjectParticipants(projectId, currentLoginId): List<ProjectMemberResult>
+    +createProject(name, description, currentLoginId): ProjectResult
+    +renameProject(projectId, name, currentLoginId): ProjectResult
+    +changeProjectDescription(projectId, description, currentLoginId): ProjectResult
+    +deleteProject(projectId, currentLoginId): void
+    +addProjectParticipant(projectId, loginId, currentLoginId): void
+    +removeProjectParticipant(projectId, loginId, currentLoginId): void
   }
 
   class IssueService <<service>> {
-    +registerIssue(projectId, title, description, priority, currentUserId): IssueResult
-    +addComment(issueId, content, currentUserId): CommentResult
+    +registerIssue(projectId, title, description, priority, currentLoginId): IssueResult
+    +viewIssueDetail(issueId, currentLoginId): IssueDetailResult
+    +searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo, currentLoginId): List<IssueSummary>
+    +viewRelatedProjectIssues(projectId, currentLoginId): List<IssueSummary>
+    +updateIssue(issueId, title, description, currentLoginId): IssueResult
+    +changePriority(issueId, priority, currentLoginId): IssueResult
+    +addComment(issueId, content, currentLoginId): CommentResult
+    +viewComments(issueId, currentLoginId): List<CommentResult>
+    +updateComment(issueId, commentId, content, currentLoginId): CommentResult
+    +deleteComment(issueId, commentId, currentLoginId): void
+    +addDependency(blockingIssueId, blockedIssueId, currentLoginId): DependencyResult
+    +viewProjectDependencies(projectId, currentLoginId): List<DependencyResult>
+    +removeDependency(blockingIssueId, blockedIssueId, currentLoginId): void
   }
 
   class AssignmentService <<service>> {
-    +startAssignment(issueId, currentUserId): AssignmentOptions
-    +assignIssue(issueId, assigneeId, verifierId, currentUserId): AssignmentResult
-    +reassignIssue(issueId, assigneeId, currentUserId): AssignmentResult
-    +changeVerifier(issueId, verifierId, currentUserId): AssignmentResult
-  }
-
-  class IssueStateService <<service>> {
-    +changeStatus(issueId, targetStatus, comment, currentUserId): IssueStateResult
-  }
-
-  class DeletedIssueService <<service>> {
-    +viewDeletedIssues(projectId, actor): List<Issue>
-    +deleteIssue(issueId, comment, actor): Issue
-    +restoreIssue(issueId, comment, actor): Issue
-    +purgeOverflow(projectId, actor): int
-  }
-
-  class AccountService <<service>>
-
-  class ProjectService <<service>> {
-    +viewProjects(currentUserId): List<Project>
-    +viewProject(projectId, currentUserId): Project
-    +viewProjectParticipants(projectId, currentUserId): List<ProjectMember>
-    +viewProjectDetail(projectId, currentUserId): ProjectDetail
-    +createProject(name, description, currentUserId): Project
-    +deleteProject(projectId, currentUserId): void
-    +addProjectParticipant(projectId, loginId, currentUserId): void
-    +removeProjectParticipant(projectId, loginId, currentUserId): void
-  }
-
-  class ProjectDetail <<read model>> {
-    +project(): Project
-    +participants(): List<ProjectMember>
-    +issues(): List<Issue>
+    +startAssignment(issueId, loginId): AssignmentOptionsResult
+    +assignIssue(issueId, assigneeId, verifierId, loginId): AssignmentResult
+    +reassignIssue(issueId, assigneeId, loginId): AssignmentResult
+    +changeVerifier(issueId, verifierId, loginId): AssignmentResult
   }
 
   class AssignmentRecommendationService <<service>> {
-    +recommendAssignmentCandidates(issue): AssignmentOptions
-    +findDevAssigneeCandidates(issue): List<User>
-    +findTesterVerifierCandidates(issue): List<User>
+    +recommendAssignmentCandidates(issue): AssignmentOptionsResult
+  }
+
+  class IssueStateService <<service>> {
+    +changeStatus(issueId, targetStatus, comment, currentLoginId): IssueStateResult
+  }
+
+  class DeletedIssueService <<service>> {
+    +viewDeletedIssues(projectId, actor): List<IssueSummary>
+    +deleteIssue(issueId, comment, actor): IssueSummary
+    +restoreIssue(issueId, comment, actor): IssueSummary
+    +purgeOverflow(projectId, actor): int
+    +purgeDeletedIssue(issueId, actor): void
   }
 
   class StatisticsService <<service>> {
-    +viewStatistics(projectId, dailyFromInclusive, dailyToInclusive, monthlyFromInclusive, monthlyToInclusive, actor): StatisticsReport
+    +viewStatistics(projectId, dailyFrom, dailyTo, monthlyFrom, monthlyTo, actor): StatisticsReportResult
   }
 
-  class Clock <<service>> {
-    +now(): DateTime
+  class LoginCheckService <<service>>
+  class RepositoryDemoSummaryService <<service>>
+
+  class PermissionPolicy <<policy>> {
+    +assertCanRegisterIssue(user, project): void
+    +assertCanViewIssue(user): void
+    +assertCanAssignIssue(user, issue): void
+    +assertCanAddComment(user, issue): void
+    +assertCanUpdateIssue(user, issue): void
+    +assertCanChangeStatus(user, issue, targetStatus): void
+    +assertCanManageDeletedIssue(user, issue): void
+    +assertCanManageDeletedIssue(user, projectId): void
+    +assertCanManageDependency(user, issue): void
+    +assertCanChangePriority(user, issue): void
+    +assertCanUpdateComment(user, comment): void
+    +assertCanDeleteComment(user, comment): void
+    +assertCanManageAccount(user): void
+    +assertCanManageProject(user): void
+    +canViewAllProjects(user): boolean
+    +canViewAllUsers(user): boolean
+    +canViewAllProjectIssues(user): boolean
+    +assertCanViewStatistics(user): void
   }
+
+  interface Clock <<port>> {
+    +now(): LocalDateTime
+  }
+
+  interface CurrentUserSession <<port>> {
+    +start(user): void
+    +currentUser(): Optional<User>
+    +clear(): void
+  }
+
+  interface CommentIdProvider <<port>> {
+    +nextCommentId(): String
+  }
+
+  interface PasswordHashing <<port>> {
+    +hash(password): String
+    +matches(password, passwordHash): boolean
+  }
+
+  class IssueResult <<result>>
+  class IssueSummary <<result>>
+  class IssueDetailResult <<result>>
+  class CommentResult <<result>>
+  class HistoryResult <<result>>
+  class DependencyResult <<result>>
+  class AssignmentResult <<result>>
+  class AssignmentOptionsResult <<result>>
+  class AssignmentCandidateResult <<result>>
+  class IssueStateResult <<result>>
+  class ProjectResult <<result>>
+  class ProjectAdminDetail <<result>>
+  class ProjectMemberResult <<result>>
+  class DashboardProjectSummary <<result>>
+  class UserResult <<result>>
+  class StatisticsReportResult <<result>>
 }
 
-package "Repository Interfaces\n(interfaces / contracts)" #F8FAFC {
-  interface ProjectRepository <<interface>> {
-    +findById(projectId): Project
-    +findByName(name): Project
+package "Repository Ports" #F8FAFC {
+  interface UserRepository <<repository-port>> {
+    +findByLoginId(loginId): Optional<User>
+    +findAll(): List<User>
+    +findByRole(projectId, role): List<User>
+    +findActiveByRole(projectId, role): List<User>
+    +save(user): User
+  }
+
+  interface ProjectRepository <<repository-port>> {
+    +findById(projectId): Optional<Project>
+    +findByName(name): Optional<Project>
     +findAll(): List<Project>
     +findParticipants(projectId): List<ProjectMember>
-    +save(project): void
+    +existsByParticipant(loginId): boolean
+    +save(project): Project
     +deleteById(projectId): void
     +addParticipant(projectId, loginId): void
     +removeParticipant(projectId, loginId): void
   }
 
-  interface IssueRepository <<interface>> {
-    +findById(issueId): Issue
+  interface IssueRepository <<repository-port>> {
+    +findById(issueId): Optional<Issue>
     +findByProject(projectId): List<Issue>
     +findDeletedByProject(projectId): List<Issue>
-    +findByCriteria(filters): List<Issue>
-    +save(issue): void
-    +deleteDependency(dependency): void
-    +purge(issue): void
+    +findByCriteria(criteria): List<Issue>
+    +existsByProjectIdAndTitle(projectId, title): boolean
+    +existsByProjectIdAndTitleExcludingIssueId(projectId, title, issueId): boolean
+    +existsByResponsibleUser(loginId): boolean
+    +existsActiveAssignmentByProjectAndUser(projectId, loginId): boolean
+    +save(issue): Issue
+    +softDelete(issueId, actorId, comment, now): Issue
+    +restore(issueId, actorId, comment, now): Issue
+    +purgeDeletedBeyondLimit(projectId, max): int
+    +purgeDeletedById(issueId): int
   }
 
-  interface UserRepository <<interface>> {
-    +findById(loginId): User
-    +findActiveByRole(projectId, role): List<User>
-    +save(user): void
+  interface CommentRepository <<repository-port>> {
+    +save(comment): Comment
+    +findByIssueId(issueId): List<Comment>
+    +update(comment): Comment
+    +deleteById(commentId): void
   }
+
+  interface IssueHistoryRepository <<repository-port>> {
+    +save(history): IssueHistory
+    +findByIssueId(issueId): List<IssueHistory>
+  }
+
+  interface IssueDependencyRepository <<repository-port>> {
+    +saveAndRecordIssueChange(dependency, blockedIssue): IssueDependency
+    +findByProjectId(projectId): List<IssueDependency>
+    +findByBlockedIssueId(issueId): List<IssueDependency>
+    +findByBlockingIssueId(issueId): List<IssueDependency>
+    +deleteAndRecordIssueChange(dependency, blockedIssue): void
+  }
+
+  interface StatisticsRepository <<repository-port>>
+  interface AssignmentRecommendationRepository <<repository-port>>
 }
 
-package "Technical Services\n(concrete adapters and security support)" #F3E5F5 {
-  class JdbcProjectRepository <<repository>> {
+package "Persistence Adapters" #E0F2F1 {
+  class JdbcRepositoryFactory <<factory>> {
     -connectionProvider: DatabaseConnectionProvider
-    +deleteById(projectId): void
+    -passwordHashing: PasswordHashing
+    +users(): UserRepository
+    +projects(): ProjectRepository
+    +issues(): IssueRepository
+    +comments(): CommentRepository
+    +issueHistory(): IssueHistoryRepository
+    +issueDependencies(): IssueDependencyRepository
+    +statistics(): StatisticsRepository
+    +assignmentRecommendations(): AssignmentRecommendationRepository
   }
 
-  class JdbcIssueRepository <<repository>> {
-    -connectionProvider: DatabaseConnectionProvider
-  }
-
-  class JdbcUserRepository <<repository>> {
-    -connectionProvider: DatabaseConnectionProvider
-  }
-
-  class DatabaseConnectionProvider <<service>> {
-    +getConnection(): Connection
-  }
-
-  class PasswordHasher <<service>> {
-    +hash(password): String
-    +matches(password, passwordHash): boolean
-  }
-
-  class SessionStore <<service>> {
-    +startSession(user): void
-    +currentUser(): User
-    +clear(): void
-  }
+  class JdbcUserRepository <<adapter>>
+  class JdbcProjectRepository <<adapter>>
+  class JdbcIssueRepository <<adapter>>
+  class JdbcCommentRepository <<adapter>>
+  class JdbcIssueHistoryRepository <<adapter>>
+  class JdbcIssueDependencyRepository <<adapter>>
+  class JdbcStatisticsRepository <<adapter>>
+  class JdbcAssignmentRecommendationRepository <<adapter>>
 }
 
-package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
+package "Technical Adapters" #F3E5F5 {
+  class SystemClock <<adapter>>
+  class SessionStore <<adapter>>
+  class CommentIdGenerator <<adapter>>
+  class PasswordHasher <<adapter>>
+  class DriverManagerConnectionProvider <<adapter>>
+  interface DatabaseConnectionProvider <<port>>
+}
+
+package "Domain Layer" #F1F8E9 {
+  class User <<entity>> {
+    -loginId: String
+    -name: String
+    -passwordHash: String
+    -role: Role
+    -active: boolean
+    +rename(name, changedAt): void
+    +changeRole(role, changedAt): void
+    +activate(changedAt): void
+    +deactivate(changedAt): void
+  }
+
   class Project <<entity>> {
-    -projectId: ProjectId
-    -name: Text
-    -description: Text
-    -createdDate: DateTime
+    -id: long
+    -name: String
+    -description: String
+    -managedByLoginId: String
     +rename(newName, updatedAt): void
     +changeDescription(newDescription, updatedAt): void
   }
 
-  class Issue <<aggregate root>> {
-    -issueId: IssueId
-    -title: Text
-    -description: Text
-    -reportedDate: DateTime
-    -priority: Priority
+  class ProjectMember <<entity>>
+
+  class Issue <<aggregate-root>> {
+    -id: long
+    -projectId: long
+    -issueId: String
+    -title: String
+    -description: String
     -status: IssueStatus
-    -reporter: User
-    -assignee: User
-    -verifier: User
-    -fixer: User
-    -resolver: User
+    -priority: Priority
     +create(state): Issue
     +fromPersistence(state): Issue
-    +updateTitleAndDescription(title, description, changedBy, now): void
-    +addComment(content, writer, now): Comment
-    +addHistory(history): void
-    +verifyPriorityChange(newPriority): ValidationResult
-    +changePriority(newPriority, changedBy, now): void
-    +getAssignmentContext(): AssignmentContext
-    +assignFromNew(assignee, verifier, changedBy, now): void
-    +assignReopened(assignee, verifier, changedBy, now): void
-    +reassignAssignee(assignee, changedBy, now): void
-    +changeVerifier(verifier, changedBy, now): void
-    +markFixed(dev, comment, now): void
-    +checkResolvePreconditions(tester, comment): ValidationResult
-    +resolve(tester, comment, now): void
-    +verifyRejectFixPreconditions(tester, comment): ValidationResult
-    +rejectFix(tester, comment, now): void
-    +verifyClosePreconditions(pl, comment): ValidationResult
-    +close(pl, comment, now): void
-    +verifyReopenPreconditions(pl, comment): ValidationResult
-    +reopen(pl, comment, now): void
-    +clearAssignee(): void
-    +clearVerifier(): void
-    +softDelete(pl, now): void
-    +restore(pl, now): void
-    +findDeleteStatusHistory(): IssueHistory
-    +validateDependencyCandidate(blockingIssue): ValidationResult
-    +addDependency(blockingIssue, changedBy, now): IssueDependency
-    +removeDependency(dependency, changedBy, now): void
-  }
-
-  class User <<entity>> {
-    -loginId: Text
-    -name: Text
-    -passwordHash: Text
-    -role: Role
-    -isActive: boolean
-    +hasRole(role): boolean
-    +isActive(): boolean
+    +assignFromNew(assignee, verifier, changedBy, changedDate): void
+    +assignReopened(assignee, verifier, changedBy, changedDate): void
+    +reassignAssignee(assignee, changedBy, changedDate): void
+    +changeVerifier(verifier, changedBy, changedDate): void
+    +markFixed(fixer, comment, changedDate): void
+    +resolve(resolver, comment, changedDate): void
+    +rejectFix(tester, comment, changedDate): void
+    +close(changedBy, comment, changedDate): void
+    +reopen(changedBy, comment, changedDate): void
+    +changePriority(priority, changedBy, changedDate): void
+    +updateTitleAndDescription(title, description, changedBy, changedDate): void
+    +addComment(commentId, content, writer, createdDate, purpose): Comment
+    +recordCommentDeletion(comment, changedBy, changedDate): void
+    +addDependency(dependencyId, blockingIssue, changedBy, changedDate): IssueDependency
+    +removeDependency(dependency, changedBy, changedDate): void
   }
 
   class Comment <<entity>> {
-    -commentId: CommentId
-    -content: Text
-    -createdDate: DateTime
-    -writer: User
+    -id: long
+    -commentId: String
+    -content: String
+    -purpose: CommentPurpose
+    +changeContent(newContent, changedAt): void
   }
 
   class IssueHistory <<entity>> {
-    -historyId: HistoryId
-    -action: ActionType
-    -previousValue: Text
-    -newValue: Text
-    -changedBy: User
-    -changedDate: DateTime
-    -message: Text
+    -actionType: ActionType
+    -previousValue: String
+    -newValue: String
+    -message: String
   }
 
   class IssueDependency <<entity>> {
-    -dependencyId: DependencyId
-    -blockingIssue: Issue
-    -blockedIssue: Issue
-    -discoveredDate: DateTime
-    +removeBlockingAndBlockedAssociations(): void
+    -dependencyId: String
+    -blockingIssueId: long
+    -blockedIssueId: long
+    +dependencyIdFor(blockingIssueId, blockedIssueId): String
   }
+
+  class IssueSearchCriteria <<value-object>>
+  class AssignmentCandidate <<value-object>>
+  class AssignmentOptions <<value-object>>
+  class StatisticsReport <<value-object>>
+  class ValidationResult <<value-object>>
 
   enum Role {
     ADMIN
@@ -367,6 +466,11 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     TRIVIAL
   }
 
+  enum CommentPurpose {
+    GENERAL
+    STATUS_CHANGE
+  }
+
   enum ActionType {
     CREATED
     TITLE_DESCRIPTION_UPDATED
@@ -376,121 +480,145 @@ package "Domain Layer\n(concrete entities, value objects, enums)" #F1F8E9 {
     DEPENDENCY_CHANGED
     COMMENTED
   }
-
-  class AssignmentOptions <<value object>>
-  class AssignmentContext <<value object>>
-  class ValidationResult <<value object>>
-  class StatisticsReport <<value object>>
 }
 
-JavaFxIssueView --> IssueController
-JavaFxIssueView --> AccountController
-JavaFxIssueView --> AssignmentController
-JavaFxIssueView --> IssueStateController
-JavaFxIssueView --> DeletedIssueController
-JavaFxIssueView --> StatisticsController
+Main --> ApplicationBootstrap
+CommandLineEntryPoint --> ApplicationBootstrap
+ApplicationBootstrap --> ApplicationContext
+ApplicationBootstrap ..> JdbcRepositoryFactory
+ApplicationBootstrap ..> PasswordHasher
+ApplicationBootstrap ..> SessionStore
+ApplicationBootstrap ..> SystemClock
+ApplicationBootstrap ..> CommentIdGenerator
+ApplicationBootstrap ..> DriverManagerConnectionProvider
 
-SwingAdminView --> AccountController
-SwingAdminView --> ProjectController
-SwingAdminView --> StatisticsController
+AuthenticationController --> AuthenticationService
+DashboardController --> DashboardSummaryService
+AccountController --> AuthenticationService
+AccountController --> AccountService
+ProjectController --> AuthenticationService
+ProjectController --> ProjectService
+IssueController --> AuthenticationService
+IssueController --> IssueService
+AssignmentController --> AuthenticationService
+AssignmentController --> AssignmentService
+IssueStateController --> AuthenticationService
+IssueStateController --> IssueStateService
+DeletedIssueController --> AuthenticationService
+DeletedIssueController --> DeletedIssueService
+StatisticsController --> AuthenticationService
+StatisticsController --> StatisticsService
 
-IssueController ..> AuthenticationService
-IssueController ..> IssueService
-
-AssignmentController ..> AuthenticationService
-AssignmentController ..> AssignmentService
-
-IssueStateController ..> AuthenticationService
-IssueStateController ..> IssueStateService
-
-DeletedIssueController ..> AuthenticationService
-DeletedIssueController ..> DeletedIssueService
-
-AccountController ..> AuthenticationService
-AccountController ..> AccountService
-
-ProjectController ..> AuthenticationService
-ProjectController ..> ProjectService
-
-StatisticsController ..> AuthenticationService
-StatisticsController ..> StatisticsService
-
-IssueService ..> PermissionPolicy
-IssueService ..> ProjectRepository
-IssueService ..> IssueRepository
-IssueService ..> UserRepository
-IssueService ..> Clock
-
-AssignmentService ..> PermissionPolicy
-AssignmentService ..> AssignmentRecommendationService
-AssignmentService ..> IssueRepository
-AssignmentService ..> UserRepository
-AssignmentService ..> Clock
-
-IssueStateService ..> PermissionPolicy
-IssueStateService ..> IssueRepository
-IssueStateService ..> UserRepository
-IssueStateService ..> Clock
-
-DeletedIssueService ..> PermissionPolicy
-DeletedIssueService ..> IssueRepository
-DeletedIssueService ..> Clock
-
+AuthenticationService ..> UserRepository
+AuthenticationService ..> PasswordHashing
+AuthenticationService ..> CurrentUserSession
+DashboardSummaryService ..> ProjectRepository
+DashboardSummaryService ..> IssueRepository
+DashboardSummaryService ..> StatisticsRepository
+DashboardSummaryService ..> UserRepository
+DashboardSummaryService ..> PermissionPolicy
 AccountService ..> PermissionPolicy
 AccountService ..> UserRepository
-AccountService ..> PasswordHasher
-
-StatisticsService ..> PermissionPolicy
-StatisticsService ..> StatisticsRepository
-
-ProjectService ..> PermissionPolicy
+AccountService ..> ProjectRepository
+AccountService ..> IssueRepository
+AccountService ..> PasswordHashing
+AccountService ..> Clock
 ProjectService ..> ProjectRepository
 ProjectService ..> IssueRepository
 ProjectService ..> UserRepository
+ProjectService ..> PermissionPolicy
 ProjectService ..> Clock
-ProjectService ..> ProjectDetail
+IssueService ..> ProjectRepository
+IssueService ..> IssueRepository
+IssueService ..> IssueDependencyRepository
+IssueService ..> CommentRepository
+IssueService ..> IssueHistoryRepository
+IssueService ..> UserRepository
+IssueService ..> PermissionPolicy
+IssueService ..> Clock
+IssueService ..> CommentIdProvider
+AssignmentService ..> IssueRepository
+AssignmentService ..> UserRepository
+AssignmentService ..> PermissionPolicy
+AssignmentService ..> AssignmentRecommendationService
+AssignmentService ..> Clock
+AssignmentRecommendationService ..> AssignmentRecommendationRepository
+IssueStateService ..> IssueRepository
+IssueStateService ..> IssueDependencyRepository
+IssueStateService ..> UserRepository
+IssueStateService ..> PermissionPolicy
+IssueStateService ..> Clock
+IssueStateService ..> CommentIdProvider
+DeletedIssueService ..> IssueRepository
+DeletedIssueService ..> UserRepository
+DeletedIssueService ..> PermissionPolicy
+DeletedIssueService ..> Clock
+StatisticsService ..> StatisticsRepository
+StatisticsService ..> UserRepository
+StatisticsService ..> PermissionPolicy
 
-AssignmentRecommendationService ..> IssueRepository
-AssignmentRecommendationService ..> UserRepository
-AuthenticationService ..> UserRepository
-AuthenticationService ..> PasswordHasher
-AuthenticationService ..> SessionStore
+JdbcRepositoryFactory ..> DatabaseConnectionProvider
+JdbcRepositoryFactory ..> PasswordHashing
+JdbcRepositoryFactory --> JdbcUserRepository
+JdbcRepositoryFactory --> JdbcProjectRepository
+JdbcRepositoryFactory --> JdbcIssueRepository
+JdbcRepositoryFactory --> JdbcCommentRepository
+JdbcRepositoryFactory --> JdbcIssueHistoryRepository
+JdbcRepositoryFactory --> JdbcIssueDependencyRepository
+JdbcRepositoryFactory --> JdbcStatisticsRepository
+JdbcRepositoryFactory --> JdbcAssignmentRecommendationRepository
 
-ProjectRepository ..> Project
-IssueRepository ..> Issue
-UserRepository ..> User
-
+JdbcUserRepository ..|> UserRepository
 JdbcProjectRepository ..|> ProjectRepository
 JdbcIssueRepository ..|> IssueRepository
-JdbcUserRepository ..|> UserRepository
-JdbcProjectRepository ..> DatabaseConnectionProvider
-JdbcIssueRepository ..> DatabaseConnectionProvider
-JdbcUserRepository ..> DatabaseConnectionProvider
+JdbcCommentRepository ..|> CommentRepository
+JdbcIssueHistoryRepository ..|> IssueHistoryRepository
+JdbcIssueDependencyRepository ..|> IssueDependencyRepository
+JdbcStatisticsRepository ..|> StatisticsRepository
+JdbcAssignmentRecommendationRepository ..|> AssignmentRecommendationRepository
+
+SystemClock ..|> Clock
+SessionStore ..|> CurrentUserSession
+CommentIdGenerator ..|> CommentIdProvider
+PasswordHasher ..|> PasswordHashing
+DriverManagerConnectionProvider ..|> DatabaseConnectionProvider
+
+UserRepository ..> User
+ProjectRepository ..> Project
+ProjectRepository ..> ProjectMember
+IssueRepository ..> Issue
+CommentRepository ..> Comment
+IssueHistoryRepository ..> IssueHistory
+IssueDependencyRepository ..> IssueDependency
+StatisticsRepository ..> StatisticsReport
+AssignmentRecommendationRepository ..> AssignmentCandidate
 
 Project "1" -- "0..*" Issue : referenced by\nIssue.projectId
-User "*" -- "*" Project : participates in
-User "1" -- "0..*" Project : manages\n(Admin only)
-Issue "1" *-- "0..*" Comment : comments
-Issue "1" *-- "0..*" IssueHistory : histories
+Project "1" -- "0..*" ProjectMember
+ProjectMember "*" --> "1" User
+Issue "1" *-- "0..*" Comment
+Issue "1" *-- "0..*" IssueHistory
 IssueDependency "0..*" --> "1" Issue : blockingIssue
 IssueDependency "0..*" --> "1" Issue : blockedIssue
-
 Issue --> User : reporter / assignee /\nverifier / fixer / resolver
 Comment --> User : writer
 IssueHistory --> User : changedBy
 Issue --> IssueStatus
 Issue --> Priority
-User --> Role
+Comment --> CommentPurpose
 IssueHistory --> ActionType
-AssignmentRecommendationService ..> AssignmentOptions
-StatisticsController ..> StatisticsReport
-Issue ..> AssignmentContext
-Issue ..> ValidationResult
+User --> Role
 
-note right of Project
-Project does not own an in-memory Issue collection.
+note bottom of Project
+Project does not own an Issue collection in memory.
 Issue.projectId records the project relationship.
-Project deletion is coordinated by service/repository and DB FK cascade.
+Admin project detail returns project + participants only.
+Non-admin project screens combine project detail with issue queries.
+end note
+
+note bottom of IssueDetailResult
+availableActions carries workflow action names for the issue detail screen.
+IssueController fills it when IssueWorkflowService is configured.
 end note
 
 @enduml

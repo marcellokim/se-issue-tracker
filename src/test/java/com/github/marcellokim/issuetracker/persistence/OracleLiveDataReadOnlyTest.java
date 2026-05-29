@@ -9,6 +9,7 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,7 +44,7 @@ class OracleLiveDataReadOnlyTest {
     @BeforeAll
     static void connectToLiveDatabase() throws SQLException {
         connectionProvider = DriverManagerConnectionProvider.fromEnvironment();
-        repositories = new JdbcRepositoryFactory(connectionProvider);
+        repositories = new JdbcRepositoryFactory(connectionProvider, new PasswordHasher());
         assertCoreTablesAreReadable();
     }
 

@@ -12,6 +12,7 @@ import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -64,7 +65,7 @@ class StatisticsServiceTest {
         statusCounts.put(IssueStatus.NEW, 1);
         Map<Priority, Integer> priorityCounts = new EnumMap<>(Priority.class);
         priorityCounts.put(Priority.MAJOR, 1);
-        return StatisticsReport.create(
+        return StatisticsReportTestFactory.create(
                 statusCounts,
                 priorityCounts,
                 List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 1), 1)),

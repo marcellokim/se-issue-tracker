@@ -1,174 +1,177 @@
 @startuml its_dcd_ver2
+!include ../_shared/its-uml-style.puml
 
-title Final ITS DCD for Core Workflows
+title Issue Tracking System - DCD ver2 (Larman Design Classes)
 
 left to right direction
 hide circle
-hide stereotype
 skinparam monochrome true
 skinparam shadowing false
 skinparam classAttributeIconSize 0
-skinparam linetype polyline
-skinparam nodesep 55
-skinparam ranksep 55
-skinparam class {
-  BackgroundColor white
-  BorderColor black
-  FontColor black
-  ArrowColor black
-}
+skinparam linetype ortho
+skinparam nodesep 48
+skinparam ranksep 42
+scale 0.86
 
 legend left
-  == Visibility Notation ==
-  + public operation
-  - private attribute
-  # protected member
-  / derived attribute
-  no protected or derived members are currently required
-  == Scope Note ==
-  ver2 is a core workflow DCD.
-  repository, authentication, and clock infrastructure
-  dependencies are intentionally omitted.
-  Issue-to-User role associations are summarized:
-  reporter, assignee, verifier, fixer, resolver.
+  == DCD ver2 focus ==
+  Larman-style Design Class Diagram.
+  This diagram expands the domain model into software
+  design classes by adding attributes, operations,
+  navigability, role names, and multiplicities.
+
+  Layer architecture, repositories, JDBC adapters,
+  bootstrap code, DTO/result records, and UI widgets
+  are intentionally omitted. See DCD ver1 for layer view.
 endlegend
 
-class Project {
-  - projectId : ProjectId
-  - name : Text
-  - description : Text
-  - createdDate : DateTime
+class User <<entity>> {
+  -loginId : String
+  -name : String
+  -passwordHash : String
+  -role : Role
+  -active : boolean
+  -createdAt : LocalDateTime
+  -updatedAt : LocalDateTime
   --
-  + rename(newName, updatedAt)
-  + changeDescription(newDescription, updatedAt)
+  +create(loginId : String, name : String, passwordHash : String, role : Role, createdAt : LocalDateTime) : User
+  +fromPersistence(...) : User
+  +hasRole(expectedRole : Role) : boolean
+  +rename(name : String, changedAt : LocalDateTime) : void
+  +changeRole(role : Role, changedAt : LocalDateTime) : void
+  +activate(changedAt : LocalDateTime) : void
+  +deactivate(changedAt : LocalDateTime) : void
 }
 
-class IssueController {
-  - ...
+class Project <<entity>> {
+  -id : long
+  -name : String
+  -description : String
+  -managedByLoginId : String
+  -createdDate : LocalDateTime
+  -updatedAt : LocalDateTime
   --
-  + registerIssue(title, description, priority)
-  + addComment(issueId, content)
-  + searchIssues(filters)
-  + viewIssueDetail(issueId)
-  + editIssue(issueId, title, description)
-  + changePriority(issueId, newPriority)
-  + addDependency(blockingIssueId, blockedIssueId)
-  + removeDependency(dependencyId)
+  +create(name : String, description : String, managedByLoginId : String, createdAt : LocalDateTime) : Project
+  +fromPersistence(...) : Project
+  +rename(newName : String, updatedAt : LocalDateTime) : void
+  +changeDescription(newDescription : String, updatedAt : LocalDateTime) : void
 }
 
-class AssignmentController {
-  - ...
+class ProjectMember <<association class>> {
+  -projectId : long
+  -userId : String
+  -joinedAt : LocalDateTime
   --
-  + startAssignment(issueId)
-  + assignIssue(issueId, assigneeId, verifierId)
-  + reassignIssue(issueId, assigneeId)
-  + changeVerifier(issueId, verifierId)
+  +create(projectId : long, userId : String, joinedAt : LocalDateTime) : ProjectMember
+  +fromPersistence(projectId : long, userId : String, joinedAt : LocalDateTime) : ProjectMember
 }
 
-class IssueStateController {
-  - ...
+class Issue <<aggregate root>> {
+  -id : long
+  -projectId : long
+  -issueId : String
+  -title : String
+  -description : String
+  -reportedDate : LocalDateTime
+  -priority : Priority
+  -status : IssueStatus
+  -reporter : User
+  -assignee : User
+  -verifier : User
+  -fixer : User
+  -resolver : User
+  -updatedAt : LocalDateTime
+  -comments : List~Comment~
+  -histories : List~IssueHistory~
+  -blockingDependencies : List~IssueDependency~
+  -blockedByDependencies : List~IssueDependency~
   --
-  + changeStatus(issueId, targetStatus, comment)
+  +create(state : PersistedState) : Issue
+  +fromPersistence(state : PersistedState) : Issue
+  +updateTitleAndDescription(title : String, description : String, changedBy : User, changedAt : LocalDateTime) : void
+  +changePriority(priority : Priority, changedBy : User, changedAt : LocalDateTime) : void
+  +assignFromNew(assignee : User, verifier : User, changedBy : User, changedAt : LocalDateTime) : void
+  +assignReopened(assignee : User, verifier : User, changedBy : User, changedAt : LocalDateTime) : void
+  +reassignAssignee(assignee : User, changedBy : User, changedAt : LocalDateTime) : void
+  +changeVerifier(verifier : User, changedBy : User, changedAt : LocalDateTime) : void
+  +markFixed(fixer : User, comment : String, changedAt : LocalDateTime) : void
+  +rejectFix(tester : User, comment : String, changedAt : LocalDateTime) : void
+  +resolve(resolver : User, comment : String, changedAt : LocalDateTime) : void
+  +close(pl : User, comment : String, changedAt : LocalDateTime) : void
+  +reopen(pl : User, comment : String, changedAt : LocalDateTime) : void
+  +addComment(commentId : String, content : String, writer : User, createdAt : LocalDateTime, purpose : CommentPurpose) : Comment
+  +recordCommentDeletion(comment : Comment, changedBy : User, changedAt : LocalDateTime) : void
+  +addDependency(dependencyId : String, blockingIssue : Issue, changedBy : User, discoveredAt : LocalDateTime) : IssueDependency
+  +removeDependency(dependency : IssueDependency, changedBy : User, changedAt : LocalDateTime) : void
 }
 
-class DeletedIssueController {
-  - ...
+class Comment <<entity>> {
+  -id : long
+  -issueId : long
+  -commentId : String
+  -writer : User
+  -content : String
+  -purpose : CommentPurpose
+  -createdDate : LocalDateTime
+  -updatedDate : LocalDateTime
   --
-  + viewDeletedIssues(projectId)
-  + deleteIssue(issueId)
-  + restoreIssue(issueId)
-  - enforceDeletedLimit(max)
+  +create(commentId : String, content : String, writer : User, purpose : CommentPurpose, createdAt : LocalDateTime) : Comment
+  +fromPersistence(...) : Comment
+  +changeContent(newContent : String, changedAt : LocalDateTime) : void
 }
 
-class PermissionPolicy {
-  - ...
+class IssueHistory <<entity>> {
+  -id : long
+  -issueId : long
+  -historyId : String
+  -actionType : ActionType
+  -previousValue : String
+  -newValue : String
+  -changedBy : User
+  -changedDate : LocalDateTime
+  -message : String
   --
-  + verifyPermission(user, operation, resource)
-  + assertCanRegisterIssue(user, project)
-  + assertCanAssignIssue(user, issue)
-  + assertCanChangeStatus(user, issue, targetStatus)
-  + assertCanManageDeletedIssue(user, issue)
-  + assertCanManageDependency(user, issue)
-  + assertCanChangePriority(user, issue)
+  +create(...) : IssueHistory
+  +fromPersistence(...) : IssueHistory
 }
 
-class AssignmentRecommendationService {
-  - ...
+class IssueDependency <<association class>> {
+  -id : long
+  -blockingIssueId : long
+  -blockedIssueId : long
+  -dependencyId : String
+  -discoveredDate : LocalDateTime
   --
-  + recommendAssignmentCandidates(issue)
-  + findDevAssigneeCandidates(issue)
-  + findTesterVerifierCandidates(issue)
+  +create(dependencyId : String, blockingIssue : Issue, blockedIssue : Issue, discoveredAt : LocalDateTime) : IssueDependency
+  +fromPersistence(...) : IssueDependency
+  +dependencyIdFor(blockingIssueId : long, blockedIssueId : long) : String
 }
 
-class Issue {
-  - issueId : IssueId
-  - title : Text
-  - description : Text
-  - reportedDate : DateTime
-  - priority : Priority
-  - status : IssueStatus
+class AssignmentCandidate <<value object>> {
+  -user : User
+  -completedIssueCount : int
+  -reason : String
   --
-  + create(state)
-  + fromPersistence(state)
-  + addComment(content, writer, now)
-  + addHistory(history)
-  + verifyPriorityChange(newPriority)
-  + changePriority(newPriority, changedBy, now)
-  + getAssignmentContext()
-  + assignFromNew(assignee, verifier, changedBy, now)
-  + assignReopened(assignee, verifier, changedBy, now)
-  + reassignAssignee(assignee, changedBy, now)
-  + changeVerifier(verifier, changedBy, now)
-  + markFixed(dev, comment, now)
-  + resolve(tester, comment, now)
-  + rejectFix(tester, comment, now)
-  + close(pl, comment, now)
-  + reopen(pl, comment, now)
-  + softDelete(pl, now)
-  + restore(pl, now)
-  + findDeleteStatusHistory()
-  + clearAssignee()
-  + clearVerifier()
-  + validateDependencyCandidate(blockingIssue)
-  + addDependency(blockingIssue, changedBy, now)
-  + removeDependency(dependency, changedBy, now)
+  +create(user : User, completedIssueCount : int, reason : String) : AssignmentCandidate
 }
 
-class Comment {
-  - commentId : CommentId
-  - content : Text
-  - createdDate : DateTime
+class StatisticsReport <<value object>> {
+  -statusCounts : Map~IssueStatus,Integer~
+  -priorityCounts : Map~Priority,Integer~
+  -dailyCounts : List~DailyIssueCount~
+  -monthlyCounts : List~MonthlyIssueCount~
   --
-  + ...
+  +create(...) : StatisticsReport
 }
 
-class IssueHistory {
-  - historyId : HistoryId
-  - action : ActionType
-  - previousValue : Text
-  - newValue : Text
-  - changedDate : DateTime
-  - message : Text
-  --
-  + ...
+class DailyIssueCount <<value object>> {
+  -date : LocalDate
+  -count : int
 }
 
-class IssueDependency {
-  - dependencyId : DependencyId
-  - discoveredDate : DateTime
-  --
-  + removeBlockingAndBlockedAssociations()
-}
-
-class User {
-  - loginId : Text
-  - name : Text
-  - passwordHash : Text
-  - role : Role
-  - isActive : Boolean
-  --
-  + hasRole(role)
-  + isActive()
+class MonthlyIssueCount <<value object>> {
+  -month : YearMonth
+  -count : int
 }
 
 enum Role {
@@ -196,6 +199,11 @@ enum Priority {
   TRIVIAL
 }
 
+enum CommentPurpose {
+  GENERAL
+  STATUS_CHANGE
+}
+
 enum ActionType {
   CREATED
   TITLE_DESCRIPTION_UPDATED
@@ -206,38 +214,66 @@ enum ActionType {
   COMMENTED
 }
 
-IssueController ..> Project : selectedProject
-IssueController ..> Issue : targetIssue
-IssueController ..> PermissionPolicy : policy
+' Domain associations, multiplicity, roles, and navigability.
+Project "1" <-- "0..*" ProjectMember : project
+ProjectMember "*" --> "1" User : participant
+Project "*" --> "1" User : managedBy
 
-AssignmentController ..> Issue : targetIssue
-AssignmentController ..> PermissionPolicy : policy
-AssignmentController ..> AssignmentRecommendationService : recommender
-
-IssueStateController ..> Issue : targetIssue
-IssueStateController ..> PermissionPolicy : policy
-
-DeletedIssueController ..> Issue : deletedIssue
-DeletedIssueController ..> PermissionPolicy : policy
-
-Project "1" -- "0..*" Issue : referenced by\nIssue.projectId
-User "*" -- "*" Project : participates in
-User "1" -- "0..*" Project : manages\n(Admin only)
+Issue "*" --> "1" Project : project
+Issue "*" --> "1" User : reporter
+Issue "*" --> "0..1" User : assignee
+Issue "*" --> "0..1" User : verifier
+Issue "*" --> "0..1" User : fixer
+Issue "*" --> "0..1" User : resolver
 
 Issue "1" *-- "0..*" Comment : comments {ordered}
 Issue "1" *-- "0..*" IssueHistory : histories {ordered}
+Comment "*" --> "1" User : writer
+IssueHistory "*" --> "1" User : changedBy
 
-IssueDependency "0..*" --> "1" Issue : blockingIssue
-IssueDependency "0..*" --> "1" Issue : blockedIssue
+Issue "1" --> "0..*" IssueDependency : blockingDependencies
+Issue "1" --> "0..*" IssueDependency : blockedByDependencies
+IssueDependency "*" --> "1" Issue : blockingIssue
+IssueDependency "*" --> "1" Issue : blockedIssue
 
-Issue --> User : reporter / assignee /\nverifier / fixer / resolver
+AssignmentCandidate "*" --> "1" User : candidate
+StatisticsReport *-- "0..*" DailyIssueCount : dailyCounts
+StatisticsReport *-- "0..*" MonthlyIssueCount : monthlyCounts
 
-Comment --> "1" User : writer
-IssueHistory --> "1" User : changedBy
-
+User --> Role
 Issue --> IssueStatus
 Issue --> Priority
+Comment --> CommentPurpose
 IssueHistory --> ActionType
-User --> Role
+StatisticsReport ..> IssueStatus
+StatisticsReport ..> Priority
+
+note right of Issue
+Information Expert:
+Issue owns the state-changing operations for assignment,
+status transition, comments, dependency changes, and history
+recording because it has the relevant issue state and role fields.
+end note
+
+note bottom of Project
+Project does not hold a List<Issue>.
+The Project-Issue relationship is navigated through Issue.projectId.
+end note
+
+note bottom of ProjectMember
+Association class for Project-User participation.
+It stores joinedAt for the membership relationship.
+end note
+
+note bottom of IssueDependency
+Association class for Issue-to-Issue dependency.
+blockingIssue must be resolved or closed before blockedIssue resolves.
+end note
+
+note bottom of StatisticsReport
+StatisticsReport is a read-model value object for project statistics.
+It is included because UC10 returns project-level statistics,
+but repository/query details are not part of this DCD.
+end note
 
 @enduml

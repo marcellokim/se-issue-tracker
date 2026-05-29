@@ -24,11 +24,6 @@ public final class AccountController {
         return accountService.createAccount(loginId, name, password, role, user);
     }
 
-    public UserResult updateAccount(String loginId, String name, Role role) {
-        User user = requireCurrentUser();
-        return accountService.updateAccount(loginId, name, role, user);
-    }
-
     public UserResult renameAccount(String loginId, String name) {
         User user = requireCurrentUser();
         return accountService.renameAccount(loginId, name, user);

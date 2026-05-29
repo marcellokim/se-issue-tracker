@@ -21,14 +21,12 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
-import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
-import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
@@ -70,6 +68,14 @@ class IssueControllerTest {
     }
 
     @Test
+    @DisplayName("authenticated user checks issue registration availability")
+    void canRegisterIssue() {
+        var controller = authenticatedController(dev);
+
+        assertTrue(controller.canRegisterIssue(PROJECT_ID));
+    }
+
+    @Test
     @DisplayName("authenticated user adds comment")
     void addComment() {
         var issue = persistedIssue();
@@ -77,6 +83,7 @@ class IssueControllerTest {
 
         CommentResult result = controller.addComment(ISSUE_ID, "Confirmed this bug");
 
+        assertEquals(String.valueOf(COMMENT_ID), result.commentId());
         assertEquals("Confirmed this bug", result.content());
         assertEquals(dev.getLoginId(), result.writerLoginId());
     }
@@ -139,14 +146,6 @@ class IssueControllerTest {
     }
 
     @Test
-    @DisplayName("authenticated user checks canRegisterIssue")
-    void canRegisterIssue() {
-        var controller = authenticatedController(dev);
-
-        assertTrue(controller.canRegisterIssue(PROJECT_ID));
-    }
-
-    @Test
     @DisplayName("authenticated user views issue detail")
     void viewIssueDetail() {
         var issue = persistedIssue();
@@ -157,6 +156,20 @@ class IssueControllerTest {
         assertEquals(ISSUE_ID, detail.id());
         assertEquals("Issue 1", detail.title());
         assertEquals(IssueStatus.NEW, detail.status());
+        assertTrue(detail.availableActions().contains("UPDATE_ISSUE"));
+        assertTrue(detail.availableActions().contains("ADD_COMMENT"));
+    }
+
+    @Test
+    @DisplayName("authenticated user views workflow actions")
+    void viewAvailableActions() {
+        var issue = persistedIssue();
+        var controller = authenticatedController(dev, issue);
+
+        var actions = controller.viewAvailableActions(ISSUE_ID);
+
+        assertTrue(actions.canUpdateIssue());
+        assertTrue(actions.canAddComment());
     }
 
     @Test
@@ -261,75 +274,6 @@ class IssueControllerTest {
     }
 
     @Test
-    @DisplayName("viewIssueDetail with workflow service includes available actions")
-    void viewIssueDetailWithWorkflow() {
-        var issue = persistedIssue();
-        var controller = authenticatedControllerWithWorkflow(pl, issue);
-
-        IssueDetailResult detail = controller.viewIssueDetail(ISSUE_ID);
-
-        assertNotNull(detail.availableActions());
-    }
-
-    @Test
-    @DisplayName("viewAvailableActions delegates to workflow service")
-    void viewAvailableActions() {
-        var issue = persistedIssue();
-        var controller = authenticatedControllerWithWorkflow(pl, issue);
-
-        IssueWorkflowActions actions = controller.viewAvailableActions(ISSUE_ID);
-
-        assertNotNull(actions);
-    }
-
-    @Test
-    @DisplayName("canUpdateComment delegates to workflow service")
-    void canUpdateComment() {
-        var issue = persistedIssue();
-        var comments = new FakeCommentRepository(Comment.fromPersistence(
-                COMMENT_ID,
-                ISSUE_ID,
-                dev.getLoginId(),
-                "Note",
-                CommentPurpose.GENERAL,
-                now,
-                now));
-        var controller = authenticatedControllerWithWorkflow(dev, comments, issue);
-
-        boolean result = controller.canUpdateComment(ISSUE_ID, COMMENT_ID);
-
-        assertTrue(result);
-    }
-
-    @Test
-    @DisplayName("canDeleteComment delegates to workflow service")
-    void canDeleteComment() {
-        var issue = persistedIssue();
-        var comments = new FakeCommentRepository(Comment.fromPersistence(
-                COMMENT_ID,
-                ISSUE_ID,
-                dev.getLoginId(),
-                "Note",
-                CommentPurpose.GENERAL,
-                now,
-                now));
-        var controller = authenticatedControllerWithWorkflow(dev, comments, issue);
-
-        boolean result = controller.canDeleteComment(ISSUE_ID, COMMENT_ID);
-
-        assertTrue(result);
-    }
-
-    @Test
-    @DisplayName("viewAvailableActions throws without workflow service")
-    void viewAvailableActionsThrowsWithoutWorkflow() {
-        var issue = persistedIssue();
-        var controller = authenticatedController(dev, issue);
-
-        assertThrows(IllegalStateException.class, () -> controller.viewAvailableActions(ISSUE_ID));
-    }
-
-    @Test
     @DisplayName("unauthenticated user is rejected")
     void rejectUnauthenticated() {
         var controller = unauthenticatedController();
@@ -351,42 +295,19 @@ class IssueControllerTest {
         var sessionStore = new SessionStore();
         var authService = new AuthenticationService(users, hasher, sessionStore);
         authService.login(user.getLoginId(), PASSWORD);
-        var issueService = new IssueService(
-                new FakeProjectRepository(project),
-                new InMemoryIssueRepository(issues),
-                new FakeIssueDependencyRepository(),
-                comments,
-                new FakeIssueHistoryRepository(),
-                users,
-                new PermissionPolicy(),
-                new Clock());
-        return new IssueController(authService, issueService);
-    }
-
-    private IssueController authenticatedControllerWithWorkflow(User user, Issue... issues) {
-        return authenticatedControllerWithWorkflow(user, new FakeCommentRepository(), issues);
-    }
-
-    private IssueController authenticatedControllerWithWorkflow(User user, FakeCommentRepository comments, Issue... issues) {
-        var users = new InMemoryUserRepository(user)
-                .withProjectMembers(PROJECT_ID, user.getLoginId());
-        var sessionStore = new SessionStore();
-        var authService = new AuthenticationService(users, hasher, sessionStore);
-        authService.login(user.getLoginId(), PASSWORD);
-        var issueRepo = new InMemoryIssueRepository(issues);
-        var depRepo = new FakeIssueDependencyRepository();
+        var dependencies = new FakeIssueDependencyRepository();
+        var issueRepository = new InMemoryIssueRepository(issues);
         var policy = new PermissionPolicy();
         var issueService = new IssueService(
                 new FakeProjectRepository(project),
-                issueRepo,
-                depRepo,
+                issueRepository,
+                dependencies,
                 comments,
                 new FakeIssueHistoryRepository(),
                 users,
                 policy,
-                new Clock());
-        var workflowService = new IssueWorkflowService(
-                issueRepo, depRepo, comments, users, policy);
+                java.time.LocalDateTime::now);
+        var workflowService = new IssueWorkflowService(issueRepository, dependencies, comments, users, policy);
         return new IssueController(authService, issueService, workflowService);
     }
 
@@ -401,7 +322,7 @@ class IssueControllerTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 new PermissionPolicy(),
-                new Clock());
+                java.time.LocalDateTime::now);
         return new IssueController(authService, issueService);
     }
 
@@ -478,6 +399,7 @@ class IssueControllerTest {
     private static final class FakeCommentRepository implements CommentRepository {
 
         private final Map<Long, Comment> comments = new LinkedHashMap<>();
+        private long nextId = COMMENT_ID;
 
         private FakeCommentRepository(Comment... comments) {
             for (Comment comment : comments) {
@@ -499,8 +421,21 @@ class IssueControllerTest {
 
         @Override
         public Comment save(Comment comment) {
-            comments.put(comment.id(), comment);
-            return comment;
+            if (comment.id() != 0L) {
+                comments.put(comment.id(), comment);
+                nextId = Math.max(nextId, comment.id() + 1L);
+                return comment;
+            }
+            Comment saved = Comment.fromPersistence(
+                    nextId++,
+                    comment.issueId(),
+                    comment.writerId(),
+                    comment.content(),
+                    comment.purpose(),
+                    comment.createdDate(),
+                    comment.updatedDate());
+            comments.put(saved.id(), saved);
+            return saved;
         }
 
         @Override

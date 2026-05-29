@@ -347,13 +347,16 @@ title SSD 14 - UC10 이슈 통계 조회
 actor "Auth User" as A
 participant ":Issue Tracking System" as S
 note over A, S
-사전조건: Auth User 로그인, 현재 Project 안에 조회 가능한 Issue 데이터 존재, UC14 권한 검사
+사전조건: Auth User 로그인, 사용자가 프로젝트를 선택해 프로젝트 화면에 진입,
+현재 Project 안에 조회 가능한 Issue 데이터 존재, UC14 권한 검사
 end note
 A -> S: viewStatistics(period, filters)
 S --> A: statisticsReport(issueCounts, trendData, statusBreakdown, priorityBreakdown)
 note over S
 결과: 현재 Project 범위의 일/월별 발생 수, trend, status/priority breakdown 반환
-projectId는 전송 필드에 두지 않고 현재 Project context를 사용한다.
+통계는 프로젝트 화면의 현재 Project context를 사용한다.
+UI는 선택된 projectId를 controller에 전달할 수 있지만,
+사용자가 임의 입력하는 검색 필드로 projectId를 받지 않는다.
 currentUserRole은 인증 context에서 결정하며 사용자가 임의 입력하지 않는다.
 filters.scope는 전체/내 직군/특정 직군별 통계 범위를 구분한다.
 Statistics 도메인 객체와 IssueHistory는 생성하지 않음
@@ -372,7 +375,7 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: User 존재, isActive=true
 end note
-A -> S: logIn(loginId, password)
+A -> S: login(loginId, password)
 alt 인증 성공
   S --> A: loginSucceeded(userId, role, name)
 else 인증 실패
@@ -414,7 +417,8 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: Admin 로그인, 대상 User 존재, UC14 권한 검사
 end note
-A -> S: updateAccount(userId, name, role)
+A -> S: renameAccount(loginId, name)
+A -> S: changeAccountRole(loginId, role)
 S --> A: accountUpdated(userId, name, role)
 note over S
 결과: User의 name/role 수정, isActive 변경은 deactivateAccount에서 처리
@@ -510,7 +514,7 @@ note over A, S
 사전조건: Actor 로그인, 보호된 operation/resource 식별
 이 그림은 직접 사용자 목표 SSD가 아니라 include되는 공통 권한 검사 참고도이다.
 end note
-A -> S: verifyPermission(actorId, operation, resourceId)
+A -> S: assertCanProtectedOperation(actor, resource)
 alt 권한 있음
   S --> A: permissionVerified()
 else 권한 없음
@@ -533,7 +537,7 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: Reporter 로그인, 본인이 등록한 Issue, status=NEW, UC14 권한 검사
 end note
-A -> S: editIssue(issueId, newTitle, newDescription)
+A -> S: updateIssue(issueId, newTitle, newDescription)
 S --> A: issueUpdated(issueId, title, description)
 note over S
 결과: title/description 수정, IssueHistory(TITLE_DESCRIPTION_UPDATED) 기록

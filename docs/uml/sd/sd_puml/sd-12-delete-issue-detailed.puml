@@ -9,7 +9,7 @@ participant "deletedIssueController:DeletedIssueController" as DIC
 participant "targetIssue:Issue" as Issue
 participant "relatedDependency:IssueDependency" as Dependency
 
-PL -> DIC : deleteIssue(issueId)
+PL -> DIC : deleteIssue(issueId, comment)
 
 alt not PL or status is not NEW/CLOSED
   DIC --> PL : deleteRejected(reason)
@@ -17,10 +17,10 @@ else valid soft delete target
   note right of DIC
   UC9 delete는 UC6 상태 변경에 편입하지 않는다.
   삭제/복구는 별도 PL 관리 목표이며,
-  삭제 사유 comment는 필수로 두지 않는다.
+  삭제 사유 comment는 필수 입력이다.
   end note
 
-  DIC -> Issue : softDelete(currentPL, now)
+  DIC -> Issue : softDelete(currentPL, comment, now)
   activate Issue
 
   loop each related IssueDependency

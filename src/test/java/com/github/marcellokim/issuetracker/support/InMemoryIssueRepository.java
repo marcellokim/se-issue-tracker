@@ -117,13 +117,18 @@ public final class InMemoryIssueRepository implements IssueRepository {
     }
 
     @Override
-    public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
-        return 0;
+    public int purgeDeletedById(long issueId) {
+        Issue issue = issues.get(issueId);
+        if (issue == null || issue.status() != IssueStatus.DELETED) {
+            return 0;
+        }
+        issues.remove(issueId);
+        return 1;
     }
 
     @Override
-    public void purge(long issueId) {
-        issues.remove(issueId);
+    public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
+        return 0;
     }
 
     private Issue persistNew(Issue issue) {

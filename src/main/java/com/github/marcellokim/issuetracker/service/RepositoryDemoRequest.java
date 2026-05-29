@@ -5,7 +5,7 @@ import java.util.Objects;
 public record RepositoryDemoRequest(String adminLoginId, String projectName) {
 
     public static RepositoryDemoRequest seedDemo() {
-        return new RepositoryDemoRequest("admin", "project1");
+        return new RepositoryDemoRequest("admin", "Project A");
     }
 
     public RepositoryDemoRequest {

@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.technical;
 
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -8,7 +9,7 @@ import java.util.Objects;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-public final class PasswordHasher {
+public final class PasswordHasher implements PasswordHashing {
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int SALT_BYTES = 16;
@@ -18,6 +19,7 @@ public final class PasswordHasher {
     private static final String HEX_16_BYTES = "[0-9a-fA-F]{32}";
     private static final String HEX_32_BYTES = "[0-9a-fA-F]{64}";
 
+    @Override
     public String hash(String password) {
         byte[] saltBytes = new byte[SALT_BYTES];
         RANDOM.nextBytes(saltBytes);
@@ -25,6 +27,7 @@ public final class PasswordHasher {
         return salt + HASH_SEPARATOR + derive(salt, requireText(password, "password"));
     }
 
+    @Override
     public boolean matches(String password, String storedCredential) {
         if (password == null || storedCredential == null) {
             return false;
@@ -40,6 +43,7 @@ public final class PasswordHasher {
         return MessageDigest.isEqual(expected, actual);
     }
 
+    @Override
     public boolean isHashed(String storedCredential) {
         if (storedCredential == null) {
             return false;
@@ -50,11 +54,13 @@ public final class PasswordHasher {
                 && parts[1].matches(HEX_32_BYTES);
     }
 
+    @Override
     public String saltOf(String storedCredential) {
         requireHashed(storedCredential);
         return storedCredential.split(HASH_SEPARATOR, 2)[0].toLowerCase(java.util.Locale.ROOT);
     }
 
+    @Override
     public String hashOf(String storedCredential) {
         requireHashed(storedCredential);
         return storedCredential.split(HASH_SEPARATOR, 2)[1].toLowerCase(java.util.Locale.ROOT);
@@ -69,8 +75,14 @@ public final class PasswordHasher {
 
     private static String derive(String salt, String password) {
         try {
-            var keySpec = new PBEKeySpec(password.toCharArray(), HexFormat.of().parseHex(salt), ITERATIONS, HASH_BYTES * 8);
-            byte[] key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(keySpec).getEncoded();
+            var keySpec = new PBEKeySpec(
+                    password.toCharArray(),
+                    HexFormat.of().parseHex(salt),
+                    ITERATIONS,
+                    HASH_BYTES * 8);
+            byte[] key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                    .generateSecret(keySpec)
+                    .getEncoded();
             return HexFormat.of().formatHex(key);
         } catch (InvalidKeySpecException | java.security.NoSuchAlgorithmException exception) {
             throw new IllegalStateException("PBKDF2 password hashing is unavailable.", exception);

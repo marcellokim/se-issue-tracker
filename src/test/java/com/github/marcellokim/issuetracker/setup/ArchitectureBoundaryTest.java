@@ -1,8 +1,21 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcUserRepository;
+import com.github.marcellokim.issuetracker.service.Clock;
+import com.github.marcellokim.issuetracker.service.CommentIdProvider;
+import com.github.marcellokim.issuetracker.service.CurrentUserSession;
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
+import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
+import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
+import com.github.marcellokim.issuetracker.technical.SystemClock;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -54,9 +67,48 @@ class ArchitectureBoundaryTest {
                         ROOT_PACKAGE + ".controller",
                         ROOT_PACKAGE + ".persistence",
                         ROOT_PACKAGE + ".ui",
-                        ROOT_PACKAGE + ".config"
+                        ROOT_PACKAGE + ".config",
+                        ROOT_PACKAGE + ".technical"
                 )
         );
+    }
+
+    @Test
+    @DisplayName("technical implementations satisfy service ports")
+    void technicalImplementationsSatisfyServicePorts() {
+        assertTrue(Clock.class.isAssignableFrom(SystemClock.class));
+        assertTrue(CommentIdProvider.class.isAssignableFrom(CommentIdGenerator.class));
+        assertTrue(CurrentUserSession.class.isAssignableFrom(SessionStore.class));
+        assertTrue(PasswordHashing.class.isAssignableFrom(PasswordHasher.class));
+    }
+
+    @Test
+    @DisplayName("jdbc user repository depends on password hashing port")
+    void jdbcUserRepositoryDependsOnPasswordHashingPort() throws NoSuchMethodException {
+        Constructor<JdbcUserRepository> repositoryConstructor = JdbcUserRepository.class.getConstructor(
+                DatabaseConnectionProvider.class,
+                PasswordHashing.class
+        );
+        Constructor<JdbcRepositoryFactory> factoryConstructor = JdbcRepositoryFactory.class.getConstructor(
+                DatabaseConnectionProvider.class,
+                PasswordHashing.class
+        );
+
+        assertEquals(PasswordHashing.class, repositoryConstructor.getParameterTypes()[1]);
+        assertEquals(PasswordHashing.class, factoryConstructor.getParameterTypes()[1]);
+    }
+
+    @Test
+    @DisplayName("jdbc repositories do not create password hashing implementations")
+    void jdbcRepositoriesDoNotCreatePasswordHasherImplementation() throws IOException {
+        assertNoSourceText(
+                ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcRepositoryFactory.java"),
+                ROOT_PACKAGE + ".technical.PasswordHasher",
+                "new PasswordHasher");
+        assertNoSourceText(
+                ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcUserRepository.java"),
+                ROOT_PACKAGE + ".technical.PasswordHasher",
+                "new PasswordHasher");
     }
 
     @Test
@@ -129,6 +181,16 @@ class ArchitectureBoundaryTest {
                 violations.isEmpty(),
                 () -> "Forbidden architecture references found:%n%s".formatted(formatViolations(violations))
         );
+    }
+
+    private static void assertNoSourceText(Path sourcePath, String... forbiddenTexts) throws IOException {
+        String source = Files.readString(sourcePath);
+        for (String forbiddenText : forbiddenTexts) {
+            assertTrue(
+                    !source.contains(forbiddenText),
+                    () -> sourcePath + " must not contain " + forbiddenText
+            );
+        }
     }
 
     private static boolean isForbidden(String importedType, Set<String> forbiddenPrefixes) {

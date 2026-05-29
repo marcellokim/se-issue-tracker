@@ -42,7 +42,7 @@ class RepositoryDemoSummaryServiceTest {
         User admin = user("admin", Role.ADMIN, true);
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
-        Project project = Project.fromPersistence(PROJECT_ID, "project1", "Demo", "admin", NOW, NOW);
+        Project project = Project.fromPersistence(PROJECT_ID, "Project A", "Demo", "admin", NOW, NOW);
         Issue issue = issue(101L, IssueStatus.NEW);
 
         RepositoryDemoSummaryService service = new RepositoryDemoSummaryService(
@@ -63,7 +63,7 @@ class RepositoryDemoSummaryServiceTest {
         assertTrue(summary.admin().orElseThrow().active());
 
         RepositoryDemoSummary.ProjectSummary projectSummary = summary.project().orElseThrow();
-        assertEquals("project1", projectSummary.projectName());
+        assertEquals("Project A", projectSummary.projectName());
         assertEquals(3, projectSummary.memberCount());
         assertEquals(1, projectSummary.activeDevCount());
         assertEquals(1, projectSummary.activeTesterCount());
@@ -105,10 +105,10 @@ class RepositoryDemoSummaryServiceTest {
 
     private static Issue issue(long id, IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(
-                        PROJECT_ID,
-                        "Issue " + id,
-                        "Demo issue",
-                        user("reporter", Role.DEV, true))
+                PROJECT_ID,
+                "Issue " + id,
+                "Demo issue",
+                user("reporter", Role.DEV, true))
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .reportedDate(NOW)
@@ -123,11 +123,6 @@ class RepositoryDemoSummaryServiceTest {
 
         private FakeUserRepository(List<User> users) {
             this.users = List.copyOf(users);
-        }
-
-        @Override
-        public Optional<User> findById(String userId) {
-            return findByLoginId(userId);
         }
 
         @Override
@@ -210,7 +205,8 @@ class RepositoryDemoSummaryServiceTest {
 
         @Override
         public void addParticipant(long projectId, String userLoginId) {
-            throw new UnsupportedOperationException("addParticipant is not needed by RepositoryDemoSummaryServiceTest.");
+            throw new UnsupportedOperationException(
+                    "addParticipant is not needed by RepositoryDemoSummaryServiceTest.");
         }
 
         @Override
@@ -317,15 +313,16 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
+        public int purgeDeletedById(long issueId) {
+            throw new UnsupportedOperationException("purgeDeletedById is not needed by RepositoryDemoSummaryServiceTest.");
+        }
+
+        @Override
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             throw new UnsupportedOperationException(
                     "purgeDeletedBeyondLimit is not needed by RepositoryDemoSummaryServiceTest.");
         }
 
-        @Override
-        public void purge(long issueId) {
-            throw new UnsupportedOperationException("purge is not needed by RepositoryDemoSummaryServiceTest.");
-        }
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {

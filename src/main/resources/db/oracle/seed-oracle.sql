@@ -5,8 +5,8 @@ begin
              seed.name,
              seed.role,
              seed.active,
-             timestamp '2026-04-30 00:00:00' as created_at,
-             timestamp '2026-04-30 00:00:00' as updated_at
+             timestamp '2026-03-01 00:00:00' as created_at,
+             timestamp '2026-03-01 00:00:00' as updated_at
         from (
          select 'admin' as login_id,
                 'Admin' as name,
@@ -146,7 +146,7 @@ begin
       select seed.login_id,
              seed.password_salt,
              seed.password_hash,
-             timestamp '2026-04-30 00:00:00' as updated_at
+             timestamp '2026-03-01 00:00:00' as updated_at
         from (
          select 'admin' as login_id,
                 '4eefdf0a692b0a9f55b0a25aa92ddd3c' as password_salt,
@@ -257,21 +257,33 @@ begin
 end;
 /
 begin
+   update projects
+      set name = 'Project A',
+          description = 'Primary demo project for ITS workflow, assignment, statistics, and deletion scenarios'
+    where name = 'project1';
+
+   update projects
+      set name = 'Project B',
+          description = 'Secondary demo project for separated PL, recommendation, and dependency scenarios'
+    where name = 'project2';
+end;
+/
+begin
    merge into projects target
    using (
       select seed.name,
              seed.description,
              seed.managed_by_login_id,
-             timestamp '2026-05-01 00:00:00' as created_at,
-             timestamp '2026-05-01 00:00:00' as updated_at
+             timestamp '2026-03-01 00:00:00' as created_at,
+             timestamp '2026-03-01 00:00:00' as updated_at
         from (
-         select 'project1' as name,
-                'Demo project for ITS persistence and query flows' as description,
+         select 'Project A' as name,
+                'Primary demo project for ITS workflow, assignment, statistics, and deletion scenarios' as description,
                 'admin' as managed_by_login_id
            from dual
          union all
-         select 'project2',
-                'Second demo project for PL assignment separation',
+         select 'Project B',
+                'Secondary demo project for separated PL, recommendation, and dependency scenarios',
                 'admin'
            from dual
       ) seed
@@ -297,36 +309,14 @@ begin
 end;
 /
 begin
-   update issues target
-      set target.project_id = (
-      select id
-        from projects
-       where name = 'project2'
-   ),
-          target.updated_at = timestamp '2026-05-01 00:00:00'
-    where target.title in ( 'Dashboard statistics misses closed issues',
-                            'Reopened issue keeps old assignee' )
-      and target.project_id = (
-      select id
-        from projects
-       where name = 'project1'
-   )
-      and exists (
-      select 1
-        from projects
-       where name = 'project2'
-   );
-end;
-/
-begin
-   -- Demo seed owns only project1/project2 membership.
+   -- Demo seed owns only Project A/Project B membership.
    -- User-created projects and their members are intentionally preserved.
    delete from project_members target
     where target.project_id in (
       select p.id
         from projects p
-       where p.name in ( 'project1',
-                         'project2' )
+       where p.name in ( 'Project A',
+                         'Project B' )
    );
 end;
 /
@@ -335,89 +325,85 @@ begin
    using (
       select p.id as project_id,
              u.login_id as user_login_id,
-             timestamp '2026-05-01 00:00:00' as joined_at
+             timestamp '2026-03-01 00:00:00' as joined_at
         from (
-         select 'project1' as project_name,
+         select 'Project A' as project_name,
                 'pl1' as login_id
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'dev1'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'dev2'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'dev3'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'dev4'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'dev5'
            from dual
          union all
-         select 'project1',
-                'dev6'
-           from dual
-         union all
-         select 'project1',
-                'dev7'
-           from dual
-         union all
-         select 'project1',
-                'dev8'
-           from dual
-         union all
-         select 'project1',
-                'dev9'
-           from dual
-         union all
-         select 'project1',
-                'dev10'
-           from dual
-         union all
-         select 'project1',
+         select 'Project A',
                 'tester1'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'tester2'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'tester3'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'tester4'
            from dual
          union all
-         select 'project1',
-                'tester5'
-           from dual
-         union all
-         select 'project2',
+         select 'Project B',
                 'pl2'
            from dual
          union all
-         select 'project2',
-                'dev4'
-           from dual
-         union all
-         select 'project2',
+         select 'Project B',
                 'dev5'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'dev6'
+           from dual
+         union all
+         select 'Project B',
+                'dev7'
+           from dual
+         union all
+         select 'Project B',
+                'dev8'
+           from dual
+         union all
+         select 'Project B',
+                'dev9'
+           from dual
+         union all
+         select 'Project B',
+                'tester2'
+           from dual
+         union all
+         select 'Project B',
+                'tester3'
+           from dual
+         union all
+         select 'Project B',
                 'tester4'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'tester5'
            from dual
       ) membership
@@ -436,103 +422,6 @@ begin
       ( source.project_id,
         source.user_login_id,
         source.joined_at );
-end;
-/
-begin
-   delete from issue_history target
-    where exists (
-      select 1
-        from issues i
-        join projects p
-      on p.id = i.project_id
-       where i.id = target.issue_id
-         and p.name = 'project2'
-         and i.title = 'Dashboard statistics misses closed issues'
-         and target.action_type = 'STATUS_CHANGED'
-         and target.previous_value = 'FIXED'
-         and target.new_value = 'RESOLVED'
-         and target.message = 'Closed issue count verified'
-   );
-end;
-/
-begin
-   delete from issue_dependencies target
-    where exists (
-      select 1
-        from issues blocking_issue
-        join projects blocking_project
-      on blocking_project.id = blocking_issue.project_id
-        join issues blocked_issue
-      on blocked_issue.id = target.blocked_issue_id
-        join projects blocked_project
-      on blocked_project.id = blocked_issue.project_id
-       where target.blocking_issue_id = blocking_issue.id
-         and blocking_project.name = 'project1'
-         and blocking_issue.title = 'Search result filter returns stale status'
-         and blocked_project.name = 'project2'
-         and blocked_issue.title = 'Dashboard statistics misses closed issues'
-   );
-end;
-/
-begin
-   delete from comments target
-    where exists (
-      select 1
-        from issues i
-        join projects project
-      on project.id = i.project_id
-       where target.issue_id = i.id
-         and project.name = 'project1'
-         and i.title = 'Assignment notification not shown'
-   );
-end;
-/
-begin
-   delete from issue_history target
-    where exists (
-      select 1
-        from issues i
-        join projects project
-      on project.id = i.project_id
-       where target.issue_id = i.id
-         and project.name = 'project1'
-         and i.title = 'Assignment notification not shown'
-   );
-end;
-/
-begin
-   delete from issue_history target
-    where target.action_type = 'DEPENDENCY_CHANGED'
-      and exists (
-      select 1
-        from issues blocking_issue
-        join issues blocked_issue
-      on blocking_issue.project_id <> blocked_issue.project_id
-       where target.new_value = lower(standard_hash(
-          to_char(blocking_issue.id)
-          || ':'
-          || to_char(blocked_issue.id),
-          'SHA256'
-       ))
-          or target.previous_value = lower(standard_hash(
-             to_char(blocking_issue.id)
-             || ':'
-             || to_char(blocked_issue.id),
-             'SHA256'
-          ))
-   );
-end;
-/
-begin
-   delete from issue_dependencies target
-    where exists (
-      select 1
-        from issues blocking_issue
-        join issues blocked_issue
-      on blocked_issue.id = target.blocked_issue_id
-       where blocking_issue.id = target.blocking_issue_id
-         and blocking_issue.project_id <> blocked_issue.project_id
-   );
 end;
 /
 begin
@@ -555,36 +444,127 @@ begin
              fixer.login_id as fixer_login_id,
              resolver.login_id as resolver_login_id
         from (
-         select 'project2' as project_name,
-                'Dashboard statistics misses closed issues' as title,
-                'Statistics should include closed issues in status trend queries.' as description,
-                timestamp '2026-05-02 09:00:00' as reported_at,
-                'MAJOR' as priority,
-                'CLOSED' as status,
-                'tester4' as reporter_login,
+         select 'Project A' as project_name,
+                'Assignment notification not shown' as title,
+                'New assignment notifications should be visible before owner selection.' as description,
+                timestamp '2026-03-02 09:00:00' as reported_at,
+                'MINOR' as priority,
+                'NEW' as status,
+                'tester1' as reporter_login,
                 null as assignee_login,
                 null as verifier_login,
-                'dev4' as fixer_login,
-                'tester4' as resolver_login
+                null as fixer_login,
+                null as resolver_login
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'Reopened issues should preserve assignment history and allow reassignment.',
-                timestamp '2026-05-04 09:00:00',
+         select 'Project A',
+                'Dependency resolution flow blocked',
+                'Blocked issue should wait until its blocking issue is resolved or closed.',
+                timestamp '2026-03-03 09:00:00',
+                'BLOCKER',
+                'ASSIGNED',
+                'tester3',
+                'dev1',
+                'tester1',
+                null,
+                null
+           from dual
+         union all
+         select 'Project A',
+                'API error badge missing',
+                'Assigned API errors should show a visible dashboard badge.',
+                timestamp '2026-03-03 09:00:00',
+                'MAJOR',
+                'ASSIGNED',
+                'tester2',
+                'dev2',
+                'tester2',
+                null,
+                null
+           from dual
+         union all
+         select 'Project A',
+                'Login form validation race',
+                'Validation race should be fixed before resolution.',
+                timestamp '2026-03-03 09:00:00',
+                'CRITICAL',
+                'FIXED',
+                'tester1',
+                'dev3',
+                'tester3',
+                'dev3',
+                null
+           from dual
+         union all
+         select 'Project A',
+                'Session timeout warning absent',
+                'Timeout warning is fixed and waiting for tester verification.',
+                timestamp '2026-04-10 09:00:00',
+                'MAJOR',
+                'FIXED',
+                'tester4',
+                'dev4',
+                'tester1',
+                'dev4',
+                null
+           from dual
+         union all
+         select 'Project A',
+                'Search result filter returns stale status',
+                'Search filters should reflect the latest issue status and priority.',
+                timestamp '2026-04-01 09:00:00',
                 'CRITICAL',
                 'RESOLVED',
-                'tester5',
+                'tester2',
                 null,
                 null,
-                'dev5',
-                'tester5'
+                'dev1',
+                'tester1'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'Rejected verification should send the issue back to assigned developer with comment history.',
+                timestamp '2026-04-01 09:00:00',
+                'MAJOR',
+                'RESOLVED',
+                'tester4',
+                null,
+                null,
+                'dev1',
+                'tester2'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'Profile update cache invalidation was fixed and verified.',
+                timestamp '2026-04-07 09:00:00',
+                'MINOR',
+                'RESOLVED',
+                'tester1',
+                null,
+                null,
+                'dev2',
+                'tester1'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'Notification preference persistence has been verified.',
+                timestamp '2026-04-13 09:00:00',
+                'TRIVIAL',
+                'RESOLVED',
+                'tester3',
+                null,
+                null,
+                'dev3',
+                'tester3'
+           from dual
+         union all
+         select 'Project A',
                 'Login fails on invalid credential',
                 'Login failure message should be stable for invalid credentials.',
-                timestamp '2026-05-07 09:00:00',
+                timestamp '2026-04-13 09:00:00',
                 'MAJOR',
                 'CLOSED',
                 'tester1',
@@ -594,62 +574,62 @@ begin
                 'tester2'
            from dual
          union all
-         select 'project1',
-                'Search result filter returns stale status',
-                'Search filters should reflect the latest issue status and priority.',
-                timestamp '2026-05-12 09:00:00',
+         select 'Project A',
+                'Comment edit audit trail',
+                'Comment edits should leave audit history entries.',
+                timestamp '2026-05-02 09:00:00',
+                'MAJOR',
+                'CLOSED',
+                'tester2',
+                null,
+                null,
+                'dev1',
+                'tester1'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'Assigned project members should not be removable while work is active.',
+                timestamp '2026-05-08 09:00:00',
                 'CRITICAL',
-                'RESOLVED',
+                'CLOSED',
+                'tester3',
+                null,
+                null,
+                'dev2',
+                'tester3'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'Statistics chart labels should not overlap in the project dashboard.',
+                timestamp '2026-05-08 09:00:00',
+                'MINOR',
+                'CLOSED',
+                'tester4',
+                null,
+                null,
+                'dev4',
+                'tester4'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'Closed login regression was reopened for further investigation.',
+                timestamp '2026-05-08 09:00:00',
+                'BLOCKER',
+                'REOPENED',
                 'tester2',
                 null,
                 null,
                 'dev2',
-                'tester1'
+                'tester2'
            from dual
          union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'Rejected verification should send the issue back to assigned developer with comment history.',
-                timestamp '2026-05-16 09:00:00',
-                'MAJOR',
-                'RESOLVED',
-                'tester5',
-                null,
-                null,
-                'dev6',
-                'tester5'
-           from dual
-         union all
-         select 'project1',
-                'Assignment notification not shown',
-                'New issues should be visible to PL assignment workflow.',
-                timestamp '2026-05-19 09:00:00',
-                'MINOR',
-                'NEW',
-                'tester1',
-                null,
-                null,
-                null,
-                null
-           from dual
-         union all
-         select 'project1',
-                'Dependency resolution flow blocked',
-                'Blocked issue should wait until its blocking issue is resolved or closed.',
-                timestamp '2026-05-20 09:00:00',
-                'BLOCKER',
-                'ASSIGNED',
-                'tester3',
-                'dev3',
-                'tester3',
-                null,
-                null
-           from dual
-         union all
-         select 'project1',
+         select 'Project A',
                 'Duplicate mobile login report',
                 'Duplicate issue should be deleted from NEW and restored to NEW when needed.',
-                timestamp '2026-05-22 09:00:00',
+                timestamp '2026-05-20 09:00:00',
                 'TRIVIAL',
                 'DELETED',
                 'tester2',
@@ -659,29 +639,198 @@ begin
                 null
            from dual
          union all
-         select 'project2',
-                'Report export fails after generation',
-                'Generated reports fail during export and are waiting for verifier review.',
-                timestamp '2026-05-22 09:00:00',
-                'MAJOR',
-                'FIXED',
-                'tester4',
-                'dev4',
-                'tester4',
-                'dev4',
+         select 'Project B',
+                'Dashboard widget missing tooltip',
+                'New dashboard tooltip issue is awaiting PL assignment.',
+                timestamp '2026-03-01 09:00:00',
+                'MINOR',
+                'NEW',
+                'tester2',
+                null,
+                null,
+                null,
                 null
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Bulk import validation stuck',
+                'Bulk import validation is assigned for active investigation.',
+                timestamp '2026-03-01 09:00:00',
+                'MAJOR',
+                'ASSIGNED',
+                'tester3',
+                'dev5',
+                'tester2',
+                null,
+                null
+           from dual
+         union all
+         select 'Project B',
+                'Email digest delivery delay',
+                'Email digest delay is assigned to the notification team.',
+                timestamp '2026-05-01 09:00:00',
+                'CRITICAL',
+                'ASSIGNED',
+                'tester4',
+                'dev6',
+                'tester3',
+                null,
+                null
+           from dual
+         union all
+         select 'Project B',
+                'Report export fails after generation',
+                'Report export generation fix is waiting for verification.',
+                timestamp '2026-03-12 09:00:00',
+                'MAJOR',
+                'FIXED',
+                'tester4',
+                'dev7',
+                'tester4',
+                'dev7',
+                null
+           from dual
+         union all
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'Timezone mismatch in export filename has been fixed.',
+                timestamp '2026-03-12 09:00:00',
+                'MINOR',
+                'FIXED',
+                'tester5',
+                'dev8',
+                'tester4',
+                'dev8',
+                null
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'Reopened issues should preserve assignment history and allow reassignment.',
+                timestamp '2026-03-15 09:00:00',
+                'CRITICAL',
+                'RESOLVED',
+                'tester5',
+                null,
+                null,
+                'dev6',
+                'tester3'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'SLA report now includes reopened issue paths.',
+                timestamp '2026-04-04 09:00:00',
+                'MAJOR',
+                'RESOLVED',
+                'tester2',
+                null,
+                null,
+                'dev5',
+                'tester2'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'Attachment preview rendering was fixed and verified.',
+                timestamp '2026-04-04 09:00:00',
+                'MINOR',
+                'RESOLVED',
+                'tester3',
+                null,
+                null,
+                'dev5',
+                'tester3'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'Mobile dashboard empty state has been verified.',
+                timestamp '2026-04-04 09:00:00',
+                'TRIVIAL',
+                'RESOLVED',
+                'tester4',
+                null,
+                null,
+                'dev6',
+                'tester4'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'Statistics should include closed issues in status trend queries.',
+                timestamp '2026-04-16 09:00:00',
+                'MAJOR',
+                'CLOSED',
+                'tester4',
+                null,
+                null,
+                'dev5',
+                'tester2'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'Release note typo cleanup is closed after verification.',
+                timestamp '2026-05-03 09:00:00',
+                'TRIVIAL',
+                'CLOSED',
+                'tester2',
+                null,
+                null,
+                'dev5',
+                'tester2'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'Project overview query optimization is closed.',
+                timestamp '2026-05-03 09:00:00',
+                'BLOCKER',
+                'CLOSED',
+                'tester3',
+                null,
+                null,
+                'dev7',
+                'tester4'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'Permission label mismatch was closed after UI verification.',
+                timestamp '2026-05-10 09:00:00',
+                'MINOR',
+                'CLOSED',
+                'tester5',
+                null,
+                null,
+                'dev8',
+                'tester5'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'Closed export regression was reopened for PL review.',
+                timestamp '2026-05-18 09:00:00',
+                'CRITICAL',
+                'REOPENED',
+                'tester4',
+                null,
+                null,
+                'dev6',
+                'tester3'
+           from dual
+         union all
+         select 'Project B',
                 'Retired browser support checklist',
-                'Closed checklist issue has been deleted after archive handoff.',
-                timestamp '2026-05-23 09:00:00',
+                'Retired browser checklist should be deleted from CLOSED state.',
+                timestamp '2026-05-18 09:00:00',
                 'MINOR',
                 'DELETED',
                 'tester5',
                 null,
                 null,
-                'dev5',
+                'dev8',
                 'tester5'
            from dual
       ) s
@@ -698,6 +847,7 @@ begin
         left join users resolver
       on resolver.login_id = s.resolver_login
        order by s.reported_at,
+                s.project_name,
                 s.title
    ) loop
       merge into issues target
@@ -742,7 +892,8 @@ begin
          assignee_login_id,
          verifier_login_id,
          fixer_login_id,
-         resolver_login_id )
+         resolver_login_id,
+         updated_at )
       values
          ( source.project_id,
            source.issue_id,
@@ -755,7 +906,81 @@ begin
            source.assignee_login_id,
            source.verifier_login_id,
            source.fixer_login_id,
-           source.resolver_login_id );
+           source.resolver_login_id,
+           source.reported_at );
+   end loop;
+end;
+/
+begin
+   for seed_dependency in (
+      select blocking_issue.id as blocking_issue_id,
+             blocked_issue.id as blocked_issue_id,
+             lower(standard_hash(
+                to_char(blocking_issue.id)
+                || ':'
+                || to_char(blocked_issue.id),
+                'SHA256'
+             )) as dependency_id,
+             s.discovered_at
+        from (
+         select 'Project A' as blocking_project_name,
+                'Assignment notification not shown' as blocking_title,
+                'Project A' as blocked_project_name,
+                'Dependency resolution flow blocked' as blocked_title,
+                timestamp '2026-03-03 12:00:00' as discovered_at
+           from dual
+         union all
+         select 'Project B',
+                'Bulk import validation stuck',
+                'Project B',
+                'Report export fails after generation',
+                timestamp '2026-03-12 12:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard widget missing tooltip',
+                'Project B',
+                'Export filename timezone mismatch',
+                timestamp '2026-03-12 12:00:00'
+           from dual
+      ) s
+        join projects blocking_project
+      on blocking_project.name = s.blocking_project_name
+        join issues blocking_issue
+      on blocking_issue.project_id = blocking_project.id
+         and blocking_issue.title = s.blocking_title
+        join projects blocked_project
+      on blocked_project.name = s.blocked_project_name
+        join issues blocked_issue
+      on blocked_issue.project_id = blocked_project.id
+         and blocked_issue.title = s.blocked_title
+       order by s.discovered_at,
+                blocking_issue.id,
+                blocked_issue.id
+   ) loop
+      merge into issue_dependencies target
+      using (
+         select seed_dependency.dependency_id as dependency_id,
+                seed_dependency.blocking_issue_id as blocking_issue_id,
+                seed_dependency.blocked_issue_id as blocked_issue_id,
+                seed_dependency.discovered_at as discovered_at
+           from dual
+      ) source on ( target.blocking_issue_id = source.blocking_issue_id
+         and target.blocked_issue_id = source.blocked_issue_id )
+      when matched then update
+      set target.dependency_id = source.dependency_id,
+          target.discovered_at = source.discovered_at
+      when not matched then
+      insert (
+         dependency_id,
+         blocking_issue_id,
+         blocked_issue_id,
+         discovered_at )
+      values
+         ( source.dependency_id,
+           source.blocking_issue_id,
+           source.blocked_issue_id,
+           source.discovered_at );
    end loop;
 end;
 /
@@ -764,367 +989,1008 @@ begin
       select i.id as issue_id,
              u.login_id as writer_login_id,
              s.content,
-             case
-                when s.content in ( 'Fix implemented',
-                                    'Fix verified',
-                                    'Closed by PL',
-                                    'Filter corrected',
-                                    'Verification complete',
-                                    'Statistics query updated',
-                                    'Closed issue count verified after dependency guard passed',
-                                    'Closed after dashboard verification',
-                                    'Reopened after release dashboard regression',
-                                    'Follow-up statistics fix implemented',
-                                    'Follow-up dashboard verification complete',
-                                    'Reclosed after release regression verification',
-                                    'Initial reassignment fix implemented',
-                                    'Initial verification complete',
-                                    'Regression reproduced after reopen',
-                                    'Regression fix implemented',
-                                    'Regression verification complete',
-                                    'Initial fix ready for verification',
-                                    'Verification failed due to stale cache',
-                                    'Rework completed after rejection',
-                                    'Reverification complete',
-                                    'Deleted duplicate NEW issue before assignment',
-                                    'Export generation fix implemented',
-                                    'Retired checklist fix implemented',
-                                    'Retired checklist verified',
-                                    'Retired checklist closed',
-                                    'Deleted retired CLOSED issue after archive' ) then
-                   'STATUS_CHANGE'
-                else
-                   'GENERAL'
-             end as purpose,
-             s.created_at
+             s.purpose,
+             s.created_at,
+             s.created_at as updated_at
         from (
-         select 'project1' as project_name,
-                'Login fails on invalid credential' as issue_title,
-                'tester1' as writer_login,
-                'Initial login bug report.' as content,
-                timestamp '2026-05-07 10:00:00' as created_at
+         select 'Project A' as project_name,
+                'Dependency resolution flow blocked' as issue_title,
+                'pl1' as writer_login,
+                'Assigned to dev1 and tester1' as content,
+                'STATUS_CHANGE' as purpose,
+                timestamp '2026-03-03 10:00:00' as created_at
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
+         select 'Project A',
+                'API error badge missing',
                 'pl1',
-                'Assigned to dev1 and tester2',
-                timestamp '2026-05-08 10:00:00'
+                'Assigned to dev2 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-03-03 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
-                'dev1',
-                'Fix implemented',
-                timestamp '2026-05-09 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Login fails on invalid credential',
-                'tester2',
-                'Fix verified',
-                timestamp '2026-05-10 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Login fails on invalid credential',
+         select 'Project A',
+                'Login form validation race',
                 'pl1',
-                'Closed by PL',
-                timestamp '2026-05-11 10:00:00'
+                'Assigned to dev3 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-03-03 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Search result filter returns stale status',
-                'tester2',
-                'Search status filter mismatch found during verification.',
-                timestamp '2026-05-12 10:00:00'
+         select 'Project A',
+                'Login form validation race',
+                'dev3',
+                'Login form validation race fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-03-04 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Search result filter returns stale status',
+         select 'Project A',
+                'Session timeout warning absent',
                 'pl1',
-                'Assigned to dev2 and tester1',
-                timestamp '2026-05-13 10:00:00'
+                'Assigned to dev4 and tester1',
+                'STATUS_CHANGE',
+                timestamp '2026-04-10 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Search result filter returns stale status',
-                'dev2',
-                'Filter corrected',
-                timestamp '2026-05-14 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Search result filter returns stale status',
-                'tester1',
-                'Verification complete',
-                timestamp '2026-05-15 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'tester4',
-                'Closed issue is missing from the dashboard status count.',
-                timestamp '2026-05-02 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'Assigned to dev4 and tester4',
-                timestamp '2026-05-03 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
+         select 'Project A',
+                'Session timeout warning absent',
                 'dev4',
-                'Status aggregation query updated and ready for verification.',
-                timestamp '2026-05-04 09:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'dev4',
-                'Statistics query updated',
-                timestamp '2026-05-04 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'tester4',
-                'Closed issue count verified after dependency guard passed',
-                timestamp '2026-05-12 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'Closed after dashboard verification',
-                timestamp '2026-05-13 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'Reopened after release dashboard regression',
-                timestamp '2026-05-14 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'Reassigned to dev4 after closed issue reopened',
-                timestamp '2026-05-15 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'dev4',
-                'Follow-up statistics fix implemented',
-                timestamp '2026-05-16 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'tester4',
-                'Follow-up dashboard verification complete',
-                timestamp '2026-05-17 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'Reclosed after release regression verification',
-                timestamp '2026-05-18 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
-                'Regression found after reopening an already resolved issue.',
-                timestamp '2026-05-04 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'Assigned to dev5 and tester5',
-                timestamp '2026-05-05 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'dev5',
-                'Initial reassignment fix implemented',
-                timestamp '2026-05-06 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
-                'Initial verification complete',
+                'Session timeout warning absent fix implemented',
+                'STATUS_CHANGE',
                 timestamp '2026-05-07 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'Reassignment history should remain traceable after reopen.',
-                timestamp '2026-05-08 09:00:00'
+         select 'Project A',
+                'Search result filter returns stale status',
+                'pl1',
+                'Assigned to dev1 and tester1',
+                'STATUS_CHANGE',
+                timestamp '2026-04-01 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'Regression reproduced after reopen',
-                timestamp '2026-05-08 10:00:00'
+         select 'Project A',
+                'Search result filter returns stale status',
+                'dev1',
+                'Search result filter returns stale status fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-02 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'Reassigned to dev5 for regression fix',
-                timestamp '2026-05-09 10:00:00'
+         select 'Project A',
+                'Search result filter returns stale status',
+                'tester1',
+                'Search result filter returns stale status verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-04-03 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'dev5',
-                'Regression fix implemented',
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'pl1',
+                'Assigned to dev1 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-04-01 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'dev1',
+                'Initial fix ready for verification',
+                'STATUS_CHANGE',
+                timestamp '2026-04-02 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'tester2',
+                'Verification failed due to stale cache',
+                'STATUS_CHANGE',
+                timestamp '2026-04-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'dev1',
+                'Rework completed after rejection',
+                'STATUS_CHANGE',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'tester2',
+                'Reverification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-04-30 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'pl1',
+                'Assigned to dev2 and tester1',
+                'STATUS_CHANGE',
+                timestamp '2026-04-07 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'dev2',
+                'Profile page cache invalidation fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'tester1',
+                'Profile page cache invalidation verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-04-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'pl1',
+                'Assigned to dev3 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-04-13 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'dev3',
+                'Notification preference save fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-14 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'tester3',
+                'Notification preference save verification complete',
+                'STATUS_CHANGE',
                 timestamp '2026-05-10 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
-                'Regression verification complete',
-                timestamp '2026-05-19 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
+         select 'Project A',
+                'Login fails on invalid credential',
                 'pl1',
-                'Assigned to dev6 and tester5',
-                timestamp '2026-05-17 10:00:00'
+                'Assigned to dev1 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-04-13 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'dev6',
-                'Initial fix ready for verification',
-                timestamp '2026-05-18 10:00:00'
+         select 'Project A',
+                'Login fails on invalid credential',
+                'dev1',
+                'Login fails on invalid credential fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-09 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'tester5',
-                'Verification failed due to stale cache',
-                timestamp '2026-05-19 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'dev6',
-                'Rework completed after rejection',
-                timestamp '2026-05-20 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'tester5',
-                'Reverification complete',
-                timestamp '2026-05-21 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Dependency resolution flow blocked',
-                'pl1',
-                'Resolve only after the blocking issue is closed.',
-                timestamp '2026-05-20 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Dependency resolution flow blocked',
-                'pl1',
-                'Assigned to dev3 and tester3',
-                timestamp '2026-05-21 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Duplicate mobile login report',
+         select 'Project A',
+                'Login fails on invalid credential',
                 'tester2',
-                'Duplicate mobile login report filed by mistake.',
-                timestamp '2026-05-22 09:30:00'
+                'Login fails on invalid credential verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-10 10:00:00'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
+                'Login fails on invalid credential',
+                'pl1',
+                'Login fails on invalid credential closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Comment edit audit trail',
+                'pl1',
+                'Assigned to dev1 and tester1',
+                'STATUS_CHANGE',
+                timestamp '2026-05-02 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Comment edit audit trail',
+                'dev1',
+                'Comment edit audit trail fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Comment edit audit trail',
+                'tester1',
+                'Comment edit audit trail verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-04 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Comment edit audit trail',
+                'pl1',
+                'Comment edit audit trail closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-05 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'pl1',
+                'Assigned to dev2 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'dev2',
+                'Project member removal guard fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'tester3',
+                'Project member removal guard verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'pl1',
+                'Project member removal guard closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'pl1',
+                'Assigned to dev4 and tester4',
+                'STATUS_CHANGE',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'dev4',
+                'Statistics chart label overflow fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'tester4',
+                'Statistics chart label overflow verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'pl1',
+                'Statistics chart label overflow closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'Assigned to dev2 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'dev2',
+                'Reopened login regression fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'tester2',
+                'Reopened login regression verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'Reopened login regression closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'Reopened login regression reopened after regression',
+                'STATUS_CHANGE',
+                timestamp '2026-05-12 10:00:00'
+           from dual
+         union all
+         select 'Project A',
                 'Duplicate mobile login report',
                 'pl1',
                 'Deleted duplicate NEW issue before assignment',
-                timestamp '2026-05-22 10:00:00'
+                'STATUS_CHANGE',
+                timestamp '2026-05-20 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Report export fails after generation',
-                'tester4',
-                'Report export failure reproduced.',
-                timestamp '2026-05-22 09:30:00'
+         select 'Project B',
+                'Bulk import validation stuck',
+                'pl2',
+                'Assigned to dev5 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-03-01 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Email digest delivery delay',
+                'pl2',
+                'Assigned to dev6 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-05-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Report export fails after generation',
                 'pl2',
-                'Assigned to dev4 and tester4 for export fix',
-                timestamp '2026-05-22 10:00:00'
+                'Assigned to dev7 and tester4',
+                'STATUS_CHANGE',
+                timestamp '2026-03-12 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'Report export fails after generation',
-                'dev4',
-                'Export generation fix implemented',
-                timestamp '2026-05-23 10:00:00'
+                'dev7',
+                'Report export fails after generation fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-03-13 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Retired browser support checklist',
-                'tester5',
-                'Retired browser support checklist reported.',
-                timestamp '2026-05-23 09:30:00'
-           from dual
-         union all
-         select 'project2',
-                'Retired browser support checklist',
+         select 'Project B',
+                'Export filename timezone mismatch',
                 'pl2',
-                'Assigned retired checklist to dev5 and tester5',
-                timestamp '2026-05-23 10:00:00'
+                'Assigned to dev8 and tester4',
+                'STATUS_CHANGE',
+                timestamp '2026-03-12 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Retired browser support checklist',
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'dev8',
+                'Export filename timezone mismatch fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-08 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'Assigned to dev6 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-03-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'dev6',
+                'Initial reassignment fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-03-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'tester3',
+                'Initial verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-03-17 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'Regression reproduced after reopen',
+                'STATUS_CHANGE',
+                timestamp '2026-03-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'Assigned to dev6 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-03-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'dev6',
+                'Regression fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-14 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'tester3',
+                'Regression verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-04-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'pl2',
+                'Assigned to dev5 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
                 'dev5',
-                'Retired checklist fix implemented',
-                timestamp '2026-05-23 11:00:00'
+                'SLA report excludes reopened issue fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-05 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Retired browser support checklist',
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'tester2',
+                'SLA report excludes reopened issue verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-04-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'pl2',
+                'Assigned to dev5 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'dev5',
+                'Attachment preview broken fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'tester3',
+                'Attachment preview broken verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-04-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'pl2',
+                'Assigned to dev6 and tester4',
+                'STATUS_CHANGE',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'dev6',
+                'Mobile dashboard empty state fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-04-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'tester4',
+                'Mobile dashboard empty state verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'Assigned to dev5 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-04-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'dev5',
+                'Initial dashboard fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-12 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'tester2',
+                'Initial dashboard verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-13 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'Initial dashboard issue closed',
+                'STATUS_CHANGE',
+                timestamp '2026-05-14 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'Closed dashboard issue reopened for regression',
+                'STATUS_CHANGE',
+                timestamp '2026-05-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'Assigned to dev5 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-05-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'dev5',
+                'Follow-up dashboard fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-17 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'tester2',
+                'Follow-up dashboard verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'Reclosed after release regression verification',
+                'STATUS_CHANGE',
+                timestamp '2026-05-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'pl2',
+                'Assigned to dev5 and tester2',
+                'STATUS_CHANGE',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'dev5',
+                'Release note typo cleanup fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'tester2',
+                'Release note typo cleanup verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'pl2',
+                'Release note typo cleanup closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'pl2',
+                'Assigned to dev7 and tester4',
+                'STATUS_CHANGE',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'dev7',
+                'Slow project overview query fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'tester4',
+                'Slow project overview query verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'pl2',
+                'Slow project overview query closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'pl2',
+                'Assigned to dev8 and tester5',
+                'STATUS_CHANGE',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'dev8',
+                'Permission label mismatch fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
                 'tester5',
-                'Retired checklist verified',
-                timestamp '2026-05-23 12:00:00'
+                'Permission label mismatch verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-12 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Permission label mismatch',
+                'pl2',
+                'Permission label mismatch closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-13 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'Assigned to dev6 and tester3',
+                'STATUS_CHANGE',
+                timestamp '2026-05-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'dev6',
+                'Reopened export regression fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'tester3',
+                'Reopened export regression verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-20 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'Reopened export regression closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-21 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'Reopened export regression reopened after regression',
+                'STATUS_CHANGE',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Retired browser support checklist',
                 'pl2',
-                'Retired checklist closed',
-                timestamp '2026-05-23 13:00:00'
+                'Assigned to dev8 and tester5',
+                'STATUS_CHANGE',
+                timestamp '2026-05-18 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Retired browser support checklist',
+                'dev8',
+                'Retired browser support checklist fix implemented',
+                'STATUS_CHANGE',
+                timestamp '2026-05-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Retired browser support checklist',
+                'tester5',
+                'Retired browser support checklist verification complete',
+                'STATUS_CHANGE',
+                timestamp '2026-05-20 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Retired browser support checklist',
+                'pl2',
+                'Retired browser support checklist closed by PL',
+                'STATUS_CHANGE',
+                timestamp '2026-05-21 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Retired browser support checklist',
                 'pl2',
                 'Deleted retired CLOSED issue after archive',
-                timestamp '2026-05-23 14:00:00'
+                'STATUS_CHANGE',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Assignment notification not shown',
+                'tester1',
+                'General note for Assignment notification not shown.',
+                'GENERAL',
+                timestamp '2026-03-02 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Dependency resolution flow blocked',
+                'tester3',
+                'General note for Dependency resolution flow blocked.',
+                'GENERAL',
+                timestamp '2026-03-03 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'API error badge missing',
+                'tester2',
+                'General note for API error badge missing.',
+                'GENERAL',
+                timestamp '2026-03-04 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login form validation race',
+                'tester1',
+                'General note for Login form validation race.',
+                'GENERAL',
+                timestamp '2026-03-05 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Session timeout warning absent',
+                'tester4',
+                'General note for Session timeout warning absent.',
+                'GENERAL',
+                timestamp '2026-04-10 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Search result filter returns stale status',
+                'tester2',
+                'General note for Search result filter returns stale status.',
+                'GENERAL',
+                timestamp '2026-04-02 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'tester4',
+                'General note for Verification rejection returns to assignee.',
+                'GENERAL',
+                timestamp '2026-04-03 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'tester1',
+                'General note for Profile page cache invalidation.',
+                'GENERAL',
+                timestamp '2026-04-07 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'tester3',
+                'General note for Notification preference save.',
+                'GENERAL',
+                timestamp '2026-04-13 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'tester1',
+                'General note for Login fails on invalid credential.',
+                'GENERAL',
+                timestamp '2026-04-13 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Comment edit audit trail',
+                'tester2',
+                'General note for Comment edit audit trail.',
+                'GENERAL',
+                timestamp '2026-05-02 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'tester3',
+                'General note for Project member removal guard.',
+                'GENERAL',
+                timestamp '2026-05-08 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'tester4',
+                'General note for Statistics chart label overflow.',
+                'GENERAL',
+                timestamp '2026-05-08 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'tester2',
+                'General note for Reopened login regression.',
+                'GENERAL',
+                timestamp '2026-05-08 09:30:00'
+           from dual
+         union all
+         select 'Project A',
+                'Duplicate mobile login report',
+                'tester2',
+                'General note for Duplicate mobile login report.',
+                'GENERAL',
+                timestamp '2026-05-20 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard widget missing tooltip',
+                'tester2',
+                'General note for Dashboard widget missing tooltip.',
+                'GENERAL',
+                timestamp '2026-03-02 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Bulk import validation stuck',
+                'tester3',
+                'General note for Bulk import validation stuck.',
+                'GENERAL',
+                timestamp '2026-03-03 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Email digest delivery delay',
+                'tester4',
+                'General note for Email digest delivery delay.',
+                'GENERAL',
+                timestamp '2026-05-01 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Report export fails after generation',
+                'tester4',
+                'General note for Report export fails after generation.',
+                'GENERAL',
+                timestamp '2026-03-12 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'tester5',
+                'General note for Export filename timezone mismatch.',
+                'GENERAL',
+                timestamp '2026-03-12 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'tester5',
+                'General note for Reopened issue keeps old assignee.',
+                'GENERAL',
+                timestamp '2026-04-02 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'tester2',
+                'General note for SLA report excludes reopened issue.',
+                'GENERAL',
+                timestamp '2026-04-04 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'tester3',
+                'General note for Attachment preview broken.',
+                'GENERAL',
+                timestamp '2026-04-04 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'tester4',
+                'General note for Mobile dashboard empty state.',
+                'GENERAL',
+                timestamp '2026-04-05 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'tester4',
+                'General note for Dashboard statistics misses closed issues.',
+                'GENERAL',
+                timestamp '2026-04-16 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'tester2',
+                'General note for Release note typo cleanup.',
+                'GENERAL',
+                timestamp '2026-05-03 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'tester3',
+                'General note for Slow project overview query.',
+                'GENERAL',
+                timestamp '2026-05-03 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'tester5',
+                'General note for Permission label mismatch.',
+                'GENERAL',
+                timestamp '2026-05-10 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'tester4',
+                'General note for Reopened export regression.',
+                'GENERAL',
+                timestamp '2026-05-18 09:30:00'
+           from dual
+         union all
+         select 'Project B',
+                'Retired browser support checklist',
+                'tester5',
+                'General note for Retired browser support checklist.',
+                'GENERAL',
+                timestamp '2026-05-18 09:30:00'
            from dual
       ) s
         join projects p
@@ -1145,7 +2011,7 @@ begin
                 seed_comment.content as content,
                 seed_comment.purpose as purpose,
                 seed_comment.created_at as created_at,
-                seed_comment.created_at as updated_at
+                seed_comment.updated_at as updated_at
            from dual
       ) source on ( target.issue_id = source.issue_id
          and target.writer_login_id = source.writer_login_id
@@ -1174,107 +2040,449 @@ end;
 /
 begin
    for seed_history in (
-      select i.id as issue_id,
+      select p.name as project_name,
+             i.title as issue_title,
              u.login_id as changed_by_login_id,
              s.action_type,
              s.previous_value,
              s.new_value,
              s.message,
-             s.changed_at
+             s.changed_at as changed_at,
+             i.id as issue_id
         from (
-         select 'project1' as project_name,
-                'Login fails on invalid credential' as issue_title,
+         select 'Project A' as project_name,
+                'Assignment notification not shown' as issue_title,
                 'tester1' as changed_by_login,
-                cast('CREATED' as varchar2(40)) as action_type,
-                cast(null as varchar2(4000 byte)) as previous_value,
-                cast('NEW' as varchar2(4000 byte)) as new_value,
-                cast('Issue created' as varchar2(4000 byte)) as message,
-                timestamp '2026-05-07 09:00:00' as changed_at
+                'CREATED' as action_type,
+                null as previous_value,
+                'NEW' as new_value,
+                'Issue created' as message,
+                timestamp '2026-03-02 09:00:00' as changed_at
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
+         select 'Project A',
+                'Dependency resolution flow blocked',
+                'tester3',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-03 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Dependency resolution flow blocked',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev1/tester1',
+                'Assigned to dev1 and tester1',
+                timestamp '2026-03-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Dependency resolution flow blocked',
                 'pl1',
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev1 and tester2',
-                timestamp '2026-05-08 10:00:00'
+                'Assigned to dev1 and tester1',
+                timestamp '2026-03-03 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
-                'dev1',
+         select 'Project A',
+                'API error badge missing',
+                'tester2',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-03 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'API error badge missing',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev2/tester2',
+                'Assigned to dev2 and tester2',
+                timestamp '2026-03-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'API error badge missing',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev2 and tester2',
+                timestamp '2026-03-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login form validation race',
+                'tester1',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-03 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login form validation race',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev3/tester3',
+                'Assigned to dev3 and tester3',
+                timestamp '2026-03-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login form validation race',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev3 and tester3',
+                timestamp '2026-03-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login form validation race',
+                'dev3',
                 'STATUS_CHANGED',
                 'ASSIGNED',
                 'FIXED',
-                'Fix implemented',
-                timestamp '2026-05-09 10:00:00'
+                'Login form validation race fix implemented',
+                timestamp '2026-03-04 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
-                'tester2',
-                'STATUS_CHANGED',
-                'FIXED',
-                'RESOLVED',
-                'Fix verified',
-                timestamp '2026-05-10 10:00:00'
+         select 'Project A',
+                'Session timeout warning absent',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-10 09:00:00'
            from dual
          union all
-         select 'project1',
-                'Login fails on invalid credential',
+         select 'Project A',
+                'Session timeout warning absent',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev4/tester1',
+                'Assigned to dev4 and tester1',
+                timestamp '2026-04-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Session timeout warning absent',
                 'pl1',
                 'STATUS_CHANGED',
-                'RESOLVED',
-                'CLOSED',
-                'Closed by PL',
-                timestamp '2026-05-11 10:00:00'
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev4 and tester1',
+                timestamp '2026-04-10 10:00:00'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
+                'Session timeout warning absent',
+                'dev4',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Session timeout warning absent fix implemented',
+                timestamp '2026-05-07 10:00:00'
+           from dual
+         union all
+         select 'Project A',
                 'Search result filter returns stale status',
                 'tester2',
                 'CREATED',
                 null,
                 'NEW',
                 'Issue created',
-                timestamp '2026-05-12 09:00:00'
+                timestamp '2026-04-01 09:00:00'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
+                'Search result filter returns stale status',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev1/tester1',
+                'Assigned to dev1 and tester1',
+                timestamp '2026-04-01 10:00:00'
+           from dual
+         union all
+         select 'Project A',
                 'Search result filter returns stale status',
                 'pl1',
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev2 and tester1',
-                timestamp '2026-05-13 10:00:00'
+                'Assigned to dev1 and tester1',
+                timestamp '2026-04-01 10:00:00'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'Search result filter returns stale status',
-                'dev2',
+                'dev1',
                 'STATUS_CHANGED',
                 'ASSIGNED',
                 'FIXED',
-                'Filter corrected',
-                timestamp '2026-05-14 10:00:00'
+                'Search result filter returns stale status fix implemented',
+                timestamp '2026-04-02 10:00:00'
            from dual
          union all
-         select 'project1',
+         select 'Project A',
                 'Search result filter returns stale status',
                 'tester1',
                 'STATUS_CHANGED',
                 'FIXED',
                 'RESOLVED',
-                'Verification complete',
-                timestamp '2026-05-15 10:00:00'
+                'Search result filter returns stale status verification complete',
+                timestamp '2026-04-03 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
+         select 'Project A',
+                'Verification rejection returns to assignee',
                 'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-01 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev1/tester2',
+                'Assigned to dev1 and tester2',
+                timestamp '2026-04-01 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev1 and tester2',
+                timestamp '2026-04-01 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'dev1',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Initial fix ready for verification',
+                timestamp '2026-04-02 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'ASSIGNED',
+                'Verification failed due to stale cache',
+                timestamp '2026-04-03 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'dev1',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Rework completed after rejection',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Verification rejection returns to assignee',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Reverification complete',
+                timestamp '2026-04-30 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'tester1',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-07 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev2/tester1',
+                'Assigned to dev2 and tester1',
+                timestamp '2026-04-07 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev2 and tester1',
+                timestamp '2026-04-07 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'dev2',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Profile page cache invalidation fix implemented',
+                timestamp '2026-04-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Profile page cache invalidation',
+                'tester1',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Profile page cache invalidation verification complete',
+                timestamp '2026-04-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'tester3',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-13 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev3/tester3',
+                'Assigned to dev3 and tester3',
+                timestamp '2026-04-13 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev3 and tester3',
+                timestamp '2026-04-13 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'dev3',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Notification preference save fix implemented',
+                timestamp '2026-04-14 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Notification preference save',
+                'tester3',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Notification preference save verification complete',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'tester1',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-13 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev1/tester2',
+                'Assigned to dev1 and tester2',
+                timestamp '2026-04-13 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev1 and tester2',
+                timestamp '2026-04-13 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'dev1',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Login fails on invalid credential fix implemented',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Login fails on invalid credential verification complete',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Login fails on invalid credential',
+                'pl1',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Login fails on invalid credential closed by PL',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Comment edit audit trail',
+                'tester2',
                 'CREATED',
                 null,
                 'NEW',
@@ -1282,249 +2490,249 @@ begin
                 timestamp '2026-05-02 09:00:00'
            from dual
          union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'STATUS_CHANGED',
-                'NEW',
-                'ASSIGNED',
-                'Assigned to dev4 and tester4',
-                timestamp '2026-05-03 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'dev4',
-                'STATUS_CHANGED',
-                'ASSIGNED',
-                'FIXED',
-                'Statistics query updated',
-                timestamp '2026-05-04 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'tester4',
-                'STATUS_CHANGED',
-                'FIXED',
-                'RESOLVED',
-                'Closed issue count verified after dependency guard passed',
-                timestamp '2026-05-12 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'STATUS_CHANGED',
-                'RESOLVED',
-                'CLOSED',
-                'Closed after dashboard verification',
-                timestamp '2026-05-13 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'STATUS_CHANGED',
-                'CLOSED',
-                'REOPENED',
-                'Reopened after release dashboard regression',
-                timestamp '2026-05-14 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'STATUS_CHANGED',
-                'REOPENED',
-                'ASSIGNED',
-                'Reassigned to dev4 after closed issue reopened',
-                timestamp '2026-05-15 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'dev4',
-                'STATUS_CHANGED',
-                'ASSIGNED',
-                'FIXED',
-                'Follow-up statistics fix implemented',
-                timestamp '2026-05-16 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'tester4',
-                'STATUS_CHANGED',
-                'FIXED',
-                'RESOLVED',
-                'Follow-up dashboard verification complete',
-                timestamp '2026-05-17 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'STATUS_CHANGED',
-                'RESOLVED',
-                'CLOSED',
-                'Reclosed after release regression verification',
-                timestamp '2026-05-18 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
-                'CREATED',
+         select 'Project A',
+                'Comment edit audit trail',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
                 null,
-                'NEW',
-                'Issue created',
-                timestamp '2026-05-04 09:00:00'
+                'dev1/tester1',
+                'Assigned to dev1 and tester1',
+                timestamp '2026-05-02 10:00:00'
            from dual
          union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'STATUS_CHANGED',
-                'NEW',
-                'ASSIGNED',
-                'Assigned to dev5 and tester5',
-                timestamp '2026-05-05 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'dev5',
-                'STATUS_CHANGED',
-                'ASSIGNED',
-                'FIXED',
-                'Initial reassignment fix implemented',
-                timestamp '2026-05-06 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
-                'STATUS_CHANGED',
-                'FIXED',
-                'RESOLVED',
-                'Initial verification complete',
-                timestamp '2026-05-07 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'STATUS_CHANGED',
-                'RESOLVED',
-                'REOPENED',
-                'Regression reproduced after reopen',
-                timestamp '2026-05-08 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'STATUS_CHANGED',
-                'REOPENED',
-                'ASSIGNED',
-                'Reassigned to dev5 for regression fix',
-                timestamp '2026-05-09 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'dev5',
-                'STATUS_CHANGED',
-                'ASSIGNED',
-                'FIXED',
-                'Regression fix implemented',
-                timestamp '2026-05-10 10:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'tester5',
-                'STATUS_CHANGED',
-                'FIXED',
-                'RESOLVED',
-                'Regression verification complete',
-                timestamp '2026-05-19 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'tester5',
-                'CREATED',
-                null,
-                'NEW',
-                'Issue created',
-                timestamp '2026-05-16 09:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
+         select 'Project A',
+                'Comment edit audit trail',
                 'pl1',
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev6 and tester5',
-                timestamp '2026-05-17 10:00:00'
+                'Assigned to dev1 and tester1',
+                timestamp '2026-05-02 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'dev6',
+         select 'Project A',
+                'Comment edit audit trail',
+                'dev1',
                 'STATUS_CHANGED',
                 'ASSIGNED',
                 'FIXED',
-                'Initial fix ready for verification',
-                timestamp '2026-05-18 10:00:00'
+                'Comment edit audit trail fix implemented',
+                timestamp '2026-05-03 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'tester5',
-                'STATUS_CHANGED',
-                'FIXED',
-                'ASSIGNED',
-                'Verification failed due to stale cache',
-                timestamp '2026-05-19 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'dev6',
-                'STATUS_CHANGED',
-                'ASSIGNED',
-                'FIXED',
-                'Rework completed after rejection',
-                timestamp '2026-05-20 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Verification rejection returns to assignee',
-                'tester5',
+         select 'Project A',
+                'Comment edit audit trail',
+                'tester1',
                 'STATUS_CHANGED',
                 'FIXED',
                 'RESOLVED',
-                'Reverification complete',
-                timestamp '2026-05-21 10:00:00'
+                'Comment edit audit trail verification complete',
+                timestamp '2026-05-04 10:00:00'
            from dual
          union all
-         select 'project1',
-                'Assignment notification not shown',
-                'tester1',
+         select 'Project A',
+                'Comment edit audit trail',
+                'pl1',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Comment edit audit trail closed by PL',
+                timestamp '2026-05-05 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'tester3',
                 'CREATED',
                 null,
                 'NEW',
                 'Issue created',
-                timestamp '2026-05-19 09:00:00'
+                timestamp '2026-05-08 09:00:00'
            from dual
          union all
-         select 'project1',
-                'Dependency resolution flow blocked',
+         select 'Project A',
+                'Project member removal guard',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev2/tester3',
+                'Assigned to dev2 and tester3',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev2 and tester3',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'dev2',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Project member removal guard fix implemented',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
                 'tester3',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Project member removal guard verification complete',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Project member removal guard',
+                'pl1',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Project member removal guard closed by PL',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-08 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev4/tester4',
+                'Assigned to dev4 and tester4',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev4 and tester4',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'dev4',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Statistics chart label overflow fix implemented',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'tester4',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Statistics chart label overflow verification complete',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Statistics chart label overflow',
+                'pl1',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Statistics chart label overflow closed by PL',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'tester2',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-08 09:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev2/tester2',
+                'Assigned to dev2 and tester2',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev2 and tester2',
+                timestamp '2026-05-08 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'dev2',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Reopened login regression fix implemented',
+                timestamp '2026-05-09 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Reopened login regression verification complete',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Reopened login regression closed by PL',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Reopened login regression',
+                'pl1',
+                'STATUS_CHANGED',
+                'CLOSED',
+                'REOPENED',
+                'Reopened login regression reopened after regression',
+                timestamp '2026-05-12 10:00:00'
+           from dual
+         union all
+         select 'Project A',
+                'Duplicate mobile login report',
+                'tester2',
                 'CREATED',
                 null,
                 'NEW',
@@ -1532,221 +2740,854 @@ begin
                 timestamp '2026-05-20 09:00:00'
            from dual
          union all
-         select 'project1',
-                'Dependency resolution flow blocked',
-                'pl1',
-                'STATUS_CHANGED',
-                'NEW',
-                'ASSIGNED',
-                'Assigned to dev3 and tester3',
-                timestamp '2026-05-21 10:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Duplicate mobile login report',
-                'tester2',
-                'CREATED',
-                null,
-                'NEW',
-                'Issue created',
-                timestamp '2026-05-22 09:00:00'
-           from dual
-         union all
-         select 'project1',
+         select 'Project A',
                 'Duplicate mobile login report',
                 'pl1',
                 'STATUS_CHANGED',
                 'NEW',
                 'DELETED',
                 'Deleted duplicate NEW issue before assignment',
-                timestamp '2026-05-22 10:00:00'
+                timestamp '2026-05-20 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Dashboard widget missing tooltip',
+                'tester2',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-01 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Bulk import validation stuck',
+                'tester3',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-01 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Bulk import validation stuck',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev5/tester2',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-03-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Bulk import validation stuck',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-03-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Email digest delivery delay',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-01 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Email digest delivery delay',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev6/tester3',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-05-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Email digest delivery delay',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-05-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Report export fails after generation',
                 'tester4',
                 'CREATED',
                 null,
                 'NEW',
                 'Issue created',
-                timestamp '2026-05-22 09:00:00'
+                timestamp '2026-03-12 09:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Report export fails after generation',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev7/tester4',
+                'Assigned to dev7 and tester4',
+                timestamp '2026-03-12 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Report export fails after generation',
                 'pl2',
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev4 and tester4 for export fix',
-                timestamp '2026-05-22 10:00:00'
+                'Assigned to dev7 and tester4',
+                timestamp '2026-03-12 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'Report export fails after generation',
-                'dev4',
+                'dev7',
                 'STATUS_CHANGED',
                 'ASSIGNED',
                 'FIXED',
-                'Export generation fix implemented',
-                timestamp '2026-05-23 10:00:00'
+                'Report export fails after generation fix implemented',
+                timestamp '2026-03-13 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'tester5',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-12 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev8/tester4',
+                'Assigned to dev8 and tester4',
+                timestamp '2026-03-12 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev8 and tester4',
+                timestamp '2026-03-12 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'dev8',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Export filename timezone mismatch fix implemented',
+                timestamp '2026-04-08 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'tester5',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-03-15 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev6/tester3',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-03-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-03-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'dev6',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Initial reassignment fix implemented',
+                timestamp '2026-03-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'tester3',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Initial verification complete',
+                timestamp '2026-03-17 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'REOPENED',
+                'Regression reproduced after reopen',
+                timestamp '2026-03-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev6/tester3',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-03-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'pl2',
+                'STATUS_CHANGED',
+                'REOPENED',
+                'ASSIGNED',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-03-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'dev6',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Regression fix implemented',
+                timestamp '2026-04-14 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened issue keeps old assignee',
+                'tester3',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Regression verification complete',
+                timestamp '2026-04-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'tester2',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-04 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev5/tester2',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'dev5',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'SLA report excludes reopened issue fix implemented',
+                timestamp '2026-04-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'SLA report excludes reopened issue',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'SLA report excludes reopened issue verification complete',
+                timestamp '2026-04-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'tester3',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-04 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev5/tester3',
+                'Assigned to dev5 and tester3',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev5 and tester3',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'dev5',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Attachment preview broken fix implemented',
+                timestamp '2026-04-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Attachment preview broken',
+                'tester3',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Attachment preview broken verification complete',
+                timestamp '2026-04-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-04 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev6/tester4',
+                'Assigned to dev6 and tester4',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev6 and tester4',
+                timestamp '2026-04-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'dev6',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Mobile dashboard empty state fix implemented',
+                timestamp '2026-04-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Mobile dashboard empty state',
+                'tester4',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Mobile dashboard empty state verification complete',
+                timestamp '2026-05-01 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-04-16 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev5/tester2',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-04-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-04-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'dev5',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Initial dashboard fix implemented',
+                timestamp '2026-05-12 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Initial dashboard verification complete',
+                timestamp '2026-05-13 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Initial dashboard issue closed',
+                timestamp '2026-05-14 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'STATUS_CHANGED',
+                'CLOSED',
+                'REOPENED',
+                'Closed dashboard issue reopened for regression',
+                timestamp '2026-05-15 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev5/tester2',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-05-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'STATUS_CHANGED',
+                'REOPENED',
+                'ASSIGNED',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-05-16 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'dev5',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Follow-up dashboard fix implemented',
+                timestamp '2026-05-17 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Follow-up dashboard verification complete',
+                timestamp '2026-05-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Dashboard statistics misses closed issues',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Reclosed after release regression verification',
+                timestamp '2026-05-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'tester2',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-03 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev5/tester2',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev5 and tester2',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'dev5',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Release note typo cleanup fix implemented',
+                timestamp '2026-05-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'tester2',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Release note typo cleanup verification complete',
+                timestamp '2026-05-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Release note typo cleanup',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Release note typo cleanup closed by PL',
+                timestamp '2026-05-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'tester3',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-03 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev7/tester4',
+                'Assigned to dev7 and tester4',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev7 and tester4',
+                timestamp '2026-05-03 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'dev7',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Slow project overview query fix implemented',
+                timestamp '2026-05-04 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'tester4',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Slow project overview query verification complete',
+                timestamp '2026-05-05 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Slow project overview query',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Slow project overview query closed by PL',
+                timestamp '2026-05-06 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'tester5',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-10 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev8/tester5',
+                'Assigned to dev8 and tester5',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev8 and tester5',
+                timestamp '2026-05-10 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'dev8',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Permission label mismatch fix implemented',
+                timestamp '2026-05-11 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'tester5',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Permission label mismatch verification complete',
+                timestamp '2026-05-12 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Permission label mismatch',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Permission label mismatch closed by PL',
+                timestamp '2026-05-13 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'tester4',
+                'CREATED',
+                null,
+                'NEW',
+                'Issue created',
+                timestamp '2026-05-18 09:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev6/tester3',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-05-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'STATUS_CHANGED',
+                'NEW',
+                'ASSIGNED',
+                'Assigned to dev6 and tester3',
+                timestamp '2026-05-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'dev6',
+                'STATUS_CHANGED',
+                'ASSIGNED',
+                'FIXED',
+                'Reopened export regression fix implemented',
+                timestamp '2026-05-19 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'tester3',
+                'STATUS_CHANGED',
+                'FIXED',
+                'RESOLVED',
+                'Reopened export regression verification complete',
+                timestamp '2026-05-20 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'STATUS_CHANGED',
+                'RESOLVED',
+                'CLOSED',
+                'Reopened export regression closed by PL',
+                timestamp '2026-05-21 10:00:00'
+           from dual
+         union all
+         select 'Project B',
+                'Reopened export regression',
+                'pl2',
+                'STATUS_CHANGED',
+                'CLOSED',
+                'REOPENED',
+                'Reopened export regression reopened after regression',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Retired browser support checklist',
                 'tester5',
                 'CREATED',
                 null,
                 'NEW',
                 'Issue created',
-                timestamp '2026-05-23 09:00:00'
+                timestamp '2026-05-18 09:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
+                'Retired browser support checklist',
+                'pl2',
+                'ASSIGNMENT_CHANGED',
+                null,
+                'dev8/tester5',
+                'Assigned to dev8 and tester5',
+                timestamp '2026-05-18 10:00:00'
+           from dual
+         union all
+         select 'Project B',
                 'Retired browser support checklist',
                 'pl2',
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned retired checklist to dev5 and tester5',
-                timestamp '2026-05-23 10:00:00'
+                'Assigned to dev8 and tester5',
+                timestamp '2026-05-18 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'Retired browser support checklist',
-                'dev5',
+                'dev8',
                 'STATUS_CHANGED',
                 'ASSIGNED',
                 'FIXED',
-                'Retired checklist fix implemented',
-                timestamp '2026-05-23 11:00:00'
+                'Retired browser support checklist fix implemented',
+                timestamp '2026-05-19 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'Retired browser support checklist',
                 'tester5',
                 'STATUS_CHANGED',
                 'FIXED',
                 'RESOLVED',
-                'Retired checklist verified',
-                timestamp '2026-05-23 12:00:00'
+                'Retired browser support checklist verification complete',
+                timestamp '2026-05-20 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'Retired browser support checklist',
                 'pl2',
                 'STATUS_CHANGED',
                 'RESOLVED',
                 'CLOSED',
-                'Retired checklist closed',
-                timestamp '2026-05-23 13:00:00'
+                'Retired browser support checklist closed by PL',
+                timestamp '2026-05-21 10:00:00'
            from dual
          union all
-         select 'project2',
+         select 'Project B',
                 'Retired browser support checklist',
                 'pl2',
                 'STATUS_CHANGED',
                 'CLOSED',
                 'DELETED',
                 'Deleted retired CLOSED issue after archive',
-                timestamp '2026-05-23 14:00:00'
-           from dual
-         union all
-         select p.name,
-                i.title,
-                c.writer_login_id,
-                'COMMENTED',
-                null,
-                c.content,
-                c.content,
-                c.created_at
-           from comments c
-           join issues i
-         on i.id = c.issue_id
-           join projects p
-         on p.id = i.project_id
-          where c.purpose in ( 'GENERAL',
-                               'STATUS_CHANGE' )
-         union all
-         select 'project2',
-                'Report export fails after generation',
-                'pl2',
-                'DEPENDENCY_CHANGED',
-                null,
-                (
-                   select lower(standard_hash(
-                      to_char(blocking_issue.id)
-                      || ':'
-                      || to_char(blocked_issue.id),
-                      'SHA256'
-                   ))
-                     from projects blocking_project
-                     join issues blocking_issue
-                   on blocking_issue.project_id = blocking_project.id
-                     join projects blocked_project
-                   on blocked_project.name = 'project2'
-                     join issues blocked_issue
-                   on blocked_issue.project_id = blocked_project.id
-                    where blocking_project.name = 'project2'
-                      and blocking_issue.title = 'Dashboard statistics misses closed issues'
-                      and blocked_issue.title = 'Report export fails after generation'
-                ),
-                'Dependency added',
-                timestamp '2026-05-22 11:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'DEPENDENCY_CHANGED',
-                null,
-                (
-                   select lower(standard_hash(
-                      to_char(blocking_issue.id)
-                      || ':'
-                      || to_char(blocked_issue.id),
-                      'SHA256'
-                   ))
-                     from projects blocking_project
-                     join issues blocking_issue
-                   on blocking_issue.project_id = blocking_project.id
-                     join projects blocked_project
-                   on blocked_project.name = 'project2'
-                     join issues blocked_issue
-                   on blocked_issue.project_id = blocked_project.id
-                    where blocking_project.name = 'project2'
-                      and blocking_issue.title = 'Dashboard statistics misses closed issues'
-                      and blocked_issue.title = 'Reopened issue keeps old assignee'
-                ),
-                'Dependency added',
-                timestamp '2026-05-09 11:00:00'
-           from dual
-         union all
-         select 'project1',
-                'Dependency resolution flow blocked',
-                'pl1',
-                'DEPENDENCY_CHANGED',
-                null,
-                (
-                   select lower(standard_hash(
-                      to_char(blocking_issue.id)
-                      || ':'
-                      || to_char(blocked_issue.id),
-                      'SHA256'
-                   ))
-                     from projects blocking_project
-                     join issues blocking_issue
-                   on blocking_issue.project_id = blocking_project.id
-                     join projects blocked_project
-                   on blocked_project.name = 'project1'
-                     join issues blocked_issue
-                   on blocked_issue.project_id = blocked_project.id
-                    where blocking_project.name = 'project1'
-                      and blocking_issue.title = 'Assignment notification not shown'
-                      and blocked_issue.title = 'Dependency resolution flow blocked'
-                ),
-                'Dependency added',
-                timestamp '2026-05-21 11:00:00'
+                timestamp '2026-05-22 10:00:00'
            from dual
       ) s
         join projects p
@@ -1756,10 +3597,77 @@ begin
          and i.title = s.issue_title
         join users u
       on u.login_id = s.changed_by_login
-       order by s.changed_at,
-                i.id,
-                s.action_type,
-                s.message
+      union all
+      select p.name,
+             i.title,
+             c.writer_login_id,
+             'COMMENTED',
+             null,
+             c.content,
+             c.content,
+             c.created_at as changed_at,
+             i.id
+        from comments c
+        join issues i
+      on i.id = c.issue_id
+        join projects p
+      on p.id = i.project_id
+       where p.name in ( 'Project A',
+                         'Project B' )
+      union all
+      select s.blocked_project_name,
+             s.blocked_title,
+             s.changed_by_login,
+             'DEPENDENCY_CHANGED',
+             null,
+             d.dependency_id,
+             'Dependency added',
+             s.changed_at as changed_at,
+             blocked_issue.id
+        from (
+         select 'Project A' as blocked_project_name,
+                'Dependency resolution flow blocked' as blocked_title,
+                'pl1' as changed_by_login,
+                timestamp '2026-03-03 12:00:00' as changed_at,
+                'Project A' as blocking_project_name,
+                'Assignment notification not shown' as blocking_title
+           from dual
+         union all
+         select 'Project B',
+                'Report export fails after generation',
+                'pl2',
+                timestamp '2026-03-05 12:00:00',
+                'Project B',
+                'Bulk import validation stuck'
+           from dual
+         union all
+         select 'Project B',
+                'Export filename timezone mismatch',
+                'pl2',
+                timestamp '2026-03-06 12:00:00',
+                'Project B',
+                'Dashboard widget missing tooltip'
+           from dual
+      ) s
+        join projects blocked_project
+      on blocked_project.name = s.blocked_project_name
+        join issues blocked_issue
+      on blocked_issue.project_id = blocked_project.id
+         and blocked_issue.title = s.blocked_title
+        join projects blocking_project
+      on blocking_project.name = s.blocking_project_name
+        join issues blocking_issue
+      on blocking_issue.project_id = blocking_project.id
+         and blocking_issue.title = s.blocking_title
+        join issue_dependencies d
+      on d.blocking_issue_id = blocking_issue.id
+         and d.blocked_issue_id = blocked_issue.id
+        join users u
+      on u.login_id = s.changed_by_login
+       order by 8,
+                9,
+                4,
+                7
    ) loop
       merge into issue_history target
       using (
@@ -1816,91 +3724,8 @@ begin
       select 1
         from projects project
        where project.id = target.project_id
-         and ( ( project.name = 'project1'
-         and target.title in ( 'Login fails on invalid credential',
-                               'Search result filter returns stale status',
-                               'Verification rejection returns to assignee',
-                               'Assignment notification not shown',
-                               'Dependency resolution flow blocked',
-                               'Duplicate mobile login report' ) )
-          or ( project.name = 'project2'
-         and target.title in ( 'Dashboard statistics misses closed issues',
-                               'Reopened issue keeps old assignee',
-                               'Report export fails after generation',
-                               'Retired browser support checklist' ) ) )
+         and project.name in ( 'Project A',
+                               'Project B' )
    );
-end;
-/
-begin
-   for seed_dependency in (
-      select blocking_issue.id as blocking_issue_id,
-             blocked_issue.id as blocked_issue_id,
-             lower(standard_hash(
-                to_char(blocking_issue.id)
-                || ':'
-                || to_char(blocked_issue.id),
-                'SHA256'
-             )) as dependency_id,
-             s.discovered_at
-        from (
-         select 'project1' as blocking_project_name,
-                'Assignment notification not shown' as blocking_title,
-                'project1' as blocked_project_name,
-                'Dependency resolution flow blocked' as blocked_title,
-                timestamp '2026-05-21 11:00:00' as discovered_at
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'project2',
-                'Report export fails after generation',
-                timestamp '2026-05-22 11:00:00'
-           from dual
-         union all
-         select 'project2',
-                'Dashboard statistics misses closed issues',
-                'project2',
-                'Reopened issue keeps old assignee',
-                timestamp '2026-05-09 11:00:00'
-           from dual
-      ) s
-        join projects blocking_project
-      on blocking_project.name = s.blocking_project_name
-        join issues blocking_issue
-      on blocking_issue.project_id = blocking_project.id
-         and blocking_issue.title = s.blocking_title
-        join projects blocked_project
-      on blocked_project.name = s.blocked_project_name
-        join issues blocked_issue
-      on blocked_issue.project_id = blocked_project.id
-         and blocked_issue.title = s.blocked_title
-       order by s.discovered_at,
-                blocking_issue.id,
-                blocked_issue.id
-   ) loop
-      merge into issue_dependencies target
-      using (
-         select seed_dependency.dependency_id as dependency_id,
-                seed_dependency.blocking_issue_id as blocking_issue_id,
-                seed_dependency.blocked_issue_id as blocked_issue_id,
-                seed_dependency.discovered_at as discovered_at
-           from dual
-      ) source on ( target.blocking_issue_id = source.blocking_issue_id
-         and target.blocked_issue_id = source.blocked_issue_id )
-      when matched then update
-      set target.dependency_id = source.dependency_id,
-          target.discovered_at = source.discovered_at
-      when not matched then
-      insert (
-         dependency_id,
-         blocking_issue_id,
-         blocked_issue_id,
-         discovered_at )
-      values
-         ( source.dependency_id,
-           source.blocking_issue_id,
-           source.blocked_issue_id,
-           source.discovered_at );
-   end loop;
 end;
 /

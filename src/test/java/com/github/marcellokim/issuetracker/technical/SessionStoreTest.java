@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,25 +15,25 @@ class SessionStoreTest {
     @DisplayName("starts, reads, and clears a user session")
     void startsReadsAndClearsSession() {
         SessionStore store = new SessionStore();
-        User user = User.fromPersistence("dev1", "Developer One", "hash", Role.DEV, true, null, null);
 
-        assertFalse(store.currentUser().isPresent());
+        assertFalse(store.currentLoginId().isPresent());
 
-        store.startSession(user);
+        store.start("dev1");
 
-        assertTrue(store.currentUser().isPresent());
-        assertEquals("dev1", store.currentUser().orElseThrow().getLoginId());
+        assertTrue(store.currentLoginId().isPresent());
+        assertEquals("dev1", store.currentLoginId().orElseThrow());
 
         store.clear();
 
-        assertFalse(store.currentUser().isPresent());
+        assertFalse(store.currentLoginId().isPresent());
     }
 
     @Test
-    @DisplayName("rejects null session user")
-    void rejectsNullSessionUser() {
+    @DisplayName("rejects blank session login id")
+    void rejectsBlankSessionLoginId() {
         SessionStore store = new SessionStore();
 
-        assertThrows(NullPointerException.class, () -> store.startSession(null));
+        assertThrows(IllegalArgumentException.class, () -> store.start(null));
+        assertThrows(IllegalArgumentException.class, () -> store.start(" "));
     }
 }

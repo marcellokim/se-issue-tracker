@@ -6,7 +6,8 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: Admin 로그인, 대상 User 존재, UC14 권한 검사
 end note
-A -> S: updateAccount(userId, name, role)
+A -> S: renameAccount(loginId, name)
+A -> S: changeAccountRole(loginId, role)
 S --> A: accountUpdated(userId, name, role)
 note over S
 결과: User의 name/role 수정, isActive 변경은 deactivateAccount에서 처리

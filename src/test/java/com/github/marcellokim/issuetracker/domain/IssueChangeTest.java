@@ -25,7 +25,7 @@ class IssueChangeTest {
     @Test
     @DisplayName("우선순위를 변경하면 PRIORITY_CHANGED 이력이 기록된다")
     void changePriorityAndRecordHistory() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var changedAt = createdAt.plusMinutes(10);
 
         issue.changePriority(Priority.CRITICAL, pl, changedAt);
@@ -42,7 +42,7 @@ class IssueChangeTest {
     @Test
     @DisplayName("resolved 이슈를 reopen하면 assignment가 비워지고 STATUS_CHANGED 이력이 기록된다")
     void reopenResolvedIssueAndRecordHistory() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
         issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
         issue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
@@ -103,7 +103,7 @@ class IssueChangeTest {
     @Test
     @DisplayName("reporter가 NEW 이슈의 제목과 설명을 변경하면 이력이 기록된다")
     void updateTitleAndDescriptionByReporter() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var changedAt = createdAt.plusMinutes(10);
 
         issue.updateTitleAndDescription("Login fixed", "Updated description", reporter, changedAt);
@@ -132,7 +132,7 @@ class IssueChangeTest {
     @Test
     @DisplayName("reporter가 아닌 사용자는 제목/설명을 변경할 수 없다")
     void rejectUpdateTitleByNonReporter() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> issue.updateTitleAndDescription("New", "Desc", pl, createdAt.plusMinutes(10)));
@@ -150,7 +150,7 @@ class IssueChangeTest {
     @Test
     @DisplayName("빈 제목이나 설명으로는 변경할 수 없다")
     void rejectUpdateTitleWithBlankValues() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> issue.updateTitleAndDescription("", "Desc", reporter, createdAt.plusMinutes(10)));
@@ -172,7 +172,7 @@ class IssueChangeTest {
     @Test
     @DisplayName("같은 우선순위로는 변경할 수 없고 NEW 이슈는 reopen할 수 없다")
     void rejectNoOpChanges() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> issue.changePriority(Priority.MAJOR, pl, createdAt));
@@ -181,7 +181,7 @@ class IssueChangeTest {
     }
 
     private Issue assignedIssue() {
-        var issue = Issue.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
         return issue;
     }

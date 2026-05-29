@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
 import java.lang.reflect.Proxy;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
@@ -23,7 +24,7 @@ class JdbcIssueQueriesTest {
     @Test
     @DisplayName("default search excludes deleted issues and preserves ordering")
     void defaultSearchExcludesDeletedIssues() {
-        var query = JdbcIssueQueries.search(IssueSearchCriteria.all(10L));
+        var query = JdbcIssueQueries.search(IssueSearchCriteriaTestFactory.all(10L));
 
         assertTrue(query.sql().contains("and i.project_id = ?"));
         assertTrue(query.sql().contains("and i.status <> 'DELETED'"));
@@ -77,7 +78,7 @@ class JdbcIssueQueriesTest {
     @Test
     @DisplayName("search query binder list is immutable")
     void searchQueryBinderListIsImmutable() {
-        var query = JdbcIssueQueries.search(IssueSearchCriteria.all(10L));
+        var query = JdbcIssueQueries.search(IssueSearchCriteriaTestFactory.all(10L));
 
         assertThrows(UnsupportedOperationException.class, () -> query.binders().clear());
     }

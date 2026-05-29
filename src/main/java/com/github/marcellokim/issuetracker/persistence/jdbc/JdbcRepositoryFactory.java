@@ -1,7 +1,8 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
+import java.util.Objects;
+
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
-import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
@@ -10,21 +11,20 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.service.PasswordHashing;
 
 public final class JdbcRepositoryFactory {
 
     private final DatabaseConnectionProvider connectionProvider;
+    private final PasswordHashing passwordHashing;
 
-    public JdbcRepositoryFactory(DatabaseConnectionProvider connectionProvider) {
-        this.connectionProvider = connectionProvider;
-    }
-
-    public static JdbcRepositoryFactory fromEnvironment() {
-        return new JdbcRepositoryFactory(DriverManagerConnectionProvider.fromEnvironment());
+    public JdbcRepositoryFactory(DatabaseConnectionProvider connectionProvider, PasswordHashing passwordHashing) {
+        this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider");
+        this.passwordHashing = Objects.requireNonNull(passwordHashing, "passwordHashing");
     }
 
     public UserRepository users() {
-        return new JdbcUserRepository(connectionProvider);
+        return new JdbcUserRepository(connectionProvider, passwordHashing);
     }
 
     public ProjectRepository projects() {

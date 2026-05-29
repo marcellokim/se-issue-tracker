@@ -12,7 +12,7 @@ participant "deleteHistory:IssueHistory" as DeleteHistory
 PL -> DIC : viewDeletedIssues(projectId)
 DIC --> PL : deletedIssueList(issues)
 
-PL -> DIC : restoreIssue(issueId)
+PL -> DIC : restoreIssue(issueId, comment)
 
 alt not PL or permission denied
   DIC --> PL : restoreRejected(reason)
@@ -28,7 +28,7 @@ else valid restore target
   이 값이 restoreTargetStatus가 된다.
   end note
 
-  DIC -> Issue : restore(currentPL, now)
+  DIC -> Issue : restore(currentPL, comment, now)
   activate Issue
   Issue -> Issue : findDeleteStatusHistory()
   Issue -> DeleteHistory : previousValue()

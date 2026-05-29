@@ -31,8 +31,7 @@ public interface StatisticsRepository {
     default List<DailyIssueCount> countStatusChangesByDay(
             long projectId,
             LocalDate fromInclusive,
-            LocalDate toInclusive
-    ) {
+            LocalDate toInclusive) {
         return List.of();
     }
 
@@ -43,8 +42,7 @@ public interface StatisticsRepository {
     default List<MonthlyIssueCount> countStatusChangesByMonth(
             long projectId,
             YearMonth fromInclusive,
-            YearMonth toInclusive
-    ) {
+            YearMonth toInclusive) {
         return List.of();
     }
 
@@ -55,8 +53,7 @@ public interface StatisticsRepository {
     default List<DailyIssueCount> countCommentsByDay(
             long projectId,
             LocalDate fromInclusive,
-            LocalDate toInclusive
-    ) {
+            LocalDate toInclusive) {
         return List.of();
     }
 
@@ -67,8 +64,7 @@ public interface StatisticsRepository {
     default List<MonthlyIssueCount> countCommentsByMonth(
             long projectId,
             YearMonth fromInclusive,
-            YearMonth toInclusive
-    ) {
+            YearMonth toInclusive) {
         return List.of();
     }
 
@@ -79,8 +75,7 @@ public interface StatisticsRepository {
     default Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(
             long projectId,
             YearMonth fromInclusive,
-            YearMonth toInclusive
-    ) {
+            YearMonth toInclusive) {
         return Map.of();
     }
 
@@ -91,8 +86,7 @@ public interface StatisticsRepository {
     default Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(
             long projectId,
             YearMonth fromInclusive,
-            YearMonth toInclusive
-    ) {
+            YearMonth toInclusive) {
         return Map.of();
     }
 
@@ -101,6 +95,5 @@ public interface StatisticsRepository {
             LocalDate dailyFromInclusive,
             LocalDate dailyToInclusive,
             YearMonth monthlyFromInclusive,
-            YearMonth monthlyToInclusive
-    );
+            YearMonth monthlyToInclusive);
 }

@@ -1,25 +1,20 @@
 package com.github.marcellokim.issuetracker.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.marcellokim.issuetracker.domain.ActionType;
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
-import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -29,333 +24,187 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Issue assignment and status workflow")
+@DisplayName("Issue workflow service")
 class IssueWorkflowServiceTest {
 
     private static final long PROJECT_ID = 10L;
-    private static final long ISSUE_ID = 1L;
-    private static final LocalDateTime CREATED_AT = LocalDateTime.of(2026, 5, 18, 10, 0);
-    private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, CREATED_AT,
-            CREATED_AT);
-    private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, CREATED_AT, CREATED_AT);
-    private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, CREATED_AT,
-            CREATED_AT);
-    private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, CREATED_AT, CREATED_AT);
-    private final User otherDev = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, CREATED_AT,
-            CREATED_AT);
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 28, 10, 0);
+
+    private final User reporter = user("reporter", Role.DEV);
+    private final User assignee = user("assignee", Role.DEV);
+    private final User tester = user("tester", Role.TESTER);
+    private final User pl = user("pl", Role.PL);
 
     @Test
-    @DisplayName("main demo workflow completes from assignment to close")
-    void completeMainDemoWorkflow() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.NEW)
-                .updatedAt(CREATED_AT));
-        var issueRepository = new InMemoryIssueRepository(issue);
-        var userRepository = new InMemoryUserRepository(reporter, assignee, verifier, pl);
-        var policy = new PermissionPolicy();
-        var assignmentService = new AssignmentService(
-                issueRepository,
-                userRepository,
-                policy,
-                new AssignmentRecommendationService(new EmptyAssignmentRecommendationRepository()),
-                new Clock()
-        );
-        var stateService = new IssueStateService(issueRepository, new FakeIssueDependencyRepository(), userRepository, policy, new Clock());
+    @DisplayName("reporter can update and comment on a new issue")
+    void reporterCanUpdateAndCommentOnNewIssue() {
+        Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
 
-        assignmentService.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(), pl.getLoginId());
-        stateService.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", assignee.getLoginId());
-        stateService.changeStatus(ISSUE_ID, IssueStatus.RESOLVED, "Verified", verifier.getLoginId());
-        stateService.changeStatus(ISSUE_ID, IssueStatus.CLOSED, "Release completed", pl.getLoginId());
+        IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), reporter.getLoginId());
 
-        var completedIssue = issueRepository.findById(ISSUE_ID).orElseThrow();
-        assertEquals(IssueStatus.CLOSED, completedIssue.getStatus());
-        assertNull(completedIssue.getAssignee());
-        assertNull(completedIssue.getVerifier());
-        assertSame(assignee, completedIssue.getFixer());
-        assertSame(verifier, completedIssue.getResolver());
-        assertEquals(3, completedIssue.getComments().size());
-        assertEquals(4, completedIssue.getHistories().stream()
-                .filter(history -> history.getAction() == ActionType.STATUS_CHANGED)
-                .count());
-        assertEquals(1, completedIssue.getHistories().stream()
-                .filter(history -> history.getAction() == ActionType.ASSIGNMENT_CHANGED)
-                .count());
-        assertEquals(3, completedIssue.getHistories().stream()
-                .filter(history -> history.getAction() == ActionType.COMMENTED)
-                .count());
-    }
-
-    @Test
-    @DisplayName("workflow actions are disabled for non-project members")
-    void workflowActionsDisableMutationsForNonProjectMember() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.ASSIGNED)
-                .assignee(otherDev)
-                .verifier(verifier)
-                .updatedAt(CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
-
-        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, otherDev.getLoginId());
-
-        assertFalse(actions.canMarkFixed());
-        assertFalse(actions.canAddComment());
-    }
-
-    @Test
-    @DisplayName("comment action flags are disabled for writers outside the issue project")
-    void commentActionsDisableForWriterOutsideProject() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.NEW)
-                .updatedAt(CREATED_AT));
-        var comments = new FakeCommentRepository(Comment.fromPersistence(
-                100L,
-                ISSUE_ID,
-                otherDev.getLoginId(),
-                "Investigation note",
-                CommentPurpose.GENERAL,
-                CREATED_AT,
-                CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                comments,
-                new InMemoryUserRepository(reporter, assignee, verifier, pl, otherDev)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
-
-        assertFalse(service.canUpdateComment(ISSUE_ID, 100L, otherDev.getLoginId()));
-        assertFalse(service.canDeleteComment(ISSUE_ID, 100L, otherDev.getLoginId()));
-    }
-
-    @Test
-    @DisplayName("workflow actions stay enabled for assigned project members")
-    void workflowActionsEnableForAssignedProjectMember() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.ASSIGNED)
-                .assignee(assignee)
-                .verifier(verifier)
-                .updatedAt(CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
-                                verifier.getLoginId(), pl.getLoginId()));
-
-        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, assignee.getLoginId());
-
-        assertTrue(actions.canMarkFixed());
+        assertTrue(actions.canUpdateIssue());
         assertTrue(actions.canAddComment());
+        assertFalse(actions.canChangePriority());
+        assertFalse(actions.canAssign());
+        assertFalse(actions.canSoftDelete());
     }
 
     @Test
-    @DisplayName("PL can start assignment, assign, manage dependency on NEW issue")
-    void plActionsOnNewIssue() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "New issue", "desc", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.NEW)
-                .updatedAt(CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
-                                verifier.getLoginId(), pl.getLoginId()));
+    @DisplayName("project lead sees management actions that match current issue status")
+    void projectLeadSeesStatusAwareManagementActions() {
+        Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
 
-        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, pl.getLoginId());
+        IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), pl.getLoginId());
 
+        assertTrue(actions.canChangePriority());
         assertTrue(actions.canStartAssignment());
         assertTrue(actions.canAssign());
         assertTrue(actions.canAddDependency());
         assertTrue(actions.canRemoveDependency());
-        assertTrue(actions.canChangePriority());
+        assertTrue(actions.canAddComment());
         assertTrue(actions.canSoftDelete());
         assertFalse(actions.canReassign());
-        assertFalse(actions.canClose());
-        assertFalse(actions.canReopen());
+        assertFalse(actions.canChangeVerifier());
     }
 
     @Test
-    @DisplayName("PL can close resolved issue and reopen closed issue")
-    void plCloseAndReopenActions() {
-        var resolvedIssue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Resolved", "desc", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.RESOLVED)
-                .assignee(assignee)
-                .verifier(verifier)
-                .fixer(assignee)
-                .resolver(verifier)
-                .updatedAt(CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(resolvedIssue),
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
-                                verifier.getLoginId(), pl.getLoginId()));
+    @DisplayName("assignee can mark assigned issue as fixed")
+    void assigneeCanMarkAssignedIssueFixed() {
+        Issue issue = issue(1L, IssueStatus.ASSIGNED, reporter, assignee, tester);
 
-        IssueWorkflowActions resolvedActions = service.viewAvailableActions(ISSUE_ID, pl.getLoginId());
+        IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), assignee.getLoginId());
+
+        assertTrue(actions.canMarkFixed());
+        assertFalse(actions.canResolve());
+        assertFalse(actions.canRejectFix());
+    }
+
+    @Test
+    @DisplayName("tester resolves fixed issue only when blocking issues are complete")
+    void testerResolveRequiresCompleteBlockingIssues() {
+        Issue blocking = issue(1L, IssueStatus.NEW, reporter, assignee, tester);
+        Issue fixed = issue(2L, IssueStatus.FIXED, reporter, assignee, tester);
+        FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
+        dependencies.addFixture(IssueDependency.fromPersistence(1L, blocking.id(), fixed.id(), NOW));
+
+        IssueWorkflowActions blockedActions = service(dependencies, blocking, fixed)
+                .viewAvailableActions(fixed.id(), tester.getLoginId());
+
+        assertTrue(blockedActions.canRejectFix());
+        assertFalse(blockedActions.canResolve());
+
+        Issue resolvedBlocking = issue(1L, IssueStatus.RESOLVED, reporter, assignee, tester);
+        IssueWorkflowActions readyActions = service(dependencies, resolvedBlocking, fixed)
+                .viewAvailableActions(fixed.id(), tester.getLoginId());
+
+        assertTrue(readyActions.canResolve());
+    }
+
+    @Test
+    @DisplayName("project lead can close resolved issues and reopen resolved or closed issues")
+    void projectLeadCanCloseAndReopenCompletedIssues() {
+        Issue resolved = issue(1L, IssueStatus.RESOLVED, reporter, assignee, tester);
+        Issue closed = issue(2L, IssueStatus.CLOSED, reporter, assignee, tester);
+        IssueWorkflowService service = service(resolved, closed);
+
+        IssueWorkflowActions resolvedActions = service.viewAvailableActions(resolved.id(), pl.getLoginId());
+        IssueWorkflowActions closedActions = service.viewAvailableActions(closed.id(), pl.getLoginId());
 
         assertTrue(resolvedActions.canClose());
         assertTrue(resolvedActions.canReopen());
+        assertFalse(resolvedActions.canSoftDelete());
+        assertFalse(resolvedActions.canAddDependency());
+        assertTrue(closedActions.canReopen());
+        assertTrue(closedActions.canSoftDelete());
+        assertFalse(closedActions.canAddDependency());
     }
 
     @Test
-    @DisplayName("verifier can resolve and reject fix on FIXED issue")
-    void verifierActionsOnFixedIssue() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Fixed issue", "desc", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.FIXED)
-                .assignee(assignee)
-                .verifier(verifier)
-                .fixer(assignee)
-                .updatedAt(CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
-                                verifier.getLoginId(), pl.getLoginId()));
+    @DisplayName("deleted issue exposes no normal workflow actions")
+    void deletedIssueExposesNoNormalWorkflowActions() {
+        Issue deleted = issue(1L, IssueStatus.DELETED, reporter, null, null);
 
-        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, verifier.getLoginId());
+        IssueWorkflowActions actions = service(deleted).viewAvailableActions(deleted.id(), pl.getLoginId());
 
-        assertTrue(actions.canResolve());
-        assertTrue(actions.canRejectFix());
+        assertFalse(actions.canUpdateIssue());
+        assertFalse(actions.canStartAssignment());
+        assertFalse(actions.canAddComment());
+        assertFalse(actions.canSoftDelete());
     }
 
     @Test
-    @DisplayName("comment update and delete allowed for writer who is project member")
-    void commentActionsEnabledForProjectMemberWriter() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "desc", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.NEW)
-                .updatedAt(CREATED_AT));
-        var comments = new FakeCommentRepository(Comment.fromPersistence(
-                100L,
-                ISSUE_ID,
-                reporter.getLoginId(),
-                "My note",
-                CommentPurpose.GENERAL,
-                CREATED_AT,
-                CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                comments,
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
+    @DisplayName("comment actions require same issue, active membership, writer, and GENERAL purpose")
+    void commentActionsRequireWriterAndGeneralPurpose() {
+        Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
+        Issue otherIssue = issue(2L, IssueStatus.NEW, reporter, null, null);
+        FakeCommentRepository comments = new FakeCommentRepository(
+                comment(100L, issue.id(), reporter, CommentPurpose.GENERAL),
+                comment(101L, issue.id(), reporter, CommentPurpose.STATUS_CHANGE));
+        IssueWorkflowService service = service(new FakeIssueDependencyRepository(), comments, issue, otherIssue);
 
-        assertTrue(service.canUpdateComment(ISSUE_ID, 100L, reporter.getLoginId()));
-        assertTrue(service.canDeleteComment(ISSUE_ID, 100L, reporter.getLoginId()));
+        assertTrue(service.canUpdateComment(issue.id(), 100L, reporter.getLoginId()));
+        assertTrue(service.canDeleteComment(issue.id(), 100L, reporter.getLoginId()));
+        assertFalse(service.canUpdateComment(otherIssue.id(), 100L, reporter.getLoginId()));
+        assertFalse(service.canDeleteComment(issue.id(), 100L, assignee.getLoginId()));
+        assertFalse(service.canUpdateComment(issue.id(), 101L, reporter.getLoginId()));
     }
 
-    @Test
-    @DisplayName("status-change comments are read-only in workflow actions")
-    void statusChangeCommentActionsAreReadOnly() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "desc", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.NEW)
-                .updatedAt(CREATED_AT));
-        var comments = new FakeCommentRepository(Comment.fromPersistence(
-                100L,
-                ISSUE_ID,
-                reporter.getLoginId(),
-                "Status transition reason",
-                CommentPurpose.STATUS_CHANGE,
-                CREATED_AT,
-                CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                comments,
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), verifier.getLoginId(), pl.getLoginId()));
-
-        assertFalse(service.canUpdateComment(ISSUE_ID, 100L, reporter.getLoginId()));
-        assertFalse(service.canDeleteComment(ISSUE_ID, 100L, reporter.getLoginId()));
+    private IssueWorkflowService service(Issue... issues) {
+        return service(new FakeIssueDependencyRepository(), new FakeCommentRepository(), issues);
     }
 
-    @Test
-    @DisplayName("mark fixed action is disabled after issue is already fixed")
-    void markFixedActionDisablesAfterIssueIsFixed() {
-        var issue = Issue.fromPersistence(Issue.persistedState(PROJECT_ID, "Login fails", "Cannot log in", reporter)
-                .id(ISSUE_ID)
-                .issueId("ISSUE-1")
-                .reportedDate(CREATED_AT)
-                .priority(Priority.MAJOR)
-                .status(IssueStatus.FIXED)
-                .assignee(assignee)
-                .verifier(verifier)
-                .fixer(assignee)
-                .updatedAt(CREATED_AT));
-        var service = workflowService(
-                new InMemoryIssueRepository(issue),
-                new InMemoryUserRepository(reporter, assignee, verifier, pl)
-                        .withProjectMembers(PROJECT_ID, reporter.getLoginId(), assignee.getLoginId(),
-                                verifier.getLoginId(), pl.getLoginId()));
-
-        IssueWorkflowActions actions = service.viewAvailableActions(ISSUE_ID, assignee.getLoginId());
-
-        assertFalse(actions.canMarkFixed());
-        assertFalse(actions.canResolve());
+    private IssueWorkflowService service(FakeIssueDependencyRepository dependencies, Issue... issues) {
+        return service(dependencies, new FakeCommentRepository(), issues);
     }
 
-    private IssueWorkflowService workflowService(
-            InMemoryIssueRepository issueRepository,
-            InMemoryUserRepository userRepository
-    ) {
-        return workflowService(issueRepository, new FakeCommentRepository(), userRepository);
-    }
-
-    private IssueWorkflowService workflowService(
-            InMemoryIssueRepository issueRepository,
-            FakeCommentRepository commentRepository,
-            InMemoryUserRepository userRepository
-    ) {
+    private IssueWorkflowService service(
+            FakeIssueDependencyRepository dependencies,
+            FakeCommentRepository comments,
+            Issue... issues) {
         return new IssueWorkflowService(
-                issueRepository,
-                new FakeIssueDependencyRepository(),
-                commentRepository,
-                userRepository,
+                new InMemoryIssueRepository(issues),
+                dependencies,
+                comments,
+                users(),
                 new PermissionPolicy());
     }
 
-    private static final class EmptyAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
+    private InMemoryUserRepository users() {
+        return new InMemoryUserRepository(reporter, assignee, tester, pl)
+                .withProjectMembers(
+                        PROJECT_ID,
+                        reporter.getLoginId(),
+                        assignee.getLoginId(),
+                        tester.getLoginId(),
+                        pl.getLoginId());
+    }
 
-        @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of();
-        }
+    private static User user(String loginId, Role role) {
+        return User.fromPersistence(loginId, loginId, "hash", role, true, NOW, NOW);
+    }
 
-        @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of();
-        }
+    private static Issue issue(long id, IssueStatus status, User reporter, User assignee, User verifier) {
+        return Issue.fromPersistence(
+                Issue.persistedState(PROJECT_ID, "Issue " + id, "Description " + id, reporter)
+                        .id(id)
+                        .issueId("ISSUE-" + id)
+                        .reportedDate(NOW)
+                        .priority(Priority.MAJOR)
+                        .status(status)
+                        .assignee(assignee)
+                        .verifier(verifier)
+                        .updatedAt(NOW));
+    }
+
+    private static Comment comment(long id, long issueId, User writer, CommentPurpose purpose) {
+        return Comment.fromPersistence(
+                id,
+                issueId,
+                writer.getLoginId(),
+                "Comment " + id,
+                purpose,
+                NOW,
+                NOW);
     }
 
     private static final class FakeCommentRepository implements CommentRepository {

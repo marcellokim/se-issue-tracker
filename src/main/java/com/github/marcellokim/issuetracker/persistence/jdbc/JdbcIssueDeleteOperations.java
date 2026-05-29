@@ -24,8 +24,7 @@ final class JdbcIssueDeleteOperations {
     JdbcIssueDeleteOperations(
             DatabaseConnectionProvider connectionProvider,
             JdbcIssueRowMapper rowMapper,
-            JdbcIssueWriteSupport writes
-    ) {
+            JdbcIssueWriteSupport writes) {
         this.connectionProvider = connectionProvider;
         this.rowMapper = rowMapper;
         this.writes = writes;
@@ -51,6 +50,8 @@ final class JdbcIssueDeleteOperations {
                 }
 
                 LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
+                List<DependencyRemoval> dependencyRemovals = findDependencyRemovals(connection, issueId);
+                recordDependencyRemovals(connection, dependencyRemovals, changedById, effectiveChangedDate);
                 writes.deleteDependencies(connection, issueId);
                 writes.updateIssueStatus(connection, issueId, IssueStatus.DELETED, effectiveChangedDate);
                 writes.insertStatusHistory(
@@ -60,8 +61,7 @@ final class JdbcIssueDeleteOperations {
                         issue.status().name(),
                         IssueStatus.DELETED.name(),
                         message,
-                        effectiveChangedDate
-                );
+                        effectiveChangedDate);
                 connection.commit();
                 transactionSucceeded = true;
                 return copyWithStatus(issue, IssueStatus.DELETED, effectiveChangedDate);
@@ -92,7 +92,8 @@ final class JdbcIssueDeleteOperations {
                 }
 
                 IssueStatus restoreStatus = latestPreDeleteStatus(connection, issueId)
-                        .orElseThrow(() -> new RepositoryException("Restore requires pre-delete status history.", null));
+                        .orElseThrow(
+                                () -> new RepositoryException("Restore requires pre-delete status history.", null));
                 if (!isDeletableStatus(restoreStatus)) {
                     throw new RepositoryException("Pre-delete status history must be NEW or CLOSED.", null);
                 }
@@ -105,8 +106,7 @@ final class JdbcIssueDeleteOperations {
                         IssueStatus.DELETED.name(),
                         restoreStatus.name(),
                         message,
-                        effectiveChangedDate
-                );
+                        effectiveChangedDate);
                 connection.commit();
                 transactionSucceeded = true;
                 return copyWithStatus(issue, restoreStatus, effectiveChangedDate);
@@ -118,6 +118,17 @@ final class JdbcIssueDeleteOperations {
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to restore issue.", exception);
+        }
+    }
+
+    int purgeDeletedById(long issueId) {
+        String sql = "delete from issues where id = ? and status = 'DELETED'";
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, issueId);
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to purge deleted issue.", exception);
         }
     }
 
@@ -145,17 +156,6 @@ final class JdbcIssueDeleteOperations {
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to purge FIFO deleted issues.", exception);
-        }
-    }
-
-    void purge(long issueId) {
-        String sql = "delete from issues where id = ?";
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, issueId);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to purge issue.", exception);
         }
     }
 
@@ -191,6 +191,78 @@ final class JdbcIssueDeleteOperations {
                 }
                 return Optional.empty();
             }
+        }
+    }
+
+    private static List<DependencyRemoval> findDependencyRemovals(Connection connection, long issueId)
+            throws SQLException {
+        String sql = """
+                select dependency_id, blocked_issue_id
+                from issue_dependencies
+                where blocking_issue_id = ? or blocked_issue_id = ?
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, issueId);
+            statement.setLong(2, issueId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<DependencyRemoval> removals = new ArrayList<>();
+                while (resultSet.next()) {
+                    removals.add(new DependencyRemoval(
+                            resultSet.getString("dependency_id"),
+                            resultSet.getLong("blocked_issue_id")));
+                }
+                return removals;
+            }
+        }
+    }
+
+    private static void recordDependencyRemovals(
+            Connection connection,
+            List<DependencyRemoval> removals,
+            String changedById,
+            LocalDateTime changedDate) throws SQLException {
+        if (removals.isEmpty()) {
+            return;
+        }
+        updateBlockedIssueTimestamps(connection, removals, changedDate);
+        insertDependencyRemovalHistories(connection, removals, changedById, changedDate);
+    }
+
+    private static void updateBlockedIssueTimestamps(
+            Connection connection,
+            List<DependencyRemoval> removals,
+            LocalDateTime changedDate) throws SQLException {
+        String sql = "update issues set updated_at = coalesce(?, current_timestamp) where id = ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            JdbcSupport.setNullableTimestamp(statement, 1, changedDate);
+            for (DependencyRemoval removal : removals) {
+                statement.setLong(2, removal.blockedIssueId());
+                statement.addBatch();
+            }
+            statement.executeBatch();
+        }
+    }
+
+    private static void insertDependencyRemovalHistories(
+            Connection connection,
+            List<DependencyRemoval> removals,
+            String changedById,
+            LocalDateTime changedDate) throws SQLException {
+        String sql = """
+                insert into issue_history (
+                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
+                )
+                values (?, ?, 'DEPENDENCY_CHANGED', ?, null, 'Dependency removed', coalesce(?, current_timestamp))
+                """;
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(2, changedById);
+            JdbcSupport.setNullableTimestamp(statement, 4, changedDate);
+            for (DependencyRemoval removal : removals) {
+                statement.setLong(1, removal.blockedIssueId());
+                statement.setString(3, removal.dependencyId());
+                statement.addBatch();
+            }
+            statement.executeBatch();
         }
     }
 
@@ -285,5 +357,8 @@ final class JdbcIssueDeleteOperations {
                 .fixer(issue.getFixer())
                 .resolver(issue.getResolver())
                 .updatedAt(updatedAt));
+    }
+
+    private record DependencyRemoval(String dependencyId, long blockedIssueId) {
     }
 }

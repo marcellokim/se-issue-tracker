@@ -229,7 +229,7 @@ class AssignmentServiceTest {
                 userRepository,
                 new PermissionPolicy(),
                 new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository()),
-                new Clock()
+                java.time.LocalDateTime::now
         );
     }
 

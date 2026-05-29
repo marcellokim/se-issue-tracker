@@ -9,10 +9,12 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.LoginCheckService;
+import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummary;
 import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
+import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -47,7 +49,7 @@ class CliCommandTest {
         RepositoryDemoSummary summary = new RepositoryDemoSummary(
                 Optional.of(new RepositoryDemoSummary.AdminAccount("admin", Role.ADMIN, true)),
                 Optional.of(new RepositoryDemoSummary.ProjectSummary(
-                        "project1",
+                        "Project A",
                         3,
                         1,
                         1,
@@ -61,7 +63,7 @@ class CliCommandTest {
 
         assertTrue(output.text().contains("Oracle repository demo ready."));
         assertTrue(output.text().contains("Admin: admin / ADMIN / active=true"));
-        assertTrue(output.text().contains("Project: project1"));
+        assertTrue(output.text().contains("Project: Project A"));
         assertTrue(output.text().contains("Status counts: {NEW=1, ASSIGNED=3, CLOSED=2}"));
         assertTrue(output.text().contains("Priority counts: {BLOCKER=1, MAJOR=2, TRIVIAL=4}"));
         assertTrue(output.text().contains("Tester recommendation candidates: 1"));
@@ -199,7 +201,10 @@ class CliCommandTest {
             if (fail) {
                 throw new IOException("boom");
             }
-            return new LoginCheckService(new InMemoryUserRepository(loginUser));
+            var repository = new InMemoryUserRepository(loginUser);
+            return new LoginCheckService(
+                    repository,
+                    new AuthenticationService(repository, PASSWORD_HASHER, new SessionStore()));
         }
 
         @Override

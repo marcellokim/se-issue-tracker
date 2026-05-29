@@ -13,6 +13,7 @@ import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -53,8 +54,8 @@ public final class IssueController {
         if (issueWorkflowService == null) {
             return detail;
         }
-        return detail.withAvailableActions(availableActionNames(
-                issueWorkflowService.viewAvailableActions(issueId, user.getLoginId())));
+        IssueWorkflowActions actions = issueWorkflowService.viewAvailableActions(issueId, user.getLoginId());
+        return detail.withAvailableActions(availableActionNames(actions));
     }
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
@@ -164,7 +165,7 @@ public final class IssueController {
     }
 
     private static List<String> availableActionNames(IssueWorkflowActions actions) {
-        java.util.ArrayList<String> names = new java.util.ArrayList<>();
+        ArrayList<String> names = new ArrayList<>();
         if (actions.canUpdateIssue()) {
             names.add("UPDATE_ISSUE");
         }

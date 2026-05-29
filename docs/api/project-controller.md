@@ -2,25 +2,25 @@
 
 ## Scope
 
-`ProjectController` exposes ADMIN project-management APIs. The static `create(...)` method is a factory; the remaining public methods are UI-facing operations.
+`ProjectController` exposes project detail and ADMIN project-management APIs.
 
 ## Public Operations
 
 | Operation | Service call | Result |
 | --- | --- | --- |
-| `create(authenticationService, projectService)` | `new ProjectController(...)` | `ProjectController` |
-| `viewProjects()` | `ProjectService.viewProjects(currentUserId)` | `List<ProjectResult>` |
-| `viewProject(projectId)` | `ProjectService.viewProject(projectId, currentUserId)` | `ProjectResult` |
+| `viewProjectNonAdminDetail(projectId)` | `ProjectService.viewProjectNonAdminDetail(projectId, currentUserId)` | `ProjectResult` |
+| `viewProjectAdminDetail(projectId)` | `ProjectService.viewProjectAdminDetail(projectId, currentUserId)` | `ProjectAdminDetail` |
 | `viewProjectParticipants(projectId)` | `ProjectService.viewProjectParticipants(projectId, currentUserId)` | `List<ProjectMemberResult>` |
-| `viewProjectDetail(projectId)` | `ProjectService.viewProjectDetail(projectId, currentUserId)` | `ProjectDetail` |
 | `createProject(name, description)` | `ProjectService.createProject(name, description, currentUserId)` | `ProjectResult` |
+| `renameProject(projectId, name)` | `ProjectService.renameProject(projectId, name, currentUserId)` | `ProjectResult` |
+| `changeProjectDescription(projectId, description)` | `ProjectService.changeProjectDescription(projectId, description, currentUserId)` | `ProjectResult` |
 | `deleteProject(projectId)` | `ProjectService.deleteProject(projectId, currentUserId)` | `void` |
 | `addProjectParticipant(projectId, loginId)` | `ProjectService.addProjectParticipant(projectId, loginId, currentUserId)` | `void` |
 | `removeProjectParticipant(projectId, loginId)` | `ProjectService.removeProjectParticipant(projectId, loginId, currentUserId)` | `void` |
 
 ## Operation Details
 
-All UI operations require a current user and pass `user.getLoginId()` to the service. `ProjectResult` contains project id, name, description, manager login id, created date, and updated time. `ProjectDetail` combines project, participants, and issues.
+All UI operations require a current user and pass `user.getLoginId()` to the service. `ProjectResult` contains project id, name, description, manager login id, created date, and updated time. `ProjectAdminDetail` combines project and participants for ADMIN users; it does not include the project's issue list. Non-admin project participants use `viewProjectNonAdminDetail`, which returns project metadata only.
 
 Project operations require positive project ids. Project creation rejects blank and duplicate names. Adding participants rejects inactive users, ADMIN users, duplicates, and a second PL. Removing participants rejects unknown participants and users with active assignment/verifier responsibility in the project.
 
@@ -31,7 +31,7 @@ Project operations require positive project ids. Project creation rejects blank 
 | `createProject` | UC13, SSD-19 create project; supporting API, not required OC | `Project` class and Admin manages association in `docs/uml/dcd/its_dcd_ver2.puml`; implementation `Project.create`, `ProjectResult.from` |
 | `addProjectParticipant` | UC13, SSD-20 add project member; supporting API, not required OC | DCD `User participates in Project`; implementation `ProjectRepository.addParticipant`, `ProjectMemberResult` |
 | `removeProjectParticipant` | UC13, SSD-21 remove project member; supporting API, not required OC | DCD `User participates in Project`; implementation `ProjectRepository.removeParticipant`, active assignment guard |
-| view/delete project operations | UC13 admin support APIs | DCD `Project`, `Issue` composition/reference by `projectId`; implementation `ProjectService.viewProjectDetail`, `deleteProject` |
+| view/delete project operations | UC13 admin support APIs | DCD `Project` identity and membership; implementation `ProjectService.viewProjectAdminDetail`, `viewProjectNonAdminDetail`, `deleteProject` |
 
 ## Implementation And Design Gaps
 
@@ -48,9 +48,9 @@ Project operations require positive project ids. Project creation rejects blank 
 
 ## Evidence
 
-- `src/main/java/com/github/marcellokim/issuetracker/controller/ProjectController.java`: `ProjectController.create`, `viewProjects`, `viewProject`, `viewProjectParticipants`, `viewProjectDetail`, `createProject`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant`, `requireCurrentUser`
+- `src/main/java/com/github/marcellokim/issuetracker/controller/ProjectController.java`: `ProjectController.viewProjectNonAdminDetail`, `viewProjectAdminDetail`, `viewProjectParticipants`, `createProject`, `renameProject`, `changeProjectDescription`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant`, `requireCurrentUser`
 - `src/main/java/com/github/marcellokim/issuetracker/service/ProjectService.java`: matching `ProjectService` methods
 - `src/main/java/com/github/marcellokim/issuetracker/service/PermissionPolicy.java`: `PermissionPolicy.assertCanManageProject`
 - `src/main/java/com/github/marcellokim/issuetracker/service/ProjectResult.java`: `ProjectResult`
 - `src/main/java/com/github/marcellokim/issuetracker/service/ProjectMemberResult.java`: `ProjectMemberResult`
-- `src/main/java/com/github/marcellokim/issuetracker/service/ProjectDetail.java`: `ProjectDetail`
+- `src/main/java/com/github/marcellokim/issuetracker/service/ProjectAdminDetail.java`: `ProjectAdminDetail`
