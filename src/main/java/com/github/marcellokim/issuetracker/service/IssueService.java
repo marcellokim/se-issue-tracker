@@ -274,7 +274,7 @@ public final class IssueService {
         LocalDateTime now = now();
         String dependencyId = IssueDependency.dependencyIdFor(requiredBlockingIssueId, requiredBlockedIssueId);
         IssueDependency dependency = blockedIssue.addDependency(dependencyId, blockingIssue, actor, now);
-        IssueDependency saved = dependencyRepository.saveAndRecordIssueChange(dependency, blockedIssue);
+        IssueDependency saved = dependencyRepository.recordDependencyAdded(dependency, blockedIssue);
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
@@ -316,7 +316,7 @@ public final class IssueService {
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         requireSameProjectDependency(blockingIssue, blockedIssue);
         blockedIssue.removeDependency(dependency, actor, now());
-        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(hashedDependencyId, blockedIssue);
+        dependencyRepository.recordDependencyRemoved(hashedDependencyId, blockedIssue);
     }
 
     public void deleteComment(long issueId, long commentId, String currentLoginId) {

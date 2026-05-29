@@ -21,7 +21,7 @@ public interface IssueDependencyRepository {
 
     boolean existsByPair(long blockingIssueId, long blockedIssueId);
 
-    IssueDependency saveAndRecordIssueChange(IssueDependency dependency, Issue issue);
+    IssueDependency recordDependencyAdded(IssueDependency dependency, Issue issue);
 
-    void deleteByDependencyIdAndRecordIssueChange(String dependencyId, Issue issue);
+    void recordDependencyRemoved(String dependencyId, Issue issue);
 }

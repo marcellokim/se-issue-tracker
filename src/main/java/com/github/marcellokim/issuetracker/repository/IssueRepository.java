@@ -37,5 +37,7 @@ public interface IssueRepository {
 
     int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues);
 
-    default List<Issue> findRecommendationForAssignment(long projectId) { return List.of(); }
+    default List<Issue> findRecommendationForAssignment(long projectId) {
+        return List.of();
+    }
 }

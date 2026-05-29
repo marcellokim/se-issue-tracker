@@ -448,7 +448,7 @@ class OracleRepositoryIntegrationTest {
                         blocked = createIssue(project.getId(), uniqueId("soft_delete_dependency_blocked"),
                                         IssueStatus.NEW);
                         User projectLead = repositories.users().findByLoginId("pl1").orElseThrow();
-                        dependency = repositories.issueDependencies().saveAndRecordIssueChange(
+                        dependency = repositories.issueDependencies().recordDependencyAdded(
                                         blocked.addDependency(
                                                         IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
                                                         blocking,
@@ -874,7 +874,7 @@ class OracleRepositoryIntegrationTest {
                                         blocking,
                                         projectLead,
                                         LocalDateTime.now());
-                        IssueDependency dependency = repositories.issueDependencies().saveAndRecordIssueChange(
+                        IssueDependency dependency = repositories.issueDependencies().recordDependencyAdded(
                                         newDependency,
                                         blocked);
 
@@ -897,7 +897,7 @@ class OracleRepositoryIntegrationTest {
                         assertTrue(repositories.issueDependencies().findByBlockedIssueId(blocked.id()).stream()
                                         .anyMatch(value -> value.id() == dependency.id()));
                         assertThrows(RepositoryException.class,
-                                        () -> repositories.issueDependencies().saveAndRecordIssueChange(
+                                        () -> repositories.issueDependencies().recordDependencyAdded(
                                                         IssueDependency.fromPersistence(
                                                                         0L,
                                                                         blocking.id(),
@@ -909,7 +909,7 @@ class OracleRepositoryIntegrationTest {
                                         .updatedAt();
                         Issue blockedForRemoval = repositories.issues().findById(blocked.id()).orElseThrow();
                         blockedForRemoval.removeDependency(dependency, projectLead, previousUpdatedAt.plusSeconds(1));
-                        repositories.issueDependencies().deleteByDependencyIdAndRecordIssueChange(
+                        repositories.issueDependencies().recordDependencyRemoved(
                                         dependency.getDependencyId(), blockedForRemoval);
                         assertFalse(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
                         assertTrue(repositories.issueDependencies().findByDependencyId(dependency.getDependencyId())
@@ -937,7 +937,7 @@ class OracleRepositoryIntegrationTest {
 
                 try {
                         User projectLead = repositories.users().findByLoginId("pl1").orElseThrow();
-                        IssueDependency dependency = repositories.issueDependencies().saveAndRecordIssueChange(
+                        IssueDependency dependency = repositories.issueDependencies().recordDependencyAdded(
                                         blocked.addDependency(
                                                         IssueDependency.dependencyIdFor(blocking.id(), blocked.id()),
                                                         blocking,
@@ -950,7 +950,7 @@ class OracleRepositoryIntegrationTest {
 
                         Issue blockedForRemoval = repositories.issues().findById(blocked.id()).orElseThrow();
                         blockedForRemoval.removeDependency(dependency, projectLead, previousUpdatedAt.plusSeconds(1));
-                        repositories.issueDependencies().deleteByDependencyIdAndRecordIssueChange(dependencyId,
+                        repositories.issueDependencies().recordDependencyRemoved(dependencyId,
                                         blockedForRemoval);
 
                         assertTrue(repositories.issueDependencies().findByDependencyId(dependencyId).isEmpty());

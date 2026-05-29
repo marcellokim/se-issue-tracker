@@ -90,7 +90,7 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
 
     private List<AssignmentCandidate> findCandidates(long projectId, Role role, String sql) {
         try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
             statement.setString(2, role.name());
             try (ResultSet resultSet = statement.executeQuery()) {
