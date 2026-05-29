@@ -75,6 +75,53 @@ class AssignmentRecommendationServiceTest {
                 () -> service.recommendAssignmentCandidates(issue(IssueStatus.DELETED)));
     }
 
+    @Test
+    @DisplayName("throws for null issue input")
+    void throwsForNullIssue() {
+        assertThrows(NullPointerException.class,
+                () -> service.recommendAssignmentCandidates(null));
+    }
+
+    @Test
+    @DisplayName("recommended candidates limited to MAX_CANDIDATES (3)")
+    void recommendedCandidatesLimitedToThree() {
+        User dev2 = user("dev2", Role.DEV);
+        User dev3 = user("dev3", Role.DEV);
+        User dev4 = user("dev4", Role.DEV);
+        User dev5 = user("dev5", Role.DEV);
+        InMemoryUserRepository users = new InMemoryUserRepository(dev1, dev2, dev3, dev4, dev5, tester1);
+        AssignmentRecommendationService svc =
+                new AssignmentRecommendationService(issueRepository, users, new KNNAssignmentRecommendation());
+
+        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+
+        assertTrue(options.devAssigneeCandidates().size() <= 3);
+    }
+
+    @Test
+    @DisplayName("empty issue history yields empty KNN recommendations but returns all active users")
+    void emptyHistoryYieldsEmptyRecommendationsButAllActive() {
+        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+
+        assertTrue(options.devAssigneeCandidates().isEmpty());
+        assertTrue(options.testerVerifierCandidates().isEmpty());
+        assertFalse(options.allDevAssignees().isEmpty());
+        assertFalse(options.allTesterVerifiers().isEmpty());
+    }
+
+    @Test
+    @DisplayName("inactive user is excluded from all active candidates")
+    void inactiveUserExcludedFromAllActive() {
+        User inactiveDev = User.fromPersistence("dev_off", "dev_off", "hash", Role.DEV, false, null, null);
+        InMemoryUserRepository users = new InMemoryUserRepository(dev1, inactiveDev, tester1);
+        AssignmentRecommendationService svc =
+                new AssignmentRecommendationService(issueRepository, users, new KNNAssignmentRecommendation());
+
+        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+
+        assertTrue(options.allDevAssignees().stream().noneMatch(c -> c.loginId().equals("dev_off")));
+    }
+
     private static Issue issue(IssueStatus status) {
         return Issue.fromPersistence(Issue.persistedState(1L, "Issue", "Issue description", user("dev1", Role.DEV))
                 .id(1L)

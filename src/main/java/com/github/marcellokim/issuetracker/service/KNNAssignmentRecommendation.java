@@ -119,7 +119,7 @@ public class KNNAssignmentRecommendation {
         return tokens;
     }
 
-    private static final List<String> KEYWORDS = List.of(
+    private static final Set<String> KEYWORDS = new HashSet<>(List.of(
     // 버그/오류
     "error", "bug", "exception", "null", "crash", "fail", "failure",
     "overflow", "leak", "deadlock", "race", "corrupt", "infinite",
@@ -155,14 +155,14 @@ public class KNNAssignmentRecommendation {
     "webhook", "callback",
 
     // 데이터 상태
-    "null", "empty", "blank", "default", "duplicate", "stale",
+    "empty", "blank", "default", "stale",
     "expired", "locked", "pending", "active", "inactive", "deleted",
     "archived", "draft", "published", "approved", "rejected",
     "assigned", "resolved", "closed", "open", "blocked", "overdue",
     "priority", "status",
 
     // 성능/품질
-    "slow", "performance", "latency", "throughput", "load",
+    "slow", "performance", "latency", "throughput",
     "scalability", "optimization", "bottleneck", "delay", "lag",
     "responsive", "render", "compile", "build", "test", "coverage",
     "regression", "compatibility", "accessibility", "security",
@@ -175,27 +175,27 @@ public class KNNAssignmentRecommendation {
     // 한국어 키워드
     "오류", "버그", "에러", "실패", "충돌", "느림", "깨짐",
     "안됨", "누락", "중복", "권한", "로딩", "화면", "버튼", "페이지",
-    "오류", "버그", "에러", "예외", "널", "충돌", "크래시", "실패",
-    "오버플로우", "누수", "데드락", "손상", "무한", "중복", "누락",
-    "깨짐", "잘못된", "불일치", "미정의", "미처리", "타임아웃",
+    "예외", "널", "크래시",
+    "오버플로우", "누수", "데드락", "손상", "무한",
+    "잘못된", "불일치", "미정의", "미처리", "타임아웃",
     "멈춤", "프리즈", "깜빡임",
-    "버튼", "페이지", "화면", "폼", "양식", "입력", "필드", "모달",
+    "폼", "양식", "입력", "필드", "모달",
     "대화상자", "팝업", "드롭다운", "메뉴", "탭", "테이블", "목록",
     "카드", "패널", "헤더", "푸터", "사이드바", "체크박스", "아이콘",
     "로그인", "로그아웃", "가입", "등록", "제출", "클릭", "스크롤",
     "드래그", "업로드", "다운로드", "검색", "필터", "정렬", "선택",
-    "삭제", "편집", "수정", "생성", "저장", "로딩", "새로고침", "이동", "내보내기",
+    "삭제", "편집", "수정", "생성", "저장", "새로고침", "이동", "내보내기",
     "서버", "클라이언트", "데이터베이스", "캐시", "세션", "토큰",
     "소켓", "연결", "요청", "응답", "쿼리", "배포", "설정", "환경", "메모리", "디스크",
-    "네트워크", "프록시", "포트", "인증", "인가", "권한", "역할", "비밀번호", "이메일", "알림",
+    "네트워크", "프록시", "포트", "인증", "인가", "역할", "비밀번호", "이메일", "알림",
     "결제", "장바구니", "주문", "프로필", "대시보드", "리포트",
     "차트", "로그", "감사", "동기화", "배치", "큐",
     "빈값", "공백", "기본값", "만료", "잠김", "대기", "활성",
     "비활성", "삭제됨", "승인", "반려", "거부", "배정됨", "해결됨", "종료됨", "차단됨", "우선순위", "상태",
-    "느림", "성능", "지연", "부하", "최적화", "병목", "렉",
+    "성능", "지연", "부하", "최적화", "병목", "렉",
     "렌더링", "컴파일", "빌드", "테스트", "회귀", "호환성", "보안",
     "파싱", "포맷", "인코딩", "디코딩", "직렬화", "검증", "변환",
-    "매핑", "바인딩", "주입", "정규식");
+    "매핑", "바인딩", "주입", "정규식"));
 
     private static final Set<String> STOP_WORDS = Set.of(
     "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",

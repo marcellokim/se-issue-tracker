@@ -211,7 +211,7 @@ public final class JdbcIssueRepository implements IssueRepository {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
         } catch (SQLException exception){
-            throw new RepositoryException("Failed to find issues for recommendation - SQL falut", exception);
+            throw new RepositoryException("Failed to find issues for recommendation - SQL fault", exception);
         }
     }
 
