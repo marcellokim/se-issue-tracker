@@ -882,7 +882,7 @@ class OracleRepositoryIntegrationTest {
         @DisplayName("IssueHistory repository finds histories recorded by workflows")
         void issueHistoryRepositoryFindsWorkflowHistories() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
-                Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"));
+                Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"), IssueStatus.NEW);
 
                 try {
                         repositories.deletedIssues().softDelete(
