@@ -17,8 +17,4 @@ public interface UserRepository {
     boolean existsActiveProjectMember(long projectId, String loginId);
 
     User save(User user);
-
-    void activate(String loginId);
-
-    void deactivate(String loginId);
 }

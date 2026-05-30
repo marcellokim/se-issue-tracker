@@ -562,10 +562,12 @@ class OracleRepositoryIntegrationTest {
                                         repositories.users().findByLoginId(loginId).orElseThrow().getName());
                         assertEquals(Role.TESTER, updated.getRole());
 
-                        repositories.users().deactivate(loginId);
+                        updated.deactivate(LocalDateTime.now());
+                        repositories.users().save(updated);
 
                         assertFalse(repositories.users().findByLoginId(loginId).orElseThrow().isActive());
-                        repositories.users().activate(loginId);
+                        updated.activate(LocalDateTime.now());
+                        repositories.users().save(updated);
 
                         assertTrue(repositories.users().findByLoginId(loginId).orElseThrow().isActive());
                 } finally {

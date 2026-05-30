@@ -176,32 +176,5 @@ class AuthenticationServiceTest {
             return user;
         }
 
-        @Override
-        public void activate(String loginId) {
-            findByLoginId(loginId).ifPresent(user -> usersByLoginId.put(
-                    user.getLoginId(),
-                    User.fromPersistence(
-                            user.getLoginId(),
-                            user.getName(),
-                            user.getPasswordHash(),
-                            user.getRole(),
-                            true,
-                            user.getCreatedAt(),
-                            user.getUpdatedAt())));
-        }
-
-        @Override
-        public void deactivate(String loginId) {
-            findByLoginId(loginId).ifPresent(user -> usersByLoginId.put(
-                    user.getLoginId(),
-                    User.fromPersistence(
-                            user.getLoginId(),
-                            user.getName(),
-                            user.getPasswordHash(),
-                            user.getRole(),
-                            false,
-                            user.getCreatedAt(),
-                            user.getUpdatedAt())));
-        }
     }
 }
