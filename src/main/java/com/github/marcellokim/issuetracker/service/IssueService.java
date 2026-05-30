@@ -401,8 +401,8 @@ public final class IssueService {
     }
 
     private void requireProjectLead(User actor, long projectId, String message) {
-        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectLead = actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectLead) {
             throw new SecurityException(message);
         }
@@ -415,8 +415,7 @@ public final class IssueService {
     }
 
     private boolean isActiveProjectMember(User actor, long projectId) {
-        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        return userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
     private static boolean isRelatedParticipant(Issue issue, String loginId) {

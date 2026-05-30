@@ -553,6 +553,20 @@ class ProjectControllerTest {
         }
 
         @Override
+        public boolean existsActiveProjectMember(long projectId, String loginId) {
+            User user = usersByLoginId.get(loginId);
+            if (user == null || !user.isActive()) {
+                return false;
+            }
+            if (projects == null) {
+                return true;
+            }
+            return projects.findParticipants(projectId).stream()
+                    .map(ProjectMember::userId)
+                    .anyMatch(loginId::equals);
+        }
+
+        @Override
         public User save(User user) {
             usersByLoginId.put(user.getLoginId(), user);
             return user;

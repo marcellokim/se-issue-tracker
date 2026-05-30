@@ -214,13 +214,12 @@ public final class IssueWorkflowService {
     }
 
     private boolean isProjectLead(User actor, long projectId) {
-        return userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        return actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
     private boolean isActiveProjectMember(User actor, long projectId) {
-        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        return userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
     private static boolean allows(Runnable check) {

@@ -152,16 +152,15 @@ public final class IssueStateService {
     }
 
     private void requireProjectLead(User actor, long projectId, String message) {
-        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectLead = actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectLead) {
             throw new SecurityException(message);
         }
     }
 
     private void requireActiveProjectMember(User actor, long projectId, String message) {
-        boolean projectMember = userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectMember = userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectMember) {
             throw new SecurityException(message);
         }

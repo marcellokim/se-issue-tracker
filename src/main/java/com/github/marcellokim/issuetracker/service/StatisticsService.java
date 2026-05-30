@@ -53,8 +53,7 @@ public final class StatisticsService {
     }
 
     private boolean isActiveProjectMember(User actor, long projectId) {
-        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        return userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
     private static <T extends Comparable<T>> void requireOrderedRange(
