@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.repository.DeletedIssueRepository;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -32,6 +33,7 @@ class DeletedIssueServiceTest {
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
                 new InMemoryIssueRepository(deletedIssue()),
+                new FakeDeletedIssueRepository(),
                 users,
                 new PermissionPolicy(),
                 java.time.LocalDateTime::now);
@@ -47,6 +49,7 @@ class DeletedIssueServiceTest {
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
                 new InMemoryIssueRepository(issueWithStatus(IssueStatus.ASSIGNED)),
+                new FakeDeletedIssueRepository(),
                 users,
                 new PermissionPolicy(),
                 java.time.LocalDateTime::now);
@@ -62,6 +65,7 @@ class DeletedIssueServiceTest {
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
                 new InMemoryIssueRepository(issueWithStatus(IssueStatus.NEW)),
+                new FakeDeletedIssueRepository(),
                 users,
                 new PermissionPolicy(),
                 java.time.LocalDateTime::now);
@@ -74,17 +78,19 @@ class DeletedIssueServiceTest {
     @DisplayName("project PL can purge one deleted issue permanently")
     void purgeDeletedIssueRemovesOnlyDeletedIssue() {
         var issues = new InMemoryIssueRepository(deletedIssue());
+        var deletedIssues = new FakeDeletedIssueRepository();
         var users = new InMemoryUserRepository(reporter, projectPl)
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
                 issues,
+                deletedIssues,
                 users,
                 new PermissionPolicy(),
                 java.time.LocalDateTime::now);
 
         service.purgeDeletedIssue(ISSUE_ID, projectPl);
 
-        assertTrue(issues.findById(ISSUE_ID).isEmpty());
+        assertTrue(deletedIssues.lastPurgedId == ISSUE_ID);
     }
 
     @Test
@@ -95,13 +101,13 @@ class DeletedIssueServiceTest {
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
                 issues,
+                new FakeDeletedIssueRepository(),
                 users,
                 new PermissionPolicy(),
                 java.time.LocalDateTime::now);
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.purgeDeletedIssue(ISSUE_ID, projectPl));
-        assertTrue(issues.findById(ISSUE_ID).isPresent());
     }
 
     @Test
@@ -112,6 +118,7 @@ class DeletedIssueServiceTest {
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
                 issues,
+                new FakeDeletedIssueRepository(),
                 users,
                 new PermissionPolicy(),
                 java.time.LocalDateTime::now);
@@ -133,5 +140,36 @@ class DeletedIssueServiceTest {
                 .priority(Priority.MAJOR)
                 .status(status)
                 .updatedAt(NOW));
+    }
+
+    private static final class FakeDeletedIssueRepository implements DeletedIssueRepository {
+
+        long lastPurgedId;
+
+        @Override
+        public java.util.List<Issue> findDeletedByProject(long projectId) {
+            return java.util.List.of();
+        }
+
+        @Override
+        public Issue softDelete(long issueId, String changedById, String message, java.time.LocalDateTime changedDate) {
+            throw new UnsupportedOperationException("softDelete");
+        }
+
+        @Override
+        public Issue restore(long issueId, String changedById, String message, java.time.LocalDateTime changedDate) {
+            throw new UnsupportedOperationException("restore");
+        }
+
+        @Override
+        public int purgeDeletedById(long issueId) {
+            lastPurgedId = issueId;
+            return 1;
+        }
+
+        @Override
+        public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
+            return 0;
+        }
     }
 }

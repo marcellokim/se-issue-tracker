@@ -5,17 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.marcellokim.issuetracker.domain.ActionType;
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
+import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -224,11 +222,18 @@ class AssignmentServiceTest {
     }
 
     private AssignmentService service(InMemoryIssueRepository issueRepository, InMemoryUserRepository userRepository) {
+        var devs = userRepository.findActiveByRole(PROJECT_ID, Role.DEV);
+        var testers = userRepository.findActiveByRole(PROJECT_ID, Role.TESTER);
+        var members = new java.util.ArrayList<User>();
+        members.addAll(devs);
+        members.addAll(testers);
         return new AssignmentService(
                 issueRepository,
                 userRepository,
                 new PermissionPolicy(),
-                new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation()),
+                new AssignmentRecommendationService(
+                        new InMemoryAssignmentRecommendationRepository(members.toArray(User[]::new)),
+                        new KNNAssignmentRecommendation()),
                 java.time.LocalDateTime::now
         );
     }

@@ -12,7 +12,7 @@ import java.util.Set;
 public class KNNAssignmentRecommendation {
 
     public final List<String> calculateRecomendation(String targetTitle, String targetDescription, List<UserRecord> listToCalculateRecommendation){
-        Objects.requireNonNull(targetTitle, "title null error");
+        Objects.requireNonNull(targetTitle, "targetTitle");
         List<String> titleKeys = List.of(targetTitle.replaceAll("[^a-zA-Z0-9가-힣]", " ").split("\\s+"));
         Set<String> targetKeyWords = compareKeywords(titleKeys);
 
@@ -55,7 +55,7 @@ public class KNNAssignmentRecommendation {
     private record SimlilarityResult(double similarity, String userId){}
 
     private Set<String> compareKeywords(List<String> titleKeys){
-        Objects.requireNonNull(titleKeys, "titleKey null error");
+        Objects.requireNonNull(titleKeys, "titleKeys");
         Set<String> matchedKeywords = new HashSet<>();
         for (String searchKey : titleKeys){
             if (KEYWORDS.contains(searchKey)){ matchedKeywords.add(searchKey); }
@@ -64,8 +64,8 @@ public class KNNAssignmentRecommendation {
     }
 
     private double jaccardCompare(Set<String> keySet, Set<String> setToCompare){
-        Objects.requireNonNull(keySet, "keySet not found");
-        Objects.requireNonNull(setToCompare, "CompareSet not found");
+        Objects.requireNonNull(keySet, "keySet");
+        Objects.requireNonNull(setToCompare, "setToCompare");
         Set<String> intersection = new HashSet<>(keySet);
         Set<String> union = new HashSet<>(keySet);
         intersection.retainAll(setToCompare);
@@ -82,10 +82,9 @@ public class KNNAssignmentRecommendation {
     }
     
     private double TfIdfCompare(String targetDescription, String recordDescription, Map<String, Double> idfMap){
-        Objects.requireNonNull(targetDescription, "Description not found");
-        Objects.requireNonNull(recordDescription, "Description not found");
-        List<String> targetTokens = Objects.requireNonNull(tokenize(targetDescription), "TargetDescription token is null state");
-        List<String> recordTokens = Objects.requireNonNull(tokenize(recordDescription), "RecordDescription token is null state");
+        List<String> targetTokens = tokenize(targetDescription);
+        List<String> recordTokens = tokenize(recordDescription);
+        if (targetTokens.isEmpty() || recordTokens.isEmpty()) return 0.0;
 
         Map<String, Double> targetTfIdf = new HashMap<>();
         for (String token : targetTokens){ targetTfIdf.merge(token, 1.0 / targetTokens.size(), (a, b) -> a + b); }
@@ -131,7 +130,7 @@ public class KNNAssignmentRecommendation {
     "button", "page", "screen", "form", "input", "field", "modal",
     "dialog", "popup", "dropdown", "menu", "tab", "table", "list",
     "card", "panel", "header", "footer", "sidebar", "navbar",
-    "checkbox", "radio", "slider", "tooltip", "icon",
+    "checkbox", "radio", "slider", "tooltip", "icon", "frontend",
 
     // 사용자 동작들
     "login", "logout", "signup", "register", "submit", "click",
@@ -145,7 +144,7 @@ public class KNNAssignmentRecommendation {
     "token", "socket", "connection", "request", "response", "query",
     "migration", "deploy", "config", "environment", "docker",
     "memory", "cpu", "disk", "network", "proxy", "ssl", "dns",
-    "port",
+    "port", "backend", 
 
     // 기능
     "auth", "authentication", "authorization", "permission", "role",
@@ -195,7 +194,7 @@ public class KNNAssignmentRecommendation {
     "성능", "지연", "부하", "최적화", "병목", "렉",
     "렌더링", "컴파일", "빌드", "테스트", "회귀", "호환성", "보안",
     "파싱", "포맷", "인코딩", "디코딩", "직렬화", "검증", "변환",
-    "매핑", "바인딩", "주입", "정규식"));
+    "매핑", "바인딩", "주입", "정규식", "프론트엔드", "백엔드"));
 
     private static final Set<String> STOP_WORDS = Set.of(
     "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",

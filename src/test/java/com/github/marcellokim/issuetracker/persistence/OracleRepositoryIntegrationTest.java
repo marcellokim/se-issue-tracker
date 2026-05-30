@@ -159,9 +159,9 @@ class OracleRepositoryIntegrationTest {
                 assertFalse(project1Report.dailyCommentCounts().isEmpty());
                 assertFalse(project1Report.monthlyStatusChangeCounts().isEmpty());
                 assertFalse(project1Report.monthlyCommentCounts().isEmpty());
-                assertFalse(repositories.assignmentRecommendations().findDevAssigneeCandidates(project1.getId())
+                assertFalse(repositories.assignmentRecommendations().findActiveDevCandidates(project1.getId())
                                 .isEmpty());
-                assertFalse(repositories.assignmentRecommendations().findTesterVerifierCandidates(project1.getId())
+                assertFalse(repositories.assignmentRecommendations().findActiveTesterCandidates(project1.getId())
                                 .isEmpty());
         }
 
@@ -340,7 +340,7 @@ class OracleRepositoryIntegrationTest {
 
                         assertFalse(repositories.issues().findByCriteria(activeIssueCriteria(project.getId())).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
-                        assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
+                        assertTrue(repositories.deletedIssues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deletedIssue.id()));
                         assertEquals(deletedStatusBefore, report.statusCounts().getOrDefault(IssueStatus.DELETED, 0));
                         assertEquals(trivialPriorityBefore, report.priorityCounts().getOrDefault(Priority.TRIVIAL, 0));
@@ -376,10 +376,10 @@ class OracleRepositoryIntegrationTest {
                         newIssue = createIssue(project.getId(), uniqueId("delete_new_issue"), IssueStatus.NEW);
                         closedIssue = createIssue(project.getId(), uniqueId("delete_closed_issue"), IssueStatus.CLOSED);
 
-                        assertEquals(IssueStatus.DELETED, repositories.issues()
+                        assertEquals(IssueStatus.DELETED, repositories.deletedIssues()
                                         .softDelete(newIssue.id(), "pl1", "Delete NEW issue.", LocalDateTime.now())
                                         .status());
-                        assertEquals(IssueStatus.DELETED, repositories.issues()
+                        assertEquals(IssueStatus.DELETED, repositories.deletedIssues()
                                         .softDelete(closedIssue.id(), "pl1", "Delete CLOSED issue.",
                                                         LocalDateTime.now())
                                         .status());
@@ -394,7 +394,7 @@ class OracleRepositoryIntegrationTest {
                                 rejectedIssues.add(issue);
 
                                 assertThrows(RepositoryException.class,
-                                                () -> repositories.issues().softDelete(
+                                                () -> repositories.deletedIssues().softDelete(
                                                                 issue.id(),
                                                                 "pl1",
                                                                 "Delete should be rejected.",
@@ -436,7 +436,7 @@ class OracleRepositoryIntegrationTest {
                                                         LocalDateTime.now()),
                                         blocked);
 
-                        repositories.issues().softDelete(
+                        repositories.deletedIssues().softDelete(
                                         blocking.id(),
                                         projectLead.getLoginId(),
                                         "Delete blocking issue.",
@@ -474,10 +474,10 @@ class OracleRepositoryIntegrationTest {
 
                 try {
                         deletedFromNew = createIssue(project.getId(), uniqueId("restore_new_issue"), IssueStatus.NEW);
-                        repositories.issues().softDelete(deletedFromNew.id(), "pl1", "Delete before restore.",
+                        repositories.deletedIssues().softDelete(deletedFromNew.id(), "pl1", "Delete before restore.",
                                         LocalDateTime.now());
 
-                        assertEquals(IssueStatus.NEW, repositories.issues()
+                        assertEquals(IssueStatus.NEW, repositories.deletedIssues()
                                         .restore(deletedFromNew.id(), "pl1", "Restore NEW issue.", LocalDateTime.now())
                                         .status());
 
@@ -494,7 +494,7 @@ class OracleRepositoryIntegrationTest {
 
                         Issue target = invalidDeleted;
                         assertThrows(RepositoryException.class,
-                                        () -> repositories.issues().restore(
+                                        () -> repositories.deletedIssues().restore(
                                                         target.id(),
                                                         "pl1",
                                                         "Invalid restore should be rejected.",
@@ -681,7 +681,7 @@ class OracleRepositoryIntegrationTest {
 
                         assertFalse(repositories.issues().findByCriteria(activeIssueCriteria(project.getId())).stream()
                                         .anyMatch(issue -> issue.id() == deleted.id()));
-                        assertTrue(repositories.issues().findDeletedByProject(project.getId()).stream()
+                        assertTrue(repositories.deletedIssues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deleted.id()));
                         assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
 
@@ -1319,7 +1319,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                new AssignmentRecommendationService(repositories.issues(), repositories.users(), new KNNAssignmentRecommendation()),
+                                new AssignmentRecommendationService(repositories.assignmentRecommendations(), new KNNAssignmentRecommendation()),
                                 java.time.LocalDateTime::now);
         }
 
@@ -1340,6 +1340,7 @@ class OracleRepositoryIntegrationTest {
         private static DeletedIssueService deletedIssueService() {
                 return new DeletedIssueService(
                                 repositories.issues(),
+                                repositories.deletedIssues(),
                                 repositories.users(),
                                 permissionPolicy(),
                                 java.time.LocalDateTime::now);
@@ -1441,19 +1442,17 @@ class OracleRepositoryIntegrationTest {
         }
 
         private static int completedIssueCountForDev(String loginId, long projectId) {
-                return repositories.assignmentRecommendations().findDevAssigneeCandidates(projectId).stream()
-                                .filter(candidate -> candidate.user().getLoginId().equals(loginId))
-                                .findFirst()
-                                .orElseThrow()
-                                .completedIssueCount();
+                return (int) repositories.assignmentRecommendations()
+                                .findResolvedIssuesForRecommendation(projectId).stream()
+                                .filter(data -> loginId.equals(data.fixerLoginId()))
+                                .count();
         }
 
         private static int completedIssueCountForTester(String loginId, long projectId) {
-                return repositories.assignmentRecommendations().findTesterVerifierCandidates(projectId).stream()
-                                .filter(candidate -> candidate.user().getLoginId().equals(loginId))
-                                .findFirst()
-                                .orElseThrow()
-                                .completedIssueCount();
+                return (int) repositories.assignmentRecommendations()
+                                .findResolvedIssuesForRecommendation(projectId).stream()
+                                .filter(data -> loginId.equals(data.resolverLoginId()))
+                                .count();
         }
 
         private static int countForDay(List<DailyIssueCount> counts, LocalDateTime reportedAt) {

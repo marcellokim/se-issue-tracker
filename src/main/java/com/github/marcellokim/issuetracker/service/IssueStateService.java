@@ -1,5 +1,8 @@
 package com.github.marcellokim.issuetracker.service;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
@@ -9,10 +12,6 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
 
 public final class IssueStateService {
 

@@ -1,11 +1,15 @@
 package com.github.marcellokim.issuetracker.repository;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
+import com.github.marcellokim.issuetracker.domain.User;
 import java.util.List;
 
 public interface AssignmentRecommendationRepository {
 
-    List<AssignmentCandidate> findDevAssigneeCandidates(long projectId);
+    record IssueRecommendationData(String title, String description, String fixerLoginId, String resolverLoginId) {}
 
-    List<AssignmentCandidate> findTesterVerifierCandidates(long projectId);
+    List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId);
+
+    List<User> findActiveDevCandidates(long projectId);
+
+    List<User> findActiveTesterCandidates(long projectId);
 }
