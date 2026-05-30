@@ -902,8 +902,6 @@ class OracleRepositoryIntegrationTest {
                                         .orElseThrow();
                         assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
                                         .anyMatch(value -> value.id() == history.id()));
-                        assertEquals(history.id(),
-                                        repositories.issueHistory().findById(history.id()).orElseThrow().id());
                 } finally {
                         purgeTestIssue(issue.id());
                 }

@@ -1110,9 +1110,6 @@ class IssueServiceTest {
 
                 List<IssueHistory> issueHistories = histories.findByIssueId(ISSUE_ID);
                 assertEquals(2, issueHistories.size());
-                IssueHistory unchangedHistory = histories.findById(existingHistory.id()).orElseThrow();
-                assertEquals("Original comment", unchangedHistory.newValue());
-                assertEquals("Original comment", unchangedHistory.message());
                 IssueHistory appendedHistory = issueHistories.get(1);
                 assertEquals(ActionType.COMMENTED, appendedHistory.actionType());
                 assertEquals("Outdated investigation note", appendedHistory.previousValue());

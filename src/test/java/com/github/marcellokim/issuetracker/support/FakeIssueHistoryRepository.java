@@ -6,17 +6,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public final class FakeIssueHistoryRepository implements IssueHistoryRepository {
 
     private final Map<Long, IssueHistory> histories = new LinkedHashMap<>();
     private long nextId = 1L;
-
-    @Override
-    public Optional<IssueHistory> findById(long historyId) {
-        return Optional.ofNullable(histories.get(historyId));
-    }
 
     @Override
     public List<IssueHistory> findByIssueId(long issueId) {
