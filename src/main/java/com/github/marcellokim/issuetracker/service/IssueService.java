@@ -184,7 +184,7 @@ public final class IssueService {
                 null,
                 null,
                 false)).stream()
-                .filter(issue -> actor.getRole() == Role.PL || isRelatedParticipant(issue, actor.getLoginId()))
+                .filter(issue -> permissionPolicy.canViewAllProjectIssues(actor) || isRelatedParticipant(issue, actor.getLoginId()))
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
