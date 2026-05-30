@@ -50,8 +50,7 @@ class RepositoryDemoSummaryServiceTest {
                         ProjectMember.create(PROJECT_ID, dev.getLoginId(), NOW),
                         ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))).rejectWrites(),
                 new InMemoryIssueRepository(issue),
-                new FakeStatisticsRepository(),
-                new FakeAssignmentRecommendationRepository(dev, tester));
+                new FakeStatisticsRepository());
 
         RepositoryDemoSummary summary = service.summarizeSeedDemo();
 
@@ -68,8 +67,8 @@ class RepositoryDemoSummaryServiceTest {
         assertEquals(1, projectSummary.issueCount());
         assertEquals(2, projectSummary.statusCounts().get(IssueStatus.NEW));
         assertEquals(1, projectSummary.priorityCounts().get(Priority.MAJOR));
-        assertEquals(1, projectSummary.devRecommendationCandidateCount());
-        assertEquals(1, projectSummary.testerRecommendationCandidateCount());
+        assertEquals(0, projectSummary.devRecommendationCandidateCount());
+        assertEquals(0, projectSummary.testerRecommendationCandidateCount());
     }
 
     @Test
@@ -88,8 +87,7 @@ class RepositoryDemoSummaryServiceTest {
                         ProjectMember.create(PROJECT_ID, dev.getLoginId(), NOW),
                         ProjectMember.create(PROJECT_ID, tester.getLoginId(), NOW))).rejectWrites(),
                 new InMemoryIssueRepository(issue),
-                new FakeStatisticsRepository(),
-                new FakeAssignmentRecommendationRepository(dev, tester));
+                new FakeStatisticsRepository());
 
         RepositoryDemoSummary summary = service.summarize(new RepositoryDemoRequest(" root ", " custom-project "));
 
@@ -183,13 +181,23 @@ class RepositoryDemoSummaryServiceTest {
         }
 
         @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            return List.of(AssignmentCandidate.create(dev, 1));
+        public List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId) {
+            return List.of();
         }
 
         @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            return List.of(AssignmentCandidate.create(tester, 1));
+        public java.util.Optional<User> findCandidateByLoginId(String loginId) {
+            return java.util.Optional.empty();
+        }
+
+        @Override
+        public List<User> findActiveDevCandidates(long projectId) {
+            return List.of(dev);
+        }
+
+        @Override
+        public List<User> findActiveTesterCandidates(long projectId) {
+            return List.of(tester);
         }
     }
 }

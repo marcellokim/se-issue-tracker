@@ -3,7 +3,6 @@ package com.github.marcellokim.issuetracker.service;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
@@ -17,21 +16,17 @@ public final class RepositoryDemoSummaryService {
     private final ProjectRepository projectRepository;
     private final IssueRepository issueRepository;
     private final StatisticsRepository statisticsRepository;
-    private final AssignmentRecommendationRepository assignmentRecommendationRepository;
 
     public RepositoryDemoSummaryService(
             UserRepository userRepository,
             ProjectRepository projectRepository,
             IssueRepository issueRepository,
-            StatisticsRepository statisticsRepository,
-            AssignmentRecommendationRepository assignmentRecommendationRepository
+            StatisticsRepository statisticsRepository
     ) {
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
         this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
-        this.assignmentRecommendationRepository =
-                Objects.requireNonNull(assignmentRecommendationRepository, "assignmentRecommendationRepository");
     }
 
     public RepositoryDemoSummary summarizeSeedDemo() {
@@ -62,7 +57,7 @@ public final class RepositoryDemoSummaryService {
                 issueRepository.findByProject(projectId).size(),
                 statisticsRepository.countByStatus(projectId),
                 statisticsRepository.countByPriority(projectId),
-                assignmentRecommendationRepository.findDevAssigneeCandidates(projectId).size(),
-                assignmentRecommendationRepository.findTesterVerifierCandidates(projectId).size());
+                0,
+                0);
     }
 }

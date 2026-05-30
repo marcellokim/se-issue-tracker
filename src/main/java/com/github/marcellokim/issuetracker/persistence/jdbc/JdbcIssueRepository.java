@@ -203,18 +203,6 @@ public final class JdbcIssueRepository implements IssueRepository {
         return deleteOperations.purgeDeletedBeyondLimit(projectId, maxDeletedIssues);
     }
 
-    @Override
-    public List<Issue> findRecommendationForAssignment(long projectId){
-        try(Connection connection = connectionProvider.getConnection();
-            PreparedStatement statement = 
-            connection.prepareStatement(JdbcIssueQueries.FIND_RESOLVED_OR_CLOSED_BY_PROJECT_SQL)){
-            statement.setLong(1, projectId);
-            return executeIssueList(statement);
-        } catch (SQLException exception){
-            throw new RepositoryException("Failed to find issues for recommendation - SQL fault", exception);
-        }
-    }
-
     private Issue insert(Issue issue) {
         String sql = """
                 insert into issues (

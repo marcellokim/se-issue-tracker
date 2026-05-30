@@ -76,9 +76,6 @@ final class JdbcIssueQueries {
             fetch first 1 rows only
             """;
             
-    static final String FIND_RESOLVED_OR_CLOSED_BY_PROJECT_SQL =
-        BASE_SELECT + " where i.project_id = ? and i.status in ('RESOLVED', 'CLOSED') order by i.id";
-
     private JdbcIssueQueries() {
     }
 

@@ -271,7 +271,8 @@ class ControllerCoverageTest {
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         PermissionPolicy policy = new PermissionPolicy();
         FakeIssueRepository issues = new FakeIssueRepository(issue);
-        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation());
+        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(
+                new FakeAssignmentRecommendationRepository(), new KNNAssignmentRecommendation());
         AssignmentController controller = new AssignmentController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.AssignmentService(
@@ -293,7 +294,7 @@ class ControllerCoverageTest {
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         FakeIssueRepository issues = new FakeIssueRepository(issue);
         AssignmentRecommendationService recommendations = new AssignmentRecommendationService(
-                issues, new FakeUserRepository(), new KNNAssignmentRecommendation());
+                new FakeAssignmentRecommendationRepository(), new KNNAssignmentRecommendation());
         PermissionPolicy policy = new PermissionPolicy();
 
         AssignmentController anonymousController = new AssignmentController(
@@ -744,21 +745,24 @@ class ControllerCoverageTest {
 
     private static final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
 
-        private List<AssignmentCandidate> devCandidates = List.of();
-        private List<AssignmentCandidate> testerCandidates = List.of();
-        private long lastDevProjectId;
-        private long lastTesterProjectId;
-
         @Override
-        public List<AssignmentCandidate> findDevAssigneeCandidates(long projectId) {
-            lastDevProjectId = projectId;
-            return devCandidates;
+        public List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId) {
+            return List.of();
         }
 
         @Override
-        public List<AssignmentCandidate> findTesterVerifierCandidates(long projectId) {
-            lastTesterProjectId = projectId;
-            return testerCandidates;
+        public Optional<User> findCandidateByLoginId(String loginId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<User> findActiveDevCandidates(long projectId) {
+            return List.of();
+        }
+
+        @Override
+        public List<User> findActiveTesterCandidates(long projectId) {
+            return List.of();
         }
     }
 }

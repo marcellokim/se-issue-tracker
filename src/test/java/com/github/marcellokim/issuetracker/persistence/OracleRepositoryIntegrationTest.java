@@ -158,9 +158,9 @@ class OracleRepositoryIntegrationTest {
                 assertFalse(report.monthlyStatusChangeCounts().isEmpty());
                 assertFalse(report.dailyCommentCounts().isEmpty());
                 assertFalse(report.monthlyCommentCounts().isEmpty());
-                assertFalse(repositories.assignmentRecommendations().findDevAssigneeCandidates(project1.getId())
+                assertFalse(repositories.assignmentRecommendations().findActiveDevCandidates(project1.getId())
                                 .isEmpty());
-                assertFalse(repositories.assignmentRecommendations().findTesterVerifierCandidates(project1.getId())
+                assertFalse(repositories.assignmentRecommendations().findActiveTesterCandidates(project1.getId())
                                 .isEmpty());
         }
 
@@ -1337,7 +1337,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                new AssignmentRecommendationService(repositories.issues(), repositories.users(), new KNNAssignmentRecommendation()),
+                                new AssignmentRecommendationService(repositories.assignmentRecommendations(), new KNNAssignmentRecommendation()),
                                 java.time.LocalDateTime::now);
         }
 
@@ -1455,19 +1455,17 @@ class OracleRepositoryIntegrationTest {
         }
 
         private static int completedIssueCountForDev(String loginId, long projectId) {
-                return repositories.assignmentRecommendations().findDevAssigneeCandidates(projectId).stream()
-                                .filter(candidate -> candidate.user().getLoginId().equals(loginId))
-                                .findFirst()
-                                .orElseThrow()
-                                .completedIssueCount();
+                return (int) repositories.assignmentRecommendations()
+                                .findResolvedIssuesForRecommendation(projectId).stream()
+                                .filter(data -> loginId.equals(data.fixerLoginId()))
+                                .count();
         }
 
         private static int completedIssueCountForTester(String loginId, long projectId) {
-                return repositories.assignmentRecommendations().findTesterVerifierCandidates(projectId).stream()
-                                .filter(candidate -> candidate.user().getLoginId().equals(loginId))
-                                .findFirst()
-                                .orElseThrow()
-                                .completedIssueCount();
+                return (int) repositories.assignmentRecommendations()
+                                .findResolvedIssuesForRecommendation(projectId).stream()
+                                .filter(data -> loginId.equals(data.resolverLoginId()))
+                                .count();
         }
 
         private static int countForDay(List<DailyIssueCount> counts, LocalDateTime reportedAt) {

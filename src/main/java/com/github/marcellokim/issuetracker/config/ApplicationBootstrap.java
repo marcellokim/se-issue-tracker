@@ -57,8 +57,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 repositories.users(),
                                 repositories.projects(),
                                 repositories.issues(),
-                                repositories.statistics(),
-                                repositories.assignmentRecommendations());
+                                repositories.statistics());
         }
 
         @Override
@@ -107,7 +106,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 issues,
                                 users,
                                 permissionPolicy,
-                                new AssignmentRecommendationService(issues, users, new KNNAssignmentRecommendation()),
+                                new AssignmentRecommendationService(assignmentRecommendations, new KNNAssignmentRecommendation()),
                                 clock);
                 IssueStateService issueStateService = new IssueStateService(
                                 issues,
