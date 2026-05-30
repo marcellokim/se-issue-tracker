@@ -114,13 +114,17 @@ class OracleRepositoryIntegrationTest {
 
                 assertEquals(10, repositories.projects().findParticipants(project1.getId()).size());
                 assertTrue(repositories.users().existsActiveProjectMember(project1.getId(), "pl1"));
-                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project1.getId()).size());
-                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project1.getId()).size());
+                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project1.getId())
+                                .size());
+                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project1.getId())
+                                .size());
 
                 assertEquals(10, repositories.projects().findParticipants(project2.getId()).size());
                 assertTrue(repositories.users().existsActiveProjectMember(project2.getId(), "pl2"));
-                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project2.getId()).size());
-                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project2.getId()).size());
+                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project2.getId())
+                                .size());
+                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project2.getId())
+                                .size());
         }
 
         @Test
@@ -137,7 +141,6 @@ class OracleRepositoryIntegrationTest {
                 assertTrue(issues.size() >= 4);
                 assertFalse(repositories.comments().findByIssueId(dependencyIssue.id()).isEmpty());
                 assertFalse(repositories.issueHistory().findByIssueId(dependencyIssue.id()).isEmpty());
-                assertFalse(repositories.issueDependencies().findByIssueId(dependencyIssue.id()).isEmpty());
         }
 
         @Test
@@ -820,22 +823,23 @@ class OracleRepositoryIntegrationTest {
                         assertEquals("Updated repository comment.", updated.content());
                         assertEquals(updatedAt, updated.updatedDate());
 
-                        Comment statusChangeComment = repositories.comments().saveCommentAndRecordHistory(Comment.fromPersistence(
-                                        0L,
-                                        issue.id(),
-                                        "tester1",
-                                        "Status-change repository comment.",
-                                        CommentPurpose.STATUS_CHANGE,
-                                        createdAt,
-                                        createdAt),
-                                        IssueHistory.newForPersistence(
+                        Comment statusChangeComment = repositories.comments()
+                                        .saveCommentAndRecordHistory(Comment.fromPersistence(
+                                                        0L,
                                                         issue.id(),
                                                         "tester1",
-                                                        ActionType.STATUS_CHANGED,
-                                                        IssueStatus.NEW.name(),
-                                                        IssueStatus.ASSIGNED.name(),
                                                         "Status-change repository comment.",
-                                                        createdAt));
+                                                        CommentPurpose.STATUS_CHANGE,
+                                                        createdAt,
+                                                        createdAt),
+                                                        IssueHistory.newForPersistence(
+                                                                        issue.id(),
+                                                                        "tester1",
+                                                                        ActionType.STATUS_CHANGED,
+                                                                        IssueStatus.NEW.name(),
+                                                                        IssueStatus.ASSIGNED.name(),
+                                                                        "Status-change repository comment.",
+                                                                        createdAt));
                         assertThrows(IllegalArgumentException.class,
                                         () -> repositories.comments().deleteGeneralByIdAndRecordIssueChange(
                                                         issue.id(),
@@ -899,8 +903,6 @@ class OracleRepositoryIntegrationTest {
                                         .orElseThrow();
                         assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
                                         .anyMatch(value -> value.id() == history.id()));
-                        assertEquals(history.id(),
-                                        repositories.issueHistory().findById(history.id()).orElseThrow().id());
                 } finally {
                         purgeTestIssue(issue.id());
                 }
@@ -925,8 +927,6 @@ class OracleRepositoryIntegrationTest {
                                         blocked);
 
                         assertEquals(dependency.id(),
-                                        repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
-                        assertEquals(dependency.id(),
                                         repositories.issueDependencies()
                                                         .findByDependencyId(dependency.getDependencyId()).orElseThrow()
                                                         .id());
@@ -936,10 +936,6 @@ class OracleRepositoryIntegrationTest {
                                         .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
                                                         && dependency.getDependencyId().equals(history.newValue())));
                         assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
-                        assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
-                                        .anyMatch(value -> value.id() == dependency.id()));
-                        assertTrue(repositories.issueDependencies().findDependenciesBlockedByIssue(blocking.id()).stream()
-                                        .anyMatch(value -> value.id() == dependency.id()));
                         assertTrue(repositories.issueDependencies().findDependenciesBlockingIssue(blocked.id()).stream()
                                         .anyMatch(value -> value.id() == dependency.id()));
                         assertThrows(RepositoryException.class,
@@ -1385,7 +1381,8 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                new AssignmentRecommendationService(repositories.assignmentRecommendations(), new KNNAssignmentRecommendation()),
+                                new AssignmentRecommendationService(repositories.assignmentRecommendations(),
+                                                new KNNAssignmentRecommendation()),
                                 java.time.LocalDateTime::now);
         }
 

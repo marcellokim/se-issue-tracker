@@ -17,12 +17,7 @@ import java.util.Optional;
 public final class JdbcIssueDependencyRepository implements IssueDependencyRepository {
 
     private static final String BASE_SELECT = "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at from issue_dependencies";
-    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_DEPENDENCY_ID_SQL = BASE_SELECT + " where dependency_id = ?";
-    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT
-            + " where blocking_issue_id = ? or blocked_issue_id = ? order by id";
-    private static final String FIND_DEPENDENCIES_BLOCKED_BY_ISSUE_SQL = BASE_SELECT
-            + " where blocking_issue_id = ? order by id";
     private static final String FIND_DEPENDENCIES_BLOCKING_ISSUE_SQL = BASE_SELECT
             + " where blocked_issue_id = ? order by id";
 
@@ -31,22 +26,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     public JdbcIssueDependencyRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
-    }
-
-    @Override
-    public Optional<IssueDependency> findById(long id) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
-            statement.setLong(1, id);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapDependency(resultSet));
-                }
-                return Optional.empty();
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find issue dependency by id.", exception);
-        }
     }
 
     @Override
@@ -62,29 +41,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to find issue dependency by dependency id.", exception);
-        }
-    }
-
-    @Override
-    public List<IssueDependency> findByIssueId(long issueId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ISSUE_ID_SQL)) {
-            statement.setLong(1, issueId);
-            statement.setLong(2, issueId);
-            return executeDependencyList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list dependencies by issue.", exception);
-        }
-    }
-
-    @Override
-    public List<IssueDependency> findDependenciesBlockedByIssue(long blockingIssueId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_DEPENDENCIES_BLOCKED_BY_ISSUE_SQL)) {
-            statement.setLong(1, blockingIssueId);
-            return executeDependencyList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list dependencies by blocking issue.", exception);
         }
     }
 

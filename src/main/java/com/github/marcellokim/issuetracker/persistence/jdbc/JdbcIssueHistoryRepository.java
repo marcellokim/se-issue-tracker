@@ -11,7 +11,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public final class JdbcIssueHistoryRepository implements IssueHistoryRepository {
 
@@ -20,29 +19,12 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             select id, issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
             from issue_history
             """;
-    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by changed_at, id";
 
     private final DatabaseConnectionProvider connectionProvider;
 
     public JdbcIssueHistoryRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
-    }
-
-    @Override
-    public Optional<IssueHistory> findById(long historyId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
-            statement.setLong(1, historyId);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapHistory(resultSet));
-                }
-                return Optional.empty();
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find issue history by id.", exception);
-        }
     }
 
     @Override
