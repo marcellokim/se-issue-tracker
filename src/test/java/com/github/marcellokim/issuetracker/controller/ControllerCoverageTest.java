@@ -1286,19 +1286,19 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
+        public Issue softDelete(Issue issue, String changedById, String message, LocalDateTime changedDate) {
             lastChangedBy = changedById;
-            Issue deleted = copyWithStatus(findById(issueId).orElseThrow(), IssueStatus.DELETED);
-            issuesById.put(issueId, deleted);
+            Issue deleted = copyWithStatus(issue, IssueStatus.DELETED);
+            issuesById.put(issue.id(), deleted);
             return deleted;
         }
 
         @Override
-        public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
+        public Issue restore(Issue issue, String changedById, String message, LocalDateTime changedDate) {
             lastChangedBy = changedById;
             lastRestoreMessage = message;
-            Issue restored = copyWithStatus(findById(issueId).orElseThrow(), IssueStatus.NEW);
-            issuesById.put(issueId, restored);
+            Issue restored = copyWithStatus(issue, IssueStatus.NEW);
+            issuesById.put(issue.id(), restored);
             return restored;
         }
 

@@ -377,10 +377,10 @@ class OracleRepositoryIntegrationTest {
                         closedIssue = createIssue(project.getId(), uniqueId("delete_closed_issue"), IssueStatus.CLOSED);
 
                         assertEquals(IssueStatus.DELETED, repositories.deletedIssues()
-                                        .softDelete(newIssue.id(), "pl1", "Delete NEW issue.", LocalDateTime.now())
+                                        .softDelete(newIssue, "pl1", "Delete NEW issue.", LocalDateTime.now())
                                         .status());
                         assertEquals(IssueStatus.DELETED, repositories.deletedIssues()
-                                        .softDelete(closedIssue.id(), "pl1", "Delete CLOSED issue.",
+                                        .softDelete(closedIssue, "pl1", "Delete CLOSED issue.",
                                                         LocalDateTime.now())
                                         .status());
 
@@ -395,7 +395,7 @@ class OracleRepositoryIntegrationTest {
 
                                 assertThrows(RepositoryException.class,
                                                 () -> repositories.deletedIssues().softDelete(
-                                                                issue.id(),
+                                                                issue,
                                                                 "pl1",
                                                                 "Delete should be rejected.",
                                                                 LocalDateTime.now()));
@@ -437,7 +437,7 @@ class OracleRepositoryIntegrationTest {
                                         blocked);
 
                         repositories.deletedIssues().softDelete(
-                                        blocking.id(),
+                                        blocking,
                                         projectLead.getLoginId(),
                                         "Delete blocking issue.",
                                         LocalDateTime.now().plusSeconds(1));
@@ -474,11 +474,12 @@ class OracleRepositoryIntegrationTest {
 
                 try {
                         deletedFromNew = createIssue(project.getId(), uniqueId("restore_new_issue"), IssueStatus.NEW);
-                        repositories.deletedIssues().softDelete(deletedFromNew.id(), "pl1", "Delete before restore.",
+                        repositories.deletedIssues().softDelete(deletedFromNew, "pl1", "Delete before restore.",
                                         LocalDateTime.now());
 
+                        Issue deletedFromNewReloaded = repositories.issues().findById(deletedFromNew.id()).orElseThrow();
                         assertEquals(IssueStatus.NEW, repositories.deletedIssues()
-                                        .restore(deletedFromNew.id(), "pl1", "Restore NEW issue.", LocalDateTime.now())
+                                        .restore(deletedFromNewReloaded, "pl1", "Restore NEW issue.", LocalDateTime.now())
                                         .status());
 
                         invalidDeleted = createIssue(project.getId(), uniqueId("restore_invalid_issue"),
@@ -495,7 +496,7 @@ class OracleRepositoryIntegrationTest {
                         Issue target = invalidDeleted;
                         assertThrows(RepositoryException.class,
                                         () -> repositories.deletedIssues().restore(
-                                                        target.id(),
+                                                        target,
                                                         "pl1",
                                                         "Invalid restore should be rejected.",
                                                         LocalDateTime.now()));

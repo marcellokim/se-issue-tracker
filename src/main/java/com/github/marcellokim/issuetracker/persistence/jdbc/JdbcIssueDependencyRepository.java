@@ -1,9 +1,7 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
-import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
-import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
@@ -147,10 +145,9 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
-                IssueHistory history = latestDependencyHistory(issue, dependency.getDependencyId(), false);
                 IssueDependency saved = insert(connection, dependency);
-                updateIssueTimestamp(connection, issue.id(), history.changedDate());
-                writes.insertTransientHistories(connection, issue.id(), List.of(history));
+                updateIssueTimestamp(connection, issue.id(), issue.updatedAt());
+                writes.insertTransientHistories(connection, issue.id(), issue.getHistories());
                 connection.commit();
                 transactionSucceeded = true;
                 return saved;
@@ -173,9 +170,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
-                IssueHistory history = latestDependencyHistory(issue, dependencyId, true);
-                updateIssueTimestamp(connection, issue.id(), history.changedDate());
-                writes.insertTransientHistories(connection, issue.id(), List.of(history));
+                updateIssueTimestamp(connection, issue.id(), issue.updatedAt());
+                writes.insertTransientHistories(connection, issue.id(), issue.getHistories());
                 try (PreparedStatement statement = connection.prepareStatement(sql)) {
                     statement.setString(1, dependencyId);
                     int affectedRows = statement.executeUpdate();
@@ -194,30 +190,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to delete issue dependency with issue history.", exception);
         }
-    }
-
-    private static IssueHistory latestDependencyHistory(Issue issue, String dependencyId, boolean removal) {
-        List<IssueHistory> histories = issue.getHistories();
-        if (histories.isEmpty()) {
-            throw new RepositoryException("Issue dependency history was not recorded.", null);
-        }
-        IssueHistory history = histories.getLast();
-        if (history.actionType() != ActionType.DEPENDENCY_CHANGED) {
-            throw new RepositoryException("Latest issue history is not a dependency change.", null);
-        }
-        if (removal && history.newValue() != null) {
-            throw new RepositoryException("Latest issue history is not a dependency removal.", null);
-        }
-        if (removal && !dependencyId.equals(history.previousValue())) {
-            throw new RepositoryException("Latest issue history does not match dependency removal.", null);
-        }
-        if (!removal && history.previousValue() != null) {
-            throw new RepositoryException("Latest issue history is not a dependency addition.", null);
-        }
-        if (!removal && !dependencyId.equals(history.newValue())) {
-            throw new RepositoryException("Latest issue history does not match dependency addition.", null);
-        }
-        return history;
     }
 
     private static void updateIssueTimestamp(Connection connection, long issueId, LocalDateTime changedAt)

@@ -46,7 +46,7 @@ public final class DeletedIssueService {
         requireDeletedIssuePermission(actor, issue.projectId());
         permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.DELETED);
 
-        Issue deletedIssue = deletedIssueRepository.softDelete(issueId, actor.getLoginId(), comment, clock.now());
+        Issue deletedIssue = deletedIssueRepository.softDelete(issue, actor.getLoginId(), comment, clock.now());
         deletedIssueRepository.purgeDeletedBeyondLimit(deletedIssue.projectId(), MAX_DELETED_ISSUES_PER_PROJECT);
         return toIssueSummary(deletedIssue);
     }
@@ -55,7 +55,10 @@ public final class DeletedIssueService {
         comment = requireText(comment, "comment");
         Issue issue = findIssue(issueId);
         requireDeletedIssuePermission(actor, issue.projectId());
-        return toIssueSummary(deletedIssueRepository.restore(issueId, actor.getLoginId(), comment, clock.now()));
+        if (issue.status() != IssueStatus.DELETED){
+            throw new IllegalArgumentException("Only deleted issues can be restored.");
+        }
+        return toIssueSummary(deletedIssueRepository.restore(issue, actor.getLoginId(), comment, clock.now()));
     }
 
     public int purgeOverflow(long projectId, User actor) {

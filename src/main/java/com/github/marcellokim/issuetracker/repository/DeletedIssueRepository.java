@@ -8,9 +8,9 @@ public interface DeletedIssueRepository {
 
     List<Issue> findDeletedByProject(long projectId);
 
-    Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate);
+    Issue softDelete(Issue issue, String changedById, String message, LocalDateTime changedDate);
 
-    Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate);
+    Issue restore(Issue issue, String changedById, String message, LocalDateTime changedDate);
 
     int purgeDeletedById(long issueId);
 
