@@ -22,23 +22,26 @@ public final class JdbcDeletedIssueRepository implements DeletedIssueRepository 
     private final JdbcIssueRowMapper rowMapper;
     private final JdbcIssueWriteSupport writes;
 
-    public JdbcDeletedIssueRepository(DatabaseConnectionProvider connectionProvider){
+    public JdbcDeletedIssueRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
         this.rowMapper = new JdbcIssueRowMapper();
         this.writes = new JdbcIssueWriteSupport();
     }
 
     @Override
-    public List<Issue> findDeletedByProject(long projectId){
-        try(Connection connection = connectionProvider.getConnection();
-            PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)){
+    public List<Issue> findDeletedByProject(long projectId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection
+                        .prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
-            try(ResultSet resultSet = statement.executeQuery()){
+            try (ResultSet resultSet = statement.executeQuery()) {
                 List<Issue> deletedIssues = new ArrayList<>();
-                while (resultSet.next()){ deletedIssues.add(rowMapper.mapIssue(resultSet)); }
+                while (resultSet.next()) {
+                    deletedIssues.add(rowMapper.mapIssue(resultSet));
+                }
                 return deletedIssues;
             }
-        } catch (SQLException exception){
+        } catch (SQLException exception) {
             throw new RepositoryException("Failed to list deleted issues.", exception);
         }
     }
