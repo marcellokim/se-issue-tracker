@@ -748,22 +748,29 @@ class OracleRepositoryIntegrationTest {
         }
 
         @Test
-        @DisplayName("Comment repository saves, updates, lists, and deletes comments")
+        @DisplayName("Comment repository saves, updates, lists, and deletes comments with issue history")
         void commentRepositorySupportsCrud() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 Issue issue = createIssue(project.getId(), uniqueId("crud_comment_issue"));
-                Comment comment = null;
 
                 try {
                         LocalDateTime createdAt = LocalDateTime.now();
-                        comment = repositories.comments().save(Comment.fromPersistence(
+                        Comment comment = repositories.comments().saveCommentAndRecordHistory(Comment.fromPersistence(
                                         0L,
                                         issue.id(),
                                         "tester1",
                                         "Initial repository comment.",
                                         CommentPurpose.GENERAL,
                                         createdAt,
-                                        createdAt));
+                                        createdAt),
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.COMMENTED,
+                                                        null,
+                                                        "Initial repository comment.",
+                                                        "comment added",
+                                                        createdAt));
 
                         assertEquals("Initial repository comment.", repositories.comments().findById(comment.id())
                                         .orElseThrow().content());
@@ -773,39 +780,81 @@ class OracleRepositoryIntegrationTest {
 
                         LocalDateTime updatedAt = comment.createdDate().plusMinutes(10);
                         comment.changeContent("Updated repository comment.", updatedAt);
-                        Comment updated = repositories.comments().save(Comment.fromPersistence(
+                        Comment updated = repositories.comments().saveCommentAndRecordHistory(Comment.fromPersistence(
                                         comment.id(),
                                         issue.id(),
                                         "tester1",
                                         comment.content(),
                                         CommentPurpose.GENERAL,
                                         comment.createdDate(),
-                                        comment.updatedDate()));
+                                        comment.updatedDate()),
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.COMMENTED,
+                                                        "Initial repository comment.",
+                                                        "Updated repository comment.",
+                                                        "comment updated",
+                                                        updatedAt));
 
                         assertEquals("Updated repository comment.", updated.content());
                         assertEquals(updatedAt, updated.updatedDate());
 
-                        Comment statusChangeComment = repositories.comments().save(Comment.fromPersistence(
+                        Comment statusChangeComment = repositories.comments().saveCommentAndRecordHistory(Comment.fromPersistence(
                                         0L,
                                         issue.id(),
                                         "tester1",
                                         "Status-change repository comment.",
                                         CommentPurpose.STATUS_CHANGE,
                                         createdAt,
-                                        createdAt));
+                                        createdAt),
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.STATUS_CHANGED,
+                                                        IssueStatus.NEW.name(),
+                                                        IssueStatus.ASSIGNED.name(),
+                                                        "Status-change repository comment.",
+                                                        createdAt));
                         assertThrows(IllegalArgumentException.class,
-                                        () -> repositories.comments().deleteGeneralById(issue.id(),
-                                                        statusChangeComment.id(), "tester1"));
+                                        () -> repositories.comments().deleteGeneralByIdAndRecordIssueChange(
+                                                        issue.id(),
+                                                        statusChangeComment.id(),
+                                                        "tester1",
+                                                        IssueHistory.newForPersistence(
+                                                                        issue.id(),
+                                                                        "tester1",
+                                                                        ActionType.COMMENTED,
+                                                                        "Status-change repository comment.",
+                                                                        null,
+                                                                        "comment deleted",
+                                                                        createdAt.plusMinutes(20))));
                         assertTrue(repositories.comments().findById(statusChangeComment.id()).isPresent());
 
-                        repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
-                        comment = null;
+                        repositories.comments().deleteGeneralByIdAndRecordIssueChange(
+                                        issue.id(),
+                                        comment.id(),
+                                        "tester1",
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.COMMENTED,
+                                                        "Updated repository comment.",
+                                                        null,
+                                                        "comment deleted",
+                                                        createdAt.plusMinutes(30)));
 
                         assertTrue(repositories.comments().findById(updated.id()).isEmpty());
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                                                        && "comment added".equals(history.message())));
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                                                        && "comment updated".equals(history.message())));
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                                                        && "comment deleted".equals(history.message())));
                 } finally {
-                        if (comment != null) {
-                                repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
-                        }
                         purgeTestIssue(issue.id());
                 }
         }

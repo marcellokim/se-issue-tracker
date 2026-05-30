@@ -62,14 +62,6 @@ public final class JdbcCommentRepository implements CommentRepository {
     }
 
     @Override
-    public Comment save(Comment comment) {
-        if (comment.id() == 0L) {
-            return insert(comment);
-        }
-        return update(comment);
-    }
-
-    @Override
     public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
 
         Objects.requireNonNull(history, "history");
@@ -91,31 +83,6 @@ public final class JdbcCommentRepository implements CommentRepository {
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to update comment with issue history.", exception);
-        }
-    }
-
-    @Override
-    public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
-        String sql = """
-                delete from comments
-                where id = ?
-                  and issue_id = ?
-                  and writer_login_id = ?
-                  and purpose = 'GENERAL'
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, commentId);
-            statement.setLong(2, issueId);
-            statement.setString(3, Objects.requireNonNull(writerLoginId, "writerLoginId"));
-            int affectedRows = statement.executeUpdate();
-            if (affectedRows == 0) {
-                throw new IllegalArgumentException(
-                        "Comment was not deleted because it does not exist, is not owned by the writer, "
-                                + "or is not a GENERAL comment.");
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to delete comment.", exception);
         }
     }
 
@@ -161,19 +128,6 @@ public final class JdbcCommentRepository implements CommentRepository {
         }
     }
 
-    private Comment insert(Comment comment) {
-        String sql = """
-                insert into comments (issue_id, writer_login_id, content, purpose, created_at, updated_at)
-                values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, coalesce(?, current_timestamp)))
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
-            return insert(statement, comment);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to insert comment.", exception);
-        }
-    }
-
     private Comment insert(Connection connection, Comment comment) throws SQLException {
         String sql = """
                 insert into comments (issue_id, writer_login_id, content, purpose, created_at, updated_at)
@@ -187,13 +141,6 @@ public final class JdbcCommentRepository implements CommentRepository {
         }
     }
 
-    private Comment insert(PreparedStatement statement, Comment comment) throws SQLException {
-        bindInsert(statement, comment);
-        statement.executeUpdate();
-        return findById(JdbcSupport.generatedId(statement))
-                .orElseThrow(() -> new RepositoryException("Inserted comment was not found.", null));
-    }
-
     private static void bindInsert(PreparedStatement statement, Comment comment) throws SQLException {
         statement.setLong(1, comment.issueId());
         statement.setString(2, comment.writerId());
@@ -202,26 +149,6 @@ public final class JdbcCommentRepository implements CommentRepository {
         JdbcSupport.setNullableTimestamp(statement, 5, comment.createdDate());
         JdbcSupport.setNullableTimestamp(statement, 6, comment.updatedDate());
         JdbcSupport.setNullableTimestamp(statement, 7, comment.createdDate());
-    }
-
-    private Comment update(Comment comment) {
-        String sql = """
-                update comments
-                set content = ?,
-                    updated_at = coalesce(?, current_timestamp)
-                where id = ?
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, comment.content());
-            JdbcSupport.setNullableTimestamp(statement, 2, comment.updatedDate());
-            statement.setLong(3, comment.id());
-            statement.executeUpdate();
-            return findById(comment.id())
-                    .orElseThrow(() -> new RepositoryException("Updated comment was not found.", null));
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to update comment.", exception);
-        }
     }
 
     private Comment update(Connection connection, Comment comment) throws SQLException {
