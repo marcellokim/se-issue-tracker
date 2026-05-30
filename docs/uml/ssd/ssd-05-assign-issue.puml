@@ -27,27 +27,30 @@ UC5는 UC8 Recommend Assignment Candidates를 include한다.
 
 devAssigneeCandidates와 testerVerifierCandidates는 top 3 후보이다.
 allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
-해결 이력이 없으면 completedIssueCount=0인 active project member가 후보로 반환된다.
+해결 이력이 없으면 top 추천 후보는 비어 있을 수 있지만, 프로젝트 소속 active 후보 전체 목록은 함께 반환된다.
 필요한 역할의 후보가 없으면 빈 후보 목록을 반환하고, PL은 배정을 완료할 수 없다.
 end note
 
 alt Issue.status == NEW or REOPENED
   opt UC2 Add Comment 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
   A -> S: assignIssue(issueId, assigneeId, verifierId)
   S --> A: issueAssigned(issueId, status=ASSIGNED, confirmation)
 
 else Issue.status == ASSIGNED
   opt UC2 Add Comment 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
   A -> S: reassignIssue(issueId, assigneeId)
   S --> A: issueReassigned(issueId, status=ASSIGNED, confirmation)
 
 else Issue.status == FIXED
   opt UC2 Add Comment 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
   A -> S: changeVerifier(issueId, verifierId)
   S --> A: verifierChanged(issueId, status=FIXED, confirmation)

@@ -23,7 +23,8 @@ end note
 A -> S: registerIssue(projectId, title, description, priority)
 S --> A: issueRegistered(issueId, status=NEW, confirmation)
 opt Auth User가 등록 후 코멘트 추가를 원함
-  ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+  A -> S: addComment(issueId, content)
+  S --> A: commentRegistered(commentId, createdDate, confirmation)
 end
 note over S
 결과:
@@ -150,27 +151,30 @@ UC5는 UC8 Recommend Assignment Candidates를 include한다.
 
 devAssigneeCandidates와 testerVerifierCandidates는 top 3 후보이다.
 allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
-해결 이력이 없으면 completedIssueCount=0인 active project member가 후보로 반환된다.
+해결 이력이 없으면 top 추천 후보는 비어 있을 수 있지만, 프로젝트 소속 active 후보 전체 목록은 함께 반환된다.
 필요한 역할의 후보가 없으면 빈 후보 목록을 반환하고, PL은 배정을 완료할 수 없다.
 end note
 
 alt Issue.status == NEW or REOPENED
   opt UC2 Add Comment 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
   A -> S: assignIssue(issueId, assigneeId, verifierId)
   S --> A: issueAssigned(issueId, status=ASSIGNED, confirmation)
 
 else Issue.status == ASSIGNED
   opt UC2 Add Comment 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
   A -> S: reassignIssue(issueId, assigneeId)
   S --> A: issueReassigned(issueId, status=ASSIGNED, confirmation)
 
 else Issue.status == FIXED
   opt UC2 Add Comment 선택
-    ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
   A -> S: changeVerifier(issueId, verifierId)
   S --> A: verifierChanged(issueId, status=FIXED, confirmation)
@@ -199,10 +203,12 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: DEV 로그인, 자신에게 배정된 Issue, status=ASSIGNED, UC14 권한 검사
 end note
-A -> S: changeStatus(issueId, targetStatus=FIXED, comment)
+A -> S: addStatusChangeComment(issueId, comment)
+S --> A: statusChangeCommentAccepted(commentId, createdDate)
+A -> S: changeStatus(issueId, targetStatus=FIXED)
 S --> A: updatedIssue(issueId, status=FIXED)
 note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
+UC6은 UC2 Add Comment를 include하므로 상태 변경 사유 코멘트는 필수이다.
 결과: status=FIXED, fixer=current DEV 자동 기록, 필수 Comment와 IssueHistory(STATUS_CHANGED, previousValue=ASSIGNED, newValue=FIXED) 기록
 end note
 @enduml
@@ -323,15 +329,15 @@ note over S
 - NEW/REOPENED: DEV assignee 후보와 TESTER verifier 후보를 반환한다.
 - ASSIGNED: DEV assignee 후보만 반환한다.
 - FIXED: TESTER verifier 후보만 반환한다.
-- RESOLVED/CLOSED/DELETED: 배정 후보를 반환하지 않는다.
+- RESOLVED/CLOSED/DELETED: 배정/변경 대상 상태가 아니므로 startAssignment 흐름에서 거부된다.
 
 devAssigneeCandidates와 testerVerifierCandidates는 각각 top 3 후보이다.
 allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
 
 추천 기준:
-- assignee 후보는 과거 RESOLVED/CLOSED Issue의 fixer 이력을 참고한다.
-- verifier 후보는 과거 RESOLVED/CLOSED Issue의 resolver 이력을 참고한다.
-- 해결 이력이 없으면 completedIssueCount=0인 active project member를 후보로 반환한다.
+- assignee 후보는 과거 완료 Issue의 fixer 이력과 이슈 내용 유사도를 참고한다.
+- verifier 후보는 과거 완료 Issue의 resolver 이력과 이슈 내용 유사도를 참고한다.
+- 해결 이력이 없으면 top 추천 후보는 비어 있을 수 있지만, 프로젝트 소속 active 후보 전체 목록은 함께 반환된다.
 - 해당 역할의 active project member가 없으면 빈 후보 목록을 반환한다.
 
 UC8은 Issue 상태, 담당자, 코멘트, IssueHistory를 변경하지 않는다.

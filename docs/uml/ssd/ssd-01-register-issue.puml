@@ -13,7 +13,8 @@ end note
 A -> S: registerIssue(projectId, title, description, priority)
 S --> A: issueRegistered(issueId, status=NEW, confirmation)
 opt Auth User가 등록 후 코멘트 추가를 원함
-  ref over A, S : UC2 Add Comment\naddComment(issueId, content)
+  A -> S: addComment(issueId, content)
+  S --> A: commentRegistered(commentId, createdDate, confirmation)
 end
 note over S
 결과:

@@ -28,6 +28,7 @@ Use Case: UC1 Register Issue
 - 현재 사용자는 선택된 `Project`의 active member이다.
 - 현재 사용자는 선택된 `Project`에 이슈를 등록할 권한을 가진다.
 - `title`과 `description`은 비어 있지 않다.
+- 같은 프로젝트 안에 동일한 title을 가진 다른 `Issue`가 존재하지 않는다.
 
 ### 4. Postconditions
 
@@ -35,7 +36,7 @@ Use Case: UC1 Register Issue
   - 새로운 `Issue` instance가 생성되었다.
   - `actionType=CREATED`인 새로운 `IssueHistory` instance가 생성되었다.
 - Association 형성
-  - 새 `Issue.projectId`가 선택된 `Project`의 식별자를 참조하게 되었다. `Project` 객체 내부에 `Issue` collection은 추가되지 않았다.
+  - 새 `Issue`는 선택된 `Project`에 속하게 되었다.
   - 현재 `User`와 새 `Issue` 사이에 `reports` association이 형성되었다.
   - 새 `Issue`와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `User`와 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
@@ -395,16 +396,12 @@ Use Case: UC9 Manage Deleted Issue
 ### 4. Postconditions
 
 - Instance 생성
-  - 삭제 사유를 저장하기 위한 새로운 `Comment` instance가 생성되었다.
-  - `actionType=COMMENTED`인 새로운 `IssueHistory` instance가 생성되었다.
   - `actionType=STATUS_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
   - 삭제 과정에서 제거된 각 dependency에 대해 `actionType=DEPENDENCY_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
 - Instance 삭제
   - 대상 `Issue`와 연결된 모든 `IssueDependency` instance가 제거되었다.
   - 이 operation 이후 `DELETED` 상태의 이슈가 30개를 초과한 경우, `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate` 기준으로 초과분에 해당하는 오래된 `DELETED` 이슈가 물리적으로 삭제되었다.
 - Association 형성
-  - 대상 `Issue`와 새 `Comment` 사이에 `has` association이 형성되었다.
-  - 현재 `PL`과 새 `Comment` 사이에 `writes` association이 형성되었다.
   - 대상 `Issue`와 새 `IssueHistory` 사이에 `logs` association이 형성되었다.
   - 현재 `PL`과 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
   - 제거된 각 dependency의 blocked issue와 dependency 제거 `IssueHistory` 사이에 `logs` association이 형성되었다.
@@ -414,9 +411,6 @@ Use Case: UC9 Manage Deleted Issue
   - 제거된 각 `IssueDependency`에 대해 `blockedIssue` association이 제거되었다.
 - 속성값 변화
   - `Issue.status`는 `NEW` 또는 `CLOSED`에서 `DELETED`로 변경되었다.
-  - `Comment.content`는 삭제 사유 `comment`로 설정되었다.
-  - `Comment.createdDate`는 현재 시각으로 설정되었다.
-  - `STATUS_CHANGED` history에는 `previousValue=NEW` 또는 `CLOSED`, `newValue=DELETED`가 기록되었다.
   - `STATUS_CHANGED` history의 message에는 삭제 사유 `comment`가 기록되었다.
   - deleted transition time은 `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate`에서 결정되었다.
   - `NEW` 또는 `CLOSED` 대상은 활성 assignee/verifier가 없는 상태로 취급되었다.
@@ -448,8 +442,6 @@ Use Case: UC9 Manage Deleted Issue
 ### 4. Postconditions
 
 - Instance 생성
-  - 복구 사유를 저장하기 위한 새로운 `Comment` instance가 생성되었다.
-  - `actionType=COMMENTED`인 새로운 `IssueHistory` instance가 생성되었다.
   - `actionType=STATUS_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
   - 새로운 `Issue` instance는 생성되지 않았고, 기존 `Issue` instance가 그대로 사용되었다.
 - Association 형성
@@ -459,8 +451,6 @@ Use Case: UC9 Manage Deleted Issue
   - 현재 `PL`과 새 `IssueHistory` 사이에 `changes` association이 형성되었다.
 - 속성값 변화
   - `Issue.status`는 `DELETED`에서 삭제 직전 상태인 `NEW` 또는 `CLOSED`로 변경되었다.
-  - `Comment.content`는 복구 사유 `comment`로 설정되었다.
-  - `Comment.createdDate`는 현재 시각으로 설정되었다.
   - 복구 상태는 별도 `Issue.preDeleteStatus` attribute가 아니라 이전 `STATUS_CHANGED` history에서 결정되었다.
   - 새 `STATUS_CHANGED` history에는 `previousValue=DELETED`, `newValue=NEW` 또는 `CLOSED`가 기록되었다.
   - 새 `STATUS_CHANGED` history의 message에는 복구 사유 `comment`가 기록되었다.
@@ -662,6 +652,8 @@ Use Case: UC16 Change Priority
 - `newPriority`는 유효한 `Priority` 값이다.
 - `newPriority`는 현재 `Issue.priority`와 다르다.
 - 현재 사용자는 우선순위를 변경할 권한을 가진다.
+- 대상 `Issue`는 `DELETED` 상태가 아니다.
+- 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
 
 ### 4. Postconditions
 
