@@ -934,6 +934,7 @@ class IssueServiceTest {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var deletedIssueB = persistedIssue(2L, "ISSUE-2", PROJECT_ID, "Deleted blocked", IssueStatus.DELETED);
                 var deps = new FakeIssueDependencyRepository();
+                deps.addFixture(IssueDependency.fromPersistence(1L, issueA.id(), deletedIssueB.id(), now));
                 var service = service(new InMemoryIssueRepository(issueA, deletedIssueB), deps);
 
                 assertThrows(SecurityException.class,
