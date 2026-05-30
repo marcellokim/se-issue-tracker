@@ -19,6 +19,10 @@ public final class DeletedIssueController {
         this.deletedIssueService = Objects.requireNonNull(deletedIssueService, "deletedIssueService");
     }
 
+    public int getMaxRetentionLimit(){
+        return deletedIssueService.getMaxRetentionLimit();
+    }
+
     public List<IssueSummary> viewDeletedIssues(long projectId) {
         User user = requireCurrentUser();
         return deletedIssueService.viewDeletedIssues(projectId, user);

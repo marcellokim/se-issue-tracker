@@ -1,0 +1,275 @@
+@startuml javafx-navigation-map
+!include ../../../uml/sd/_shared/its-uml-style.puml
+
+title JavaFX UI Navigation Map
+
+skinparam state {
+  BackgroundColor #F3E5F5
+  BorderColor #7E57C2
+  FontColor #263238
+  FontStyle bold
+  ArrowColor #263238
+}
+
+skinparam state<<screen>> {
+  BackgroundColor #E8EAF6
+  BorderColor #3F51B5
+}
+
+skinparam state<<action>> {
+  BackgroundColor #E8F5E9
+  BorderColor #4CAF50
+}
+
+skinparam state<<modal>> {
+  BackgroundColor #FFF8E1
+  BorderColor #FF9800
+}
+
+skinparam state<<admin>> {
+  BackgroundColor #FFEBEE
+  BorderColor #E53935
+}
+
+[*] --> LoginScreen
+
+state "로그인 화면" as LoginScreen <<screen>> {
+  LoginScreen : Actor: Admin | PL | Dev | Tester
+  LoginScreen : 입력: loginId, password
+  LoginScreen : 호출: AuthenticationController.login()
+}
+
+LoginScreen --> LoginScreen : 로그인 실패 (에러 메시지)
+LoginScreen --> AdminDashboard : 로그인 성공 (Admin)
+LoginScreen --> ProjectListScreen : 로그인 성공 (PL | Dev | Tester)
+
+' ============================================================
+' Admin 영역
+' ============================================================
+
+state "Admin 대시보드" as AdminDashboard <<admin>> {
+  AdminDashboard : Actor: Admin
+  AdminDashboard : 표시: 전체 프로젝트 목록 + 전체 사용자 목록
+  AdminDashboard : 호출: DashboardController.viewProjects()
+  AdminDashboard : 호출: DashboardController.viewUsers()
+}
+
+AdminDashboard --> LoginScreen : 로그아웃
+AdminDashboard --> AccountManageScreen : 계정 관리
+AdminDashboard --> ProjectManageScreen : 프로젝트 관리
+
+state "계정 관리" as AccountManageScreen <<admin>> {
+  AccountManageScreen : Actor: Admin
+  AccountManageScreen : 표시: 전체 사용자 목록
+  AccountManageScreen : 호출: DashboardController.viewUsers()
+}
+
+AccountManageScreen --> AdminDashboard : 뒤로가기
+AccountManageScreen --> CreateAccountModal : 계정 생성
+AccountManageScreen --> AccountDetailAction : 사용자 선택
+
+state "계정 생성" as CreateAccountModal <<modal>> {
+  CreateAccountModal : 입력: loginId, name, password, role
+  CreateAccountModal : 호출: AccountController.createAccount()
+}
+
+CreateAccountModal --> AccountManageScreen : 생성 완료 / 취소
+
+state "계정 상세/수정" as AccountDetailAction <<action>> {
+  AccountDetailAction : 이름 변경: AccountController.renameAccount()
+  AccountDetailAction : 역할 변경: AccountController.changeAccountRole()
+  AccountDetailAction : 활성화: AccountController.activateAccount()
+  AccountDetailAction : 비활성화: AccountController.deactivateAccount()
+}
+
+AccountDetailAction --> AccountManageScreen : 완료
+
+state "프로젝트 관리" as ProjectManageScreen <<admin>> {
+  ProjectManageScreen : Actor: Admin
+  ProjectManageScreen : 표시: 전체 프로젝트 목록
+  ProjectManageScreen : 호출: DashboardController.viewProjects()
+}
+
+ProjectManageScreen --> AdminDashboard : 뒤로가기
+ProjectManageScreen --> CreateProjectModal : 프로젝트 생성
+ProjectManageScreen --> ProjectDetailScreen : 프로젝트 선택
+
+state "프로젝트 생성" as CreateProjectModal <<modal>> {
+  CreateProjectModal : 입력: name, description
+  CreateProjectModal : 호출: ProjectController.createProject()
+}
+
+CreateProjectModal --> ProjectManageScreen : 생성 완료 / 취소
+
+state "프로젝트 상세" as ProjectDetailScreen <<admin>> {
+  ProjectDetailScreen : Actor: Admin
+  ProjectDetailScreen : 표시: 프로젝트 정보 + 멤버 목록
+  ProjectDetailScreen : 호출: ProjectController.viewProjectAdminDetail()
+  ProjectDetailScreen : 호출: ProjectController.viewProjectParticipants()
+}
+
+ProjectDetailScreen --> ProjectManageScreen : 뒤로가기
+ProjectDetailScreen --> ProjectEditAction : 프로젝트 수정
+ProjectDetailScreen --> ProjectMemberAction : 멤버 관리
+
+state "프로젝트 수정" as ProjectEditAction <<action>> {
+  ProjectEditAction : 이름 변경: ProjectController.renameProject()
+  ProjectEditAction : 설명 변경: ProjectController.changeProjectDescription()
+  ProjectEditAction : 삭제: ProjectController.deleteProject()
+}
+
+ProjectEditAction --> ProjectDetailScreen : 완료
+ProjectEditAction --> ProjectManageScreen : 삭제 완료
+
+state "멤버 관리" as ProjectMemberAction <<action>> {
+  ProjectMemberAction : 멤버 추가: ProjectController.addProjectParticipant()
+  ProjectMemberAction : 멤버 제거: ProjectController.removeProjectParticipant()
+}
+
+ProjectMemberAction --> ProjectDetailScreen : 완료
+
+' ============================================================
+' Auth User 영역 (PL | Dev | Tester)
+' ============================================================
+
+state "프로젝트 목록" as ProjectListScreen <<screen>> {
+  ProjectListScreen : Actor: PL | Dev | Tester
+  ProjectListScreen : 표시: 참여 프로젝트 목록
+  ProjectListScreen : 호출: DashboardController.viewProjects()
+}
+
+ProjectListScreen --> IssueListScreen : 프로젝트 선택
+ProjectListScreen --> LoginScreen : 로그아웃
+
+state "이슈 목록" as IssueListScreen <<screen>> {
+  IssueListScreen : Actor: 프로젝트 멤버
+  IssueListScreen : 표시: 이슈 목록 (status, priority, title)
+  IssueListScreen : 기능: 검색, 필터, 정렬
+  IssueListScreen : 호출: IssueController.viewRelatedProjectIssues()
+  IssueListScreen : 호출: IssueController.searchIssues()
+  IssueListScreen : 등록 가능 확인: IssueController.canRegisterIssue()
+}
+
+IssueListScreen --> IssueDetailScreen : 이슈 클릭
+IssueListScreen --> RegisterIssueModal : 이슈 등록 버튼 (canRegisterIssue=true)
+IssueListScreen --> ProjectListScreen : 뒤로가기
+IssueListScreen --> DeletedIssueScreen : 삭제 이슈 관리 (PL만)
+IssueListScreen --> StatisticsScreen : 통계 보기
+
+state "이슈 등록" as RegisterIssueModal <<modal>> {
+  RegisterIssueModal : Actor: PL | Dev | Tester
+  RegisterIssueModal : 입력: title, description, priority
+  RegisterIssueModal : 호출: IssueController.registerIssue()
+}
+
+RegisterIssueModal --> IssueListScreen : 등록 완료 / 취소
+
+state "이슈 상세" as IssueDetailScreen <<screen>> {
+  IssueDetailScreen : Actor: 프로젝트 멤버
+  IssueDetailScreen : 표시: 제목, 설명, 상태, 우선순위
+  IssueDetailScreen : 표시: reporter, assignee, verifier, fixer, resolver
+  IssueDetailScreen : 표시: 코멘트 목록, 이력, 의존성
+  IssueDetailScreen : 호출: IssueController.viewIssueDetail()
+  IssueDetailScreen : 호출: IssueController.viewComments()
+  IssueDetailScreen : 버튼 제어: IssueController.viewAvailableActions()
+  IssueDetailScreen : 코멘트 제어: canUpdateComment(), canDeleteComment()
+}
+
+IssueDetailScreen --> IssueListScreen : 뒤로가기
+IssueDetailScreen --> StatusChangeAction : canMarkFixed / canResolve / canRejectFix / canClose / canReopen
+IssueDetailScreen --> AssignmentAction : canAssign / canReassign / canChangeVerifier
+IssueDetailScreen --> CommentAction : canAddComment / canUpdateComment / canDeleteComment
+IssueDetailScreen --> DependencyAction : canAddDependency / canRemoveDependency
+IssueDetailScreen --> EditIssueAction : canUpdateIssue
+IssueDetailScreen --> PriorityChangeAction : canChangePriority
+IssueDetailScreen --> SoftDeleteAction : canSoftDelete
+
+state "상태 변경" as StatusChangeAction <<action>> {
+  StatusChangeAction : ASSIGNED->FIXED (Dev, canMarkFixed)
+  StatusChangeAction : FIXED->RESOLVED (Tester, canResolve)
+  StatusChangeAction : FIXED->ASSIGNED (Tester, canRejectFix)
+  StatusChangeAction : RESOLVED->CLOSED (PL, canClose)
+  StatusChangeAction : RESOLVED/CLOSED->REOPENED (PL, canReopen)
+  StatusChangeAction : 입력: 사유 comment (필수)
+  StatusChangeAction : 호출: IssueStateController.changeStatus()
+}
+
+StatusChangeAction --> IssueDetailScreen : 완료
+
+state "배정/재배정" as AssignmentAction <<action>> {
+  AssignmentAction : Actor: PL
+  AssignmentAction : 표시: 추천 후보 (KNN) + 전체 active 목록
+  AssignmentAction : 호출: AssignmentController.startAssignment()
+  AssignmentAction : 신규 배정: AssignmentController.assignIssue()
+  AssignmentAction : 재배정: AssignmentController.reassignIssue()
+  AssignmentAction : 검증자 변경: AssignmentController.changeVerifier()
+}
+
+AssignmentAction --> IssueDetailScreen : 완료
+
+state "코멘트" as CommentAction <<action>> {
+  CommentAction : 추가: IssueController.addComment()
+  CommentAction : 수정: IssueController.updateComment() (canUpdateComment)
+  CommentAction : 삭제: IssueController.deleteComment() (canDeleteComment)
+}
+
+CommentAction --> IssueDetailScreen : 완료
+
+state "의존성 관리" as DependencyAction <<action>> {
+  DependencyAction : Actor: PL
+  DependencyAction : 추가: IssueController.addDependency()
+  DependencyAction : 제거: IssueController.removeDependency()
+  DependencyAction : 표시: IssueController.viewProjectDependencies()
+}
+
+DependencyAction --> IssueDetailScreen : 완료
+
+state "이슈 수정" as EditIssueAction <<action>> {
+  EditIssueAction : Actor: reporter (NEW/REOPENED, canUpdateIssue)
+  EditIssueAction : 수정: title, description
+  EditIssueAction : 호출: IssueController.updateIssue()
+}
+
+EditIssueAction --> IssueDetailScreen : 완료
+
+state "우선순위 변경" as PriorityChangeAction <<action>> {
+  PriorityChangeAction : Actor: PL (canChangePriority)
+  PriorityChangeAction : 호출: IssueController.changePriority()
+}
+
+PriorityChangeAction --> IssueDetailScreen : 완료
+
+state "이슈 삭제 (soft)" as SoftDeleteAction <<action>> {
+  SoftDeleteAction : Actor: PL (canSoftDelete)
+  SoftDeleteAction : 대상: NEW / CLOSED 이슈만
+  SoftDeleteAction : 입력: 삭제 사유 comment (필수)
+  SoftDeleteAction : 호출: DeletedIssueController.deleteIssue()
+}
+
+SoftDeleteAction --> IssueListScreen : 삭제 완료
+
+state "삭제 이슈 관리" as DeletedIssueScreen <<screen>> {
+  DeletedIssueScreen : Actor: PL
+  DeletedIssueScreen : 표시: 삭제된 이슈 목록 (현재 N/30)
+  DeletedIssueScreen : 호출: DeletedIssueController.viewDeletedIssues()
+  DeletedIssueScreen : 한도 조회: DeletedIssueController.getMaxRetentionLimit()
+  DeletedIssueScreen : 복구: DeletedIssueController.restoreIssue()
+  DeletedIssueScreen : 영구 삭제: DeletedIssueController.purgeDeletedIssue()
+}
+
+note right of DeletedIssueScreen
+  purgeOverflow는 softDelete 시 자동 실행.
+  UI에 별도 버튼 없음.
+end note
+
+DeletedIssueScreen --> IssueListScreen : 뒤로가기
+
+state "통계" as StatisticsScreen <<screen>> {
+  StatisticsScreen : Actor: PL | Dev | Tester
+  StatisticsScreen : 표시: 일별/월별 이슈 트렌드
+  StatisticsScreen : 호출: StatisticsController.viewStatistics()
+}
+
+StatisticsScreen --> IssueListScreen : 뒤로가기
+
+@enduml

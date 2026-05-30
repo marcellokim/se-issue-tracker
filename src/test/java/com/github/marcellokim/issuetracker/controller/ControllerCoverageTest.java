@@ -10,17 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
-import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.repository.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.ProjectMember;
 import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
@@ -113,6 +113,7 @@ class ControllerCoverageTest {
                         "viewUsers()")),
                 Map.entry(DeletedIssueController.class, Set.of(
                         "deleteIssue(long,String)",
+                        "getMaxRetentionLimit()",
                         "purgeDeletedIssue(long)",
                         "purgeOverflow(long)",
                         "restoreIssue(long,String)",
@@ -1151,8 +1152,8 @@ class ControllerCoverageTest {
         return StatisticsReportTestFactory.create(
                 statusCounts,
                 priorityCounts,
-                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 1)),
-                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 1)));
+                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 1)),
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 1)));
     }
 
     private static void assertParticipantRemovalBlockedFor(

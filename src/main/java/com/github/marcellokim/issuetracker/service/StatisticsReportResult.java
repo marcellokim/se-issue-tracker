@@ -2,7 +2,7 @@ package com.github.marcellokim.issuetracker.service;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.List;

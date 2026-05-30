@@ -1,6 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
 import java.time.LocalDate;
 import java.util.Objects;
 

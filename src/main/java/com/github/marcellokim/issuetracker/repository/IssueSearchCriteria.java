@@ -1,5 +1,7 @@
-package com.github.marcellokim.issuetracker.domain;
+package com.github.marcellokim.issuetracker.repository;
 
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
 import java.time.LocalDateTime;
 import java.util.Objects;
 

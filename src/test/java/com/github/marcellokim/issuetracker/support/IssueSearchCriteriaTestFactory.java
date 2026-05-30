@@ -1,6 +1,6 @@
 package com.github.marcellokim.issuetracker.support;
 
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.repository.IssueSearchCriteria;
 
 public final class IssueSearchCriteriaTestFactory {
 

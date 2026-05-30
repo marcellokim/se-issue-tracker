@@ -1,5 +1,9 @@
-package com.github.marcellokim.issuetracker.domain;
+package com.github.marcellokim.issuetracker.repository;
 
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import java.time.YearMonth;
 import java.util.Collections;
 import java.util.LinkedHashMap;

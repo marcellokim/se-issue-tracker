@@ -33,6 +33,10 @@ public final class DeletedIssueService {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    public int getMaxRetentionLimit(){
+        return MAX_DELETED_ISSUES_PER_PROJECT;
+    }
+
     public List<IssueSummary> viewDeletedIssues(long projectId, User actor) {
         requireDeletedIssuePermission(actor, projectId);
         return deletedIssueRepository.findDeletedByProject(projectId).stream()
