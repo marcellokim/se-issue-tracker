@@ -82,10 +82,9 @@ public class KNNAssignmentRecommendation {
     }
     
     private double TfIdfCompare(String targetDescription, String recordDescription, Map<String, Double> idfMap){
-        Objects.requireNonNull(targetDescription, "targetDescription");
-        Objects.requireNonNull(recordDescription, "recordDescription");
-        List<String> targetTokens = Objects.requireNonNull(tokenize(targetDescription), "tokenize(targetDescription)");
-        List<String> recordTokens = Objects.requireNonNull(tokenize(recordDescription), "tokenize(recordDescription)");
+        List<String> targetTokens = tokenize(targetDescription);
+        List<String> recordTokens = tokenize(recordDescription);
+        if (targetTokens.isEmpty() || recordTokens.isEmpty()) return 0.0;
 
         Map<String, Double> targetTfIdf = new HashMap<>();
         for (String token : targetTokens){ targetTfIdf.merge(token, 1.0 / targetTokens.size(), (a, b) -> a + b); }
