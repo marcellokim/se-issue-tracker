@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
-import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
