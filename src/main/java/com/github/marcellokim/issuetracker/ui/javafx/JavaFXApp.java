@@ -10,14 +10,22 @@ import javafx.stage.Stage;
 public final class JavaFXApp extends Application {
 
     private ApplicationContext context;
+    private Exception initFailure;
 
     @Override
-    public void start(Stage primaryStage){
+    public void init(){
         try{
             context = ApplicationContext.fromEnvironment();
         } catch (Exception exception){
+            initFailure = exception;
+        }
+    }
+
+    @Override
+    public void start(Stage primaryStage){
+        if (initFailure != null){
             primaryStage.setTitle("Issue Tracker - Connection Failed");
-            primaryStage.setScene(new Scene(new StackPane(new Label("DB connection failed: " + exception.getMessage())), 600, 400));
+            primaryStage.setScene(new Scene(new StackPane(new Label("DB connection failed: " + initFailure.getMessage())), 600, 400));
             primaryStage.show();
             return;
         }
