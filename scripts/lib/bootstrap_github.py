@@ -15,7 +15,7 @@ MILESTONES_FILE = ROOT / "config/github/milestones.json"
 PROJECT_VARIABLE_NAME = "PROJECT_URL"
 WORKFLOW_BYPASS_VARIABLE_NAME = "WORKFLOW_BYPASS_USERS"
 PROTECTED_BRANCHES = ("main", "dev")
-REQUIRED_STATUS_CHECKS = ("빌드와 테스트", "워크플로우 정책 검사", "PR 메타데이터 정렬")
+REQUIRED_STATUS_CHECKS = ("빌드와 테스트", "워크플로우 정책 검사")
 REPO_BOOLEAN_SETTINGS = {
     "allow_auto_merge": True,
     "delete_branch_on_merge": True,

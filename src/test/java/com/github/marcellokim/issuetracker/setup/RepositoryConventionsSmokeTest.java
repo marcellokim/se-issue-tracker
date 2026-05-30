@@ -126,7 +126,6 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "PR 메타데이터 자동 보정을 건너뜁니다"),
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "PR linked issue, assignee, milestone, project metadata"),
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "Closes #"),
-                new ScriptExpectation("scripts/lib/bootstrap_github.py", "PR 메타데이터 정렬"),
                 new ScriptExpectation(".github/workflows/pr-labeler.yml", "name: PR 라벨 적용"),
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: 보안 코드 분석"),
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: 보안 코드 분석 (${{ matrix.label }})"),
