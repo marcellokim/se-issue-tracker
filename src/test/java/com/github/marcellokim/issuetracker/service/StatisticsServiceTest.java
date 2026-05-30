@@ -3,12 +3,12 @@ package com.github.marcellokim.issuetracker.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -68,8 +68,8 @@ class StatisticsServiceTest {
         return StatisticsReportTestFactory.create(
                 statusCounts,
                 priorityCounts,
-                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 1), 1)),
-                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 1)));
+                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 1), 1)),
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 1)));
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {

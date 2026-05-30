@@ -1,7 +1,7 @@
 package com.github.marcellokim.issuetracker.support;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.repository.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import java.util.LinkedHashMap;

@@ -1,13 +1,5 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
-import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
-import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
-import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
-import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
-import com.github.marcellokim.issuetracker.repository.RepositoryException;
-import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -22,6 +14,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.repository.RepositoryException;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
 
 public final class JdbcStatisticsRepository implements StatisticsRepository {
 
@@ -349,13 +348,13 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         if (fromInclusive == null || toInclusive == null) {
             return countByDate.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
-                    .map(entry -> DailyIssueCount.create(entry.getKey(), entry.getValue()))
+                    .map(entry -> new DailyIssueCount(entry.getKey(), entry.getValue()))
                     .toList();
         }
 
         List<DailyIssueCount> counts = new ArrayList<>();
         for (LocalDate date = fromInclusive; !date.isAfter(toInclusive); date = date.plusDays(1)) {
-            counts.add(DailyIssueCount.create(date, countByDate.getOrDefault(date, 0)));
+            counts.add(new DailyIssueCount(date, countByDate.getOrDefault(date, 0)));
         }
         return counts;
     }
@@ -367,13 +366,13 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         if (fromInclusive == null || toInclusive == null) {
             return countByMonth.entrySet().stream()
                     .sorted(Map.Entry.comparingByKey())
-                    .map(entry -> MonthlyIssueCount.create(entry.getKey(), entry.getValue()))
+                    .map(entry -> new MonthlyIssueCount(entry.getKey(), entry.getValue()))
                     .toList();
         }
 
         List<MonthlyIssueCount> counts = new ArrayList<>();
         for (YearMonth month = fromInclusive; !month.isAfter(toInclusive); month = month.plusMonths(1)) {
-            counts.add(MonthlyIssueCount.create(month, countByMonth.getOrDefault(month, 0)));
+            counts.add(new MonthlyIssueCount(month, countByMonth.getOrDefault(month, 0)));
         }
         return counts;
     }

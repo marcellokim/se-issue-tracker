@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 
 public interface IssueRepository {
 

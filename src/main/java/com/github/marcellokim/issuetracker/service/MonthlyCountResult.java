@@ -1,6 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import java.time.YearMonth;
 import java.util.Objects;
 

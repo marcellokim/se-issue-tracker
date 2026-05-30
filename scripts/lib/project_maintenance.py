@@ -700,12 +700,14 @@ def sync_issue_completion_from_merged_dev_prs(repo: str, *, dry_run: bool, chang
             issue = gh_json([
                 "issue", "view", str(issue_number),
                 "--repo", repo,
-                "--json", "number,title,state,labels",
+                "--json", "number,title,state,labels,url",
             ])
         except SystemExit as error:
             if source == "body" and is_issue_not_found_error(error):
                 continue
             raise
+        if "/pull/" in str(issue.get("url") or ""):
+            continue
         labels = label_names(issue)
         labels_to_remove = sorted((labels & STATUS_LABELS) - {"status:done"})
         needs_done_label = "status:done" not in labels

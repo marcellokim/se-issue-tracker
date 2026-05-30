@@ -1,10 +1,10 @@
 package com.github.marcellokim.issuetracker.support;
 
-import com.github.marcellokim.issuetracker.domain.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.domain.MonthlyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
