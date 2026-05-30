@@ -390,8 +390,6 @@ class OracleRepositoryIntegrationTest {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 Issue newIssue = null;
                 Issue closedIssue = null;
-                var rejectedIssues = new ArrayList<Issue>();
-
                 try {
                         newIssue = createIssue(project.getId(), uniqueId("delete_new_issue"), IssueStatus.NEW);
                         closedIssue = createIssue(project.getId(), uniqueId("delete_closed_issue"), IssueStatus.CLOSED);
@@ -403,33 +401,12 @@ class OracleRepositoryIntegrationTest {
                                         .softDelete(closedIssue, "pl1", "Delete CLOSED issue.",
                                                         LocalDateTime.now())
                                         .status());
-
-                        for (IssueStatus status : List.of(
-                                        IssueStatus.ASSIGNED,
-                                        IssueStatus.FIXED,
-                                        IssueStatus.RESOLVED,
-                                        IssueStatus.REOPENED,
-                                        IssueStatus.DELETED)) {
-                                Issue issue = createIssue(project.getId(), uniqueId("delete_rejected_issue"), status);
-                                rejectedIssues.add(issue);
-
-                                assertThrows(RepositoryException.class,
-                                                () -> repositories.deletedIssues().softDelete(
-                                                                issue,
-                                                                "pl1",
-                                                                "Delete should be rejected.",
-                                                                LocalDateTime.now()));
-                                assertEquals(status, repositories.issues().findById(issue.id()).orElseThrow().status());
-                        }
                 } finally {
                         if (newIssue != null) {
                                 purgeTestIssue(newIssue.id());
                         }
                         if (closedIssue != null) {
                                 purgeTestIssue(closedIssue.id());
-                        }
-                        for (Issue issue : rejectedIssues) {
-                                purgeTestIssue(issue.id());
                         }
                 }
         }

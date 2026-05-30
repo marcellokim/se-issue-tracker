@@ -9,7 +9,7 @@
   },
   {
     "title": "M3 - 다중 UI 및 데모 흐름",
-    "description": "JavaFX와 Swing 두 UI에서 공통 model/service/controller를 재사용하고 과제 데모 흐름을 실행 가능하게 만든다. 2026-05-30 재조정 기준: backend/controller/persistence는 dev 기준 준비, 남은 범위는 JavaFX core/secondary action, Swing 보조 UI, 화면 증빙이며 M3 UI demo freeze 목표는 2026-06-01 KST."
+    "description": "JavaFX 실사용자 UI와 Swing Admin UI에서 공통 model/service/controller를 재사용하고 과제 데모 흐름을 실행 가능하게 만든다. 2026-05-30 재조정 기준: backend/controller/persistence는 dev 기준 준비, 남은 범위는 JavaFX core/secondary action, Swing Admin 관리 UI, 화면 증빙이며 M3 UI demo freeze 목표는 2026-06-01 KST."
   },
   {
     "title": "M4 - 검증 및 제출 패키지",
