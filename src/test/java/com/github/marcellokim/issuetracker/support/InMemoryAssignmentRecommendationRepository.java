@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public final class InMemoryAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
 
@@ -26,11 +25,6 @@ public final class InMemoryAssignmentRecommendationRepository implements Assignm
     @Override
     public List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId) {
         return resolvedIssues;
-    }
-
-    @Override
-    public Optional<User> findCandidateByLoginId(String loginId) {
-        return Optional.ofNullable(users.get(loginId));
     }
 
     @Override

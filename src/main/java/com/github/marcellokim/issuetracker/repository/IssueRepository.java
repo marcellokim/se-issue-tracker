@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,8 +12,6 @@ public interface IssueRepository {
 
     List<Issue> findAllById(List<Long> issueIds);
 
-    List<Issue> findDeletedByProject(long projectId);
-
     List<Issue> findByCriteria(IssueSearchCriteria criteria);
 
     boolean existsByProjectIdAndTitle(long projectId, String title);
@@ -26,12 +23,4 @@ public interface IssueRepository {
     boolean hasCurrentIssueResponsibility(long projectId, String loginId);
 
     Issue save(Issue issue);
-
-    Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate);
-
-    Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate);
-
-    int purgeDeletedById(long issueId);
-
-    int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues);
 }

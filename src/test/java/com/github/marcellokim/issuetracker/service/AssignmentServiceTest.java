@@ -1,11 +1,9 @@
 package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -16,7 +14,6 @@ import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendat
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +43,8 @@ class AssignmentServiceTest {
 
         var options = service.startAssignment(ISSUE_ID, pl.getLoginId());
 
-        assertFalse(options.allDevAssignees().isEmpty());
-        assertFalse(options.allTesterVerifiers().isEmpty());
+        assertEquals(2, options.allDevAssignees().size());
+        assertEquals(2, options.allTesterVerifiers().size());
     }
 
     @Test
@@ -225,13 +222,17 @@ class AssignmentServiceTest {
     }
 
     private AssignmentService service(InMemoryIssueRepository issueRepository, InMemoryUserRepository userRepository) {
-        User[] users = userRepository.findAll().toArray(new User[0]);
+        var devs = userRepository.findActiveByRole(PROJECT_ID, Role.DEV);
+        var testers = userRepository.findActiveByRole(PROJECT_ID, Role.TESTER);
+        var members = new java.util.ArrayList<User>();
+        members.addAll(devs);
+        members.addAll(testers);
         return new AssignmentService(
                 issueRepository,
                 userRepository,
                 new PermissionPolicy(),
                 new AssignmentRecommendationService(
-                        new InMemoryAssignmentRecommendationRepository(users),
+                        new InMemoryAssignmentRecommendationRepository(members.toArray(User[]::new)),
                         new KNNAssignmentRecommendation()),
                 java.time.LocalDateTime::now
         );

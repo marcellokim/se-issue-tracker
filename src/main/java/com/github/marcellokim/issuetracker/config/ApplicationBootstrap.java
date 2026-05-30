@@ -53,6 +53,7 @@ public final class ApplicationBootstrap {
                 var issueDependencies = repositories.issueDependencies();
                 var statistics = repositories.statistics();
                 var assignmentRecommendations = repositories.assignmentRecommendations();
+                var deletedIssues = repositories.deletedIssues();
                 var dashboardSummaries = repositories.dashboardSummaries();
                 PermissionPolicy permissionPolicy = new PermissionPolicy();
                 Clock clock = new SystemClock();
@@ -95,6 +96,7 @@ public final class ApplicationBootstrap {
                                 permissionPolicy);
                 DeletedIssueService deletedIssueService = new DeletedIssueService(
                                 issues,
+                                deletedIssues,
                                 users,
                                 permissionPolicy,
                                 clock);

@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -21,11 +20,6 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
             from issues
             where project_id = ? and status in ('RESOLVED', 'CLOSED')
             order by id
-            """;
-    private static final String FIND_CANDIDATE_BY_LOGIN_ID_SQL = """
-            select u.login_id, u.name, u.role, u.active, u.created_at, u.updated_at
-            from users u
-            where u.login_id = ?
             """;
     private static final String FIND_ACTIVE_CANDIDATES_SQL = """
             select u.login_id, u.name, u.role, u.active, u.created_at, u.updated_at
@@ -58,20 +52,6 @@ public final class JdbcAssignmentRecommendationRepository implements AssignmentR
             return searchedResolvedIssues;
         } catch (SQLException exception){
             throw new RepositoryException("Failed to find issues for recommendation - SQL fault", exception);
-        }
-    }
-
-    @Override
-    public Optional<User> findCandidateByLoginId(String targetLoginId){
-        try(Connection connection = connectionProvider.getConnection();
-            PreparedStatement statement = connection.prepareStatement(FIND_CANDIDATE_BY_LOGIN_ID_SQL)){
-            statement.setString(1, targetLoginId);
-            try(ResultSet resultSet = statement.executeQuery()){
-                if (resultSet.next()){ return Optional.of(mapCandidateUser(resultSet)); }
-                return Optional.empty();
-            }
-        } catch (SQLException exception){
-            throw new RepositoryException("Failed to find candidate by login id - SQL fault", exception);
         }
     }
 

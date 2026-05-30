@@ -26,6 +26,7 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
+import com.github.marcellokim.issuetracker.repository.DeletedIssueRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
@@ -289,7 +290,7 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue, purgeTarget);
         DeletedIssueController controller = new DeletedIssueController(
                 auth.service(),
-                new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), java.time.LocalDateTime::now));
+                new DeletedIssueService(issues, issues, auth.users(), new PermissionPolicy(), java.time.LocalDateTime::now));
 
         List<IssueSummary> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
         IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
@@ -315,13 +316,13 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(101L, PROJECT_ID, IssueStatus.NEW));
         DeletedIssueController anonymousController = new DeletedIssueController(
                 anonymousAuth(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                new DeletedIssueService(issues, issues, new FakeUserRepository(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                new DeletedIssueService(issues, issues, new FakeUserRepository(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         SecurityException adminFailure = assertThrows(SecurityException.class,
                 () -> adminController.deleteIssue(101L, "admin cannot delete"));
@@ -329,7 +330,7 @@ class ControllerCoverageTest {
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                new DeletedIssueService(issues, issues, new FakeUserRepository(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
@@ -1202,7 +1203,7 @@ class ControllerCoverageTest {
         }
     }
 
-    private static final class FakeIssueRepository implements IssueRepository {
+    private static final class FakeIssueRepository implements IssueRepository, DeletedIssueRepository {
 
         private final Map<Long, Issue> issuesById = new LinkedHashMap<>();
         private String lastChangedBy;
@@ -1512,11 +1513,6 @@ class ControllerCoverageTest {
         @Override
         public List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId) {
             return List.copyOf(resolvedIssues);
-        }
-
-        @Override
-        public Optional<User> findCandidateByLoginId(String loginId) {
-            return candidates.stream().filter(u -> u.getLoginId().equals(loginId)).findFirst();
         }
 
         @Override

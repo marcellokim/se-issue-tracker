@@ -24,47 +24,50 @@ public final class AssignmentRecommendationService {
 
     public AssignmentOptionsResult recommendAssignmentCandidates(Issue issue){
         Issue targetIssue = Objects.requireNonNull(issue, "issue");
-        List<AssignmentCandidateResult> allActiveDevs = toAllActiveDevResults(targetIssue.projectId());
-        List<AssignmentCandidateResult> allActiveTesters = toAllActiveTesterResults(targetIssue.projectId());
+        List<User> activeDevUsers = recmmendationRepository.findActiveDevCandidates(targetIssue.projectId());
+        List<User> activeTesterUsers = recmmendationRepository.findActiveTesterCandidates(targetIssue.projectId());
+        List<AssignmentCandidateResult> allActiveDevs = toActiveResults(activeDevUsers);
+        List<AssignmentCandidateResult> allActiveTesters = toActiveResults(activeTesterUsers);
         return switch(targetIssue.status()) {
             case NEW -> options(
-                findAllDevAssigneeCandidateDetails(targetIssue),
-                findAllTesterVerifierCandidateDetails(targetIssue),
+                findAllDevAssigneeCandidateDetails(targetIssue, activeDevUsers),
+                findAllTesterVerifierCandidateDetails(targetIssue, activeTesterUsers),
                 allActiveDevs, allActiveTesters);
             case REOPENED -> {
                 List<AssignmentCandidateResult> devCandidates = new ArrayList<>();
-                User fixer = recmmendationRepository.findCandidateByLoginId(targetIssue.fixerId()).orElse(null);
-                if (fixer != null && fixer.isActive()) {
+                User fixer = findActiveUser(activeDevUsers, targetIssue.fixerId());
+                if (fixer != null){
                     devCandidates.add(new AssignmentCandidateResult(fixer.getLoginId(),
-                    fixer.getName(), fixer.getRole(),0, "fixed lastly"));
+                    fixer.getName(), fixer.getRole(), 0, "fixed lastly"));
                 }
-                for (AssignmentCandidateResult c : findAllDevAssigneeCandidateDetails(targetIssue)) {
-                    if (c.loginId().equals(targetIssue.fixerId()) == false) { devCandidates.add(c); }
+                for (AssignmentCandidateResult c : findAllDevAssigneeCandidateDetails(targetIssue, activeDevUsers)){
+                    if (c.loginId().equals(targetIssue.fixerId()) == false){ devCandidates.add(c); }
                 }
-                yield options(devCandidates, findAllTesterVerifierCandidateDetails(targetIssue),
+                yield options(devCandidates, findAllTesterVerifierCandidateDetails(targetIssue, activeTesterUsers),
                     allActiveDevs, allActiveTesters);
             }
             case ASSIGNED -> {
                 List<AssignmentCandidateResult> devCandidates = new ArrayList<>();
-                User assignee = recmmendationRepository.findCandidateByLoginId(targetIssue.assigneeId()).orElse(null);
-                if (assignee != null && assignee.isActive()) {devCandidates.add(new AssignmentCandidateResult(assignee.getLoginId(),
-                    assignee.getName(), assignee.getRole(),0, "current assignee"));
+                User assignee = findActiveUser(activeDevUsers, targetIssue.assigneeId());
+                if (assignee != null){
+                    devCandidates.add(new AssignmentCandidateResult(assignee.getLoginId(),
+                    assignee.getName(), assignee.getRole(), 0, "current assignee"));
                 }
-                for (AssignmentCandidateResult c : findAllDevAssigneeCandidateDetails(targetIssue)) {
-                    if (c.loginId().equals(targetIssue.assigneeId()) == false) { devCandidates.add(c); }
+                for (AssignmentCandidateResult c : findAllDevAssigneeCandidateDetails(targetIssue, activeDevUsers)){
+                    if (c.loginId().equals(targetIssue.assigneeId()) == false){ devCandidates.add(c); }
                 }
                 yield options(devCandidates, List.of(),
                     allActiveDevs, allActiveTesters);
             }
             case FIXED -> {
                 List<AssignmentCandidateResult> testerCandidates = new ArrayList<>();
-                User verifier = recmmendationRepository.findCandidateByLoginId(targetIssue.verifierId()).orElse(null);
-                if (verifier != null && verifier.isActive()) {
+                User verifier = findActiveUser(activeTesterUsers, targetIssue.verifierId());
+                if (verifier != null){
                     testerCandidates.add(new AssignmentCandidateResult(verifier.getLoginId(),
-                    verifier.getName(), verifier.getRole(),0, "current verifier"));
+                    verifier.getName(), verifier.getRole(), 0, "current verifier"));
                 }
-                for (AssignmentCandidateResult c : findAllTesterVerifierCandidateDetails(targetIssue)) {
-                    if (c.loginId().equals(targetIssue.verifierId()) == false) { testerCandidates.add(c); }
+                for (AssignmentCandidateResult c : findAllTesterVerifierCandidateDetails(targetIssue, activeTesterUsers)){
+                    if (c.loginId().equals(targetIssue.verifierId()) == false){ testerCandidates.add(c); }
                 }
                 yield options(List.of(), testerCandidates,
                     allActiveDevs, allActiveTesters);
@@ -85,7 +88,7 @@ public final class AssignmentRecommendationService {
                 allActiveTesters);
     }
 
-    private List<AssignmentCandidateResult> findAllDevAssigneeCandidateDetails(Issue issue) {
+    private List<AssignmentCandidateResult> findAllDevAssigneeCandidateDetails(Issue issue, List<User> activeDevUsers){
         Objects.requireNonNull(issue, "issue");
         List<IssueRecommendationData> searchedField = recmmendationRepository.findResolvedIssuesForRecommendation(issue.projectId());
         List<KNNAssignmentRecommendation.UserRecord> recommendationRecordForCalculation =
@@ -93,28 +96,29 @@ public final class AssignmentRecommendationService {
         .filter(i -> i.fixerLoginId() != null)
         .map(j -> new KNNAssignmentRecommendation.UserRecord(j.title(), j.description(), j.fixerLoginId())).toList();
         List<String> recommendedAssignees = knnEngine.calculateRecomendation(issue.title(), issue.description(), recommendationRecordForCalculation);
-        return toCandidateResults(recommendedAssignees, recommendationRecordForCalculation, "recommended by similarity");
+        return toCandidateResults(recommendedAssignees, recommendationRecordForCalculation, activeDevUsers, "recommended by similarity");
     }
 
-    private List<AssignmentCandidateResult> findAllTesterVerifierCandidateDetails(Issue issue) {
+    private List<AssignmentCandidateResult> findAllTesterVerifierCandidateDetails(Issue issue, List<User> activeTesterUsers){
         Objects.requireNonNull(issue, "issue");
         List<IssueRecommendationData> searchedField = recmmendationRepository.findResolvedIssuesForRecommendation(issue.projectId());
         List<KNNAssignmentRecommendation.UserRecord> recommendationRecordForCalculation =
         searchedField.stream()
         .filter(i -> i.resolverLoginId() != null)
         .map(j -> new KNNAssignmentRecommendation.UserRecord(j.title(), j.description(), j.resolverLoginId())).toList();
-        List<String> recommendedVerifiers = knnEngine.calculateRecomendation(issue.title(),issue.description(), recommendationRecordForCalculation);
-        return toCandidateResults(recommendedVerifiers, recommendationRecordForCalculation, "recommended by similarity");
+        List<String> recommendedVerifiers = knnEngine.calculateRecomendation(issue.title(), issue.description(), recommendationRecordForCalculation);
+        return toCandidateResults(recommendedVerifiers, recommendationRecordForCalculation, activeTesterUsers, "recommended by similarity");
     }
 
-    private List<AssignmentCandidateResult> toCandidateResults(
+    private static List<AssignmentCandidateResult> toCandidateResults(
             List<String> userIds,
             List<KNNAssignmentRecommendation.UserRecord> records,
-            String reason) {
+            List<User> activeCandidateUsers,
+            String reason){
         List<AssignmentCandidateResult> results = new ArrayList<>();
-        for (String userId : userIds) {
-            User user = recmmendationRepository.findCandidateByLoginId(userId).orElse(null);
-            if (user != null && user.isActive()) {
+        for (String userId : userIds){
+            User user = findActiveUser(activeCandidateUsers, userId);
+            if (user != null){
                 int count = (int) records.stream().filter(r -> r.userId().equals(userId)).count();
                 results.add(new AssignmentCandidateResult(
                     userId, user.getName(), user.getRole(), count, reason));
@@ -123,12 +127,12 @@ public final class AssignmentRecommendationService {
         return results;
     }
 
-    private List<AssignmentCandidateResult> toAllActiveDevResults(long projectId) {
-        return toActiveResults(recmmendationRepository.findActiveDevCandidates(projectId));
-    }
-
-    private List<AssignmentCandidateResult> toAllActiveTesterResults(long projectId) {
-        return toActiveResults(recmmendationRepository.findActiveTesterCandidates(projectId));
+    private static User findActiveUser(List<User> activeUsers, String loginId){
+        if (loginId == null) return null;
+        for (User user : activeUsers){
+            if (user.getLoginId().equals(loginId)) return user;
+        }
+        return null;
     }
 
     private static List<AssignmentCandidateResult> toActiveResults(List<User> activeUsers) {
