@@ -872,9 +872,9 @@ class OracleRepositoryIntegrationTest {
                         assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
                         assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
                                         .anyMatch(value -> value.id() == dependency.id()));
-                        assertTrue(repositories.issueDependencies().findByBlockingIssueId(blocking.id()).stream()
+                        assertTrue(repositories.issueDependencies().findDependenciesBlockedByIssue(blocking.id()).stream()
                                         .anyMatch(value -> value.id() == dependency.id()));
-                        assertTrue(repositories.issueDependencies().findByBlockedIssueId(blocked.id()).stream()
+                        assertTrue(repositories.issueDependencies().findDependenciesBlockingIssue(blocked.id()).stream()
                                         .anyMatch(value -> value.id() == dependency.id()));
                         assertThrows(RepositoryException.class,
                                         () -> repositories.issueDependencies().recordDependencyAdded(

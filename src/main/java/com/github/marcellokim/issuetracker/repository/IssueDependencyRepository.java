@@ -13,9 +13,9 @@ public interface IssueDependencyRepository {
 
     List<IssueDependency> findByIssueId(long issueId);
 
-    List<IssueDependency> findByBlockingIssueId(long blockingIssueId);
+    List<IssueDependency> findDependenciesBlockedByIssue(long blockingIssueId);
 
-    List<IssueDependency> findByBlockedIssueId(long blockedIssueId);
+    List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId);
 
     List<IssueDependency> findByProjectId(long projectId);
 

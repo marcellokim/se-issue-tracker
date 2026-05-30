@@ -114,7 +114,7 @@ public final class IssueService {
         List<HistoryResult> histories = issueHistoryRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toHistoryResult)
                 .toList();
-        List<IssueDependency> deps = dependencyRepository.findByBlockedIssueId(issue.id());
+        List<IssueDependency> deps = dependencyRepository.findDependenciesBlockingIssue(issue.id());
         List<Long> blockingIds = deps.stream()
                 .map(IssueDependency::blockingIssueId)
                 .toList();
@@ -460,7 +460,7 @@ public final class IssueService {
             if (!visited.add(current)) {
                 continue;
             }
-            for (var dep : dependencyRepository.findByBlockedIssueId(current)) {
+            for (var dep : dependencyRepository.findDependenciesBlockingIssue(current)) {
                 queue.add(dep.blockingIssueId());
             }
         }
