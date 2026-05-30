@@ -8,8 +8,6 @@ import java.util.Optional;
 public interface IssueDependencyRepository {
     Optional<IssueDependency> findByDependencyId(String dependencyId);
 
-    List<IssueDependency> findByIssueId(long issueId);
-
     List<IssueDependency> findDependenciesBlockedByIssue(long blockingIssueId);
 
     List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId);

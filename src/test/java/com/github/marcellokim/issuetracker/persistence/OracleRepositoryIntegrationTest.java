@@ -141,7 +141,6 @@ class OracleRepositoryIntegrationTest {
                 assertTrue(issues.size() >= 4);
                 assertFalse(repositories.comments().findByIssueId(dependencyIssue.id()).isEmpty());
                 assertFalse(repositories.issueHistory().findByIssueId(dependencyIssue.id()).isEmpty());
-                assertFalse(repositories.issueDependencies().findByIssueId(dependencyIssue.id()).isEmpty());
         }
 
         @Test
@@ -938,8 +937,6 @@ class OracleRepositoryIntegrationTest {
                                         .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
                                                         && dependency.getDependencyId().equals(history.newValue())));
                         assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
-                        assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
-                                        .anyMatch(value -> value.id() == dependency.id()));
                         assertTrue(repositories.issueDependencies().findDependenciesBlockedByIssue(blocking.id())
                                         .stream()
                                         .anyMatch(value -> value.id() == dependency.id()));

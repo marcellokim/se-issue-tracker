@@ -33,8 +33,7 @@ class OracleLiveDataReadOnlyTest {
             "issues",
             "comments",
             "issue_history",
-            "issue_dependencies"
-    );
+            "issue_dependencies");
 
     private static DriverManagerConnectionProvider connectionProvider;
     private static JdbcRepositoryFactory repositories;
@@ -103,12 +102,9 @@ class OracleLiveDataReadOnlyTest {
         for (Issue issue : issues) {
             var comments = repositories.comments().findByIssueId(issue.id());
             var histories = repositories.issueHistory().findByIssueId(issue.id());
-            var dependencies = repositories.issueDependencies().findByIssueId(issue.id());
 
             assertTrue(comments.stream().allMatch(comment -> comment.issueId() == issue.id()));
             assertTrue(histories.stream().allMatch(history -> history.issueId() == issue.id()));
-            assertTrue(dependencies.stream().allMatch(dependency ->
-                    dependency.blockingIssueId() == issue.id() || dependency.blockedIssueId() == issue.id()));
             hasHistory = hasHistory || !histories.isEmpty();
         }
 
@@ -124,8 +120,7 @@ class OracleLiveDataReadOnlyTest {
                     null,
                     null,
                     null,
-                    null
-            );
+                    null);
 
             assertNotNull(report.statusCounts());
             assertNotNull(report.priorityCounts());
@@ -145,8 +140,7 @@ class OracleLiveDataReadOnlyTest {
                 null,
                 null,
                 null,
-                true
-        ));
+                true));
     }
 
     private static void assertCoreTablesAreReadable() throws SQLException {

@@ -13,23 +13,11 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     private final Map<Long, IssueDependency> dependencies = new LinkedHashMap<>();
     private long nextId = 1L;
 
-    // @Override
-    // public Optional<IssueDependency> findById(long dependencyId) {
-    // return Optional.ofNullable(dependencies.get(dependencyId));
-    // }
-
     @Override
     public Optional<IssueDependency> findByDependencyId(String dependencyId) {
         return dependencies.values().stream()
                 .filter(dependency -> dependency.getDependencyId().equals(dependencyId))
                 .findFirst();
-    }
-
-    @Override
-    public List<IssueDependency> findByIssueId(long issueId) {
-        return dependencies.values().stream()
-                .filter(d -> d.blockingIssueId() == issueId || d.blockedIssueId() == issueId)
-                .toList();
     }
 
     @Override
