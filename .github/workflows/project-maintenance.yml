@@ -63,8 +63,31 @@ jobs:
           PROJECT_URL: ${{ vars.PROJECT_URL }}
         run: ./scripts/sync-project-board.sh --owner @me --apply --quiet
 
-      - name: 자동화 정합성 점검
+      - name: 자동화 정합성 점검 전 GraphQL rate-limit 확인
+        id: audit-preflight
         if: steps.preflight.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        run: |
+          if ! graphql_remaining="$(gh api rate_limit --jq '.resources.graphql.remaining')"; then
+            echo "::error::GitHub rate-limit 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
+            exit 1
+          fi
+          if ! graphql_reset="$(gh api rate_limit --jq '.resources.graphql.reset')"; then
+            echo "::error::GitHub rate-limit reset 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
+            exit 1
+          fi
+          min_graphql_remaining=250
+          if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub GraphQL 잔여량=${graphql_remaining}; 자동화 정합성 점검을 건너뜁니다. reset=${graphql_reset}"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: 자동화 정합성 점검
+        if: steps.preflight.outputs.enabled == 'true' && steps.audit-preflight.outputs.enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
           PROJECT_URL: ${{ vars.PROJECT_URL }}

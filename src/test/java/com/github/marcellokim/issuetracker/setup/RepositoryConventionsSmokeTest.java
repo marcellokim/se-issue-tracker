@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -117,13 +118,15 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "min_graphql_remaining=250"),
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "GitHub rate-limit 조회 실패"),
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "name: 프로젝트 상태 정렬"),
+                new ScriptExpectation(".github/workflows/project-maintenance.yml", "자동화 정합성 점검 전 GraphQL rate-limit 확인"),
+                new ScriptExpectation(".github/workflows/project-maintenance.yml", "자동화 정합성 점검을 건너뜁니다"),
                 new ScriptExpectation(".github/workflows/add-to-project.yml", "name: 프로젝트 항목 자동 추가"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "name: PR 메타데이터 정렬"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "pull_request_target"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "sync-pr-metadata"),
+                new ScriptExpectation(".github/workflows/pr-metadata.yml", "PR 메타데이터 자동 보정을 건너뜁니다"),
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "PR linked issue, assignee, milestone, project metadata"),
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "Closes #"),
-                new ScriptExpectation("scripts/lib/bootstrap_github.py", "PR 메타데이터 정렬"),
                 new ScriptExpectation(".github/workflows/pr-labeler.yml", "name: PR 라벨 적용"),
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: 보안 코드 분석"),
                 new ScriptExpectation(".github/workflows/codeql.yml", "name: 보안 코드 분석 (${{ matrix.label }})"),
@@ -228,6 +231,22 @@ class RepositoryConventionsSmokeTest {
         assertTrue(clearRollbackTrap > createPullRequest, "PR 생성 성공 후 rollback trap을 해제해야 합니다.");
         assertTrue(restoreIssueStatus >= 0, "PR 생성 전 단계 실패 시 이슈 상태 라벨을 복구해야 합니다.");
         assertTrue(restoreProjectStatus > restoreIssueStatus, "이슈 상태 복구 후 프로젝트 상태를 다시 정렬해야 합니다.");
+    }
+
+    @Test
+    @DisplayName("GraphQL 의존 자동화는 브랜치 보호 필수 체크에 포함하지 않는다")
+    void graphqlDependentAutomationIsNotARequiredStatusCheck() throws IOException {
+        var text = Files.readString(Path.of("scripts/lib/bootstrap_github.py"));
+
+        assertTrue(text.contains("REQUIRED_STATUS_CHECKS = (\"빌드와 테스트\", \"워크플로우 정책 검사\")"));
+        assertFalse(
+                text.contains("\"PR 메타데이터 정렬\""),
+                "PR 메타데이터 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
+        );
+        assertFalse(
+                text.contains("\"프로젝트 상태 정렬\""),
+                "프로젝트 상태 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
+        );
     }
 
     record ScriptExpectation(String relativePath, String expectedText) {

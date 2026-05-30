@@ -172,6 +172,9 @@ gh auth login
 - `WORKFLOW_BYPASS_USERS` repository variable 동기화
 - `main`/`dev` 브랜치 보호 규칙 동기화: PR 리뷰 1개, `빌드와 테스트`/`워크플로우 정책 검사` 필수 체크, 최신 기준선 요구, 강제 push/삭제 금지
 
+GraphQL API 한도에 의존하는 `PR 메타데이터 정렬`, `프로젝트 상태 정렬`, `프로젝트 정합성 유지`는
+보정 자동화로만 사용하고 브랜치 보호 필수 체크에는 넣지 않는다.
+
 > 참고: `PR/이슈 -> 프로젝트 자동 추가`를 완전히 활성화하려면 `ADD_TO_PROJECT_PAT` secret이 추가로 필요합니다.
 
 ---
