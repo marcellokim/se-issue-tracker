@@ -123,6 +123,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "name: PR 메타데이터 정렬"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "pull_request_target"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "sync-pr-metadata"),
+                new ScriptExpectation(".github/workflows/pr-metadata.yml", "PR 메타데이터 자동 보정을 건너뜁니다"),
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "PR linked issue, assignee, milestone, project metadata"),
                 new ScriptExpectation("scripts/lib/project_maintenance.py", "Closes #"),
                 new ScriptExpectation("scripts/lib/bootstrap_github.py", "PR 메타데이터 정렬"),

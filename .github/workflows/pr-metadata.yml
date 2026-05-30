@@ -38,6 +38,7 @@ jobs:
           fi
 
       - name: GraphQL rate-limit 확인
+        id: metadata-preflight
         env:
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
         run: |
@@ -45,13 +46,21 @@ jobs:
             echo "::error::GitHub rate-limit 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
             exit 1
           fi
-          min_graphql_remaining=100
-          if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
-            echo "::error::GitHub GraphQL 잔여량=${graphql_remaining}; PR 메타데이터 자동 보정을 중단합니다."
+          if ! graphql_reset="$(gh api rate_limit --jq '.resources.graphql.reset')"; then
+            echo "::error::GitHub rate-limit reset 조회 실패. ADD_TO_PROJECT_PAT, 네트워크, GitHub API 상태를 확인하세요."
             exit 1
           fi
+          min_graphql_remaining=100
+          if [ "${graphql_remaining}" -lt "${min_graphql_remaining}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub GraphQL 잔여량=${graphql_remaining}; PR 메타데이터 자동 보정을 건너뜁니다. reset=${graphql_reset}"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - name: PR 메타데이터 자동 보정
+        if: steps.metadata-preflight.outputs.enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
           PROJECT_URL: ${{ vars.PROJECT_URL }}
