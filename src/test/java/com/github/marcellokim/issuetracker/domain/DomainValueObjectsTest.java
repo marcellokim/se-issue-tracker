@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.support.AssignmentContext;
 import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -114,7 +115,6 @@ class DomainValueObjectsTest {
                 1,
                 1,
                 2,
-                0,
                 statusCounts);
         DashboardProjectSnapshot sameSnapshot = new DashboardProjectSnapshot(
                 1L,
@@ -125,7 +125,6 @@ class DomainValueObjectsTest {
                 1,
                 1,
                 2,
-                0,
                 Map.of(IssueStatus.NEW, 2));
         DashboardProjectSnapshot differentSnapshot = new DashboardProjectSnapshot(
                 2L,
@@ -136,7 +135,6 @@ class DomainValueObjectsTest {
                 2,
                 1,
                 3,
-                1,
                 Map.of(IssueStatus.ASSIGNED, 3));
 
         statusCounts.put(IssueStatus.CLOSED, 99);
@@ -151,11 +149,11 @@ class DomainValueObjectsTest {
                 differentSnapshot,
                 "DashboardProjectSnapshot[projectId=1");
         assertThrows(IllegalArgumentException.class,
-                () -> new DashboardProjectSnapshot(0L, "project", "", 0, 0, 0, 0, 0, 0, Map.of()));
+                () -> new DashboardProjectSnapshot(0L, "project", "", 0, 0, 0, 0, 0, Map.of()));
         assertThrows(IllegalArgumentException.class,
-                () -> new DashboardProjectSnapshot(1L, " ", "", 0, 0, 0, 0, 0, 0, Map.of()));
+                () -> new DashboardProjectSnapshot(1L, " ", "", 0, 0, 0, 0, 0, Map.of()));
         assertThrows(NullPointerException.class,
-                () -> new DashboardProjectSnapshot(1L, "project", "", 0, 0, 0, 0, 0, 0, null));
+                () -> new DashboardProjectSnapshot(1L, "project", "", 0, 0, 0, 0, 0, null));
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.DashboardProjectSnapshot;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
@@ -55,7 +55,6 @@ public final class DashboardSummaryService {
                                 snapshot.developerCount(),
                                 snapshot.testerCount(),
                                 snapshot.visibleIssueCount(),
-                                snapshot.deletedIssueCount(),
                                 snapshot.statusCounts());
         }
 }

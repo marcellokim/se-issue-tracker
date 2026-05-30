@@ -3,11 +3,11 @@ package com.github.marcellokim.issuetracker.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.github.marcellokim.issuetracker.domain.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
 import java.util.EnumMap;
@@ -41,7 +41,6 @@ class DashboardSummaryServiceTest {
         assertEquals(1, summary.developerCount());
         assertEquals(1, summary.testerCount());
         assertEquals(1, summary.visibleIssueCount());
-        assertEquals(1, summary.deletedIssueCount());
         assertEquals(statusCounts, summary.statusCounts());
         assertEquals(0, summary.statusCounts().getOrDefault(IssueStatus.DELETED, 0));
     }
@@ -125,7 +124,6 @@ class DashboardSummaryServiceTest {
                 projectName,
                 "Demo project",
                 3,
-                1,
                 1,
                 1,
                 1,

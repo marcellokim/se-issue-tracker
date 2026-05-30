@@ -1,6 +1,6 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
-import com.github.marcellokim.issuetracker.domain.DashboardProjectSnapshot;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
@@ -26,7 +26,6 @@ public final class JdbcDashboardSummaryRepository implements DashboardSummaryRep
                    count(distinct case when u.active = 1 and u.role = 'DEV' then u.login_id end) as dev_count,
                    count(distinct case when u.active = 1 and u.role = 'TESTER' then u.login_id end) as tester_count,
                    count(distinct case when i.status <> 'DELETED' then i.id end) as visible_issue_count,
-                   count(distinct case when i.status = 'DELETED' then i.id end) as deleted_issue_count,
                    count(distinct case when i.status = 'NEW' then i.id end) as new_count,
                    count(distinct case when i.status = 'ASSIGNED' then i.id end) as assigned_count,
                    count(distinct case when i.status = 'FIXED' then i.id end) as fixed_count,
@@ -49,7 +48,6 @@ public final class JdbcDashboardSummaryRepository implements DashboardSummaryRep
                    count(distinct case when u.active = 1 and u.role = 'DEV' then u.login_id end) as dev_count,
                    count(distinct case when u.active = 1 and u.role = 'TESTER' then u.login_id end) as tester_count,
                    count(distinct case when i.status <> 'DELETED' then i.id end) as visible_issue_count,
-                   count(distinct case when i.status = 'DELETED' then i.id end) as deleted_issue_count,
                    count(distinct case when i.status = 'NEW' then i.id end) as new_count,
                    count(distinct case when i.status = 'ASSIGNED' then i.id end) as assigned_count,
                    count(distinct case when i.status = 'FIXED' then i.id end) as fixed_count,
@@ -118,7 +116,6 @@ public final class JdbcDashboardSummaryRepository implements DashboardSummaryRep
                 resultSet.getInt("dev_count"),
                 resultSet.getInt("tester_count"),
                 resultSet.getInt("visible_issue_count"),
-                resultSet.getInt("deleted_issue_count"),
                 statusCounts(resultSet));
     }
 
@@ -132,4 +129,5 @@ public final class JdbcDashboardSummaryRepository implements DashboardSummaryRep
         counts.put(IssueStatus.REOPENED, resultSet.getInt("reopened_count"));
         return counts;
     }
+
 }
