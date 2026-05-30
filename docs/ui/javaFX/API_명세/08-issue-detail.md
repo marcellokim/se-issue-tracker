@@ -93,24 +93,27 @@
 
 ## 버튼 활성화 제어
 
-`viewIssueDetail()`의 `availableActions` 필드로 버튼 표시 여부를 결정한다. UI에서 비즈니스 규칙을 중복 구현하지 않는다.
+`viewIssueDetail()`의 `availableActions` 필드(`List<String>`)로 버튼 표시 여부를 결정한다. UI는 문자열 상수 포함 여부(`list.contains("MARK_FIXED")`)로만 판단하며, 비즈니스 규칙을 UI에 중복 구현하지 않는다.
 
-| 버튼 | availableActions 값 | 다음 화면/동작 |
-|---|---|---|
-| FIXED 처리 | canMarkFixed | → 상태 변경 dialog |
-| RESOLVED 처리 | canResolve | → 상태 변경 dialog |
-| 반려 | canRejectFix | → 상태 변경 dialog |
-| CLOSED 처리 | canClose | → 상태 변경 dialog |
-| REOPENED 처리 | canReopen | → 상태 변경 dialog |
-| 배정 | canAssign | → 배정 화면 |
-| 재배정 | canReassign | → 배정 화면 |
-| 검증자 변경 | canChangeVerifier | → 배정 화면 |
-| 이슈 수정 | canUpdateIssue | → 이슈 수정 |
-| 우선순위 변경 | canChangePriority | → 우선순위 변경 |
-| 의존성 추가 | canAddDependency | → 의존성 관리 |
-| 의존성 제거 | canRemoveDependency | → 의존성 관리 |
-| 코멘트 추가 | canAddComment | → 코멘트 입력 |
-| 이슈 삭제 | canSoftDelete | → 삭제 사유 dialog |
+> 별도 `viewAvailableActions(issueId)`를 호출하면 `IssueWorkflowActions` (boolean 필드)를 반환한다. 초기 로딩에서는 `viewIssueDetail().availableActions`를 사용하고, 상태 변경 후 버튼만 갱신할 때는 `viewAvailableActions()`를 사용한다.
+
+| 버튼 | availableActions 문자열 | viewAvailableActions boolean | 다음 화면/동작 |
+|---|---|---|---|
+| FIXED 처리 | `"MARK_FIXED"` | `canMarkFixed` | → 상태 변경 dialog |
+| RESOLVED 처리 | `"RESOLVE"` | `canResolve` | → 상태 변경 dialog |
+| 반려 | `"REJECT_FIX"` | `canRejectFix` | → 상태 변경 dialog |
+| CLOSED 처리 | `"CLOSE"` | `canClose` | → 상태 변경 dialog |
+| REOPENED 처리 | `"REOPEN"` | `canReopen` | → 상태 변경 dialog |
+| 배정 | `"ASSIGN"` | `canAssign` | → 배정 화면 |
+| 재배정 | `"REASSIGN_DEV"` | `canReassign` | → 배정 화면 |
+| 검증자 변경 | `"CHANGE_TESTER"` | `canChangeVerifier` | → 배정 화면 |
+| 이슈 수정 | `"UPDATE_ISSUE"` | `canUpdateIssue` | → 이슈 수정 |
+| 우선순위 변경 | `"CHANGE_PRIORITY"` | `canChangePriority` | → 우선순위 변경 |
+| 배정 시작 | `"START_ASSIGNMENT"` | `canStartAssignment` | → 배정 화면 |
+| 의존성 추가 | `"ADD_DEPENDENCY"` | `canAddDependency` | → 의존성 관리 |
+| 의존성 제거 | `"REMOVE_DEPENDENCY"` | `canRemoveDependency` | → 의존성 관리 |
+| 코멘트 추가 | `"ADD_COMMENT"` | `canAddComment` | → 코멘트 입력 |
+| 이슈 삭제 | `"SOFT_DELETE"` | `canSoftDelete` | → 삭제 사유 dialog |
 
 ## 화면 전이
 

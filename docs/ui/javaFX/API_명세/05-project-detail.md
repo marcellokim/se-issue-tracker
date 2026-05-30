@@ -67,7 +67,7 @@
 
 | 조건 | 예외 |
 |---|---|
-| 해당 사용자가 진행 중 이슈 책임이 있음 | SecurityException |
+| 해당 사용자가 ASSIGNED/FIXED 이슈의 assignee 또는 verifier | IllegalArgumentException |
 
 - **후속**: 멤버 목록 새로고침
 
