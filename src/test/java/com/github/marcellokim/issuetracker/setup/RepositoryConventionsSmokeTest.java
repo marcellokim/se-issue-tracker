@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -230,6 +231,22 @@ class RepositoryConventionsSmokeTest {
         assertTrue(clearRollbackTrap > createPullRequest, "PR 생성 성공 후 rollback trap을 해제해야 합니다.");
         assertTrue(restoreIssueStatus >= 0, "PR 생성 전 단계 실패 시 이슈 상태 라벨을 복구해야 합니다.");
         assertTrue(restoreProjectStatus > restoreIssueStatus, "이슈 상태 복구 후 프로젝트 상태를 다시 정렬해야 합니다.");
+    }
+
+    @Test
+    @DisplayName("GraphQL 의존 자동화는 브랜치 보호 필수 체크에 포함하지 않는다")
+    void graphqlDependentAutomationIsNotARequiredStatusCheck() throws IOException {
+        var text = Files.readString(Path.of("scripts/lib/bootstrap_github.py"));
+
+        assertTrue(text.contains("REQUIRED_STATUS_CHECKS = (\"빌드와 테스트\", \"워크플로우 정책 검사\")"));
+        assertFalse(
+                text.contains("\"PR 메타데이터 정렬\""),
+                "PR 메타데이터 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
+        );
+        assertFalse(
+                text.contains("\"프로젝트 상태 정렬\""),
+                "프로젝트 상태 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
+        );
     }
 
     record ScriptExpectation(String relativePath, String expectedText) {
