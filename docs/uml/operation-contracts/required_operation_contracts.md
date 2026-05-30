@@ -398,8 +398,6 @@ Use Case: UC9 Manage Deleted Issue
 - Instance 생성
   - `actionType=STATUS_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
   - 삭제 과정에서 제거된 각 dependency에 대해 `actionType=DEPENDENCY_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
-  - `actionType=STATUS_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
-  - 삭제 과정에서 제거된 각 dependency에 대해 `actionType=DEPENDENCY_CHANGED`인 새로운 `IssueHistory` instance가 생성되었다.
 - Instance 삭제
   - 대상 `Issue`와 연결된 모든 `IssueDependency` instance가 제거되었다.
   - 이 operation 이후 `DELETED` 상태의 이슈가 30개를 초과한 경우, `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate` 기준으로 초과분에 해당하는 오래된 `DELETED` 이슈가 물리적으로 삭제되었다.
@@ -413,7 +411,6 @@ Use Case: UC9 Manage Deleted Issue
   - 제거된 각 `IssueDependency`에 대해 `blockedIssue` association이 제거되었다.
 - 속성값 변화
   - `Issue.status`는 `NEW` 또는 `CLOSED`에서 `DELETED`로 변경되었다.
-  - `STATUS_CHANGED` history의 message에는 삭제 사유 `comment`가 기록되었다.
   - `STATUS_CHANGED` history의 message에는 삭제 사유 `comment`가 기록되었다.
   - deleted transition time은 `IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate`에서 결정되었다.
   - `NEW` 또는 `CLOSED` 대상은 활성 assignee/verifier가 없는 상태로 취급되었다.
