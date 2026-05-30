@@ -38,7 +38,7 @@
 | closed/resolved 이력 기반 assignee/verifier 추천 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) 해결 이력 기반 assignee 추천 기능 구현 | UC8 배정 후보 추천 서비스, 후보 3명 결과, 추천 근거 |
 | persistent storage | [#18](https://github.com/marcellokim/se-issue-tracker/issues/18) | DB 저장/조회 테스트, schema/seed 설명 |
 | MVC 및 UI/로직 분리 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | 패키지 구조, 클래스 다이어그램, 두 UI의 공통 서비스 사용 |
-| 두 개 이상의 UI Toolkit | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | JavaFX UI, Swing UI, 빌드/실행 캡처 |
+| 두 개 이상의 UI Toolkit | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) | JavaFX 실사용자 UI, Swing Admin UI, 빌드/실행 캡처 |
 | JUnit 테스트 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | 테스트 코드, CI 결과, 테스트 목적 설명 |
 
 ## 문서/제출 요구사항 추적

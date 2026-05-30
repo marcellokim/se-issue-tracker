@@ -15,7 +15,7 @@ skinparam rectangle {
   FontColor #263238
 }
 
-rectangle "Presentation Layer\n--\nJavaFX UI\n  IssueListView, IssueDetailView, AssignmentView\n  ProjectStatisticsSection, LoginView\n\nSwing UI\n  AccountManagementView, ProjectManagementView\n  ProjectStatisticsPanel, DeletedIssueBinView\n\nBoth UI toolkits reuse the same controllers/services." as PRES <<boundary>> #E3F2FD
+rectangle "Presentation Layer\n--\nJavaFX User UI\n  IssueListView, IssueDetailView, AssignmentView\n  ProjectStatisticsSection, DeletedIssueBinView, LoginView\n\nSwing Admin UI\n  AccountManagementView, ProjectManagementView\n  ProjectParticipantPanel, AdminLoginView\n\nBoth UI toolkits reuse the same controllers/services." as PRES <<boundary>> #E3F2FD
 
 rectangle "Application Layer\n--\nUse Case Controllers\n  IssueController\n    registerIssue(), searchIssues(), viewIssueDetail(), updateIssue()\n    addComment(), changePriority(), addDependency(), removeDependency()\n  AssignmentController\n    startAssignment(), assignIssue(), reassignIssue(), changeVerifier()\n  IssueStateController\n    changeStatus()\n  DeletedIssueController\n    deleteIssue(), restoreIssue(), viewDeletedIssues(), purgeDeletedIssue()\n  AccountController\n    createAccount(), renameAccount(), changeAccountRole(), deactivateAccount()\n  ProjectController\n    viewProjectAdminDetail(), createProject(), renameProject()\n    addProjectParticipant(), removeProjectParticipant()\n  StatisticsController\n    viewStatistics()\n\nApplication Policies / Services\n  PermissionPolicy\n    assertCan...()\n  AssignmentRecommendationService\n    recommendAssignmentCandidates()\n  AuthenticationService\n    login(), currentUser()" as APP <<control>> #FFF8E1
 

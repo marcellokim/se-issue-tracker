@@ -93,7 +93,7 @@ Windows에서 `python3` 대신 `python` 또는 `py`만 잡히는 경우에는 Gr
 ```
 
 ### 애플리케이션 실행 확인
-아직 실제 JavaFX 화면은 #23에서 구현합니다. 현재 단계에서는 Gradle 실행 골격과 JavaFX 런타임 설정이 잡혀 있는지만 확인합니다.
+실사용자 JavaFX 화면은 #23, Admin Swing 화면은 #24에서 구현합니다. 현재 단계에서는 Gradle 실행 골격과 JavaFX 런타임 설정이 잡혀 있는지만 확인합니다.
 
 ```bash
 ./gradlew run

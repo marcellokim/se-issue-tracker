@@ -57,8 +57,8 @@
 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) feat: 이슈 배정과 상태 변경 흐름 구현 | M2 | 기능/상태 전이 |
 | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) feat: 일/월별 이슈 통계와 추이 조회 구현 | M2 | 기능/통계 |
 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) feat: 해결 이력 기반 담당자 추천 기능 구현 | M2 | 기능/추천 |
-| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) feat: JavaFX 메인 UI로 기본 사용자 흐름 구현 | M3 | 기능/UI |
-| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) feat: Swing 보조 UI로 모델 재사용 구조 입증 | M3 | 기능/UI |
+| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) feat: JavaFX 실사용자 메인 UI 데모 흐름 구현 | M3 | 기능/UI |
+| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) feat: Swing Admin 관리 UI 구현 | M3 | 기능/UI |
 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) test: 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | M4 | 테스트 |
 | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) docs: 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | M4 | 문서/제출 |
 | [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) chore: GitHub Project 자동 등록과 진행 이력 캡처 준비 | M1 | 작업/자동화 |
