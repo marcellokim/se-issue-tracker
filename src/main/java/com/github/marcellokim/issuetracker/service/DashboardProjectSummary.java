@@ -13,9 +13,7 @@ public record DashboardProjectSummary(
         int developerCount,
         int testerCount,
         int visibleIssueCount,
-        int deletedIssueCount,
-        Map<IssueStatus, Integer> statusCounts
-) {
+        Map<IssueStatus, Integer> statusCounts) {
 
     public DashboardProjectSummary {
         if (projectId <= 0L) {

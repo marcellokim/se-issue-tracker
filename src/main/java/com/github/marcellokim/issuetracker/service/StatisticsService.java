@@ -38,7 +38,7 @@ public final class StatisticsService {
         requireOrderedRange(dailyFromInclusive, dailyToInclusive, "dailyFromInclusive", "dailyToInclusive");
         requireOrderedRange(monthlyFromInclusive, monthlyToInclusive, "monthlyFromInclusive", "monthlyToInclusive");
 
-        return StatisticsReportResult.from(statisticsRepository.buildReport(
+        return StatisticsReportResult.from(statisticsRepository.calculateProjectStatistics(
                 projectId,
                 dailyFromInclusive,
                 dailyToInclusive,
@@ -53,8 +53,7 @@ public final class StatisticsService {
     }
 
     private boolean isActiveProjectMember(User actor, long projectId) {
-        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        return userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
     private static <T extends Comparable<T>> void requireOrderedRange(

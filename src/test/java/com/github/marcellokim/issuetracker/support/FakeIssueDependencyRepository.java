@@ -68,12 +68,12 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public IssueDependency saveAndRecordIssueChange(IssueDependency dependency, Issue issue) {
+    public IssueDependency recordDependencyAdded(IssueDependency dependency, Issue issue) {
         return addFixture(dependency);
     }
 
     @Override
-    public void deleteByDependencyIdAndRecordIssueChange(String dependencyId, Issue issue) {
+    public void recordDependencyRemoved(String dependencyId, Issue issue) {
         IssueDependency dependency = findByDependencyId(dependencyId)
                 .orElseThrow(() -> new IllegalArgumentException("Dependency not found: " + dependencyId));
         if (!dependencies.containsKey(dependency.id())) {

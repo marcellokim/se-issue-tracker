@@ -13,8 +13,6 @@ public interface IssueRepository {
 
     List<Issue> findAllById(List<Long> issueIds);
 
-    List<Issue> findByProject(long projectId);
-
     List<Issue> findDeletedByProject(long projectId);
 
     List<Issue> findByCriteria(IssueSearchCriteria criteria);
@@ -23,9 +21,9 @@ public interface IssueRepository {
 
     boolean existsByProjectIdAndTitleExcludingIssueId(long projectId, String title, long excludedIssueId);
 
-    boolean existsByResponsibleUser(String userLoginId);
+    boolean hasCurrentIssueResponsibility(String userLoginId);
 
-    boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId);
+    boolean hasCurrentIssueResponsibility(long projectId, String loginId);
 
     Issue save(Issue issue);
 
@@ -37,5 +35,7 @@ public interface IssueRepository {
 
     int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues);
 
-    default List<Issue> findRecommendationForAssignment(long projectId) { return List.of(); }
+    default List<Issue> findRecommendationForAssignment(long projectId) {
+        return List.of();
+    }
 }

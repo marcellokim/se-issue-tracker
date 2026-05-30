@@ -64,26 +64,6 @@ public final class JdbcProjectRepository implements ProjectRepository {
     }
 
     @Override
-    public List<Project> findAll() {
-        String sql = """
-                select id, name, description, managed_by_login_id, created_at, updated_at
-                from projects
-                order by id
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql);
-                ResultSet resultSet = statement.executeQuery()) {
-            List<Project> projects = new ArrayList<>();
-            while (resultSet.next()) {
-                projects.add(mapProject(resultSet));
-            }
-            return projects;
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list projects.", exception);
-        }
-    }
-
-    @Override
     public Project save(Project project) {
         if (project.getId() == 0L) {
             return insert(project);

@@ -57,6 +57,15 @@ public final class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public boolean existsActiveProjectMember(long projectId, String loginId) {
+        Set<String> members = projectMembers.get(projectId);
+        return findByLoginId(loginId)
+                .filter(User::isActive)
+                .filter(user -> projectMembers.isEmpty() || members != null && members.contains(user.getLoginId()))
+                .isPresent();
+    }
+
+    @Override
     public User save(User user) {
         users.put(user.getLoginId(), user);
         return user;

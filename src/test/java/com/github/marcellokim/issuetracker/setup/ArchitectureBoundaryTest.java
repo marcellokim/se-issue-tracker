@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcDashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcUserRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.CommentIdProvider;
 import com.github.marcellokim.issuetracker.service.CurrentUserSession;
@@ -105,6 +107,18 @@ class ArchitectureBoundaryTest {
                 ROOT_PACKAGE_PATH.resolve("persistence/jdbc/JdbcUserRepository.java"),
                 ROOT_PACKAGE + ".technical.PasswordHasher",
                 "new PasswordHasher");
+    }
+
+    @Test
+    @DisplayName("jdbc repository factory exposes dashboard summary repository")
+    void jdbcRepositoryFactoryExposesDashboardSummaryRepository() {
+        DatabaseConnectionProvider connectionProvider = () -> {
+            throw new AssertionError("Connection should not be opened while creating repositories.");
+        };
+        JdbcRepositoryFactory factory = new JdbcRepositoryFactory(connectionProvider, new PasswordHasher());
+        DashboardSummaryRepository repository = factory.dashboardSummaries();
+
+        assertTrue(repository instanceof JdbcDashboardSummaryRepository);
     }
 
     @Test

@@ -208,7 +208,7 @@ public final class ProjectService {
     }
 
     private void rejectActiveIssueAssigneeOrVerifier(long projectId, String participantId) {
-        if (issueRepository.existsActiveAssignmentByProjectAndUser(projectId, participantId)) {
+        if (issueRepository.hasCurrentIssueResponsibility(projectId, participantId)) {
             throw new IllegalArgumentException(
                     "Issue assignee or verifier cannot be removed while assignment is active.");
         }

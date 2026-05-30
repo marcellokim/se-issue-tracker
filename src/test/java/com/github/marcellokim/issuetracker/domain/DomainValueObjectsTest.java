@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.support.AssignmentContext;
 import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -98,6 +99,61 @@ class DomainValueObjectsTest {
         assertEquals(monthlyCount, sameMonthlyCount);
         assertEquals(projectMember, sameProjectMember);
         assertEquals(assignmentContext, sameAssignmentContext);
+    }
+
+    @Test
+    @DisplayName("dashboard project snapshot has value semantics and copies status counts")
+    void dashboardProjectSnapshotHasValueSemantics() {
+        Map<IssueStatus, Integer> statusCounts = new EnumMap<>(IssueStatus.class);
+        statusCounts.put(IssueStatus.NEW, 2);
+        DashboardProjectSnapshot snapshot = new DashboardProjectSnapshot(
+                1L,
+                "project A",
+                null,
+                3,
+                1,
+                1,
+                1,
+                2,
+                statusCounts);
+        DashboardProjectSnapshot sameSnapshot = new DashboardProjectSnapshot(
+                1L,
+                "project A",
+                "",
+                3,
+                1,
+                1,
+                1,
+                2,
+                Map.of(IssueStatus.NEW, 2));
+        DashboardProjectSnapshot differentSnapshot = new DashboardProjectSnapshot(
+                2L,
+                "project B",
+                "Demo",
+                4,
+                1,
+                2,
+                1,
+                3,
+                Map.of(IssueStatus.ASSIGNED, 3));
+
+        statusCounts.put(IssueStatus.CLOSED, 99);
+
+        assertEquals("", snapshot.projectDescription());
+        assertEquals(Map.of(IssueStatus.NEW, 2), snapshot.statusCounts());
+        assertThrows(UnsupportedOperationException.class,
+                () -> snapshot.statusCounts().put(IssueStatus.CLOSED, 1));
+        assertValueSemantics(
+                snapshot,
+                sameSnapshot,
+                differentSnapshot,
+                "DashboardProjectSnapshot[projectId=1");
+        assertThrows(IllegalArgumentException.class,
+                () -> new DashboardProjectSnapshot(0L, "project", "", 0, 0, 0, 0, 0, Map.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new DashboardProjectSnapshot(1L, " ", "", 0, 0, 0, 0, 0, Map.of()));
+        assertThrows(NullPointerException.class,
+                () -> new DashboardProjectSnapshot(1L, "project", "", 0, 0, 0, 0, 0, null));
     }
 
     @Test

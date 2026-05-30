@@ -85,8 +85,9 @@ public final class DeletedIssueService {
     }
 
     private void requireProjectLead(User actor, long projectId) {
-        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectLead = actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
+
         if (!projectLead) {
             throw new SecurityException("Only the project PL can manage deleted issues.");
         }

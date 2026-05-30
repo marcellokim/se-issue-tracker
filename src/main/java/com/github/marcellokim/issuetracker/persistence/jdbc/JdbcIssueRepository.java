@@ -61,17 +61,6 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public List<Issue> findByProject(long projectId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_PROJECT_SQL)) {
-            statement.setLong(1, projectId);
-            return executeIssueList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list issues by project.", exception);
-        }
-    }
-
-    @Override
     public List<Issue> findDeletedByProject(long projectId) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection
@@ -129,7 +118,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public boolean existsByResponsibleUser(String userLoginId) {
+    public boolean hasCurrentIssueResponsibility(String userLoginId) {
         String sql = """
                 select 1
                 from issues
@@ -153,7 +142,7 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+    public boolean hasCurrentIssueResponsibility(long projectId, String loginId) {
         String sql = """
                 select 1
                 from issues
@@ -204,13 +193,13 @@ public final class JdbcIssueRepository implements IssueRepository {
     }
 
     @Override
-    public List<Issue> findRecommendationForAssignment(long projectId){
-        try(Connection connection = connectionProvider.getConnection();
-            PreparedStatement statement = 
-            connection.prepareStatement(JdbcIssueQueries.FIND_RESOLVED_OR_CLOSED_BY_PROJECT_SQL)){
+    public List<Issue> findRecommendationForAssignment(long projectId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection
+                        .prepareStatement(JdbcIssueQueries.FIND_RESOLVED_OR_CLOSED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
             return executeIssueList(statement);
-        } catch (SQLException exception){
+        } catch (SQLException exception) {
             throw new RepositoryException("Failed to find issues for recommendation - SQL fault", exception);
         }
     }

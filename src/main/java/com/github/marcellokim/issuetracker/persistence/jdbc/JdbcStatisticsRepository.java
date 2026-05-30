@@ -32,7 +32,26 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
     }
 
     @Override
-    public Map<IssueStatus, Integer> countByStatus(long projectId) {
+    public StatisticsReport calculateProjectStatistics(
+            long projectId,
+            LocalDate dailyFromInclusive,
+            LocalDate dailyToInclusive,
+            YearMonth monthlyFromInclusive,
+            YearMonth monthlyToInclusive) {
+        return StatisticsReport.create(
+                countByStatus(projectId),
+                countByPriority(projectId),
+                countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
+                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countByStatusByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countByPriorityByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countStatusChangesByDay(projectId, dailyFromInclusive, dailyToInclusive),
+                countStatusChangesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
+                countCommentsByDay(projectId, dailyFromInclusive, dailyToInclusive),
+                countCommentsByMonth(projectId, monthlyFromInclusive, monthlyToInclusive));
+    }
+
+    private Map<IssueStatus, Integer> countByStatus(long projectId) {
         String sql = """
                 select status, count(*) as issue_count
                 from issues
@@ -55,8 +74,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         }
     }
 
-    @Override
-    public Map<Priority, Integer> countByPriority(long projectId) {
+    private Map<Priority, Integer> countByPriority(long projectId) {
         String sql = """
                 select priority, count(*) as issue_count
                 from issues
@@ -79,13 +97,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         }
     }
 
-    @Override
-    public List<DailyIssueCount> countReportedIssuesByDay(long projectId) {
-        return countReportedIssuesByDay(projectId, null, null);
-    }
-
-    @Override
-    public List<DailyIssueCount> countReportedIssuesByDay(
+    private List<DailyIssueCount> countReportedIssuesByDay(
             long projectId,
             LocalDate fromInclusive,
             LocalDate toInclusive) {
@@ -103,13 +115,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 "reported_day", "issue_count", "Failed to count reported issues by day.");
     }
 
-    @Override
-    public List<MonthlyIssueCount> countReportedIssuesByMonth(long projectId) {
-        return countReportedIssuesByMonth(projectId, null, null);
-    }
-
-    @Override
-    public List<MonthlyIssueCount> countReportedIssuesByMonth(
+    private List<MonthlyIssueCount> countReportedIssuesByMonth(
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
@@ -127,8 +133,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 "reported_month", "issue_count", "Failed to count reported issues by month.");
     }
 
-    @Override
-    public List<DailyIssueCount> countStatusChangesByDay(
+    private List<DailyIssueCount> countStatusChangesByDay(
             long projectId,
             LocalDate fromInclusive,
             LocalDate toInclusive) {
@@ -148,8 +153,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 "changed_day", "change_count", "Failed to count status changes by day.");
     }
 
-    @Override
-    public List<MonthlyIssueCount> countStatusChangesByMonth(
+    private List<MonthlyIssueCount> countStatusChangesByMonth(
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
@@ -169,8 +173,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 "changed_month", "change_count", "Failed to count status changes by month.");
     }
 
-    @Override
-    public List<DailyIssueCount> countCommentsByDay(
+    private List<DailyIssueCount> countCommentsByDay(
             long projectId,
             LocalDate fromInclusive,
             LocalDate toInclusive) {
@@ -189,8 +192,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 "commented_day", "comment_count", "Failed to count comments by day.");
     }
 
-    @Override
-    public List<MonthlyIssueCount> countCommentsByMonth(
+    private List<MonthlyIssueCount> countCommentsByMonth(
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
@@ -209,8 +211,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 "commented_month", "comment_count", "Failed to count comments by month.");
     }
 
-    @Override
-    public Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(
+    private Map<YearMonth, Map<IssueStatus, Integer>> countByStatusByMonth(
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
@@ -251,8 +252,7 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         }
     }
 
-    @Override
-    public Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(
+    private Map<YearMonth, Map<Priority, Integer>> countByPriorityByMonth(
             long projectId,
             YearMonth fromInclusive,
             YearMonth toInclusive) {
@@ -291,26 +291,6 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to count issues by priority and month.", exception);
         }
-    }
-
-    @Override
-    public StatisticsReport buildReport(
-            long projectId,
-            LocalDate dailyFromInclusive,
-            LocalDate dailyToInclusive,
-            YearMonth monthlyFromInclusive,
-            YearMonth monthlyToInclusive) {
-        return StatisticsReport.create(
-                countByStatus(projectId),
-                countByPriority(projectId),
-                countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
-                countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
-                countByStatusByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
-                countByPriorityByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
-                countStatusChangesByDay(projectId, dailyFromInclusive, dailyToInclusive),
-                countStatusChangesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
-                countCommentsByDay(projectId, dailyFromInclusive, dailyToInclusive),
-                countCommentsByMonth(projectId, monthlyFromInclusive, monthlyToInclusive));
     }
 
     private List<DailyIssueCount> executeDailyQuery(

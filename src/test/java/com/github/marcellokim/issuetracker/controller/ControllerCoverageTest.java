@@ -23,6 +23,8 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
@@ -172,12 +174,21 @@ class ControllerCoverageTest {
     @DisplayName("dashboard controller reads dashboard data through service after auth")
     void dashboardControllerDelegatesDashboardReads() {
         AuthFixture auth = authenticated(Role.ADMIN);
-        InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
-        FakeIssueRepository issues = new FakeIssueRepository(issue(201L, PROJECT_ID, IssueStatus.NEW));
+        FakeDashboardSummaryRepository dashboardSummaries = new FakeDashboardSummaryRepository(
+                List.of(new DashboardProjectSnapshot(
+                        PROJECT_ID,
+                        "project",
+                        "description",
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        Map.of(IssueStatus.NEW, 1))),
+                List.of());
         DashboardController controller = new DashboardController(
                 auth.service(),
-                new DashboardSummaryService(projects, issues, new FakeStatisticsRepository(), auth.users(),
-                        new PermissionPolicy()));
+                new DashboardSummaryService(dashboardSummaries, auth.users(), new PermissionPolicy()));
 
         assertEquals(1, controller.viewProjects().size());
         assertEquals(List.of(auth.user().getLoginId()), controller.viewUsers().stream()
@@ -191,9 +202,7 @@ class ControllerCoverageTest {
         DashboardController controller = new DashboardController(
                 anonymousAuth(),
                 new DashboardSummaryService(
-                        new InMemoryProjectRepository(),
-                        new FakeIssueRepository(),
-                        new FakeStatisticsRepository(),
+                        new FakeDashboardSummaryRepository(List.of(), List.of()),
                         new FakeUserRepository(),
                         new PermissionPolicy()));
 
@@ -1163,6 +1172,29 @@ class ControllerCoverageTest {
     private record AuthFixture(AuthenticationService service, FakeUserRepository users, User user) {
     }
 
+    private static final class FakeDashboardSummaryRepository implements DashboardSummaryRepository {
+
+        private final List<DashboardProjectSnapshot> allProjectSummaries;
+        private final List<DashboardProjectSnapshot> participantProjectSummaries;
+
+        private FakeDashboardSummaryRepository(
+                List<DashboardProjectSnapshot> allProjectSummaries,
+                List<DashboardProjectSnapshot> participantProjectSummaries) {
+            this.allProjectSummaries = List.copyOf(allProjectSummaries);
+            this.participantProjectSummaries = List.copyOf(participantProjectSummaries);
+        }
+
+        @Override
+        public List<DashboardProjectSnapshot> findAllProjectSummaries() {
+            return allProjectSummaries;
+        }
+
+        @Override
+        public List<DashboardProjectSnapshot> findProjectSummariesByParticipant(String loginId) {
+            return participantProjectSummaries;
+        }
+    }
+
     private static final class FakeIssueRepository implements IssueRepository {
 
         private final Map<Long, Issue> issuesById = new LinkedHashMap<>();
@@ -1190,7 +1222,6 @@ class ControllerCoverageTest {
                     .toList();
         }
 
-        @Override
         public List<Issue> findByProject(long projectId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.projectId() == projectId)
@@ -1225,7 +1256,7 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public boolean existsByResponsibleUser(String userLoginId) {
+        public boolean hasCurrentIssueResponsibility(String userLoginId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
                     .anyMatch(issue -> userLoginId.equals(issue.assigneeId())
@@ -1233,7 +1264,7 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public boolean existsActiveAssignmentByProjectAndUser(long projectId, String loginId) {
+        public boolean hasCurrentIssueResponsibility(long projectId, String loginId) {
             return issuesById.values().stream()
                     .filter(issue -> issue.projectId() == projectId)
                     .filter(issue -> issue.status() == IssueStatus.ASSIGNED || issue.status() == IssueStatus.FIXED)
@@ -1347,6 +1378,17 @@ class ControllerCoverageTest {
         }
 
         @Override
+        public boolean existsActiveProjectMember(long projectId, String loginId) {
+            User user = usersByLoginId.get(loginId);
+            if (user == null || !user.isActive()) {
+                return false;
+            }
+            return projects == null || projects.findParticipants(projectId).stream()
+                    .map(ProjectMember::userId)
+                    .anyMatch(loginId::equals);
+        }
+
+        @Override
         public User save(User user) {
             usersByLoginId.put(user.getLoginId(), user);
             return user;
@@ -1373,43 +1415,7 @@ class ControllerCoverageTest {
         private YearMonth monthlyTo;
 
         @Override
-        public Map<IssueStatus, Integer> countByStatus(long projectId) {
-            return report.statusCounts();
-        }
-
-        @Override
-        public Map<Priority, Integer> countByPriority(long projectId) {
-            return report.priorityCounts();
-        }
-
-        @Override
-        public List<DailyIssueCount> countReportedIssuesByDay(long projectId) {
-            return report.dailyCounts();
-        }
-
-        @Override
-        public List<DailyIssueCount> countReportedIssuesByDay(
-                long projectId,
-                LocalDate fromInclusive,
-                LocalDate toInclusive) {
-            return report.dailyCounts();
-        }
-
-        @Override
-        public List<MonthlyIssueCount> countReportedIssuesByMonth(long projectId) {
-            return report.monthlyCounts();
-        }
-
-        @Override
-        public List<MonthlyIssueCount> countReportedIssuesByMonth(
-                long projectId,
-                YearMonth fromInclusive,
-                YearMonth toInclusive) {
-            return report.monthlyCounts();
-        }
-
-        @Override
-        public StatisticsReport buildReport(
+        public StatisticsReport calculateProjectStatistics(
                 long projectId,
                 LocalDate dailyFromInclusive,
                 LocalDate dailyToInclusive,
@@ -1465,7 +1471,7 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+        public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
             return save(comment);
         }
 

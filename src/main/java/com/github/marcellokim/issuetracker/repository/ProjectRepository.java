@@ -11,8 +11,6 @@ public interface ProjectRepository {
 
     Optional<Project> findByName(String name);
 
-    List<Project> findAll();
-
     Project save(Project project);
 
     void deleteById(long projectId);

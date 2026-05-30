@@ -140,7 +140,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public IssueDependency saveAndRecordIssueChange(IssueDependency dependency, Issue issue) {
+    public IssueDependency recordDependencyAdded(IssueDependency dependency, Issue issue) {
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
             boolean transactionSucceeded = false;
@@ -165,7 +165,7 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public void deleteByDependencyIdAndRecordIssueChange(String dependencyId, Issue issue) {
+    public void recordDependencyRemoved(String dependencyId, Issue issue) {
         String sql = "delete from issue_dependencies where dependency_id = ?";
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();

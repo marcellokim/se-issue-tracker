@@ -164,6 +164,13 @@ class AuthenticationServiceTest {
         }
 
         @Override
+        public boolean existsActiveProjectMember(long projectId, String loginId) {
+            return findByLoginId(loginId)
+                    .filter(User::isActive)
+                    .isPresent();
+        }
+
+        @Override
         public User save(User user) {
             usersByLoginId.put(user.getLoginId(), user);
             return user;
