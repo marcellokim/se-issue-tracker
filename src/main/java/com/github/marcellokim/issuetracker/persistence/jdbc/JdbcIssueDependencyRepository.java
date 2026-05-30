@@ -19,7 +19,6 @@ import java.util.Optional;
 public final class JdbcIssueDependencyRepository implements IssueDependencyRepository {
 
     private static final String BASE_SELECT = "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at from issue_dependencies";
-    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_DEPENDENCY_ID_SQL = BASE_SELECT + " where dependency_id = ?";
     private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT
             + " where blocking_issue_id = ? or blocked_issue_id = ? order by id";
@@ -33,22 +32,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
 
     public JdbcIssueDependencyRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
-    }
-
-    @Override
-    public Optional<IssueDependency> findById(long id) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
-            statement.setLong(1, id);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapDependency(resultSet));
-                }
-                return Optional.empty();
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find issue dependency by id.", exception);
-        }
     }
 
     @Override
