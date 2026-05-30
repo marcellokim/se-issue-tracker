@@ -2,7 +2,6 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.config.ApplicationContext;
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.GridBagLayout;
 import javax.swing.BorderFactory;
@@ -14,8 +13,6 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 
 public final class SwingApp {
-
-    private static final Dimension MINIMUM_SIZE = new Dimension(800, 600);
 
     private SwingApp() {
     }
@@ -55,7 +52,7 @@ public final class SwingApp {
         JFrame frame = new JFrame("Issue Tracker - Startup Failed");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setSize(SwingStyles.WINDOW_SIZE);
-        frame.setMinimumSize(MINIMUM_SIZE);
+        frame.setMinimumSize(SwingStyles.MINIMUM_SIZE);
         frame.setLocationRelativeTo(null);
 
         JPanel root = new JPanel(new GridBagLayout());

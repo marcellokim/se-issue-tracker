@@ -49,7 +49,10 @@ class LoginPanelTest {
             var panel = new LoginPanel();
             JButton signIn = SwingComponentTestSupport.find(panel, "signInButton", JButton.class);
             JLabel message = SwingComponentTestSupport.find(panel, "messageLabel", JLabel.class);
+            JTextField loginId = SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class);
             JPasswordField password = SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class);
+            JLabel loginIdLabel = SwingComponentTestSupport.find(panel, "loginIdLabel", JLabel.class);
+            JLabel passwordLabel = SwingComponentTestSupport.find(panel, "passwordLabel", JLabel.class);
 
             panel.setLoginEnabled(false);
             panel.showMessage("Invalid ID or password.", true);
@@ -57,6 +60,10 @@ class LoginPanelTest {
             panel.clearPassword();
 
             assertFalse(signIn.isEnabled());
+            assertFalse(loginId.isEnabled());
+            assertFalse(password.isEnabled());
+            assertEquals(loginId, loginIdLabel.getLabelFor());
+            assertEquals(password, passwordLabel.getLabelFor());
             assertEquals("Invalid ID or password.", message.getText());
             assertEquals(SwingStyles.ERROR_TEXT, message.getForeground());
             assertEquals("", panel.password());

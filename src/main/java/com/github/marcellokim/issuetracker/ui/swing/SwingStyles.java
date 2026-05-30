@@ -12,6 +12,7 @@ import javax.swing.border.Border;
 final class SwingStyles {
 
     static final Dimension WINDOW_SIZE = new Dimension(1024, 768);
+    static final Dimension MINIMUM_SIZE = new Dimension(800, 600);
     static final int OUTER_PADDING = 32;
     static final int LOGIN_PANEL_WIDTH = 360;
     static final int FIELD_HEIGHT = 34;

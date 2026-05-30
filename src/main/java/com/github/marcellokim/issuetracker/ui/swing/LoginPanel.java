@@ -42,6 +42,8 @@ final class LoginPanel extends JPanel implements LoginView {
         surface.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
 
         JLabel loginIdLabel = new JLabel("ID");
+        loginIdLabel.setName("loginIdLabel");
+        loginIdLabel.setLabelFor(loginIdField);
         loginIdLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         surface.add(loginIdLabel);
         surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
@@ -54,6 +56,8 @@ final class LoginPanel extends JPanel implements LoginView {
         surface.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
 
         JLabel passwordLabel = new JLabel("Password");
+        passwordLabel.setName("passwordLabel");
+        passwordLabel.setLabelFor(passwordField);
         passwordLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         surface.add(passwordLabel);
         surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
@@ -105,12 +109,14 @@ final class LoginPanel extends JPanel implements LoginView {
 
     @Override
     public void setLoginEnabled(boolean enabled) {
+        loginIdField.setEnabled(enabled);
+        passwordField.setEnabled(enabled);
         signInButton.setEnabled(enabled);
     }
 
     @Override
     public void showMessage(String message, boolean error) {
-        messageLabel.setText(message);
+        messageLabel.setText(message == null || message.isBlank() ? " " : message);
         messageLabel.setForeground(error ? SwingStyles.ERROR_TEXT : SwingStyles.MUTED_TEXT);
     }
 
