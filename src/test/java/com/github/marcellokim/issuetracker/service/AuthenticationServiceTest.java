@@ -156,14 +156,6 @@ class AuthenticationServiceTest {
         }
 
         @Override
-        public List<User> findActiveByRole(long projectId, Role role) {
-            return usersByLoginId.values().stream()
-                    .filter(User::isActive)
-                    .filter(user -> user.getRole() == role)
-                    .toList();
-        }
-
-        @Override
         public boolean existsActiveProjectMember(long projectId, String loginId) {
             return findByLoginId(loginId)
                     .filter(User::isActive)

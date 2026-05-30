@@ -113,14 +113,14 @@ class OracleRepositoryIntegrationTest {
                 var project2 = repositories.projects().findByName("Project B").orElseThrow();
 
                 assertEquals(10, repositories.projects().findParticipants(project1.getId()).size());
-                assertEquals(1, repositories.users().findActiveByRole(project1.getId(), Role.PL).size());
-                assertEquals(5, repositories.users().findActiveByRole(project1.getId(), Role.DEV).size());
-                assertEquals(4, repositories.users().findActiveByRole(project1.getId(), Role.TESTER).size());
+                assertTrue(repositories.users().existsActiveProjectMember(project1.getId(), "pl1"));
+                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project1.getId()).size());
+                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project1.getId()).size());
 
                 assertEquals(10, repositories.projects().findParticipants(project2.getId()).size());
-                assertEquals(1, repositories.users().findActiveByRole(project2.getId(), Role.PL).size());
-                assertEquals(5, repositories.users().findActiveByRole(project2.getId(), Role.DEV).size());
-                assertEquals(4, repositories.users().findActiveByRole(project2.getId(), Role.TESTER).size());
+                assertTrue(repositories.users().existsActiveProjectMember(project2.getId(), "pl2"));
+                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project2.getId()).size());
+                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project2.getId()).size());
         }
 
         @Test

@@ -12,8 +12,6 @@ public interface UserRepository {
 
     List<User> findByRole(long projectId, Role role);
 
-    List<User> findActiveByRole(long projectId, Role role);
-
     boolean existsActiveProjectMember(long projectId, String loginId);
 
     User save(User user);

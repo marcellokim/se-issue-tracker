@@ -222,17 +222,16 @@ class AssignmentServiceTest {
     }
 
     private AssignmentService service(InMemoryIssueRepository issueRepository, InMemoryUserRepository userRepository) {
-        var devs = userRepository.findActiveByRole(PROJECT_ID, Role.DEV);
-        var testers = userRepository.findActiveByRole(PROJECT_ID, Role.TESTER);
-        var members = new java.util.ArrayList<User>();
-        members.addAll(devs);
-        members.addAll(testers);
+        var members = userRepository.findAll().stream()
+                .filter(user -> userRepository.existsActiveProjectMember(PROJECT_ID, user.getLoginId()))
+                .filter(user -> user.getRole() == Role.DEV || user.getRole() == Role.TESTER)
+                .toArray(User[]::new);
         return new AssignmentService(
                 issueRepository,
                 userRepository,
                 new PermissionPolicy(),
                 new AssignmentRecommendationService(
-                        new InMemoryAssignmentRecommendationRepository(members.toArray(User[]::new)),
+                        new InMemoryAssignmentRecommendationRepository(members),
                         new KNNAssignmentRecommendation()),
                 java.time.LocalDateTime::now
         );

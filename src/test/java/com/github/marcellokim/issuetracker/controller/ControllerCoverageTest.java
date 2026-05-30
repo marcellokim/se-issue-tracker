@@ -1363,24 +1363,6 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public List<User> findActiveByRole(long projectId, Role role) {
-            if (projects == null) {
-                return usersByLoginId.values().stream()
-                        .filter(User::isActive)
-                        .filter(user -> user.getRole() == role)
-                        .toList();
-            }
-
-            return projects.findParticipants(projectId).stream()
-                    .map(ProjectMember::userId)
-                    .map(usersByLoginId::get)
-                    .filter(Objects::nonNull)
-                    .filter(User::isActive)
-                    .filter(user -> user.getRole() == role)
-                    .toList();
-        }
-
-        @Override
         public boolean existsActiveProjectMember(long projectId, String loginId) {
             User user = usersByLoginId.get(loginId);
             if (user == null || !user.isActive()) {

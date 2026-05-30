@@ -45,22 +45,6 @@ public final class JdbcUserRepository implements UserRepository {
               and u.role = ?
             order by u.login_id
             """;
-    private static final String FIND_ACTIVE_BY_ROLE_SQL = """
-            select u.login_id,
-                   u.name,
-                   c.password_salt || ':' || c.password_hash as password,
-                   u.role,
-                   u.active,
-                   u.created_at,
-                   u.updated_at
-            from users u
-            join user_credentials c on c.login_id = u.login_id
-            join project_members pm on pm.user_login_id = u.login_id
-            where pm.project_id = ?
-              and u.role = ?
-              and u.active = 1
-            order by u.login_id
-            """;
     private static final String EXISTS_ACTIVE_PROJECT_MEMBER_SQL = """
             select 1
             from project_members pm
@@ -152,11 +136,6 @@ public final class JdbcUserRepository implements UserRepository {
     @Override
     public List<User> findByRole(long projectId, Role role) {
         return findProjectUsersByRole(FIND_BY_ROLE_SQL, projectId, role);
-    }
-
-    @Override
-    public List<User> findActiveByRole(long projectId, Role role) {
-        return findProjectUsersByRole(FIND_ACTIVE_BY_ROLE_SQL, projectId, role);
     }
 
     private List<User> findProjectUsersByRole(String sql, long projectId, Role role) {

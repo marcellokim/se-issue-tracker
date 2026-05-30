@@ -117,8 +117,4 @@ public final class InMemoryIssueRepository implements IssueRepository {
         return issue.title().toLowerCase().contains(normalizedKeyword)
                 || issue.description().toLowerCase().contains(normalizedKeyword);
     }
-
-    private static UnsupportedOperationException unexpectedRepositoryCall(String methodName) {
-        return new UnsupportedOperationException("Unexpected repository call: " + methodName);
-    }
 }
