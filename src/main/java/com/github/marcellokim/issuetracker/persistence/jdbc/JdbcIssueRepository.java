@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,11 +19,9 @@ public final class JdbcIssueRepository implements IssueRepository {
     private final DatabaseConnectionProvider connectionProvider;
     private final JdbcIssueRowMapper rowMapper = new JdbcIssueRowMapper();
     private final JdbcIssueWriteSupport writes = new JdbcIssueWriteSupport();
-    private final JdbcIssueDeleteOperations deleteOperations;
 
     public JdbcIssueRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
-        deleteOperations = new JdbcIssueDeleteOperations(connectionProvider, rowMapper, writes);
     }
 
     @Override
@@ -57,18 +54,6 @@ public final class JdbcIssueRepository implements IssueRepository {
             return executeIssueList(statement);
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to find issues by ids.", exception);
-        }
-    }
-
-    @Override
-    public List<Issue> findDeletedByProject(long projectId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection
-                        .prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
-            statement.setLong(1, projectId);
-            return executeIssueList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list deleted issues.", exception);
         }
     }
 
@@ -170,38 +155,6 @@ public final class JdbcIssueRepository implements IssueRepository {
             return insert(issue);
         }
         return update(issue);
-    }
-
-    @Override
-    public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        return deleteOperations.softDelete(issueId, changedById, message, changedDate);
-    }
-
-    @Override
-    public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        return deleteOperations.restore(issueId, changedById, message, changedDate);
-    }
-
-    @Override
-    public int purgeDeletedById(long issueId) {
-        return deleteOperations.purgeDeletedById(issueId);
-    }
-
-    @Override
-    public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
-        return deleteOperations.purgeDeletedBeyondLimit(projectId, maxDeletedIssues);
-    }
-
-    @Override
-    public List<Issue> findRecommendationForAssignment(long projectId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection
-                        .prepareStatement(JdbcIssueQueries.FIND_RESOLVED_OR_CLOSED_BY_PROJECT_SQL)) {
-            statement.setLong(1, projectId);
-            return executeIssueList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find issues for recommendation - SQL fault", exception);
-        }
     }
 
     private Issue insert(Issue issue) {

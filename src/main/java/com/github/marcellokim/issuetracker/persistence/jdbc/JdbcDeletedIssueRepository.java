@@ -3,6 +3,7 @@ package com.github.marcellokim.issuetracker.persistence.jdbc;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.repository.DeletedIssueRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-final class JdbcIssueDeleteOperations {
+public final class JdbcDeletedIssueRepository implements DeletedIssueRepository {
 
     private static final int PURGE_BATCH_SIZE = 500;
 
@@ -21,17 +22,29 @@ final class JdbcIssueDeleteOperations {
     private final JdbcIssueRowMapper rowMapper;
     private final JdbcIssueWriteSupport writes;
 
-    JdbcIssueDeleteOperations(
-            DatabaseConnectionProvider connectionProvider,
-            JdbcIssueRowMapper rowMapper,
-            JdbcIssueWriteSupport writes) {
+    public JdbcDeletedIssueRepository(DatabaseConnectionProvider connectionProvider){
         this.connectionProvider = connectionProvider;
-        this.rowMapper = rowMapper;
-        this.writes = writes;
+        this.rowMapper = new JdbcIssueRowMapper();
+        this.writes = new JdbcIssueWriteSupport();
     }
 
-    // 삭제와 복구는 상태 전이와 의존성 제거를 함께 묶어야 하므로 repository facade에서 분리.
-    Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
+    @Override
+    public List<Issue> findDeletedByProject(long projectId){
+        try(Connection connection = connectionProvider.getConnection();
+            PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)){
+            statement.setLong(1, projectId);
+            try(ResultSet resultSet = statement.executeQuery()){
+                List<Issue> deletedIssues = new ArrayList<>();
+                while (resultSet.next()){ deletedIssues.add(rowMapper.mapIssue(resultSet)); }
+                return deletedIssues;
+            }
+        } catch (SQLException exception){
+            throw new RepositoryException("Failed to list deleted issues.", exception);
+        }
+    }
+
+    @Override
+    public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
         requireText(changedById, "changedById");
         requireText(message, "message");
 
@@ -76,7 +89,8 @@ final class JdbcIssueDeleteOperations {
         }
     }
 
-    Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
+    @Override
+    public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
         requireText(changedById, "changedById");
         requireText(message, "message");
 
@@ -121,7 +135,8 @@ final class JdbcIssueDeleteOperations {
         }
     }
 
-    int purgeDeletedById(long issueId) {
+    @Override
+    public int purgeDeletedById(long issueId) {
         String sql = "delete from issues where id = ? and status = 'DELETED'";
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -132,7 +147,8 @@ final class JdbcIssueDeleteOperations {
         }
     }
 
-    int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
+    @Override
+    public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
         if (maxDeletedIssues < 0) {
             throw new IllegalArgumentException("maxDeletedIssues must not be negative");
         }

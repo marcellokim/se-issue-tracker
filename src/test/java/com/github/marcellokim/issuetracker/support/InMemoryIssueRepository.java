@@ -4,8 +4,6 @@ import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
-import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +33,6 @@ public final class InMemoryIssueRepository implements IssueRepository {
         return issueIds.stream()
                 .filter(issues::containsKey)
                 .map(issues::get)
-                .toList();
-    }
-
-    @Override
-    public List<Issue> findDeletedByProject(long projectId) {
-        return issues.values().stream()
-                .filter(issue -> issue.projectId() == projectId)
-                .filter(issue -> issue.status() == IssueStatus.DELETED)
-                .sorted(Comparator.comparing(Issue::reportedDate).reversed()
-                        .thenComparing(Comparator.comparingLong(Issue::id).reversed()))
                 .toList();
     }
 
@@ -101,31 +89,6 @@ public final class InMemoryIssueRepository implements IssueRepository {
         issues.put(saved.id(), saved);
         nextId = Math.max(nextId, saved.id() + 1);
         return saved;
-    }
-
-    @Override
-    public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        throw unexpectedRepositoryCall("softDelete");
-    }
-
-    @Override
-    public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
-        throw unexpectedRepositoryCall("restore");
-    }
-
-    @Override
-    public int purgeDeletedById(long issueId) {
-        Issue issue = issues.get(issueId);
-        if (issue == null || issue.status() != IssueStatus.DELETED) {
-            return 0;
-        }
-        issues.remove(issueId);
-        return 1;
-    }
-
-    @Override
-    public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
-        return 0;
     }
 
     private Issue persistNew(Issue issue) {

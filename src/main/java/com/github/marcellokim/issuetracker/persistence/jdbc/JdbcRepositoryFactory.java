@@ -6,6 +6,7 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvide
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
+import com.github.marcellokim.issuetracker.repository.DeletedIssueRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
@@ -54,6 +55,10 @@ public final class JdbcRepositoryFactory {
 
     public AssignmentRecommendationRepository assignmentRecommendations() {
         return new JdbcAssignmentRecommendationRepository(connectionProvider);
+    }
+
+    public DeletedIssueRepository deletedIssues() {
+        return new JdbcDeletedIssueRepository(connectionProvider);
     }
 
     public DashboardSummaryRepository dashboardSummaries() {

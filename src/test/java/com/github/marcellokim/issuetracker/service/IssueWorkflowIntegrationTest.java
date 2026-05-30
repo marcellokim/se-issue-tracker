@@ -83,7 +83,10 @@ class IssueWorkflowIntegrationTest {
                 issueRepository,
                 userRepository,
                 policy,
-                new AssignmentRecommendationService(issueRepository, userRepository, new KNNAssignmentRecommendation()),
+                new AssignmentRecommendationService(
+                        new com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendationRepository(
+                                reporter, assignee, verifier, pl),
+                        new KNNAssignmentRecommendation()),
                 java.time.LocalDateTime::now);
         var stateService = new IssueStateService(
                 issueRepository,

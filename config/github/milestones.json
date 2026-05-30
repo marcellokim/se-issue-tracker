@@ -5,14 +5,14 @@
   },
   {
     "title": "M2 - 핵심 도메인 및 영속 저장소",
-    "description": "계정, 프로젝트, 이슈, 댓글, 상태 전이, 검색, DB 기반 영속 저장소와 핵심 서비스 계층을 구현한다. 재조정 기준: M2 잔여 API는 2026-05-25 KST까지 닫는다."
+    "description": "계정, 프로젝트, 이슈, 댓글, 상태 전이, 검색, DB 기반 영속 저장소와 핵심 서비스 계층 구현 완료. 2026-05-30 재조정 기준으로 M2 잔여 open work는 M3/M4로 이동하거나 완료 정리한다."
   },
   {
     "title": "M3 - 다중 UI 및 데모 흐름",
-    "description": "JavaFX와 Swing 두 UI에서 공통 모델/서비스를 재사용하고, 과제 PDF의 데모 시나리오를 실행 가능하게 만든다. 병렬 재조정 기준: #105/#141/#142와 #24/#111 통합 영향은 2026-05-28 KST merge point에서 dev 기준으로 정리하고, M3 마일스톤은 2026-05-29 KST 버퍼로 둔다."
+    "description": "JavaFX와 Swing 두 UI에서 공통 model/service/controller를 재사용하고 과제 데모 흐름을 실행 가능하게 만든다. 2026-05-30 재조정 기준: backend/controller/persistence는 dev 기준 준비, 남은 범위는 JavaFX core/secondary action, Swing 보조 UI, 화면 증빙이며 M3 UI demo freeze 목표는 2026-06-01 KST."
   },
   {
     "title": "M4 - 검증 및 제출 패키지",
-    "description": "JUnit 테스트, 최종 프로젝트 문서, 발표 자료, 데모 영상, 제출 zip을 정리하고 최종 제출 상태를 검증한다. 과제 최종 마감은 2일 연장된 2026-06-04 21:00 KST이며, M4는 2026-06-03 KST 내부 검증 마감으로 둔다."
+    "description": "JUnit 테스트, Oracle/CI 검증, 최종 프로젝트 문서, 발표 자료, 데모 영상, 제출 zip, GitHub Project 증빙을 정리한다. 2026-05-30 재조정 기준: M4 내부 freeze는 2026-06-03 KST, 최종 제출은 연장 공지가 적용된 2026-06-04 21:00 KST 기준으로 관리한다."
   }
 ]

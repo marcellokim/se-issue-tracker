@@ -25,6 +25,8 @@ import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
+import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
+import com.github.marcellokim.issuetracker.repository.DeletedIssueRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
@@ -288,7 +290,7 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(activeIssue, deletedIssue, purgeTarget);
         DeletedIssueController controller = new DeletedIssueController(
                 auth.service(),
-                new DeletedIssueService(issues, auth.users(), new PermissionPolicy(), java.time.LocalDateTime::now));
+                new DeletedIssueService(issues, issues, auth.users(), new PermissionPolicy(), java.time.LocalDateTime::now));
 
         List<IssueSummary> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
         IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
@@ -314,13 +316,13 @@ class ControllerCoverageTest {
         FakeIssueRepository issues = new FakeIssueRepository(issue(101L, PROJECT_ID, IssueStatus.NEW));
         DeletedIssueController anonymousController = new DeletedIssueController(
                 anonymousAuth(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                new DeletedIssueService(issues, issues, new FakeUserRepository(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         assertThrows(SecurityException.class, () -> anonymousController.viewDeletedIssues(PROJECT_ID));
 
         DeletedIssueController adminController = new DeletedIssueController(
                 authenticated(Role.ADMIN).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                new DeletedIssueService(issues, issues, new FakeUserRepository(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         SecurityException adminFailure = assertThrows(SecurityException.class,
                 () -> adminController.deleteIssue(101L, "admin cannot delete"));
@@ -328,7 +330,7 @@ class ControllerCoverageTest {
 
         DeletedIssueController plController = new DeletedIssueController(
                 authenticated(Role.PL).service(),
-                new DeletedIssueService(issues, new FakeUserRepository(), new PermissionPolicy(),
+                new DeletedIssueService(issues, issues, new FakeUserRepository(), new PermissionPolicy(),
                         java.time.LocalDateTime::now));
         assertThrows(IllegalArgumentException.class, () -> plController.restoreIssue(999L, "missing"));
     }
@@ -690,7 +692,13 @@ class ControllerCoverageTest {
         Issue completedIssue = issueWithCompletedOwners(202L, PROJECT_ID, dev, tester);
         PermissionPolicy policy = new PermissionPolicy();
         FakeIssueRepository issues = new FakeIssueRepository(issue, completedIssue);
-        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation());
+        FakeAssignmentRecommendationRepository recommendations = new FakeAssignmentRecommendationRepository();
+        recommendations.addResolvedIssue(new AssignmentRecommendationRepository.IssueRecommendationData(
+                completedIssue.title(), completedIssue.description(), dev.getLoginId(), tester.getLoginId()));
+        recommendations.addCandidate(dev);
+        recommendations.addCandidate(tester);
+        AssignmentRecommendationService recommendationService = new AssignmentRecommendationService(
+                recommendations, new KNNAssignmentRecommendation());
         AssignmentController controller = new AssignmentController(
                 auth.service(),
                 new com.github.marcellokim.issuetracker.service.AssignmentService(
@@ -760,7 +768,7 @@ class ControllerCoverageTest {
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
         FakeIssueRepository issues = new FakeIssueRepository(issue);
         AssignmentRecommendationService recommendations = new AssignmentRecommendationService(
-                issues, new FakeUserRepository(), new KNNAssignmentRecommendation());
+                new FakeAssignmentRecommendationRepository(), new KNNAssignmentRecommendation());
         PermissionPolicy policy = new PermissionPolicy();
 
         AssignmentController anonymousController = new AssignmentController(
@@ -1035,7 +1043,7 @@ class ControllerCoverageTest {
                         issues,
                         auth.users(),
                         new PermissionPolicy(),
-                        new AssignmentRecommendationService(issues, auth.users(), new KNNAssignmentRecommendation()),
+                        new AssignmentRecommendationService(new FakeAssignmentRecommendationRepository(), new KNNAssignmentRecommendation()),
                         () -> NOW));
     }
 
@@ -1195,7 +1203,7 @@ class ControllerCoverageTest {
         }
     }
 
-    private static final class FakeIssueRepository implements IssueRepository {
+    private static final class FakeIssueRepository implements IssueRepository, DeletedIssueRepository {
 
         private final Map<Long, Issue> issuesById = new LinkedHashMap<>();
         private String lastChangedBy;
@@ -1309,11 +1317,6 @@ class ControllerCoverageTest {
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
             lastPurgeLimit = maxDeletedIssues;
             return 2;
-        }
-
-        @Override
-        public List<Issue> findRecommendationForAssignment(long projectId) {
-            return findByProject(projectId);
         }
 
     }
@@ -1499,4 +1502,27 @@ class ControllerCoverageTest {
         }
     }
 
+    private static final class FakeAssignmentRecommendationRepository implements AssignmentRecommendationRepository {
+
+        private final List<IssueRecommendationData> resolvedIssues = new ArrayList<>();
+        private final List<User> candidates = new ArrayList<>();
+
+        void addResolvedIssue(IssueRecommendationData data) { resolvedIssues.add(data); }
+        void addCandidate(User user) { candidates.add(user); }
+
+        @Override
+        public List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId) {
+            return List.copyOf(resolvedIssues);
+        }
+
+        @Override
+        public List<User> findActiveDevCandidates(long projectId) {
+            return candidates.stream().filter(u -> u.getRole() == Role.DEV && u.isActive()).toList();
+        }
+
+        @Override
+        public List<User> findActiveTesterCandidates(long projectId) {
+            return candidates.stream().filter(u -> u.getRole() == Role.TESTER && u.isActive()).toList();
+        }
+    }
 }
