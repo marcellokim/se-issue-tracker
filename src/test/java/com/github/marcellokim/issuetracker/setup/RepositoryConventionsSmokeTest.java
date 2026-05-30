@@ -117,6 +117,8 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "min_graphql_remaining=250"),
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "GitHub rate-limit 조회 실패"),
                 new ScriptExpectation(".github/workflows/project-maintenance.yml", "name: 프로젝트 상태 정렬"),
+                new ScriptExpectation(".github/workflows/project-maintenance.yml", "자동화 정합성 점검 전 GraphQL rate-limit 확인"),
+                new ScriptExpectation(".github/workflows/project-maintenance.yml", "자동화 정합성 점검을 건너뜁니다"),
                 new ScriptExpectation(".github/workflows/add-to-project.yml", "name: 프로젝트 항목 자동 추가"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "name: PR 메타데이터 정렬"),
                 new ScriptExpectation(".github/workflows/pr-metadata.yml", "pull_request_target"),
