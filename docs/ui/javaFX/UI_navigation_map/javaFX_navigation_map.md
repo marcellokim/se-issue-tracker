@@ -27,6 +27,8 @@
 | 5 | 삭제 이슈 관리 | PL | 이슈 목록에서 진입 |
 | 6 | 통계 | PL, Dev, Tester | 이슈 목록에서 진입 |
 
+Non-admin 사용자가 프로젝트를 선택하면 이슈 목록 화면은 프로젝트 내부 화면 역할을 한다. 따라서 화면 진입 시 `ProjectController.viewProjectNonAdminDetail(projectId)`로 프로젝트 기본 정보를 조회하고, `IssueController.viewRelatedProjectIssues(projectId)`로 현재 사용자와 관련된 이슈 목록을 조회한다.
+
 ## 이슈 상세 화면 — 버튼 활성화 제어
 
 이슈 상세 화면 진입 시 `IssueController.viewAvailableActions(issueId)`를 호출하여 `IssueWorkflowActions`를 받는다. UI는 이 boolean 값으로만 버튼 표시 여부를 결정한다. 비즈니스 규칙을 UI에 중복 구현하지 않는다.
@@ -69,7 +71,7 @@
   │                                         ├──→ 프로젝트 수정/삭제
   │                                         └──→ 멤버 추가/제거
   │
-  └── PL|Dev|Tester ──→ 프로젝트 목록 ──→ 이슈 목록 ──→ 이슈 상세
+  └── PL|Dev|Tester ──→ 프로젝트 목록 ──→ 이슈 목록(프로젝트 기본정보 + 관련 이슈) ──→ 이슈 상세
                                             │               │
                                             │               ├──→ 상태 변경 (viewAvailableActions 기반)
                                             │               ├──→ 배정/재배정 (KNN 추천)
