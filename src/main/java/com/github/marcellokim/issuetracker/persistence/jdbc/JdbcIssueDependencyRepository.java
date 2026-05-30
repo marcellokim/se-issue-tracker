@@ -49,17 +49,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public List<IssueDependency> findDependenciesBlockedByIssue(long blockingIssueId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_DEPENDENCIES_BLOCKED_BY_ISSUE_SQL)) {
-            statement.setLong(1, blockingIssueId);
-            return executeDependencyList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list dependencies by blocking issue.", exception);
-        }
-    }
-
-    @Override
     public List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(FIND_DEPENDENCIES_BLOCKING_ISSUE_SQL)) {
