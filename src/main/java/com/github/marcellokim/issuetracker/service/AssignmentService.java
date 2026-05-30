@@ -116,16 +116,17 @@ public final class AssignmentService {
     }
 
     private void requireProjectLead(User actor, long projectId, String message) {
-        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectLead = actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectLead) {
             throw new SecurityException(message);
         }
     }
 
     private void requireActiveProjectMember(User user, long projectId, Role role, String message) {
-        boolean memberWithRole = userRepository.findActiveByRole(projectId, role).stream()
-                .anyMatch(candidate -> candidate.getLoginId().equals(user.getLoginId()));
+        boolean memberWithRole = user.getRole() == role
+                && userRepository.existsActiveProjectMember(projectId, user.getLoginId());
+
         if (!memberWithRole) {
             throw new SecurityException(message);
         }

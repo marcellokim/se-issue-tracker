@@ -11,6 +11,7 @@ import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 public final class IssueStateService {
@@ -141,6 +142,31 @@ public final class IssueStateService {
         }
     }
 
+    /*
+     * private void rejectUnresolvedBlockingIssues(Issue issue) {
+     * List<IssueDependency> dependencies =
+     * dependencyRepository.findByBlockedIssueId(issue.id());
+     * List<Long> blockingIssueIds = dependencies.stream()
+     * .map(IssueDependency::blockingIssueId)
+     * .distinct()
+     * .toList();
+     * 
+     * List<Issue> blockingIssues = issueRepository.findAllById(blockingIssueIds);
+     * if (blockingIssues.size() != blockingIssueIds.size()) {
+     * throw new IllegalArgumentException("Blocking issue was not found.");
+     * }
+     * 
+     * for (Issue blockingIssue : blockingIssues) {
+     * IssueStatus status = blockingIssue.getStatus();
+     * if (status != IssueStatus.RESOLVED && status != IssueStatus.CLOSED) {
+     * throw new IllegalStateException(
+     * "Cannot resolve: blocking issue " + blockingIssue.getIssueId()
+     * + " is still " + status);
+     * }
+     * }
+     * }
+     */
+
     private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
                 .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
@@ -152,16 +178,15 @@ public final class IssueStateService {
     }
 
     private void requireProjectLead(User actor, long projectId, String message) {
-        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectLead = actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectLead) {
             throw new SecurityException(message);
         }
     }
 
     private void requireActiveProjectMember(User actor, long projectId, String message) {
-        boolean projectMember = userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectMember = userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectMember) {
             throw new SecurityException(message);
         }

@@ -5,6 +5,7 @@ import java.util.Objects;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueHistoryRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
@@ -53,5 +54,9 @@ public final class JdbcRepositoryFactory {
 
     public AssignmentRecommendationRepository assignmentRecommendations() {
         return new JdbcAssignmentRecommendationRepository(connectionProvider);
+    }
+
+    public DashboardSummaryRepository dashboardSummaries() {
+        return new JdbcDashboardSummaryRepository(connectionProvider);
     }
 }

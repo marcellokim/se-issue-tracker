@@ -151,7 +151,7 @@ public final class AccountService {
             throw new IllegalArgumentException(
                     "Account role can be changed only when the user has no project membership.");
         }
-        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+        if (issueRepository.hasCurrentIssueResponsibility(target.getLoginId())) {
             throw new IllegalArgumentException(
                     "Account role can be changed only when the user has no assigned issue responsibility.");
         }
@@ -162,7 +162,7 @@ public final class AccountService {
             throw new IllegalArgumentException(
                     "Account can be deactivated only when the user has no project membership.");
         }
-        if (issueRepository.existsByResponsibleUser(target.getLoginId())) {
+        if (issueRepository.hasCurrentIssueResponsibility(target.getLoginId())) {
             throw new IllegalArgumentException(
                     "Account can be deactivated only when the user has no assigned issue responsibility.");
         }

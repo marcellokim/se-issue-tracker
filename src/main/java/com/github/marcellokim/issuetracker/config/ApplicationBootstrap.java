@@ -26,11 +26,9 @@ import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
-import com.github.marcellokim.issuetracker.service.LoginCheckService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
-import com.github.marcellokim.issuetracker.service.RepositoryDemoSummaryService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
@@ -40,37 +38,10 @@ import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
 import java.io.IOException;
 import java.sql.SQLException;
 
-public final class ApplicationBootstrap implements ApplicationRuntime {
+public final class ApplicationBootstrap {
 
         private RepositoryContext context;
         private final PasswordHashing passwordHashing = new PasswordHasher();
-
-        @Override
-        public boolean hasDatabaseEnvironment() {
-                return DatabaseEnvironment.isSystemConfigured();
-        }
-
-        @Override
-        public RepositoryDemoSummaryService repositoryDemoSummaryService() throws IOException, SQLException {
-                var repositories = context().repositories();
-                return new RepositoryDemoSummaryService(
-                                repositories.users(),
-                                repositories.projects(),
-                                repositories.issues(),
-                                repositories.statistics());
-        }
-
-        @Override
-        public LoginCheckService loginCheckService() throws IOException, SQLException {
-                var users = context().repositories().users();
-                return new LoginCheckService(users, authenticationService(users));
-        }
-
-        @Override
-        public DatabaseConnectionSummary databaseConnectionSummary() throws IOException, SQLException {
-                RepositoryContext current = context();
-                return connectionSummary(current.environment(), current.connectionProvider());
-        }
 
         public ApplicationContext startUiContext() throws IOException, SQLException {
                 var repositories = context().repositories();
@@ -82,6 +53,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 var issueDependencies = repositories.issueDependencies();
                 var statistics = repositories.statistics();
                 var assignmentRecommendations = repositories.assignmentRecommendations();
+                var dashboardSummaries = repositories.dashboardSummaries();
                 PermissionPolicy permissionPolicy = new PermissionPolicy();
                 Clock clock = new SystemClock();
                 CommentIdProvider commentIdProvider = new CommentIdGenerator();
@@ -134,9 +106,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                                 clock);
                 StatisticsService statisticsService = new StatisticsService(permissionPolicy, statistics, users);
                 DashboardSummaryService dashboardSummaryService = new DashboardSummaryService(
-                                projects,
-                                issues,
-                                statistics,
+                                dashboardSummaries,
                                 users,
                                 permissionPolicy);
                 return new ApplicationContext(
@@ -153,14 +123,10 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
 
         private synchronized RepositoryContext context() throws IOException, SQLException {
                 if (context == null) {
-                        // JavaFX와 CLI 진단 경로가 동시에 runtime을 요청해도 DB 초기화는 한 번만 수행함.
                         DatabaseEnvironment environment = DatabaseEnvironment.fromSystem();
                         var connectionProvider = DriverManagerConnectionProvider.from(environment);
                         DatabaseInitializer.initializeApplication(connectionProvider);
-                        context = new RepositoryContext(
-                                        environment,
-                                        connectionProvider,
-                                        new JdbcRepositoryFactory(connectionProvider, passwordHashing));
+                        context = new RepositoryContext(new JdbcRepositoryFactory(connectionProvider, passwordHashing));
                 }
                 return context;
         }
@@ -169,31 +135,7 @@ public final class ApplicationBootstrap implements ApplicationRuntime {
                 return new AuthenticationService(users, passwordHashing, new SessionStore());
         }
 
-        private static DatabaseConnectionSummary connectionSummary(
-                        DatabaseEnvironment environment,
-                        DriverManagerConnectionProvider connectionProvider) throws SQLException {
-                String sql = """
-                                select sys_context('USERENV', 'CURRENT_SCHEMA') as current_schema,
-                                       sys_context('USERENV', 'CON_NAME') as container_name
-                                from dual
-                                """;
-                try (var connection = connectionProvider.getConnection();
-                                var statement = connection.prepareStatement(sql);
-                                var resultSet = statement.executeQuery()) {
-                        if (resultSet.next()) {
-                                return new DatabaseConnectionSummary(
-                                                environment.url(),
-                                                environment.user(),
-                                                resultSet.getString("current_schema"),
-                                                resultSet.getString("container_name"));
-                        }
-                }
-                return new DatabaseConnectionSummary(environment.url(), environment.user(), "", "");
-        }
-
         private record RepositoryContext(
-                        DatabaseEnvironment environment,
-                        DriverManagerConnectionProvider connectionProvider,
                         JdbcRepositoryFactory repositories) {
         }
 }

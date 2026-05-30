@@ -70,7 +70,8 @@ public final class JdbcCommentRepository implements CommentRepository {
     }
 
     @Override
-    public Comment saveAndRecordIssueChange(Comment comment, IssueHistory history) {
+    public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
+
         Objects.requireNonNull(history, "history");
         try (Connection connection = connectionProvider.getConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();

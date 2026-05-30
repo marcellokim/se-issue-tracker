@@ -1,31 +1,23 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.Project;
-import com.github.marcellokim.issuetracker.domain.Role;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.IssueRepository;
-import com.github.marcellokim.issuetracker.repository.ProjectRepository;
-import com.github.marcellokim.issuetracker.repository.StatisticsRepository;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 import java.util.List;
 import java.util.Objects;
 
 public final class DashboardSummaryService {
-        private final ProjectRepository projectRepository;
-        private final IssueRepository issueRepository;
-        private final StatisticsRepository statisticsRepository;
+        private final DashboardSummaryRepository dashboardSummaryRepository;
         private final UserRepository userRepository;
         private final PermissionPolicy permissionPolicy;
 
         public DashboardSummaryService(
-                        ProjectRepository projectRepository,
-                        IssueRepository issueRepository,
-                        StatisticsRepository statisticsRepository,
+                        DashboardSummaryRepository dashboardSummaryRepository,
                         UserRepository userRepository,
                         PermissionPolicy permissionPolicy) {
-                this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
-                this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
-                this.statisticsRepository = Objects.requireNonNull(statisticsRepository, "statisticsRepository");
+                this.dashboardSummaryRepository = Objects.requireNonNull(dashboardSummaryRepository,
+                                "dashboardSummaryRepository");
                 this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
                 this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
         }
@@ -35,10 +27,11 @@ public final class DashboardSummaryService {
                 if (!user.isActive()) {
                         throw new SecurityException("Only active users can view dashboard projects.");
                 }
-                return projectRepository.findAll().stream()
-                                .filter(project -> permissionPolicy.canViewAllProjects(user)
-                                                || isParticipant(project.getId(), user.getLoginId()))
-                                .map(this::summarizeProject)
+                List<DashboardProjectSnapshot> snapshots = permissionPolicy.canViewAllProjects(user)
+                                ? dashboardSummaryRepository.findAllProjectSummaries()
+                                : dashboardSummaryRepository.findProjectSummariesByParticipant(user.getLoginId());
+                return snapshots.stream()
+                                .map(DashboardSummaryService::toSummary)
                                 .toList();
         }
 
@@ -52,22 +45,16 @@ public final class DashboardSummaryService {
                                 .toList();
         }
 
-        private DashboardProjectSummary summarizeProject(Project project) {
+        private static DashboardProjectSummary toSummary(DashboardProjectSnapshot snapshot) {
                 return new DashboardProjectSummary(
-                                project.getId(),
-                                project.getName(),
-                                project.getDescription(),
-                                projectRepository.findParticipants(project.getId()).size(),
-                                userRepository.findActiveByRole(project.getId(), Role.PL).size(),
-                                userRepository.findActiveByRole(project.getId(), Role.DEV).size(),
-                                userRepository.findActiveByRole(project.getId(), Role.TESTER).size(),
-                                issueRepository.findByProject(project.getId()).size(),
-                                issueRepository.findDeletedByProject(project.getId()).size(),
-                                statisticsRepository.countByStatus(project.getId()));
-        }
-
-        private boolean isParticipant(long projectId, String loginId) {
-                return projectRepository.findParticipants(projectId).stream()
-                                .anyMatch(member -> member.userId().equals(loginId));
+                                snapshot.projectId(),
+                                snapshot.projectName(),
+                                snapshot.projectDescription(),
+                                snapshot.memberCount(),
+                                snapshot.projectLeaderCount(),
+                                snapshot.developerCount(),
+                                snapshot.testerCount(),
+                                snapshot.visibleIssueCount(),
+                                snapshot.statusCounts());
         }
 }

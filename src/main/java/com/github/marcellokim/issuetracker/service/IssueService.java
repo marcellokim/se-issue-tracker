@@ -240,7 +240,7 @@ public final class IssueService {
                 requiredContent,
                 "comment added",
                 now);
-        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
+        Comment saved = commentRepository.saveCommentAndRecordHistory(comment, history);
         return toCommentResult(saved, writer);
     }
 
@@ -274,7 +274,7 @@ public final class IssueService {
         LocalDateTime now = now();
         String dependencyId = IssueDependency.dependencyIdFor(requiredBlockingIssueId, requiredBlockedIssueId);
         IssueDependency dependency = blockedIssue.addDependency(dependencyId, blockingIssue, actor, now);
-        IssueDependency saved = dependencyRepository.saveAndRecordIssueChange(dependency, blockedIssue);
+        IssueDependency saved = dependencyRepository.recordDependencyAdded(dependency, blockedIssue);
         return toDependencyResult(saved, blockingIssue, blockedIssue);
     }
 
@@ -316,7 +316,7 @@ public final class IssueService {
         requireProjectLead(actor, blockedIssue.projectId(), "Only the project PL can manage dependencies.");
         requireSameProjectDependency(blockingIssue, blockedIssue);
         blockedIssue.removeDependency(dependency, actor, now());
-        dependencyRepository.deleteByDependencyIdAndRecordIssueChange(hashedDependencyId, blockedIssue);
+        dependencyRepository.recordDependencyRemoved(hashedDependencyId, blockedIssue);
     }
 
     public void deleteComment(long issueId, long commentId, String currentLoginId) {
@@ -367,7 +367,7 @@ public final class IssueService {
                 comment.content(),
                 "comment updated",
                 changedAt);
-        Comment saved = commentRepository.saveAndRecordIssueChange(comment, history);
+        Comment saved = commentRepository.saveCommentAndRecordHistory(comment, history);
         return toCommentResult(saved);
     }
 
@@ -401,8 +401,8 @@ public final class IssueService {
     }
 
     private void requireProjectLead(User actor, long projectId, String message) {
-        boolean projectLead = userRepository.findActiveByRole(projectId, Role.PL).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        boolean projectLead = actor.getRole() == Role.PL
+                && userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
         if (!projectLead) {
             throw new SecurityException(message);
         }
@@ -415,8 +415,7 @@ public final class IssueService {
     }
 
     private boolean isActiveProjectMember(User actor, long projectId) {
-        return userRepository.findActiveByRole(projectId, actor.getRole()).stream()
-                .anyMatch(user -> user.getLoginId().equals(actor.getLoginId()));
+        return userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
     private static boolean isRelatedParticipant(Issue issue, String loginId) {

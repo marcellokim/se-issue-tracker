@@ -80,7 +80,6 @@ public final class InMemoryProjectRepository implements ProjectRepository {
                 .findFirst();
     }
 
-    @Override
     public List<Project> findAll() {
         return projects.values().stream()
                 .sorted(Comparator.comparingLong(Project::getId))

@@ -61,6 +61,15 @@ public final class JdbcUserRepository implements UserRepository {
               and u.active = 1
             order by u.login_id
             """;
+    private static final String EXISTS_ACTIVE_PROJECT_MEMBER_SQL = """
+            select 1
+            from project_members pm
+            join users u on u.login_id = pm.user_login_id
+            where pm.project_id = ?
+              and u.login_id = ?
+              and u.active = 1
+              and rownum = 1
+            """;
     private static final String INSERT_USER_SQL = """
             insert into users (login_id, name, role, active, created_at, updated_at)
             values (?, ?, ?, ?, coalesce(?, current_timestamp), coalesce(?, current_timestamp))
@@ -125,6 +134,20 @@ public final class JdbcUserRepository implements UserRepository {
             return users;
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to list users.", exception);
+        }
+    }
+
+    @Override
+    public boolean existsActiveProjectMember(long projectId, String loginId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection.prepareStatement(EXISTS_ACTIVE_PROJECT_MEMBER_SQL)) {
+            statement.setLong(1, projectId);
+            statement.setString(2, Objects.requireNonNull(loginId, "loginId"));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException exception) {
+            throw new RepositoryException("Failed to check active project membership.", exception);
         }
     }
 
