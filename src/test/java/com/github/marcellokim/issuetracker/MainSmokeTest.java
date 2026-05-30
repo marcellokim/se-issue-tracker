@@ -13,4 +13,10 @@ class MainSmokeTest {
     void mainClassLoadsWithoutError() {
         assertDoesNotThrow(() -> Class.forName("com.github.marcellokim.issuetracker.Main"));
     }
+
+    @Test
+    @DisplayName("Swing app class loads without error")
+    void swingAppClassLoadsWithoutError() {
+        assertDoesNotThrow(() -> Class.forName("com.github.marcellokim.issuetracker.ui.swing.SwingApp"));
+    }
 }
