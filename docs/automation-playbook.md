@@ -65,6 +65,11 @@ PR 제목은 자동화 실패 조건으로 두지 않고 팀 작성 기준으로
 실행 또는 수동 `workflow_dispatch`에서 다시 정렬한다. 반대로 rate limit 조회 자체가 실패하면
 토큰/네트워크/API 문제일 수 있으므로 실패로 드러내고 조용히 건너뛰지 않는다.
 
+`PR 메타데이터 정렬` 워크플로우도 GraphQL 잔여량이 낮으면 성공 상태로 보정 작업을 건너뛴다.
+PR 생성 시점의 1차 정렬은 `scripts/open-pr.sh`가 수행하므로, Actions 쪽 보정은 API 한도 보호를
+우선한다. 잔여량 부족으로 건너뛴 경우에는 reset 이후 push, PR 편집, 수동 재실행 중 하나로 다시
+정렬한다.
+
 공개 GitHub 이력에는 팀원 이름과 저장소 계정만 남긴다. 외부 도구명, 자동 생성 표기, 공동작성자
 trailer는 commit message hook, staged file hook, 저장소 감사에서 차단한다.
 
