@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.repository.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;

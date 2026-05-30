@@ -6,7 +6,6 @@ public final class Main {
     }
 
     public static void main(String[] args) {
-        System.out.println("Issue Tracker application started.");
-        System.out.println("UI entry point is not available yet.");
+        javafx.application.Application.launch(com.github.marcellokim.issuetracker.ui.javafx.JavaFXApp.class, args);
     }
 }

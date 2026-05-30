@@ -1,10 +1,12 @@
 package com.github.marcellokim.issuetracker.repository;
 
-import com.github.marcellokim.issuetracker.domain.StatisticsReport;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
 public interface StatisticsRepository {
+
+    record DailyIssueCount(LocalDate date, int count) {}
+    record MonthlyIssueCount(YearMonth month, int count) {}
 
     StatisticsReport calculateProjectStatistics(
             long projectId,

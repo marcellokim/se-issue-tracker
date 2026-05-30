@@ -6,7 +6,7 @@ import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
-import com.github.marcellokim.issuetracker.domain.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.repository.IssueSearchCriteria;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;

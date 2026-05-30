@@ -1,8 +1,11 @@
 package com.github.marcellokim.issuetracker.config;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
+import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
-import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
@@ -14,29 +17,26 @@ import com.github.marcellokim.issuetracker.persistence.DatabaseInitializer;
 import com.github.marcellokim.issuetracker.persistence.DriverManagerConnectionProvider;
 import com.github.marcellokim.issuetracker.persistence.jdbc.JdbcRepositoryFactory;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
-import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
-import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.Clock;
-import com.github.marcellokim.issuetracker.technical.SystemClock;
+import com.github.marcellokim.issuetracker.service.CommentIdProvider;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
+import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
-import com.github.marcellokim.issuetracker.service.CommentIdProvider;
-import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
-
-import java.io.IOException;
-import java.sql.SQLException;
+import com.github.marcellokim.issuetracker.technical.SystemClock;
 
 public final class ApplicationBootstrap {
 
@@ -94,23 +94,10 @@ public final class ApplicationBootstrap {
                                 comments,
                                 users,
                                 permissionPolicy);
-                DeletedIssueService deletedIssueService = new DeletedIssueService(
-                                issues,
-                                deletedIssues,
-                                users,
-                                permissionPolicy,
-                                clock);
-                ProjectService projectService = new ProjectService(
-                                projects,
-                                issues,
-                                users,
-                                permissionPolicy,
-                                clock);
+                DeletedIssueService deletedIssueService = new DeletedIssueService(issues,deletedIssues,users,permissionPolicy,clock);
+                ProjectService projectService = new ProjectService(projects,issues,users,permissionPolicy,clock);
                 StatisticsService statisticsService = new StatisticsService(permissionPolicy, statistics, users);
-                DashboardSummaryService dashboardSummaryService = new DashboardSummaryService(
-                                dashboardSummaries,
-                                users,
-                                permissionPolicy);
+                DashboardSummaryService dashboardSummaryService = new DashboardSummaryService(dashboardSummaries,users,permissionPolicy);
                 return new ApplicationContext(
                                 new AuthenticationController(authenticationService),
                                 new AccountController(authenticationService, accountService),
