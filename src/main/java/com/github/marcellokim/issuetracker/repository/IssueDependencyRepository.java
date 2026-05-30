@@ -6,16 +6,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IssueDependencyRepository {
-
-    Optional<IssueDependency> findById(long dependencyId);
-
     Optional<IssueDependency> findByDependencyId(String dependencyId);
 
-    List<IssueDependency> findByIssueId(long issueId);
-
-    List<IssueDependency> findByBlockingIssueId(long blockingIssueId);
-
-    List<IssueDependency> findByBlockedIssueId(long blockedIssueId);
+    List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId);
 
     List<IssueDependency> findByProjectId(long projectId);
 

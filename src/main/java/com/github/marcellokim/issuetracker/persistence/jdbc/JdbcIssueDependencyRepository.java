@@ -1,9 +1,7 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
-import com.github.marcellokim.issuetracker.domain.ActionType;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
-import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.RepositoryException;
@@ -19,35 +17,15 @@ import java.util.Optional;
 public final class JdbcIssueDependencyRepository implements IssueDependencyRepository {
 
     private static final String BASE_SELECT = "select id, dependency_id, blocking_issue_id, blocked_issue_id, discovered_at from issue_dependencies";
-    private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_DEPENDENCY_ID_SQL = BASE_SELECT + " where dependency_id = ?";
-    private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT
-            + " where blocking_issue_id = ? or blocked_issue_id = ? order by id";
-    private static final String FIND_BY_BLOCKING_ISSUE_ID_SQL = BASE_SELECT
-            + " where blocking_issue_id = ? order by id";
-    private static final String FIND_BY_BLOCKED_ISSUE_ID_SQL = BASE_SELECT + " where blocked_issue_id = ? order by id";
+    private static final String FIND_DEPENDENCIES_BLOCKING_ISSUE_SQL = BASE_SELECT
+            + " where blocked_issue_id = ? order by id";
 
     private final DatabaseConnectionProvider connectionProvider;
     private final JdbcIssueWriteSupport writes = new JdbcIssueWriteSupport();
 
     public JdbcIssueDependencyRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
-    }
-
-    @Override
-    public Optional<IssueDependency> findById(long id) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
-            statement.setLong(1, id);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapDependency(resultSet));
-                }
-                return Optional.empty();
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find issue dependency by id.", exception);
-        }
     }
 
     @Override
@@ -67,32 +45,9 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public List<IssueDependency> findByIssueId(long issueId) {
+    public List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId) {
         try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_ISSUE_ID_SQL)) {
-            statement.setLong(1, issueId);
-            statement.setLong(2, issueId);
-            return executeDependencyList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list dependencies by issue.", exception);
-        }
-    }
-
-    @Override
-    public List<IssueDependency> findByBlockingIssueId(long blockingIssueId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_BLOCKING_ISSUE_ID_SQL)) {
-            statement.setLong(1, blockingIssueId);
-            return executeDependencyList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list dependencies by blocking issue.", exception);
-        }
-    }
-
-    @Override
-    public List<IssueDependency> findByBlockedIssueId(long blockedIssueId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_BY_BLOCKED_ISSUE_ID_SQL)) {
+                PreparedStatement statement = connection.prepareStatement(FIND_DEPENDENCIES_BLOCKING_ISSUE_SQL)) {
             statement.setLong(1, blockedIssueId);
             return executeDependencyList(statement);
         } catch (SQLException exception) {
@@ -146,10 +101,9 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
-                IssueHistory history = latestDependencyHistory(issue, dependency.getDependencyId(), false);
                 IssueDependency saved = insert(connection, dependency);
-                updateIssueTimestamp(connection, issue.id(), history.changedDate());
-                writes.insertTransientHistories(connection, issue.id(), List.of(history));
+                updateIssueTimestamp(connection, issue.id(), issue.updatedAt());
+                writes.insertTransientHistories(connection, issue.id(), issue.getHistories());
                 connection.commit();
                 transactionSucceeded = true;
                 return saved;
@@ -172,9 +126,8 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
             try {
-                IssueHistory history = latestDependencyHistory(issue, dependencyId, true);
-                updateIssueTimestamp(connection, issue.id(), history.changedDate());
-                writes.insertTransientHistories(connection, issue.id(), List.of(history));
+                updateIssueTimestamp(connection, issue.id(), issue.updatedAt());
+                writes.insertTransientHistories(connection, issue.id(), issue.getHistories());
                 try (PreparedStatement statement = connection.prepareStatement(sql)) {
                     statement.setString(1, dependencyId);
                     int affectedRows = statement.executeUpdate();
@@ -193,30 +146,6 @@ public final class JdbcIssueDependencyRepository implements IssueDependencyRepos
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to delete issue dependency with issue history.", exception);
         }
-    }
-
-    private static IssueHistory latestDependencyHistory(Issue issue, String dependencyId, boolean removal) {
-        List<IssueHistory> histories = issue.getHistories();
-        if (histories.isEmpty()) {
-            throw new RepositoryException("Issue dependency history was not recorded.", null);
-        }
-        IssueHistory history = histories.getLast();
-        if (history.actionType() != ActionType.DEPENDENCY_CHANGED) {
-            throw new RepositoryException("Latest issue history is not a dependency change.", null);
-        }
-        if (removal && history.newValue() != null) {
-            throw new RepositoryException("Latest issue history is not a dependency removal.", null);
-        }
-        if (removal && !dependencyId.equals(history.previousValue())) {
-            throw new RepositoryException("Latest issue history does not match dependency removal.", null);
-        }
-        if (!removal && history.previousValue() != null) {
-            throw new RepositoryException("Latest issue history is not a dependency addition.", null);
-        }
-        if (!removal && !dependencyId.equals(history.newValue())) {
-            throw new RepositoryException("Latest issue history does not match dependency addition.", null);
-        }
-        return history;
     }
 
     private static void updateIssueTimestamp(Connection connection, long issueId, LocalDateTime changedAt)

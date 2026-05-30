@@ -152,12 +152,12 @@ class DeletedIssueServiceTest {
         }
 
         @Override
-        public Issue softDelete(long issueId, String changedById, String message, java.time.LocalDateTime changedDate) {
+        public Issue softDelete(Issue issue, String changedById, String message, java.time.LocalDateTime changedDate) {
             throw new UnsupportedOperationException("softDelete");
         }
 
         @Override
-        public Issue restore(long issueId, String changedById, String message, java.time.LocalDateTime changedDate) {
+        public Issue restore(Issue issue, String changedById, String message, java.time.LocalDateTime changedDate) {
             throw new UnsupportedOperationException("restore");
         }
 

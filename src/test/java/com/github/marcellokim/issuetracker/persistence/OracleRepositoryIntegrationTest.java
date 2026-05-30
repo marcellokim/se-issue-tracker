@@ -113,14 +113,18 @@ class OracleRepositoryIntegrationTest {
                 var project2 = repositories.projects().findByName("Project B").orElseThrow();
 
                 assertEquals(10, repositories.projects().findParticipants(project1.getId()).size());
-                assertEquals(1, repositories.users().findActiveByRole(project1.getId(), Role.PL).size());
-                assertEquals(5, repositories.users().findActiveByRole(project1.getId(), Role.DEV).size());
-                assertEquals(4, repositories.users().findActiveByRole(project1.getId(), Role.TESTER).size());
+                assertTrue(repositories.users().existsActiveProjectMember(project1.getId(), "pl1"));
+                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project1.getId())
+                                .size());
+                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project1.getId())
+                                .size());
 
                 assertEquals(10, repositories.projects().findParticipants(project2.getId()).size());
-                assertEquals(1, repositories.users().findActiveByRole(project2.getId(), Role.PL).size());
-                assertEquals(5, repositories.users().findActiveByRole(project2.getId(), Role.DEV).size());
-                assertEquals(4, repositories.users().findActiveByRole(project2.getId(), Role.TESTER).size());
+                assertTrue(repositories.users().existsActiveProjectMember(project2.getId(), "pl2"));
+                assertEquals(5, repositories.assignmentRecommendations().findActiveDevCandidates(project2.getId())
+                                .size());
+                assertEquals(4, repositories.assignmentRecommendations().findActiveTesterCandidates(project2.getId())
+                                .size());
         }
 
         @Test
@@ -137,7 +141,6 @@ class OracleRepositoryIntegrationTest {
                 assertTrue(issues.size() >= 4);
                 assertFalse(repositories.comments().findByIssueId(dependencyIssue.id()).isEmpty());
                 assertFalse(repositories.issueHistory().findByIssueId(dependencyIssue.id()).isEmpty());
-                assertFalse(repositories.issueDependencies().findByIssueId(dependencyIssue.id()).isEmpty());
         }
 
         @Test
@@ -357,11 +360,28 @@ class OracleRepositoryIntegrationTest {
         }
 
         @Test
-        @DisplayName("delete and restore basis uses IssueHistory query API")
-        void deletedRestoreBasisUsesIssueHistoryQuery() {
+        @DisplayName("soft delete records restore basis in issue history")
+        void softDeleteRecordsRestoreBasisInIssueHistory() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
+                Issue issue = null;
 
-                assertNotNull(repositories.issueHistory().findDeletedTransitionsByProject(project.getId()));
+                try {
+                        issue = createIssue(project.getId(), uniqueId("delete_history_basis_issue"), IssueStatus.NEW);
+                        repositories.deletedIssues().softDelete(
+                                        issue,
+                                        "pl1",
+                                        "Delete for restore basis.",
+                                        LocalDateTime.now());
+
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.STATUS_CHANGED
+                                                        && IssueStatus.NEW.name().equals(history.previousValue())
+                                                        && IssueStatus.DELETED.name().equals(history.newValue())));
+                } finally {
+                        if (issue != null) {
+                                purgeTestIssue(issue.id());
+                        }
+                }
         }
 
         @Test
@@ -370,46 +390,23 @@ class OracleRepositoryIntegrationTest {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 Issue newIssue = null;
                 Issue closedIssue = null;
-                var rejectedIssues = new ArrayList<Issue>();
-
                 try {
                         newIssue = createIssue(project.getId(), uniqueId("delete_new_issue"), IssueStatus.NEW);
                         closedIssue = createIssue(project.getId(), uniqueId("delete_closed_issue"), IssueStatus.CLOSED);
 
                         assertEquals(IssueStatus.DELETED, repositories.deletedIssues()
-                                        .softDelete(newIssue.id(), "pl1", "Delete NEW issue.", LocalDateTime.now())
+                                        .softDelete(newIssue, "pl1", "Delete NEW issue.", LocalDateTime.now())
                                         .status());
                         assertEquals(IssueStatus.DELETED, repositories.deletedIssues()
-                                        .softDelete(closedIssue.id(), "pl1", "Delete CLOSED issue.",
+                                        .softDelete(closedIssue, "pl1", "Delete CLOSED issue.",
                                                         LocalDateTime.now())
                                         .status());
-
-                        for (IssueStatus status : List.of(
-                                        IssueStatus.ASSIGNED,
-                                        IssueStatus.FIXED,
-                                        IssueStatus.RESOLVED,
-                                        IssueStatus.REOPENED,
-                                        IssueStatus.DELETED)) {
-                                Issue issue = createIssue(project.getId(), uniqueId("delete_rejected_issue"), status);
-                                rejectedIssues.add(issue);
-
-                                assertThrows(RepositoryException.class,
-                                                () -> repositories.deletedIssues().softDelete(
-                                                                issue.id(),
-                                                                "pl1",
-                                                                "Delete should be rejected.",
-                                                                LocalDateTime.now()));
-                                assertEquals(status, repositories.issues().findById(issue.id()).orElseThrow().status());
-                        }
                 } finally {
                         if (newIssue != null) {
                                 purgeTestIssue(newIssue.id());
                         }
                         if (closedIssue != null) {
                                 purgeTestIssue(closedIssue.id());
-                        }
-                        for (Issue issue : rejectedIssues) {
-                                purgeTestIssue(issue.id());
                         }
                 }
         }
@@ -437,7 +434,7 @@ class OracleRepositoryIntegrationTest {
                                         blocked);
 
                         repositories.deletedIssues().softDelete(
-                                        blocking.id(),
+                                        blocking,
                                         projectLead.getLoginId(),
                                         "Delete blocking issue.",
                                         LocalDateTime.now().plusSeconds(1));
@@ -474,28 +471,29 @@ class OracleRepositoryIntegrationTest {
 
                 try {
                         deletedFromNew = createIssue(project.getId(), uniqueId("restore_new_issue"), IssueStatus.NEW);
-                        repositories.deletedIssues().softDelete(deletedFromNew.id(), "pl1", "Delete before restore.",
+                        repositories.deletedIssues().softDelete(deletedFromNew, "pl1", "Delete before restore.",
                                         LocalDateTime.now());
 
+                        Issue deletedFromNewReloaded = repositories.issues().findById(deletedFromNew.id()).orElseThrow();
                         assertEquals(IssueStatus.NEW, repositories.deletedIssues()
-                                        .restore(deletedFromNew.id(), "pl1", "Restore NEW issue.", LocalDateTime.now())
+                                        .restore(deletedFromNewReloaded, "pl1", "Restore NEW issue.", LocalDateTime.now())
                                         .status());
 
                         invalidDeleted = createIssue(project.getId(), uniqueId("restore_invalid_issue"),
                                         IssueStatus.DELETED);
-                        repositories.issueHistory().save(IssueHistory.newForPersistence(
+                        insertIssueHistory(
                                         invalidDeleted.id(),
                                         "pl1",
                                         ActionType.STATUS_CHANGED,
                                         IssueStatus.ASSIGNED.name(),
                                         IssueStatus.DELETED.name(),
                                         "Invalid delete history.",
-                                        LocalDateTime.now()));
+                                        LocalDateTime.now());
 
                         Issue target = invalidDeleted;
                         assertThrows(RepositoryException.class,
                                         () -> repositories.deletedIssues().restore(
-                                                        target.id(),
+                                                        target,
                                                         "pl1",
                                                         "Invalid restore should be rejected.",
                                                         LocalDateTime.now()));
@@ -545,10 +543,12 @@ class OracleRepositoryIntegrationTest {
                                         repositories.users().findByLoginId(loginId).orElseThrow().getName());
                         assertEquals(Role.TESTER, updated.getRole());
 
-                        repositories.users().deactivate(loginId);
+                        updated.deactivate(LocalDateTime.now());
+                        repositories.users().save(updated);
 
                         assertFalse(repositories.users().findByLoginId(loginId).orElseThrow().isActive());
-                        repositories.users().activate(loginId);
+                        updated.activate(LocalDateTime.now());
+                        repositories.users().save(updated);
 
                         assertTrue(repositories.users().findByLoginId(loginId).orElseThrow().isActive());
                 } finally {
@@ -748,22 +748,29 @@ class OracleRepositoryIntegrationTest {
         }
 
         @Test
-        @DisplayName("Comment repository saves, updates, lists, and deletes comments")
+        @DisplayName("Comment repository saves, updates, lists, and deletes comments with issue history")
         void commentRepositorySupportsCrud() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 Issue issue = createIssue(project.getId(), uniqueId("crud_comment_issue"));
-                Comment comment = null;
 
                 try {
                         LocalDateTime createdAt = LocalDateTime.now();
-                        comment = repositories.comments().save(Comment.fromPersistence(
+                        Comment comment = repositories.comments().saveCommentAndRecordHistory(Comment.fromPersistence(
                                         0L,
                                         issue.id(),
                                         "tester1",
                                         "Initial repository comment.",
                                         CommentPurpose.GENERAL,
                                         createdAt,
-                                        createdAt));
+                                        createdAt),
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.COMMENTED,
+                                                        null,
+                                                        "Initial repository comment.",
+                                                        "comment added",
+                                                        createdAt));
 
                         assertEquals("Initial repository comment.", repositories.comments().findById(comment.id())
                                         .orElseThrow().content());
@@ -773,67 +780,105 @@ class OracleRepositoryIntegrationTest {
 
                         LocalDateTime updatedAt = comment.createdDate().plusMinutes(10);
                         comment.changeContent("Updated repository comment.", updatedAt);
-                        Comment updated = repositories.comments().save(Comment.fromPersistence(
+                        Comment updated = repositories.comments().saveCommentAndRecordHistory(Comment.fromPersistence(
                                         comment.id(),
                                         issue.id(),
                                         "tester1",
                                         comment.content(),
                                         CommentPurpose.GENERAL,
                                         comment.createdDate(),
-                                        comment.updatedDate()));
+                                        comment.updatedDate()),
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.COMMENTED,
+                                                        "Initial repository comment.",
+                                                        "Updated repository comment.",
+                                                        "comment updated",
+                                                        updatedAt));
 
                         assertEquals("Updated repository comment.", updated.content());
                         assertEquals(updatedAt, updated.updatedDate());
 
-                        Comment statusChangeComment = repositories.comments().save(Comment.fromPersistence(
-                                        0L,
-                                        issue.id(),
-                                        "tester1",
-                                        "Status-change repository comment.",
-                                        CommentPurpose.STATUS_CHANGE,
-                                        createdAt,
-                                        createdAt));
+                        Comment statusChangeComment = repositories.comments()
+                                        .saveCommentAndRecordHistory(Comment.fromPersistence(
+                                                        0L,
+                                                        issue.id(),
+                                                        "tester1",
+                                                        "Status-change repository comment.",
+                                                        CommentPurpose.STATUS_CHANGE,
+                                                        createdAt,
+                                                        createdAt),
+                                                        IssueHistory.newForPersistence(
+                                                                        issue.id(),
+                                                                        "tester1",
+                                                                        ActionType.STATUS_CHANGED,
+                                                                        IssueStatus.NEW.name(),
+                                                                        IssueStatus.ASSIGNED.name(),
+                                                                        "Status-change repository comment.",
+                                                                        createdAt));
                         assertThrows(IllegalArgumentException.class,
-                                        () -> repositories.comments().deleteGeneralById(issue.id(),
-                                                        statusChangeComment.id(), "tester1"));
+                                        () -> repositories.comments().deleteGeneralByIdAndRecordIssueChange(
+                                                        issue.id(),
+                                                        statusChangeComment.id(),
+                                                        "tester1",
+                                                        IssueHistory.newForPersistence(
+                                                                        issue.id(),
+                                                                        "tester1",
+                                                                        ActionType.COMMENTED,
+                                                                        "Status-change repository comment.",
+                                                                        null,
+                                                                        "comment deleted",
+                                                                        createdAt.plusMinutes(20))));
                         assertTrue(repositories.comments().findById(statusChangeComment.id()).isPresent());
 
-                        repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
-                        comment = null;
+                        repositories.comments().deleteGeneralByIdAndRecordIssueChange(
+                                        issue.id(),
+                                        comment.id(),
+                                        "tester1",
+                                        IssueHistory.newForPersistence(
+                                                        issue.id(),
+                                                        "tester1",
+                                                        ActionType.COMMENTED,
+                                                        "Updated repository comment.",
+                                                        null,
+                                                        "comment deleted",
+                                                        createdAt.plusMinutes(30)));
 
                         assertTrue(repositories.comments().findById(updated.id()).isEmpty());
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                                                        && "comment added".equals(history.message())));
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                                                        && "comment updated".equals(history.message())));
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.COMMENTED
+                                                        && "comment deleted".equals(history.message())));
                 } finally {
-                        if (comment != null) {
-                                repositories.comments().deleteGeneralById(issue.id(), comment.id(), "tester1");
-                        }
                         purgeTestIssue(issue.id());
                 }
         }
 
         @Test
-        @DisplayName("IssueHistory repository saves history and exposes delete/restore basis")
-        void issueHistoryRepositorySupportsSaveAndRestoreBasisLookup() {
+        @DisplayName("IssueHistory repository finds histories recorded by workflows")
+        void issueHistoryRepositoryFindsWorkflowHistories() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
-                Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"));
+                Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"), IssueStatus.NEW);
 
                 try {
-                        IssueHistory history = repositories.issueHistory().save(IssueHistory.newForPersistence(
-                                        issue.id(),
+                        repositories.deletedIssues().softDelete(
+                                        issue,
                                         "pl1",
-                                        ActionType.STATUS_CHANGED,
-                                        "ASSIGNED",
-                                        "DELETED",
-                                        "Deleted for repository CRUD test.",
-                                        LocalDateTime.now()));
+                                        "Deleted for repository query test.",
+                                        LocalDateTime.now());
 
-                        assertEquals(history.id(),
-                                        repositories.issueHistory().findById(history.id()).orElseThrow().id());
+                        IssueHistory history = repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .filter(value -> value.actionType() == ActionType.STATUS_CHANGED
+                                                        && IssueStatus.DELETED.name().equals(value.newValue()))
+                                        .findFirst()
+                                        .orElseThrow();
                         assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
-                                        .anyMatch(value -> value.id() == history.id()));
-                        assertEquals(history.id(),
-                                        repositories.issueHistory().findLatestStatusChangeToDeleted(issue.id())
-                                                        .orElseThrow().id());
-                        assertTrue(repositories.issueHistory().findDeletedTransitionsByProject(project.getId()).stream()
                                         .anyMatch(value -> value.id() == history.id()));
                 } finally {
                         purgeTestIssue(issue.id());
@@ -859,8 +904,6 @@ class OracleRepositoryIntegrationTest {
                                         blocked);
 
                         assertEquals(dependency.id(),
-                                        repositories.issueDependencies().findById(dependency.id()).orElseThrow().id());
-                        assertEquals(dependency.id(),
                                         repositories.issueDependencies()
                                                         .findByDependencyId(dependency.getDependencyId()).orElseThrow()
                                                         .id());
@@ -870,11 +913,7 @@ class OracleRepositoryIntegrationTest {
                                         .anyMatch(history -> history.actionType() == ActionType.DEPENDENCY_CHANGED
                                                         && dependency.getDependencyId().equals(history.newValue())));
                         assertTrue(repositories.issueDependencies().existsByPair(blocking.id(), blocked.id()));
-                        assertTrue(repositories.issueDependencies().findByIssueId(blocking.id()).stream()
-                                        .anyMatch(value -> value.id() == dependency.id()));
-                        assertTrue(repositories.issueDependencies().findByBlockingIssueId(blocking.id()).stream()
-                                        .anyMatch(value -> value.id() == dependency.id()));
-                        assertTrue(repositories.issueDependencies().findByBlockedIssueId(blocked.id()).stream()
+                        assertTrue(repositories.issueDependencies().findDependenciesBlockingIssue(blocked.id()).stream()
                                         .anyMatch(value -> value.id() == dependency.id()));
                         assertThrows(RepositoryException.class,
                                         () -> repositories.issueDependencies().recordDependencyAdded(
@@ -1319,7 +1358,8 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                new AssignmentRecommendationService(repositories.assignmentRecommendations(), new KNNAssignmentRecommendation()),
+                                new AssignmentRecommendationService(repositories.assignmentRecommendations(),
+                                                new KNNAssignmentRecommendation()),
                                 java.time.LocalDateTime::now);
         }
 
@@ -1475,6 +1515,31 @@ class OracleRepositoryIntegrationTest {
 
         private static void deleteUser(String loginId) {
                 executeUpdate("delete from users where login_id = ?", statement -> statement.setString(1, loginId));
+        }
+
+        private static void insertIssueHistory(
+                        long issueId,
+                        String changedById,
+                        ActionType actionType,
+                        String previousValue,
+                        String newValue,
+                        String message,
+                        LocalDateTime changedAt) {
+                String sql = """
+                                insert into issue_history (
+                                  issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
+                                )
+                                values (?, ?, ?, ?, ?, ?, ?)
+                                """;
+                executeUpdate(sql, statement -> {
+                        statement.setLong(1, issueId);
+                        statement.setString(2, changedById);
+                        statement.setString(3, actionType.name());
+                        statement.setString(4, previousValue);
+                        statement.setString(5, newValue);
+                        statement.setString(6, message);
+                        statement.setObject(7, changedAt);
+                });
         }
 
         private static void executeUpdate(String sql, SqlStatementBinder binder) {

@@ -1,5 +1,9 @@
 package com.github.marcellokim.issuetracker.persistence.jdbc;
 
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
+import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
+import com.github.marcellokim.issuetracker.repository.RepositoryException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,11 +13,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import com.github.marcellokim.issuetracker.domain.IssueStatus;
-import com.github.marcellokim.issuetracker.persistence.DatabaseConnectionProvider;
-import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
-import com.github.marcellokim.issuetracker.repository.RepositoryException;
 
 public final class JdbcDashboardSummaryRepository implements DashboardSummaryRepository {
 

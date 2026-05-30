@@ -188,7 +188,7 @@ public final class IssueWorkflowService {
     }
 
     private boolean allBlockingIssuesResolvedOrClosed(Issue issue) {
-        for (IssueDependency dependency : dependencyRepository.findByBlockedIssueId(issue.id())) {
+        for (IssueDependency dependency : dependencyRepository.findDependenciesBlockingIssue(issue.id())) {
             Issue blockingIssue = findIssue(dependency.blockingIssueId());
             if (blockingIssue.status() != IssueStatus.RESOLVED
                     && blockingIssue.status() != IssueStatus.CLOSED) {

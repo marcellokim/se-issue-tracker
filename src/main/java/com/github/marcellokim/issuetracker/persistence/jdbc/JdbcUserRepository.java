@@ -45,22 +45,6 @@ public final class JdbcUserRepository implements UserRepository {
               and u.role = ?
             order by u.login_id
             """;
-    private static final String FIND_ACTIVE_BY_ROLE_SQL = """
-            select u.login_id,
-                   u.name,
-                   c.password_salt || ':' || c.password_hash as password,
-                   u.role,
-                   u.active,
-                   u.created_at,
-                   u.updated_at
-            from users u
-            join user_credentials c on c.login_id = u.login_id
-            join project_members pm on pm.user_login_id = u.login_id
-            where pm.project_id = ?
-              and u.role = ?
-              and u.active = 1
-            order by u.login_id
-            """;
     private static final String EXISTS_ACTIVE_PROJECT_MEMBER_SQL = """
             select 1
             from project_members pm
@@ -95,8 +79,6 @@ public final class JdbcUserRepository implements UserRepository {
             insert (login_id, password_salt, password_hash)
             values (source.login_id, source.password_salt, source.password_hash)
             """;
-    private static final String ACTIVATE_SQL = "update users set active = 1, updated_at = current_timestamp where login_id = ?";
-    private static final String DEACTIVATE_SQL = "update users set active = 0, updated_at = current_timestamp where login_id = ?";
 
     private final DatabaseConnectionProvider connectionProvider;
     private final PasswordHashing passwordHashing;
@@ -156,11 +138,6 @@ public final class JdbcUserRepository implements UserRepository {
         return findProjectUsersByRole(FIND_BY_ROLE_SQL, projectId, role);
     }
 
-    @Override
-    public List<User> findActiveByRole(long projectId, Role role) {
-        return findProjectUsersByRole(FIND_ACTIVE_BY_ROLE_SQL, projectId, role);
-    }
-
     private List<User> findProjectUsersByRole(String sql, long projectId, Role role) {
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -184,28 +161,6 @@ public final class JdbcUserRepository implements UserRepository {
             return update(user);
         }
         return insert(user);
-    }
-
-    @Override
-    public void activate(String loginId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(ACTIVATE_SQL)) {
-            statement.setString(1, loginId);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to activate user.", exception);
-        }
-    }
-
-    @Override
-    public void deactivate(String loginId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(DEACTIVATE_SQL)) {
-            statement.setString(1, loginId);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to deactivate user.", exception);
-        }
     }
 
     private User insert(User user) {

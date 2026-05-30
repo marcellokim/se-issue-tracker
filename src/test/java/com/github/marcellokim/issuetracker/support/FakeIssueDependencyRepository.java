@@ -14,11 +14,6 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     private long nextId = 1L;
 
     @Override
-    public Optional<IssueDependency> findById(long dependencyId) {
-        return Optional.ofNullable(dependencies.get(dependencyId));
-    }
-
-    @Override
     public Optional<IssueDependency> findByDependencyId(String dependencyId) {
         return dependencies.values().stream()
                 .filter(dependency -> dependency.getDependencyId().equals(dependencyId))
@@ -26,21 +21,7 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
-    public List<IssueDependency> findByIssueId(long issueId) {
-        return dependencies.values().stream()
-                .filter(d -> d.blockingIssueId() == issueId || d.blockedIssueId() == issueId)
-                .toList();
-    }
-
-    @Override
-    public List<IssueDependency> findByBlockingIssueId(long blockingIssueId) {
-        return dependencies.values().stream()
-                .filter(d -> d.blockingIssueId() == blockingIssueId)
-                .toList();
-    }
-
-    @Override
-    public List<IssueDependency> findByBlockedIssueId(long blockedIssueId) {
+    public List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId) {
         return dependencies.values().stream()
                 .filter(d -> d.blockedIssueId() == blockedIssueId)
                 .toList();

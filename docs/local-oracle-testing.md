@@ -72,7 +72,7 @@ Oracle Free는 로그에 ready가 찍힌 뒤에도 listener handler가 순간적
 
 ## 앱 실행용 DB 준비
 
-CLI demo 또는 UI를 Docker DB에 연결하려면 앱 schema를 준비하고 `ITS_DB_*`를 설정한다.
+앱 실행 또는 Oracle 연결 검증을 위해 Docker DB의 앱 schema를 준비하고 `ITS_DB_*`를 설정한다.
 
 macOS/Linux:
 
@@ -81,8 +81,8 @@ macOS/Linux:
 export ITS_DB_URL="jdbc:oracle:thin:@//localhost:1521/FREEPDB1"
 export ITS_DB_USER="ITS_USER"
 export ITS_DB_PASSWORD="ItsLocalDev2026!"
-./gradlew run --args="--cli-demo"
-./gradlew run --args="--login-check admin DemoLocalAdmin!"
+./gradlew oracleConnectionCheck --console=plain
+./gradlew run --console=plain
 ```
 
 Windows PowerShell:
@@ -92,11 +92,11 @@ Windows PowerShell:
 $env:ITS_DB_URL="jdbc:oracle:thin:@//localhost:1521/FREEPDB1"
 $env:ITS_DB_USER="ITS_USER"
 $env:ITS_DB_PASSWORD="ItsLocalDev2026!"
-.\gradlew.bat run --args="--cli-demo"
-.\gradlew.bat run --args="--login-check admin DemoLocalAdmin!"
+.\gradlew.bat oracleConnectionCheck --console=plain
+.\gradlew.bat run --console=plain
 ```
 
-앱 시작 경로는 `DatabaseInitializer.initializeApplication()`을 호출하므로 기존 앱 데이터가 있으면 seed를 다시 넣지 않는다. 고정 demo seed로 되돌려야 할 때만 `oracleLocalResetFixedSeed`를 사용한다.
+앱 schema를 고정 demo seed로 되돌려야 할 때만 `oracleLocalResetFixedSeed`를 사용한다. 현재 `run` 경로는 UI 진입점 준비 전 placeholder이며, Oracle 연결 검증은 `oracleConnectionCheck`와 Oracle 통합 테스트로 확인한다.
 
 ## CI 자동 실행
 

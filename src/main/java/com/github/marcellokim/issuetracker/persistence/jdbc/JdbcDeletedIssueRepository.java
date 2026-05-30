@@ -22,46 +22,41 @@ public final class JdbcDeletedIssueRepository implements DeletedIssueRepository 
     private final JdbcIssueRowMapper rowMapper;
     private final JdbcIssueWriteSupport writes;
 
-    public JdbcDeletedIssueRepository(DatabaseConnectionProvider connectionProvider){
+    public JdbcDeletedIssueRepository(DatabaseConnectionProvider connectionProvider) {
         this.connectionProvider = connectionProvider;
         this.rowMapper = new JdbcIssueRowMapper();
         this.writes = new JdbcIssueWriteSupport();
     }
 
     @Override
-    public List<Issue> findDeletedByProject(long projectId){
-        try(Connection connection = connectionProvider.getConnection();
-            PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)){
+    public List<Issue> findDeletedByProject(long projectId) {
+        try (Connection connection = connectionProvider.getConnection();
+                PreparedStatement statement = connection
+                        .prepareStatement(JdbcIssueQueries.FIND_DELETED_BY_PROJECT_SQL)) {
             statement.setLong(1, projectId);
-            try(ResultSet resultSet = statement.executeQuery()){
+            try (ResultSet resultSet = statement.executeQuery()) {
                 List<Issue> deletedIssues = new ArrayList<>();
-                while (resultSet.next()){ deletedIssues.add(rowMapper.mapIssue(resultSet)); }
+                while (resultSet.next()) {
+                    deletedIssues.add(rowMapper.mapIssue(resultSet));
+                }
                 return deletedIssues;
             }
-        } catch (SQLException exception){
+        } catch (SQLException exception) {
             throw new RepositoryException("Failed to list deleted issues.", exception);
         }
     }
 
     @Override
-    public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
+    public Issue softDelete(Issue issue, String changedById, String message, LocalDateTime changedDate){
         requireText(changedById, "changedById");
         requireText(message, "message");
 
-        try (Connection connection = connectionProvider.getConnection()) {
+        try(Connection connection = connectionProvider.getConnection()){
             boolean originalAutoCommit = connection.getAutoCommit();
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
-            try {
-                Issue issue = findById(connection, issueId)
-                        .orElseThrow(() -> new RepositoryException("Issue was not found.", null));
-                if (issue.status() == IssueStatus.DELETED) {
-                    throw new RepositoryException("Issue is already deleted.", null);
-                }
-                if (!isDeletableStatus(issue.status())) {
-                    throw new RepositoryException("Only NEW or CLOSED issues can be deleted.", null);
-                }
-
+            try{
+                long issueId = issue.id();
                 LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
                 List<DependencyRemoval> dependencyRemovals = findDependencyRemovals(connection, issueId);
                 recordDependencyRemovals(connection, dependencyRemovals, changedById, effectiveChangedDate);
@@ -78,37 +73,32 @@ public final class JdbcDeletedIssueRepository implements DeletedIssueRepository 
                 connection.commit();
                 transactionSucceeded = true;
                 return copyWithStatus(issue, IssueStatus.DELETED, effectiveChangedDate);
-            } catch (SQLException | RuntimeException exception) {
+            } catch (SQLException | RuntimeException exception){
                 writes.rollbackPreservingOriginalFailure(connection);
                 throw exception;
-            } finally {
+            } finally{
                 writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
-        } catch (SQLException exception) {
+        } catch (SQLException exception){
             throw new RepositoryException("Failed to soft-delete issue.", exception);
         }
     }
 
     @Override
-    public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
+    public Issue restore(Issue issue, String changedById, String message, LocalDateTime changedDate){
         requireText(changedById, "changedById");
         requireText(message, "message");
 
-        try (Connection connection = connectionProvider.getConnection()) {
+        try(Connection connection = connectionProvider.getConnection()){
             boolean originalAutoCommit = connection.getAutoCommit();
             boolean transactionSucceeded = false;
             connection.setAutoCommit(false);
-            try {
-                Issue issue = findById(connection, issueId)
-                        .orElseThrow(() -> new RepositoryException("Issue was not found.", null));
-                if (issue.status() != IssueStatus.DELETED) {
-                    throw new RepositoryException("Only deleted issues can be restored.", null);
-                }
-
+            try{
+                long issueId = issue.id();
                 IssueStatus restoreStatus = latestPreDeleteStatus(connection, issueId)
                         .orElseThrow(
                                 () -> new RepositoryException("Restore requires pre-delete status history.", null));
-                if (!isDeletableStatus(restoreStatus)) {
+                if (!isDeletableStatus(restoreStatus)){
                     throw new RepositoryException("Pre-delete status history must be NEW or CLOSED.", null);
                 }
                 LocalDateTime effectiveChangedDate = effectiveChangedDate(changedDate);
@@ -124,13 +114,13 @@ public final class JdbcDeletedIssueRepository implements DeletedIssueRepository 
                 connection.commit();
                 transactionSucceeded = true;
                 return copyWithStatus(issue, restoreStatus, effectiveChangedDate);
-            } catch (SQLException | RuntimeException exception) {
+            } catch (SQLException | RuntimeException exception){
                 writes.rollbackPreservingOriginalFailure(connection);
                 throw exception;
-            } finally {
+            } finally{
                 writes.restoreAutoCommitAfterTransaction(connection, originalAutoCommit, transactionSucceeded);
             }
-        } catch (SQLException exception) {
+        } catch (SQLException exception){
             throw new RepositoryException("Failed to restore issue.", exception);
         }
     }
@@ -198,17 +188,6 @@ public final class JdbcDeletedIssueRepository implements DeletedIssueRepository 
         }
     }
 
-    private Optional<Issue> findById(Connection connection, long issueId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(JdbcIssueQueries.FIND_BY_ID_SQL)) {
-            statement.setLong(1, issueId);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(rowMapper.mapIssue(resultSet));
-                }
-                return Optional.empty();
-            }
-        }
-    }
 
     private static List<DependencyRemoval> findDependencyRemovals(Connection connection, long issueId)
             throws SQLException {

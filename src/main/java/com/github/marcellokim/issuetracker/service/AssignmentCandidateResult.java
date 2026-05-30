@@ -1,6 +1,5 @@
 package com.github.marcellokim.issuetracker.service;
 
-import com.github.marcellokim.issuetracker.domain.AssignmentCandidate;
 import com.github.marcellokim.issuetracker.domain.Role;
 import java.util.Objects;
 
@@ -9,8 +8,7 @@ public record AssignmentCandidateResult(
         String name,
         Role role,
         int completedIssueCount,
-        String reason
-) {
+        String reason) {
 
     public AssignmentCandidateResult {
         if (loginId == null || loginId.isBlank()) {
@@ -23,13 +21,4 @@ public record AssignmentCandidateResult(
         reason = Objects.requireNonNull(reason, "reason");
     }
 
-    public static AssignmentCandidateResult from(AssignmentCandidate candidate) {
-        Objects.requireNonNull(candidate, "candidate");
-        return new AssignmentCandidateResult(
-                candidate.user().getLoginId(),
-                candidate.user().getName(),
-                candidate.user().getRole(),
-                candidate.completedIssueCount(),
-                candidate.reason());
-    }
 }

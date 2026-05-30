@@ -1286,19 +1286,19 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public Issue softDelete(long issueId, String changedById, String message, LocalDateTime changedDate) {
+        public Issue softDelete(Issue issue, String changedById, String message, LocalDateTime changedDate) {
             lastChangedBy = changedById;
-            Issue deleted = copyWithStatus(findById(issueId).orElseThrow(), IssueStatus.DELETED);
-            issuesById.put(issueId, deleted);
+            Issue deleted = copyWithStatus(issue, IssueStatus.DELETED);
+            issuesById.put(issue.id(), deleted);
             return deleted;
         }
 
         @Override
-        public Issue restore(long issueId, String changedById, String message, LocalDateTime changedDate) {
+        public Issue restore(Issue issue, String changedById, String message, LocalDateTime changedDate) {
             lastChangedBy = changedById;
             lastRestoreMessage = message;
-            Issue restored = copyWithStatus(findById(issueId).orElseThrow(), IssueStatus.NEW);
-            issuesById.put(issueId, restored);
+            Issue restored = copyWithStatus(issue, IssueStatus.NEW);
+            issuesById.put(issue.id(), restored);
             return restored;
         }
 
@@ -1363,24 +1363,6 @@ class ControllerCoverageTest {
         }
 
         @Override
-        public List<User> findActiveByRole(long projectId, Role role) {
-            if (projects == null) {
-                return usersByLoginId.values().stream()
-                        .filter(User::isActive)
-                        .filter(user -> user.getRole() == role)
-                        .toList();
-            }
-
-            return projects.findParticipants(projectId).stream()
-                    .map(ProjectMember::userId)
-                    .map(usersByLoginId::get)
-                    .filter(Objects::nonNull)
-                    .filter(User::isActive)
-                    .filter(user -> user.getRole() == role)
-                    .toList();
-        }
-
-        @Override
         public boolean existsActiveProjectMember(long projectId, String loginId) {
             User user = usersByLoginId.get(loginId);
             if (user == null || !user.isActive()) {
@@ -1397,17 +1379,6 @@ class ControllerCoverageTest {
             return user;
         }
 
-        @Override
-        public void activate(String loginId) {
-            LocalDateTime now = LocalDateTime.now();
-            findByLoginId(loginId).ifPresent(user -> user.activate(now));
-        }
-
-        @Override
-        public void deactivate(String loginId) {
-            LocalDateTime now = LocalDateTime.now();
-            findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
-        }
     }
 
     private static final class FakeStatisticsRepository implements StatisticsRepository {
@@ -1438,7 +1409,7 @@ class ControllerCoverageTest {
 
         private FakeCommentRepository(Comment... comments) {
             for (Comment comment : comments) {
-                save(comment);
+                saveInternal(comment);
             }
         }
 
@@ -1454,8 +1425,7 @@ class ControllerCoverageTest {
                     .toList();
         }
 
-        @Override
-        public Comment save(Comment comment) {
+        private Comment saveInternal(Comment comment) {
             if (comment.id() != 0L) {
                 comments.put(comment.id(), comment);
                 nextId = Math.max(nextId, comment.id() + 1L);
@@ -1475,11 +1445,10 @@ class ControllerCoverageTest {
 
         @Override
         public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
-            return save(comment);
+            return saveInternal(comment);
         }
 
-        @Override
-        public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
+        private void deleteGeneralInternal(long issueId, long commentId, String writerLoginId) {
             Comment comment = comments.get(commentId);
             if (comment == null
                     || comment.issueId() != issueId
@@ -1498,7 +1467,7 @@ class ControllerCoverageTest {
                 long commentId,
                 String writerLoginId,
                 IssueHistory history) {
-            deleteGeneralById(issueId, commentId, writerLoginId);
+            deleteGeneralInternal(issueId, commentId, writerLoginId);
         }
     }
 

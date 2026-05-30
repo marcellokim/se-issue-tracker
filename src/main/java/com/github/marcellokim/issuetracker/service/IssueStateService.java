@@ -13,6 +13,9 @@ import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 public final class IssueStateService {
 
     private static final String PROJECT_MEMBER_REQUIRED = "Only project members can change issue status.";
@@ -130,8 +133,9 @@ public final class IssueStateService {
     }
 
     private void rejectUnresolvedBlockingIssues(Issue issue) {
-        for (IssueDependency dep : dependencyRepository.findByBlockedIssueId(issue.id())) {
+        for (IssueDependency dep : dependencyRepository.findDependenciesBlockingIssue(issue.id())) {
             Issue blockingIssue = findIssue(dep.blockingIssueId());
+
             IssueStatus status = blockingIssue.getStatus();
             if (status != IssueStatus.RESOLVED && status != IssueStatus.CLOSED) {
                 throw new IllegalStateException(
@@ -140,31 +144,6 @@ public final class IssueStateService {
             }
         }
     }
-
-    /*
-     * private void rejectUnresolvedBlockingIssues(Issue issue) {
-     * List<IssueDependency> dependencies =
-     * dependencyRepository.findByBlockedIssueId(issue.id());
-     * List<Long> blockingIssueIds = dependencies.stream()
-     * .map(IssueDependency::blockingIssueId)
-     * .distinct()
-     * .toList();
-     * 
-     * List<Issue> blockingIssues = issueRepository.findAllById(blockingIssueIds);
-     * if (blockingIssues.size() != blockingIssueIds.size()) {
-     * throw new IllegalArgumentException("Blocking issue was not found.");
-     * }
-     * 
-     * for (Issue blockingIssue : blockingIssues) {
-     * IssueStatus status = blockingIssue.getStatus();
-     * if (status != IssueStatus.RESOLVED && status != IssueStatus.CLOSED) {
-     * throw new IllegalStateException(
-     * "Cannot resolve: blocking issue " + blockingIssue.getIssueId()
-     * + " is still " + status);
-     * }
-     * }
-     * }
-     */
 
     private Issue findIssue(long issueId) {
         return issueRepository.findById(issueId)
