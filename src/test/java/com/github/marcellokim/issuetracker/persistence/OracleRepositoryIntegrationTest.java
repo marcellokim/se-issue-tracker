@@ -357,11 +357,28 @@ class OracleRepositoryIntegrationTest {
         }
 
         @Test
-        @DisplayName("delete and restore basis uses IssueHistory query API")
-        void deletedRestoreBasisUsesIssueHistoryQuery() {
+        @DisplayName("soft delete records restore basis in issue history")
+        void softDeleteRecordsRestoreBasisInIssueHistory() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
+                Issue issue = null;
 
-                assertNotNull(repositories.issueHistory().findDeletedTransitionsByProject(project.getId()));
+                try {
+                        issue = createIssue(project.getId(), uniqueId("delete_history_basis_issue"), IssueStatus.NEW);
+                        repositories.deletedIssues().softDelete(
+                                        issue.id(),
+                                        "pl1",
+                                        "Delete for restore basis.",
+                                        LocalDateTime.now());
+
+                        assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .anyMatch(history -> history.actionType() == ActionType.STATUS_CHANGED
+                                                        && IssueStatus.NEW.name().equals(history.previousValue())
+                                                        && IssueStatus.DELETED.name().equals(history.newValue())));
+                } finally {
+                        if (issue != null) {
+                                purgeTestIssue(issue.id());
+                        }
+                }
         }
 
         @Test
@@ -483,14 +500,14 @@ class OracleRepositoryIntegrationTest {
 
                         invalidDeleted = createIssue(project.getId(), uniqueId("restore_invalid_issue"),
                                         IssueStatus.DELETED);
-                        repositories.issueHistory().save(IssueHistory.newForPersistence(
+                        insertIssueHistory(
                                         invalidDeleted.id(),
                                         "pl1",
                                         ActionType.STATUS_CHANGED,
                                         IssueStatus.ASSIGNED.name(),
                                         IssueStatus.DELETED.name(),
                                         "Invalid delete history.",
-                                        LocalDateTime.now()));
+                                        LocalDateTime.now());
 
                         Issue target = invalidDeleted;
                         assertThrows(RepositoryException.class,
@@ -860,30 +877,27 @@ class OracleRepositoryIntegrationTest {
         }
 
         @Test
-        @DisplayName("IssueHistory repository saves history and exposes delete/restore basis")
-        void issueHistoryRepositorySupportsSaveAndRestoreBasisLookup() {
+        @DisplayName("IssueHistory repository finds histories recorded by workflows")
+        void issueHistoryRepositoryFindsWorkflowHistories() {
                 var project = repositories.projects().findByName("Project A").orElseThrow();
                 Issue issue = createIssue(project.getId(), uniqueId("crud_history_issue"));
 
                 try {
-                        IssueHistory history = repositories.issueHistory().save(IssueHistory.newForPersistence(
+                        repositories.deletedIssues().softDelete(
                                         issue.id(),
                                         "pl1",
-                                        ActionType.STATUS_CHANGED,
-                                        "ASSIGNED",
-                                        "DELETED",
-                                        "Deleted for repository CRUD test.",
-                                        LocalDateTime.now()));
+                                        "Deleted for repository query test.",
+                                        LocalDateTime.now());
 
-                        assertEquals(history.id(),
-                                        repositories.issueHistory().findById(history.id()).orElseThrow().id());
+                        IssueHistory history = repositories.issueHistory().findByIssueId(issue.id()).stream()
+                                        .filter(value -> value.actionType() == ActionType.STATUS_CHANGED
+                                                        && IssueStatus.DELETED.name().equals(value.newValue()))
+                                        .findFirst()
+                                        .orElseThrow();
                         assertTrue(repositories.issueHistory().findByIssueId(issue.id()).stream()
                                         .anyMatch(value -> value.id() == history.id()));
                         assertEquals(history.id(),
-                                        repositories.issueHistory().findLatestStatusChangeToDeleted(issue.id())
-                                                        .orElseThrow().id());
-                        assertTrue(repositories.issueHistory().findDeletedTransitionsByProject(project.getId()).stream()
-                                        .anyMatch(value -> value.id() == history.id()));
+                                        repositories.issueHistory().findById(history.id()).orElseThrow().id());
                 } finally {
                         purgeTestIssue(issue.id());
                 }
@@ -1524,6 +1538,31 @@ class OracleRepositoryIntegrationTest {
 
         private static void deleteUser(String loginId) {
                 executeUpdate("delete from users where login_id = ?", statement -> statement.setString(1, loginId));
+        }
+
+        private static void insertIssueHistory(
+                        long issueId,
+                        String changedById,
+                        ActionType actionType,
+                        String previousValue,
+                        String newValue,
+                        String message,
+                        LocalDateTime changedAt) {
+                String sql = """
+                                insert into issue_history (
+                                  issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
+                                )
+                                values (?, ?, ?, ?, ?, ?, ?)
+                                """;
+                executeUpdate(sql, statement -> {
+                        statement.setLong(1, issueId);
+                        statement.setString(2, changedById);
+                        statement.setString(3, actionType.name());
+                        statement.setString(4, previousValue);
+                        statement.setString(5, newValue);
+                        statement.setString(6, message);
+                        statement.setObject(7, changedAt);
+                });
         }
 
         private static void executeUpdate(String sql, SqlStatementBinder binder) {

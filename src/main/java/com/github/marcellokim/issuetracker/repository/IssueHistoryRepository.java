@@ -9,10 +9,4 @@ public interface IssueHistoryRepository {
     Optional<IssueHistory> findById(long historyId);
 
     List<IssueHistory> findByIssueId(long issueId);
-
-    Optional<IssueHistory> findLatestStatusChangeToDeleted(long issueId);
-
-    List<IssueHistory> findDeletedTransitionsByProject(long projectId);
-
-    IssueHistory save(IssueHistory history);
 }
