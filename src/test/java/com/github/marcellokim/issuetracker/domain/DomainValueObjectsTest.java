@@ -11,6 +11,10 @@ import com.github.marcellokim.issuetracker.support.AssignmentContext;
 import com.github.marcellokim.issuetracker.support.IssueSearchCriteriaTestFactory;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
+import com.github.marcellokim.issuetracker.repository.IssueSearchCriteria;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -54,10 +58,10 @@ class DomainValueObjectsTest {
                 assertEquals(NOW.minusDays(1), criteria.reportedFrom());
                 assertEquals(NOW, criteria.reportedTo());
                 assertTrue(criteria.includeDeleted());
-                DailyIssueCount dailyCount = DailyIssueCount.create(date, 2);
-                DailyIssueCount sameDailyCount = DailyIssueCount.create(date, 2);
-                MonthlyIssueCount monthlyCount = MonthlyIssueCount.create(month, 5);
-                MonthlyIssueCount sameMonthlyCount = MonthlyIssueCount.create(month, 5);
+                DailyIssueCount dailyCount = new DailyIssueCount(date, 2);
+                DailyIssueCount sameDailyCount = new DailyIssueCount(date, 2);
+                MonthlyIssueCount monthlyCount = new MonthlyIssueCount(month, 5);
+                MonthlyIssueCount sameMonthlyCount = new MonthlyIssueCount(month, 5);
                 ProjectMember projectMember = ProjectMember.create(1L, "dev1", NOW);
                 ProjectMember sameProjectMember = ProjectMember.create(1L, "dev1", NOW);
                 AssignmentContext assignmentContext = AssignmentContext.create(7L, IssueStatus.FIXED, "dev1",
@@ -197,9 +201,9 @@ class DomainValueObjectsTest {
                 Map<Priority, Integer> priorityCounts = new EnumMap<>(Priority.class);
                 priorityCounts.put(Priority.MAJOR, 2);
                 List<DailyIssueCount> dailyCounts = new ArrayList<>(
-                                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)));
+                                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)));
                 List<MonthlyIssueCount> monthlyCounts = new ArrayList<>(
-                                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)));
+                                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)));
                 Map<YearMonth, Map<IssueStatus, Integer>> monthlyStatusCounts = new java.util.LinkedHashMap<>();
                 monthlyStatusCounts.put(YearMonth.of(2026, 5), Map.of(IssueStatus.NEW, 1));
                 Map<YearMonth, Map<Priority, Integer>> monthlyPriorityCounts = new java.util.LinkedHashMap<>();
@@ -214,19 +218,19 @@ class DomainValueObjectsTest {
                                 monthlyPriorityCounts);
                 statusCounts.put(IssueStatus.CLOSED, 99);
                 priorityCounts.put(Priority.CRITICAL, 99);
-                dailyCounts.add(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 99));
-                monthlyCounts.add(MonthlyIssueCount.create(YearMonth.of(2026, 6), 99));
+                dailyCounts.add(new DailyIssueCount(LocalDate.of(2026, 5, 20), 99));
+                monthlyCounts.add(new MonthlyIssueCount(YearMonth.of(2026, 6), 99));
                 monthlyStatusCounts.put(YearMonth.of(2026, 6), Map.of(IssueStatus.CLOSED, 99));
                 monthlyPriorityCounts.put(YearMonth.of(2026, 6), Map.of(Priority.CRITICAL, 99));
 
                 assertEquals(Map.of(IssueStatus.NEW, 1), report.statusCounts());
                 assertEquals(Map.of(Priority.MAJOR, 2), report.priorityCounts());
-                assertEquals(List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
-                assertEquals(List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
+                assertEquals(List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)), report.dailyCounts());
+                assertEquals(List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)), report.monthlyCounts());
                 assertEquals(Map.of(IssueStatus.NEW, 1), report.monthlyStatusCounts().get(YearMonth.of(2026, 5)));
                 assertEquals(Map.of(Priority.MAJOR, 2), report.monthlyPriorityCounts().get(YearMonth.of(2026, 5)));
                 assertThrows(UnsupportedOperationException.class,
-                                () -> report.dailyCounts().add(DailyIssueCount.create(LocalDate.now(), 1)));
+                                () -> report.dailyCounts().add(new DailyIssueCount(LocalDate.now(), 1)));
                 assertThrows(UnsupportedOperationException.class,
                                 () -> report.monthlyStatusCounts().put(YearMonth.of(2026, 7), Map.of()));
         }
@@ -239,8 +243,8 @@ class DomainValueObjectsTest {
                 StatisticsReport differentReport = StatisticsReportTestFactory.create(
                                 Map.of(IssueStatus.CLOSED, 2),
                                 Map.of(Priority.CRITICAL, 3),
-                                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 20), 4)),
-                                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 6), 5)));
+                                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 20), 4)),
+                                List.of(new MonthlyIssueCount(YearMonth.of(2026, 6), 5)));
 
                 assertValueSemantics(
                                 report,
@@ -293,12 +297,12 @@ class DomainValueObjectsTest {
         @Test
         @DisplayName("daily and monthly issue counts have value semantics")
         void issueCountsHaveValueSemantics() {
-                DailyIssueCount daily = DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3);
-                DailyIssueCount sameDaily = DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3);
-                DailyIssueCount differentDaily = DailyIssueCount.create(LocalDate.of(2026, 5, 20), 4);
-                MonthlyIssueCount monthly = MonthlyIssueCount.create(YearMonth.of(2026, 5), 5);
-                MonthlyIssueCount sameMonthly = MonthlyIssueCount.create(YearMonth.of(2026, 5), 5);
-                MonthlyIssueCount differentMonthly = MonthlyIssueCount.create(YearMonth.of(2026, 6), 6);
+                DailyIssueCount daily = new DailyIssueCount(LocalDate.of(2026, 5, 19), 3);
+                DailyIssueCount sameDaily = new DailyIssueCount(LocalDate.of(2026, 5, 19), 3);
+                DailyIssueCount differentDaily = new DailyIssueCount(LocalDate.of(2026, 5, 20), 4);
+                MonthlyIssueCount monthly = new MonthlyIssueCount(YearMonth.of(2026, 5), 5);
+                MonthlyIssueCount sameMonthly = new MonthlyIssueCount(YearMonth.of(2026, 5), 5);
+                MonthlyIssueCount differentMonthly = new MonthlyIssueCount(YearMonth.of(2026, 6), 6);
 
                 assertEquals(LocalDate.of(2026, 5, 19), daily.date());
                 assertEquals(3, daily.count());
@@ -313,8 +317,8 @@ class DomainValueObjectsTest {
                 return StatisticsReportTestFactory.create(
                                 Map.of(IssueStatus.NEW, 1),
                                 Map.of(Priority.MAJOR, 2),
-                                List.of(DailyIssueCount.create(LocalDate.of(2026, 5, 19), 3)),
-                                List.of(MonthlyIssueCount.create(YearMonth.of(2026, 5), 4)),
+                                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 19), 3)),
+                                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)),
                                 Map.of(YearMonth.of(2026, 5), Map.of(IssueStatus.NEW, 1)),
                                 Map.of(YearMonth.of(2026, 5), Map.of(Priority.MAJOR, 2)));
         }
