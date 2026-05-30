@@ -229,19 +229,17 @@ class IssueWorkflowServiceTest {
                     .toList();
         }
 
-        @Override
-        public Comment save(Comment comment) {
+        private Comment saveInternal(Comment comment) {
             comments.put(comment.id(), comment);
             return comment;
         }
 
         @Override
         public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
-            return save(comment);
+            return saveInternal(comment);
         }
 
-        @Override
-        public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
+        private void deleteGeneralInternal(long issueId, long commentId, String writerLoginId) {
             comments.remove(commentId);
         }
 
@@ -251,7 +249,7 @@ class IssueWorkflowServiceTest {
                 long commentId,
                 String writerLoginId,
                 IssueHistory history) {
-            deleteGeneralById(issueId, commentId, writerLoginId);
+            deleteGeneralInternal(issueId, commentId, writerLoginId);
         }
     }
 }

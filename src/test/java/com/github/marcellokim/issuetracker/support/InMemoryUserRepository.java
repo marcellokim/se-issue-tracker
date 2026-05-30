@@ -4,7 +4,6 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -47,16 +46,6 @@ public final class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public List<User> findActiveByRole(long projectId, Role role) {
-        Set<String> members = projectMembers.get(projectId);
-        return users.values().stream()
-                .filter(User::isActive)
-                .filter(user -> user.getRole() == role)
-                .filter(user -> projectMembers.isEmpty() || members != null && members.contains(user.getLoginId()))
-                .toList();
-    }
-
-    @Override
     public boolean existsActiveProjectMember(long projectId, String loginId) {
         Set<String> members = projectMembers.get(projectId);
         return findByLoginId(loginId)
@@ -71,15 +60,4 @@ public final class InMemoryUserRepository implements UserRepository {
         return user;
     }
 
-    @Override
-    public void activate(String loginId) {
-        LocalDateTime now = LocalDateTime.now();
-        findByLoginId(loginId).ifPresent(user -> user.activate(now));
-    }
-
-    @Override
-    public void deactivate(String loginId) {
-        LocalDateTime now = LocalDateTime.now();
-        findByLoginId(loginId).ifPresent(user -> user.deactivate(now));
-    }
 }

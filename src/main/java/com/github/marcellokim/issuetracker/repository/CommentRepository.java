@@ -11,11 +11,7 @@ public interface CommentRepository {
 
     List<Comment> findByIssueId(long issueId);
 
-    Comment save(Comment comment);
-
     Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history);
-
-    void deleteGeneralById(long issueId, long commentId, String writerLoginId);
 
     void deleteGeneralByIdAndRecordIssueChange(
             long issueId,

@@ -13,6 +13,9 @@ import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+
 public final class IssueStateService {
 
     private static final String PROJECT_MEMBER_REQUIRED = "Only project members can change issue status.";

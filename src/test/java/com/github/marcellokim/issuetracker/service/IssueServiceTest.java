@@ -1386,8 +1386,7 @@ class IssueServiceTest {
                                         .toList();
                 }
 
-                @Override
-                public Comment save(Comment comment) {
+                private Comment saveInternal(Comment comment) {
                         if (comment.id() != 0L) {
                                 comments.put(comment.id(), comment);
                                 nextId = Math.max(nextId, comment.id() + 1L);
@@ -1407,15 +1406,14 @@ class IssueServiceTest {
 
                 @Override
                 public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
-                        Comment saved = save(comment);
+                        Comment saved = saveInternal(comment);
                         if (histories != null) {
                                 histories.save(history);
                         }
                         return saved;
                 }
 
-                @Override
-                public void deleteGeneralById(long issueId, long commentId, String writerLoginId) {
+                private void deleteGeneralInternal(long issueId, long commentId, String writerLoginId) {
                         Comment comment = comments.get(commentId);
                         if (comment == null
                                         || comment.issueId() != issueId
@@ -1434,7 +1432,7 @@ class IssueServiceTest {
                                 long commentId,
                                 String writerLoginId,
                                 IssueHistory history) {
-                        deleteGeneralById(issueId, commentId, writerLoginId);
+                        deleteGeneralInternal(issueId, commentId, writerLoginId);
                         if (histories != null) {
                                 histories.save(history);
                         }

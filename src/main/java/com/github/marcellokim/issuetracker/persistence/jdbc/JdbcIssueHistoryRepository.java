@@ -22,13 +22,6 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             """;
     private static final String FIND_BY_ID_SQL = BASE_SELECT + " where id = ?";
     private static final String FIND_BY_ISSUE_ID_SQL = BASE_SELECT + " where issue_id = ? order by changed_at, id";
-    private static final String FIND_LATEST_STATUS_CHANGE_TO_DELETED_SQL = BASE_SELECT + """
-             where issue_id = ?
-               and action_type = 'STATUS_CHANGED'
-               and new_value = 'DELETED'
-             order by changed_at desc, id desc
-             fetch first 1 rows only
-            """;
 
     private final DatabaseConnectionProvider connectionProvider;
 
@@ -60,75 +53,6 @@ public final class JdbcIssueHistoryRepository implements IssueHistoryRepository 
             return executeHistoryList(statement);
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to list issue history.", exception);
-        }
-    }
-
-    @Override
-    public Optional<IssueHistory> findLatestStatusChangeToDeleted(long issueId) {
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(FIND_LATEST_STATUS_CHANGE_TO_DELETED_SQL)) {
-            statement.setLong(1, issueId);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return Optional.of(mapHistory(resultSet));
-                }
-                return Optional.empty();
-            }
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to find latest delete history.", exception);
-        }
-    }
-
-    @Override
-    public List<IssueHistory> findDeletedTransitionsByProject(long projectId) {
-        String sql = """
-                select h.id, h.issue_id, h.changed_by_login_id, h.action_type, h.previous_value,
-                       h.new_value, h.message, h.changed_at
-                from issue_history h
-                join issues i on i.id = h.issue_id
-                where i.project_id = ?
-                  and h.action_type = 'STATUS_CHANGED'
-                  and h.new_value = 'DELETED'
-                order by h.changed_at, h.id
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, projectId);
-            return executeHistoryList(statement);
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to list deleted transitions.", exception);
-        }
-    }
-
-    @Override
-    public IssueHistory save(IssueHistory history) {
-        if (history.id() != 0L) {
-            throw new IllegalArgumentException("Issue history must be new before save.");
-        }
-        return insert(history);
-    }
-
-    private IssueHistory insert(IssueHistory history) {
-        String sql = """
-                insert into issue_history (
-                    issue_id, changed_by_login_id, action_type, previous_value, new_value, message, changed_at
-                )
-                values (?, ?, ?, ?, ?, ?, coalesce(?, current_timestamp))
-                """;
-        try (Connection connection = connectionProvider.getConnection();
-                PreparedStatement statement = JdbcSupport.prepareInsertReturningId(connection, sql)) {
-            statement.setLong(1, history.issueId());
-            statement.setString(2, history.changedById());
-            statement.setString(3, history.actionType().name());
-            JdbcSupport.setNullableString(statement, 4, history.getPreviousValue());
-            JdbcSupport.setNullableString(statement, 5, history.getNewValue());
-            statement.setString(6, history.getMessage());
-            JdbcSupport.setNullableTimestamp(statement, 7, history.getChangedDate());
-            statement.executeUpdate();
-            return findById(JdbcSupport.generatedId(statement))
-                    .orElseThrow(() -> new RepositoryException("Inserted issue history was not found.", null));
-        } catch (SQLException exception) {
-            throw new RepositoryException("Failed to insert issue history.", exception);
         }
     }
 

@@ -25,17 +25,6 @@ public final class FakeIssueHistoryRepository implements IssueHistoryRepository 
                 .toList();
     }
 
-    @Override
-    public Optional<IssueHistory> findLatestStatusChangeToDeleted(long issueId) {
-        return Optional.empty();
-    }
-
-    @Override
-    public List<IssueHistory> findDeletedTransitionsByProject(long projectId) {
-        return List.of();
-    }
-
-    @Override
     public IssueHistory save(IssueHistory history) {
         if (history.id() != 0L) {
             throw new IllegalArgumentException("Issue history must be new before save.");
