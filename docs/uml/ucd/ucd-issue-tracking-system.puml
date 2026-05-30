@@ -39,7 +39,7 @@ rectangle "Issue Tracking System" as System {
   usecase "UC3\nSearch Issues" as UC3 <<shared>>
   usecase "UC6\nChange Issue State" as UC6 <<shared>>
   usecase "UC2\nAdd Comment" as UC2 <<shared>>
-  usecase "UC15\nEdit Issue\n(reporter only, NEW)" as UC15 <<shared>>
+  usecase "UC15\nEdit Issue\n(reporter only, NEW or REOPENED)" as UC15 <<shared>>
   usecase "UC4\nView Issue Detail" as UC4 <<shared>>
   usecase "UC1\nRegister Issue" as UC1 <<shared>>
   usecase "UC10\nStatistics" as UC10 <<shared>>

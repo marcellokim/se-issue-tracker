@@ -6,10 +6,12 @@ participant ":Issue Tracking System" as S
 note over A, S
 사전조건: DEV 로그인, 자신에게 배정된 Issue, status=ASSIGNED, UC14 권한 검사
 end note
-A -> S: changeStatus(issueId, targetStatus=FIXED, comment)
+A -> S: addStatusChangeComment(issueId, comment)
+S --> A: statusChangeCommentAccepted(commentId, createdDate)
+A -> S: changeStatus(issueId, targetStatus=FIXED)
 S --> A: updatedIssue(issueId, status=FIXED)
 note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
+UC6은 UC2 Add Comment를 include하므로 상태 변경 사유 코멘트는 필수이다.
 결과: status=FIXED, fixer=current DEV 자동 기록, 필수 Comment와 IssueHistory(STATUS_CHANGED, previousValue=ASSIGNED, newValue=FIXED) 기록
 end note
 @enduml

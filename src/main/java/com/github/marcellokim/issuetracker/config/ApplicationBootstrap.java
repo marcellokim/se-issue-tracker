@@ -79,7 +79,8 @@ public final class ApplicationBootstrap {
                                 issues,
                                 users,
                                 permissionPolicy,
-                                new AssignmentRecommendationService(assignmentRecommendations, new KNNAssignmentRecommendation()),
+                                new AssignmentRecommendationService(assignmentRecommendations,
+                                                new KNNAssignmentRecommendation()),
                                 clock);
                 IssueStateService issueStateService = new IssueStateService(
                                 issues,
