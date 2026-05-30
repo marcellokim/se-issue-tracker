@@ -97,6 +97,55 @@ class ProjectMaintenanceScriptTest {
     }
 
     @Test
+    @DisplayName("본문 Closes가 PR 번호를 가리키면 완료 대상 이슈로 처리하지 않는다")
+    void mergedDevPrCompletionIgnoresPullRequestReferencesFromBody() throws IOException, InterruptedException {
+        String script = """
+                import importlib.util
+                import sys
+                import types
+
+                spec = importlib.util.spec_from_file_location("project_maintenance", "scripts/lib/project_maintenance.py")
+                project_maintenance = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = project_maintenance
+                spec.loader.exec_module(project_maintenance)
+
+                def fake_gh_json(args):
+                    if args[:2] == ["pr", "list"]:
+                        return [{
+                            "number": 9007,
+                            "title": "metadata loop",
+                            "body": "## 관련 이슈\\n- Closes #9107\\n",
+                            "closingIssuesReferences": []
+                        }]
+                    if args[:3] == ["issue", "view", "9107"]:
+                        return {
+                            "number": 9107,
+                            "title": "already merged pull request",
+                            "state": "MERGED",
+                            "url": "https://github.com/marcellokim/se-issue-tracker/pull/9107",
+                            "labels": [{"name": "status:done"}]
+                        }
+                    raise AssertionError(args)
+
+                project_maintenance.gh_json = fake_gh_json
+                project_maintenance.run = lambda *args, **kwargs: types.SimpleNamespace(returncode=0, stdout="", stderr="")
+
+                changes = []
+                project_maintenance.sync_issue_completion_from_merged_dev_prs(
+                    "marcellokim/se-issue-tracker",
+                    dry_run=True,
+                    changes=changes
+                )
+
+                assert changes == [], changes
+                """;
+
+        ScriptResult result = runPython(script);
+
+        assertEquals(0, result.exitCode(), result.output());
+    }
+
+    @Test
     @DisplayName("본문 fallback 이슈 조회 실패가 not-found가 아니면 오류를 숨기지 않는다")
     void mergedDevPrCompletionReraisesNonMissingIssueLookupFailures() throws IOException, InterruptedException {
         String script = """
