@@ -19,7 +19,7 @@ final class LoginPanel extends JPanel implements LoginView {
     private final JPasswordField passwordField = new JPasswordField();
     private final JButton signInButton = new JButton("Sign in");
     private final JLabel messageLabel = new JLabel(" ");
-    private Runnable loginRequested = () -> {
+    private transient Runnable loginRequested = () -> {
     };
 
     LoginPanel() {

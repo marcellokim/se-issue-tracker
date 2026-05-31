@@ -21,13 +21,13 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private static final String ADMIN_DASHBOARD_CARD = "adminDashboard";
     private static final String PROJECT_LIST_CARD = "projectList";
 
-    private final AuthenticationController authenticationController;
-    private final Consumer<String> titleUpdater;
+    private final transient AuthenticationController authenticationController;
+    private final transient Consumer<String> titleUpdater;
     private final CardLayout cardLayout = new CardLayout();
     private final LoginPanel loginPanel = new LoginPanel();
     private final JPanel adminDashboardCard = new JPanel(new BorderLayout());
     private final JPanel projectListCard = new JPanel(new BorderLayout());
-    private SwingWorker<Void, Void> loginWorker;
+    private transient SwingWorker<Void, Void> loginWorker;
 
     SwingAppPanel(AuthenticationController authenticationController, Consumer<String> titleUpdater) {
         this.authenticationController = Objects.requireNonNull(authenticationController, "authenticationController");

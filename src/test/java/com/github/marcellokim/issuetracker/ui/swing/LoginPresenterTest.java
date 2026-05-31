@@ -156,6 +156,7 @@ class LoginPresenterTest {
 
         @Override
         public void showLogin() {
+            throw new AssertionError("LoginPresenter should not navigate back to login in these tests.");
         }
 
         @Override
