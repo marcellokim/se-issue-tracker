@@ -32,6 +32,7 @@ final class IssueListScreen extends VBox {
     private Runnable onBack;
     private Runnable onDeletedIssueManage;
     private Runnable onStatistics;
+    private Runnable onGraph;
 
     IssueListScreen(IssueController issueController, ProjectController projectController, long projectId, boolean isPl){
         this.issueController = issueController;
@@ -69,6 +70,10 @@ final class IssueListScreen extends VBox {
         statsButton.setOnAction(event -> { if (onStatistics != null) onStatistics.run(); });
         toolbar.getChildren().add(statsButton);
 
+        Button graphButton = new Button("Dependency Graph");
+        graphButton.setOnAction(event -> { if (onGraph != null) onGraph.run(); });
+        toolbar.getChildren().add(graphButton);
+
         issueList.setCellFactory(list -> new IssueCell());
         ScreenComponents.setupListDoubleClick(issueList, i -> { if (onIssueSelected != null) onIssueSelected.accept(i); });
         VBox.setVgrow(issueList, Priority.ALWAYS);
@@ -83,6 +88,7 @@ final class IssueListScreen extends VBox {
     void setOnBack(Runnable action){ this.onBack = action; }
     void setOnDeletedIssueManage(Runnable action){ this.onDeletedIssueManage = action; }
     void setOnStatistics(Runnable action){ this.onStatistics = action; }
+    void setOnGraph(Runnable action){ this.onGraph = action; }
 
     private void loadProjectInfo(ProjectController projectController){
         try{
