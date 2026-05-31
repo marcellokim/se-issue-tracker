@@ -5,33 +5,35 @@ left to right direction
 hide stereotype
 hide circle
 skinparam classAttributeIconSize 0
-skinparam nodesep 65
-skinparam ranksep 65
+skinparam dpi 150
+skinparam nodesep 95
+skinparam ranksep 90
 skinparam linetype polyline
+skinparam ArrowFontSize 16
+skinparam ArrowThickness 1.35
+skinparam PackageFontSize 16
 skinparam class {
   BackgroundColor #FFFFFF
   BorderColor #37474F
   FontColor #263238
+  FontSize 15
+  AttributeFontSize 14
   BorderColor<<core>> #1565C0
-  BorderColor<<aggregate>> #2E7D32
+  BorderColor<<record>> #2E7D32
+  BorderColor<<value>> #6A1B9A
   BorderColor<<relation>> #8D6E63
-}
-skinparam enum {
-  BackgroundColor #FFFFFF
-  BorderColor #6A1B9A
-  FontColor #263238
 }
 
 title Issue Tracking System - Domain Model
 
-package "사용자 / 프로젝트" #EEF6FF {
+package "사용자와 프로젝트" #EEF6FF {
   class User <<core>> {
-    userId
     loginId
     name
-    passwordHash
     role: Role
-    isActive
+    active
+    createdDate
+    updatedDate
   }
 
   class Project <<core>> {
@@ -39,30 +41,40 @@ package "사용자 / 프로젝트" #EEF6FF {
     name
     description
     createdDate
+    updatedDate
+  }
+
+  class ProjectMember <<relation>> {
+    joinedDate
   }
 }
 
-package "이슈 Aggregate" #F1F8E9 {
-  class Issue <<aggregate>> {
+package "이슈 업무" #F1F8E9 {
+  class Issue <<core>> {
     issueId
     title
     description
     reportedDate
+    updatedDate
     priority: Priority
     status: IssueStatus
   }
 
-  class Comment <<aggregate>> {
+  class Comment <<record>> {
+    commentId
     content
+    purpose: CommentPurpose
     createdDate
+    updatedDate
   }
 
-  class IssueHistory <<aggregate>> {
+  class IssueHistory <<record>> {
+    historyId
     action: ActionType
     previousValue
     newValue
-    changedDate
     message
+    changedDate
   }
 
   class IssueDependency <<relation>> {
@@ -71,85 +83,41 @@ package "이슈 Aggregate" #F1F8E9 {
   }
 }
 
-package "값 타입" #F6F0FF {
-  enum Role {
-    ADMIN
-    PL
-    DEV
-    TESTER
-  }
-
-  enum IssueStatus {
-    NEW
-    ASSIGNED
-    FIXED
-    RESOLVED
-    CLOSED
-    REOPENED
-    DELETED
-  }
-
-  enum Priority {
-    BLOCKER
-    CRITICAL
-    MAJOR
-    MINOR
-    TRIVIAL
-  }
-
-  enum ActionType {
-    CREATED
-    TITLE_DESCRIPTION_UPDATED
-    PRIORITY_CHANGED
-    STATUS_CHANGED
-    ASSIGNMENT_CHANGED
-    DEPENDENCY_CHANGED
-    COMMENTED
+package "분류 값" #F6F0FF {
+  class "Role / Status / Priority" as ValueCatalog <<value>> {
+    Role = ADMIN, PL, DEV, TESTER
+    IssueStatus = NEW, ASSIGNED, FIXED, RESOLVED, CLOSED, REOPENED, DELETED
+    Priority = BLOCKER, CRITICAL, MAJOR, MINOR, TRIVIAL
+    CommentPurpose = GENERAL, STATUS_CHANGE
+    ActionType = CREATED, UPDATED, STATUS_CHANGED, ASSIGNMENT_CHANGED, COMMENTED
   }
 }
 
-User "*" -- "*" Project : participates in
-User "1" -- "0..*" Project : manages\n(Admin only)
+User "1" -- "0..*" Project : manages\n(Admin)
+User "1" -- "0..*" ProjectMember : joins as
+Project "1" -- "0..*" ProjectMember : has member
 Project "1" -- "0..*" Issue : contains
 
-User "1" -- "0..*" Issue : reports
-User "0..1" -- "0..*" Issue : assigned to
-User "0..1" -- "0..*" Issue : verifies
-User "0..1" -- "0..*" Issue : fixes
-User "0..1" -- "0..*" Issue : resolves
+User "0..*" -- "0..*" Issue : participates in issue\n(reporter, assignee, verifier,\nfixer, resolver)
 User "1" -- "0..*" Comment : writes
 User "1" -- "0..*" IssueHistory : changes
 
 Issue "1" -- "0..*" Comment : has
-Issue "1" -- "0..*" IssueHistory : logs
-Issue "1" -- "0..*" IssueDependency : blockingIssue
-Issue "1" -- "0..*" IssueDependency : blockedIssue
+Issue "1" -- "0..*" IssueHistory : records
+IssueDependency "0..*" -- "1" Issue : blocking issue
+IssueDependency "0..*" -- "1" Issue : blocked issue
+Issue -[hidden]down- ValueCatalog
 
 legend bottom
-  - User.loginId는 인증 식별자이고 User.userId는 내부 식별자이다.
-  - passwordHash는 평문 password가 아니라 저장된 인증 credential이다.
-  - Role 제약: ADMIN은 Project 관리만 수행하고 이슈 업무에는 접근하지 않는다.
-  - Role 제약: PL은 배정, 종료/재오픈, 의존성, 우선순위 변경을 수행한다.
-  - Role 제약: DEV는 assigned-to 관계의 Issue를 수정하고 fixer가 될 수 있다.
-  - Role 제약: TESTER는 Issue를 검증하며, FIXED -> RESOLVED 전이 시 resolver가 된다.
-  - Role 제약: PL/DEV/TESTER는 이슈 등록, 댓글, 조회를 수행할 수 있다.
-  - User-Project 관계는 participates in과 manages(Admin only) association으로 분리한다.
-  - User-Issue 관계는 reports, assigned to, verifies, fixes, resolves association으로 분리한다.
-  - Issue별 reporter는 1명이고, assignee/verifier/fixer/resolver는 상태에 따라 없을 수 있다.
-  - verifier는 검증 담당자로 배정된 Tester이고, resolver는 FIXED->RESOLVED 전이를 실제 수행한 Tester이다.
-  - ASSIGNED->FIXED에서 fixer가 기록되고 FIXED->RESOLVED에서 resolver가 기록된다.
-  - FIXED->RESOLVED에서는 assignee/verifier/fixer를 유지하고 resolver를 현재 Tester로 기록한다.
-  - RESOLVED->CLOSED에서는 assignee/verifier를 null로 제거하고 fixer/resolver는 보존한다.
-  - REOPENED에서는 assignee/verifier를 자동 복원하지 않고 PL이 UC5에서 다시 결정한다.
-  - ASSIGNMENT_CHANGED는 assignee/verifier 배정 또는 교체 이력에 사용한다.
-  - 배정과 함께 status도 바뀌면 ASSIGNMENT_CHANGED와 STATUS_CHANGED를 함께 기록한다.
-  - IssueHistory의 changes 관계는 STATUS_CHANGED, ASSIGNMENT_CHANGED 등 변경을 수행한 User를 나타낸다.
-  - IssueDependency 하나는 blocking Issue 1개와 blocked Issue 1개를 연결한다.
-  - IssueDependency에는 dependencyName 또는 DependencyType을 두지 않고, blockingIssue/blockedIssue association으로 방향 의미를 표현한다.
-  - dependency는 UC6 FIXED -> RESOLVED guard로만 작동하며 BLOCK/BLOCKED IssueStatus는 추가하지 않는다.
-  - 삭제 FIFO 기준 시각은 IssueHistory(STATUS_CHANGED, newValue=DELETED).changedDate에서 얻는다.
-  - 복구 대상 상태는 NEW/CLOSED -> DELETED 전이의 IssueHistory(STATUS_CHANGED).previousValue에서 얻는다.
-  - Issue.deletedAt과 Issue.preDeleteStatus는 의도적으로 추가하지 않는다.
-  - Priority.BLOCKER는 severity이며 dependency 관계가 아니다.
+  - 도메인 모델은 구현 클래스 목록이 아니라, ITS 업무에서 기억해야 하는 주요 개념과 관계를 나타낸다.
+  - repository, service, controller, UI, JDBC, session, password hashing 같은 소프트웨어 객체는 제외한다.
+  - Dashboard summary, Statistics report, Assignment recommendation 결과는 계산되는 read model이므로 제외한다.
+  - User와 Issue의 관계는 하나로 묶어 그리고, 실제 역할은 reporter, assignee, verifier, fixer, resolver로 구분한다.
+  - reporter는 이슈를 등록한 사용자이고, assignee는 현재 수정 담당 DEV, verifier는 현재 검증 담당 TESTER이다.
+  - fixer는 ASSIGNED -> FIXED 전이를 수행한 DEV이고, resolver는 FIXED -> RESOLVED 전이를 수행한 TESTER이다.
+  - assignee/verifier는 현재 담당자라 상태에 따라 비워질 수 있고, fixer/resolver는 완료 이력으로 보존된다.
+  - ProjectMember는 프로젝트 참여와 joinedDate를 기억하는 관계 객체이다.
+  - IssueDependency 하나는 blocking issue 1개와 blocked issue 1개를 연결한다.
+  - 삭제는 별도 DeletedIssue 객체가 아니라 IssueStatus.DELETED로 표현하고, 삭제/복구 이력은 IssueHistory에 남긴다.
 endlegend
 @enduml
