@@ -66,6 +66,8 @@ final class LoginScreen extends VBox {
             if (onLoginSuccess != null){
                 onLoginSuccess.accept(result.user());
             }
+        } catch (Exception exception){
+            messageLabel.setText("Login failed: " + exception.getMessage());
         } finally{
             loginButton.setDisable(false);
         }

@@ -3,13 +3,10 @@ package com.github.marcellokim.issuetracker.ui.javafx;
 import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import java.util.List;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -19,33 +16,24 @@ final class DeletedIssueScreen extends VBox {
     private final long projectId;
     private final ListView<IssueSummary> issueList = new ListView<>();
     private final Label countLabel = new Label();
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private Runnable onBack;
 
     DeletedIssueScreen(DeletedIssueController deletedIssueController, long projectId){
         this.deletedIssueController = deletedIssueController;
         this.projectId = projectId;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Button backButton = new Button("← Issues");
-        backButton.setOnAction(event -> { if (onBack != null) onBack.run(); });
-
-        Label titleLabel = new Label("Deleted Issue Management");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
+        Button backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
+        Label titleLabel = ScreenComponents.titleLabel("Deleted Issue Management");
         countLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #666;");
-
-        HBox header = new HBox(backButton, titleLabel, countLabel);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setSpacing(12);
 
         issueList.setCellFactory(list -> new DeletedIssueCell());
         VBox.setVgrow(issueList, Priority.ALWAYS);
 
-        messageLabel.setStyle("-fx-text-fill: #666;");
-
-        getChildren().addAll(header, issueList, messageLabel);
+        getChildren().addAll(
+                ScreenComponents.headerWithGrow(backButton, titleLabel, countLabel),
+                issueList, messageLabel);
         loadDeletedIssues();
     }
 
@@ -58,8 +46,7 @@ final class DeletedIssueScreen extends VBox {
             issueList.getItems().setAll(issues);
             countLabel.setText(String.format("(%d/%d)", issues.size(), limit));
         } catch (Exception exception){
-            messageLabel.setText(exception.getMessage());
-            messageLabel.setStyle("-fx-text-fill: red;");
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 
@@ -67,7 +54,7 @@ final class DeletedIssueScreen extends VBox {
         @Override
         protected void updateItem(IssueSummary issue, boolean empty){
             super.updateItem(issue, empty);
-            if (empty || issue == null){ setText(null); return; }
+            if (empty || issue == null){ setText(null); setGraphic(null); return; }
             setText(String.format("[%s] %s | %s", issue.issueId(), issue.title(), issue.status()));
         }
     }

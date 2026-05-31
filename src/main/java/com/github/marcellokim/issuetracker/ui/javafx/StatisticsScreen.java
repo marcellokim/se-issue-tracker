@@ -5,39 +5,28 @@ import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import java.util.Map;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 final class StatisticsScreen extends VBox {
 
     private final StatisticsController statisticsController;
     private final long projectId;
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private Runnable onBack;
 
     StatisticsScreen(StatisticsController statisticsController, long projectId){
         this.statisticsController = statisticsController;
         this.projectId = projectId;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Button backButton = new Button("← Issues");
-        backButton.setOnAction(event -> { if (onBack != null) onBack.run(); });
+        Button backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
+        Label titleLabel = ScreenComponents.titleLabel("Statistics");
 
-        Label titleLabel = new Label("Statistics");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
-        HBox header = new HBox(backButton, titleLabel);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setSpacing(12);
-
-        messageLabel.setStyle("-fx-text-fill: #666;");
-
-        getChildren().addAll(header, messageLabel);
+        getChildren().addAll(
+                ScreenComponents.headerWithGrow(backButton, titleLabel),
+                messageLabel);
         loadStatistics();
     }
 
@@ -64,8 +53,7 @@ final class StatisticsScreen extends VBox {
 
             getChildren().addAll(statusBox, priorityBox, dailyLabel, monthlyLabel);
         } catch (Exception exception){
-            messageLabel.setText("Statistics load failed: " + exception.getMessage());
-            messageLabel.setStyle("-fx-text-fill: red;");
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 }

@@ -4,13 +4,10 @@ import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import java.util.List;
 import java.util.function.Consumer;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -18,28 +15,18 @@ final class ProjectManageScreen extends VBox {
 
     private final DashboardController dashboardController;
     private final ListView<DashboardProjectSummary> projectList = new ListView<>();
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private Consumer<DashboardProjectSummary> onProjectSelected;
     private Runnable onBack;
 
     ProjectManageScreen(DashboardController dashboardController){
         this.dashboardController = dashboardController;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Label titleLabel = new Label("Project Management");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
-        Button backButton = new Button("← Back");
-        backButton.setOnAction(event -> { if (onBack != null) onBack.run(); });
-
+        Button backButton = ScreenComponents.backButton("← Back", () -> { if (onBack != null) onBack.run(); });
+        Label titleLabel = ScreenComponents.titleLabel("Project Management");
         Button createButton = new Button("+ Create Project");
-        createButton.setOnAction(event -> messageLabel.setText("Project creation will be implemented in #195"));
-
-        HBox header = new HBox(backButton, titleLabel, createButton);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setSpacing(12);
-        HBox.setHgrow(titleLabel, Priority.ALWAYS);
+        createButton.setOnAction(event -> ScreenComponents.showInfo(messageLabel, "Project creation will be implemented in #195"));
 
         projectList.setCellFactory(list -> new ProjectCell());
         projectList.setOnMouseClicked(event -> {
@@ -50,9 +37,9 @@ final class ProjectManageScreen extends VBox {
         });
         VBox.setVgrow(projectList, Priority.ALWAYS);
 
-        messageLabel.setStyle("-fx-text-fill: #666;");
-
-        getChildren().addAll(header, projectList, messageLabel);
+        getChildren().addAll(
+                ScreenComponents.headerWithGrow(backButton, titleLabel, createButton),
+                projectList, messageLabel);
         loadProjects();
     }
 
@@ -64,7 +51,7 @@ final class ProjectManageScreen extends VBox {
             List<DashboardProjectSummary> projects = dashboardController.viewProjects();
             projectList.getItems().setAll(projects);
         } catch (Exception exception){
-            messageLabel.setText(exception.getMessage());
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 
@@ -72,7 +59,7 @@ final class ProjectManageScreen extends VBox {
         @Override
         protected void updateItem(DashboardProjectSummary project, boolean empty){
             super.updateItem(project, empty);
-            if (empty || project == null){ setText(null); return; }
+            if (empty || project == null){ setText(null); setGraphic(null); return; }
             setText(String.format("%s | Members: %d | Issues: %d",
                     project.projectName(), project.memberCount(), project.visibleIssueCount()));
         }

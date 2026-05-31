@@ -3,13 +3,10 @@ package com.github.marcellokim.issuetracker.ui.javafx;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.service.ProjectAdminDetail;
 import com.github.marcellokim.issuetracker.service.ProjectMemberResult;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -18,31 +15,23 @@ final class ProjectDetailScreen extends VBox {
     private final ProjectController projectController;
     private final long projectId;
     private final ListView<ProjectMemberResult> memberList = new ListView<>();
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private Runnable onBack;
 
     ProjectDetailScreen(ProjectController projectController, long projectId){
         this.projectController = projectController;
         this.projectId = projectId;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Button backButton = new Button("← Back");
-        backButton.setOnAction(event -> { if (onBack != null) onBack.run(); });
-
-        Label titleLabel = new Label("Project Detail");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
-        HBox header = new HBox(backButton, titleLabel);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setSpacing(12);
+        Button backButton = ScreenComponents.backButton("← Back", () -> { if (onBack != null) onBack.run(); });
+        Label titleLabel = ScreenComponents.titleLabel("Project Detail");
 
         memberList.setCellFactory(list -> new MemberCell());
         VBox.setVgrow(memberList, Priority.ALWAYS);
 
-        messageLabel.setStyle("-fx-text-fill: #666;");
-
-        getChildren().addAll(header, messageLabel, new Label("Members:"), memberList);
+        getChildren().addAll(
+                ScreenComponents.headerWithGrow(backButton, titleLabel),
+                messageLabel, new Label("Members:"), memberList);
         loadDetail();
     }
 
@@ -51,12 +40,11 @@ final class ProjectDetailScreen extends VBox {
     private void loadDetail(){
         try{
             ProjectAdminDetail detail = projectController.viewProjectAdminDetail(projectId);
-            messageLabel.setText(String.format("Project: %s | %s",
+            ScreenComponents.showInfo(messageLabel, String.format("Project: %s | %s",
                     detail.project().name(), detail.project().description()));
             memberList.getItems().setAll(detail.participants());
         } catch (Exception exception){
-            messageLabel.setText("Load failed: " + exception.getMessage());
-            messageLabel.setStyle("-fx-text-fill: red;");
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 
@@ -64,7 +52,7 @@ final class ProjectDetailScreen extends VBox {
         @Override
         protected void updateItem(ProjectMemberResult member, boolean empty){
             super.updateItem(member, empty);
-            if (empty || member == null){ setText(null); return; }
+            if (empty || member == null){ setText(null); setGraphic(null); return; }
             setText(String.format("%s (%s) | %s | %s",
                     member.userId(), member.userName(), member.role(), member.active() ? "active" : "inactive"));
         }

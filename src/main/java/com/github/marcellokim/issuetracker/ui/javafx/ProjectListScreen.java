@@ -4,13 +4,10 @@ import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import java.util.List;
 import java.util.function.Consumer;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -18,60 +15,42 @@ final class ProjectListScreen extends VBox {
 
     private final DashboardController dashboardController;
     private final ListView<DashboardProjectSummary> projectList = new ListView<>();
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private Consumer<DashboardProjectSummary> onProjectSelected;
     private Runnable onLogout;
 
     ProjectListScreen(DashboardController dashboardController){
         this.dashboardController = dashboardController;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Label titleLabel = new Label("Projects");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
+        Label titleLabel = ScreenComponents.titleLabel("Projects");
         Button logoutButton = new Button("Logout");
-        logoutButton.setOnAction(event -> {
-            if (onLogout != null) onLogout.run();
-        });
-
-        HBox header = new HBox(titleLabel, logoutButton);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setSpacing(20);
-        HBox.setHgrow(titleLabel, Priority.ALWAYS);
+        logoutButton.setOnAction(event -> { if (onLogout != null) onLogout.run(); });
 
         projectList.setCellFactory(list -> new ProjectCell());
         projectList.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2){
                 DashboardProjectSummary selected = projectList.getSelectionModel().getSelectedItem();
-                if (selected != null && onProjectSelected != null){
-                    onProjectSelected.accept(selected);
-                }
+                if (selected != null && onProjectSelected != null) onProjectSelected.accept(selected);
             }
         });
         VBox.setVgrow(projectList, Priority.ALWAYS);
 
-        messageLabel.setStyle("-fx-text-fill: red;");
-
-        getChildren().addAll(header, projectList, messageLabel);
+        getChildren().addAll(
+                ScreenComponents.headerWithGrow(titleLabel, logoutButton),
+                projectList, messageLabel);
         loadProjects();
     }
 
-    void setOnProjectSelected(Consumer<DashboardProjectSummary> action){
-        this.onProjectSelected = action;
-    }
-
-    void setOnLogout(Runnable action){
-        this.onLogout = action;
-    }
+    void setOnProjectSelected(Consumer<DashboardProjectSummary> action){ this.onProjectSelected = action; }
+    void setOnLogout(Runnable action){ this.onLogout = action; }
 
     private void loadProjects(){
         try{
             List<DashboardProjectSummary> projects = dashboardController.viewProjects();
             projectList.getItems().setAll(projects);
-            messageLabel.setText("");
         } catch (Exception exception){
-            messageLabel.setText(exception.getMessage());
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 
@@ -79,11 +58,7 @@ final class ProjectListScreen extends VBox {
         @Override
         protected void updateItem(DashboardProjectSummary project, boolean empty){
             super.updateItem(project, empty);
-            if (empty || project == null){
-                setText(null);
-                setGraphic(null);
-                return;
-            }
+            if (empty || project == null){ setText(null); setGraphic(null); return; }
             VBox box = new VBox(4);
             Label name = new Label(project.projectName());
             name.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");

@@ -6,8 +6,6 @@ import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import java.util.List;
 import java.util.function.Consumer;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -23,7 +21,7 @@ final class IssueListScreen extends VBox {
     private final long projectId;
     private final ListView<IssueSummary> issueList = new ListView<>();
     private final TextField searchField = new TextField();
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private final Label projectInfoLabel = new Label();
     private Consumer<IssueSummary> onIssueSelected;
     private Runnable onBack;
@@ -33,18 +31,11 @@ final class IssueListScreen extends VBox {
     IssueListScreen(IssueController issueController, ProjectController projectController, long projectId){
         this.issueController = issueController;
         this.projectId = projectId;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Button backButton = new Button("← Projects");
-        backButton.setOnAction(event -> { if (onBack != null) onBack.run(); });
-
+        Button backButton = ScreenComponents.backButton("← Projects", () -> { if (onBack != null) onBack.run(); });
         projectInfoLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
         loadProjectInfo(projectController);
-
-        HBox header = new HBox(backButton, projectInfoLabel);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setSpacing(12);
 
         searchField.setPromptText("Search...");
         searchField.setMaxWidth(300);
@@ -52,10 +43,10 @@ final class IssueListScreen extends VBox {
         searchButton.setOnAction(event -> searchIssues());
 
         Button registerButton = new Button("+ Register Issue");
-        registerButton.setOnAction(event -> messageLabel.setText("Issue registration will be implemented in #141"));
-        if (!issueController.canRegisterIssue(projectId)){
-            registerButton.setDisable(true);
-        }
+        registerButton.setOnAction(event -> ScreenComponents.showInfo(messageLabel, "Issue registration will be implemented in #141"));
+        try{
+            if (!issueController.canRegisterIssue(projectId)) registerButton.setDisable(true);
+        } catch (Exception ignored){}
 
         Button deletedButton = new Button("Deleted Issues");
         deletedButton.setOnAction(event -> { if (onDeletedIssueManage != null) onDeletedIssueManage.run(); });
@@ -64,7 +55,6 @@ final class IssueListScreen extends VBox {
         statsButton.setOnAction(event -> { if (onStatistics != null) onStatistics.run(); });
 
         HBox toolbar = new HBox(10, searchField, searchButton, registerButton, deletedButton, statsButton);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
 
         issueList.setCellFactory(list -> new IssueCell());
         issueList.setOnMouseClicked(event -> {
@@ -75,9 +65,9 @@ final class IssueListScreen extends VBox {
         });
         VBox.setVgrow(issueList, Priority.ALWAYS);
 
-        messageLabel.setStyle("-fx-text-fill: #666;");
-
-        getChildren().addAll(header, toolbar, issueList, messageLabel);
+        getChildren().addAll(
+                ScreenComponents.headerWithGrow(backButton, projectInfoLabel),
+                toolbar, issueList, messageLabel);
         loadIssues();
     }
 
@@ -99,10 +89,9 @@ final class IssueListScreen extends VBox {
         try{
             List<IssueSummary> issues = issueController.viewRelatedProjectIssues(projectId);
             issueList.getItems().setAll(issues);
-            messageLabel.setText(issues.size() + " issues");
+            ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){
-            messageLabel.setText(exception.getMessage());
-            messageLabel.setStyle("-fx-text-fill: red;");
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 
@@ -111,9 +100,9 @@ final class IssueListScreen extends VBox {
             String keyword = searchField.getText().isBlank() ? null : searchField.getText();
             List<IssueSummary> issues = issueController.searchIssues(projectId, keyword, null, null);
             issueList.getItems().setAll(issues);
-            messageLabel.setText(issues.size() + " issues");
+            ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){
-            messageLabel.setText(exception.getMessage());
+            ScreenComponents.showError(messageLabel, exception);
         }
     }
 

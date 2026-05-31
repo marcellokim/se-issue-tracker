@@ -15,15 +15,14 @@ import javafx.scene.layout.VBox;
 final class AdminDashboardScreen extends VBox {
 
     private final DashboardController dashboardController;
-    private final Label statusLabel = new Label();
+    private final Label statusLabel = ScreenComponents.messageLabel();
     private Runnable onAccountManage;
     private Runnable onProjectManage;
     private Runnable onLogout;
 
     AdminDashboardScreen(DashboardController dashboardController){
         this.dashboardController = dashboardController;
-        setPadding(new Insets(20));
-        setSpacing(16);
+        ScreenComponents.applyScreenDefaults(this);
 
         Label titleLabel = new Label("Admin Dashboard");
         titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
@@ -52,10 +51,8 @@ final class AdminDashboardScreen extends VBox {
         buttons.setAlignment(Pos.CENTER);
         buttons.setPadding(new Insets(40, 0, 0, 0));
 
-        statusLabel.setStyle("-fx-text-fill: #666;");
-        loadSummary();
-
         getChildren().addAll(header, statusLabel, buttons);
+        loadSummary();
     }
 
     void setOnAccountManage(Runnable action){ this.onAccountManage = action; }
@@ -66,9 +63,9 @@ final class AdminDashboardScreen extends VBox {
         try{
             List<DashboardProjectSummary> projects = dashboardController.viewProjects();
             List<UserResult> users = dashboardController.viewUsers();
-            statusLabel.setText(String.format("Projects: %d | Users: %d", projects.size(), users.size()));
+            ScreenComponents.showInfo(statusLabel, String.format("Projects: %d | Users: %d", projects.size(), users.size()));
         } catch (Exception exception){
-            statusLabel.setText("Summary load failed: " + exception.getMessage());
+            ScreenComponents.showError(statusLabel, exception);
         }
     }
 }

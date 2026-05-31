@@ -3,8 +3,8 @@ package com.github.marcellokim.issuetracker.ui.javafx;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
+import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.List;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -12,28 +12,21 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 final class IssueDetailScreen extends VBox {
 
     private final IssueController issueController;
     private final long issueId;
-    private final Label messageLabel = new Label();
+    private final Label messageLabel = ScreenComponents.messageLabel();
     private Runnable onBack;
 
     IssueDetailScreen(IssueController issueController, long issueId){
         this.issueController = issueController;
         this.issueId = issueId;
-        setPadding(new Insets(20));
-        setSpacing(12);
+        ScreenComponents.applyScreenDefaults(this);
 
-        Button backButton = new Button("← Issues");
-        backButton.setOnAction(event -> { if (onBack != null) onBack.run(); });
-
-        messageLabel.setStyle("-fx-text-fill: red;");
-
+        Button backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
         getChildren().add(backButton);
         loadDetail();
     }
@@ -54,18 +47,18 @@ final class IssueDetailScreen extends VBox {
             descriptionLabel.setWrapText(true);
 
             VBox peopleBox = new VBox(4);
-            peopleBox.getChildren().add(new Label("Reporter: " + userName(detail.reporter())));
-            if (detail.assignee() != null) peopleBox.getChildren().add(new Label("Assignee: " + userName(detail.assignee())));
-            if (detail.verifier() != null) peopleBox.getChildren().add(new Label("Verifier: " + userName(detail.verifier())));
-            if (detail.fixer() != null) peopleBox.getChildren().add(new Label("Fixer: " + userName(detail.fixer())));
-            if (detail.resolver() != null) peopleBox.getChildren().add(new Label("Resolver: " + userName(detail.resolver())));
+            peopleBox.getChildren().add(new Label("Reporter: " + formatUser(detail.reporter())));
+            if (detail.assignee() != null) peopleBox.getChildren().add(new Label("Assignee: " + formatUser(detail.assignee())));
+            if (detail.verifier() != null) peopleBox.getChildren().add(new Label("Verifier: " + formatUser(detail.verifier())));
+            if (detail.fixer() != null) peopleBox.getChildren().add(new Label("Fixer: " + formatUser(detail.fixer())));
+            if (detail.resolver() != null) peopleBox.getChildren().add(new Label("Resolver: " + formatUser(detail.resolver())));
 
             FlowPane actionButtons = new FlowPane(8, 8);
             actionButtons.setAlignment(Pos.CENTER_LEFT);
             List<String> actions = detail.availableActions();
             for (String action : actions){
                 Button btn = new Button(action);
-                btn.setOnAction(event -> messageLabel.setText(action + " action will be implemented in follow-up issue"));
+                btn.setOnAction(event -> ScreenComponents.showInfo(messageLabel, action + " action will be implemented in follow-up issue"));
                 actionButtons.getChildren().add(btn);
             }
 
@@ -77,7 +70,7 @@ final class IssueDetailScreen extends VBox {
             commentList.setCellFactory(list -> new CommentCell());
             commentList.setPrefHeight(200);
 
-            Label historyTitle = new Label("History (" + detail.histories().size() + "entries) | Dependencies (" + detail.dependencies().size() + "entries)");
+            Label historyTitle = new Label("History (" + detail.histories().size() + " entries) | Dependencies (" + detail.dependencies().size() + " entries)");
             historyTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
 
             getChildren().addAll(titleLabel, statusLabel, new Separator(),
@@ -87,12 +80,12 @@ final class IssueDetailScreen extends VBox {
                     commentsTitle, commentList,
                     historyTitle, messageLabel);
         } catch (Exception exception){
-            messageLabel.setText("Issue load failed: " + exception.getMessage());
+            ScreenComponents.showError(messageLabel, exception);
             getChildren().add(messageLabel);
         }
     }
 
-    private static String userName(com.github.marcellokim.issuetracker.service.UserResult user){
+    private static String formatUser(UserResult user){
         return user.loginId() + " (" + user.name() + ")";
     }
 
@@ -100,7 +93,7 @@ final class IssueDetailScreen extends VBox {
         @Override
         protected void updateItem(CommentResult comment, boolean empty){
             super.updateItem(comment, empty);
-            if (empty || comment == null){ setText(null); return; }
+            if (empty || comment == null){ setText(null); setGraphic(null); return; }
             setText(String.format("[%s] %s: %s", comment.purpose(), comment.writerLoginId(), comment.content()));
         }
     }
