@@ -64,4 +64,22 @@ final class ScreenComponents {
         messageLabel.setText(text);
         messageLabel.setStyle("-fx-text-fill: #666;");
     }
+
+    static <T> void setupListDoubleClick(javafx.scene.control.ListView<T> listView, java.util.function.Consumer<T> onSelected){
+        listView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2){
+                T selected = listView.getSelectionModel().getSelectedItem();
+                if (selected != null && onSelected != null) onSelected.accept(selected);
+            }
+        });
+    }
+
+    static <T> void loadList(javafx.scene.control.ListView<T> listView, Label messageLabel,
+                             java.util.function.Supplier<java.util.List<T>> loader){
+        try{
+            listView.getItems().setAll(loader.get());
+        } catch (Exception exception){
+            showError(messageLabel, exception);
+        }
+    }
 }
