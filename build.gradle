@@ -30,7 +30,8 @@ tasks.register('runSwing', JavaExec) {
     group = 'application'
     description = 'Runs the Swing UI entry point.'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.github.marcellokim.issuetracker.ui.swing.SwingApp'
+    mainClass = 'com.github.marcellokim.issuetracker.Main'
+    args '--swing'
 }
 
 repositories {
