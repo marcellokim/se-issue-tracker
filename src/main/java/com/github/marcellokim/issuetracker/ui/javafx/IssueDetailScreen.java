@@ -1,12 +1,15 @@
 package com.github.marcellokim.issuetracker.ui.javafx;
 
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
+import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.service.AssignmentCandidateResult;
 import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.CommentResult;
+import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.ArrayList;
@@ -24,6 +27,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
@@ -34,15 +38,18 @@ final class IssueDetailScreen extends VBox {
     private final IssueController issueController;
     private final IssueStateController issueStateController;
     private final AssignmentController assignmentController;
+    private final DeletedIssueController deletedIssueController;
     private final long issueId;
     private final Button backButton;
     private final Label messageLabel = ScreenComponents.messageLabel();
+    private IssueDetailResult currentDetail;
     private Runnable onBack;
 
-    IssueDetailScreen(IssueController issueController, IssueStateController issueStateController, AssignmentController assignmentController, long issueId){
+    IssueDetailScreen(IssueController issueController, IssueStateController issueStateController, AssignmentController assignmentController, DeletedIssueController deletedIssueController, long issueId){
         this.issueController = issueController;
         this.issueStateController = issueStateController;
         this.assignmentController = assignmentController;
+        this.deletedIssueController = deletedIssueController;
         this.issueId = issueId;
         ScreenComponents.applyScreenDefaults(this);
         this.backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
@@ -61,6 +68,7 @@ final class IssueDetailScreen extends VBox {
     private void loadDetail(){
         try{
             IssueDetailResult detail = issueController.viewIssueDetail(issueId);
+            this.currentDetail = detail;
 
             Label titleLabel = new Label(String.format("[%s] %s", detail.issueId(), detail.title()));
             titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
@@ -92,7 +100,15 @@ final class IssueDetailScreen extends VBox {
             commentList.setCellFactory(list -> new CommentCell());
             commentList.setPrefHeight(200);
 
-            Label historyTitle = new Label("History (" + detail.histories().size() + " entries) | Dependencies (" + detail.dependencies().size() + " entries)");
+            VBox dependencyBox = new VBox(4);
+            Label dependencyTitle = new Label("Dependencies (" + detail.dependencies().size() + ")");
+            dependencyTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+            dependencyBox.getChildren().add(dependencyTitle);
+            for (DependencyResult dep : detail.dependencies()){
+                dependencyBox.getChildren().add(new Label(String.format("  %s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey())));
+            }
+
+            Label historyTitle = new Label("History (" + detail.histories().size() + " entries)");
             historyTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
 
             getChildren().addAll(titleLabel, statusLabel, new Separator(),
@@ -100,7 +116,7 @@ final class IssueDetailScreen extends VBox {
                     peopleBox, new Separator(),
                     new Label("Available Actions:"), actionButtons, new Separator(),
                     commentsTitle, commentList,
-                    historyTitle, messageLabel);
+                    dependencyBox, historyTitle, messageLabel);
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
             getChildren().add(messageLabel);
@@ -114,12 +130,19 @@ final class IssueDetailScreen extends VBox {
             case "MARK_FIXED" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.FIXED));
             case "RESOLVE" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.RESOLVED));
             case "CLOSE" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.CLOSED));
+            case "REJECT_FIX" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.ASSIGNED));
+            case "REOPEN" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.REOPENED));
             case "ASSIGN" -> btn.setOnAction(e -> handleAssignment(true, true));
             case "REASSIGN_DEV" -> btn.setOnAction(e -> handleAssignment(true, false));
             case "CHANGE_TESTER" -> btn.setOnAction(e -> handleAssignment(false, true));
+            case "CHANGE_PRIORITY" -> btn.setOnAction(e -> handleChangePriority());
+            case "SOFT_DELETE" -> btn.setOnAction(e -> handleSoftDelete());
+            case "UPDATE_ISSUE" -> btn.setOnAction(e -> handleUpdateIssue());
+            case "ADD_DEPENDENCY" -> btn.setOnAction(e -> handleAddDependency());
+            case "REMOVE_DEPENDENCY" -> btn.setOnAction(e -> handleRemoveDependency());
             default -> {
                 btn.setDisable(true);
-                btn.setTooltip(new Tooltip("Coming soon"));
+                btn.setTooltip(new Tooltip("Not available"));
             }
         }
         return btn;
@@ -154,6 +177,137 @@ final class IssueDetailScreen extends VBox {
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
         }
+    }
+
+    private void handleChangePriority(){
+        Dialog<Priority> dialog = new Dialog<>();
+        dialog.setTitle("Change Priority");
+        ComboBox<Priority> priorityBox = new ComboBox<>();
+        priorityBox.getItems().addAll(Priority.values());
+        if (currentDetail != null) priorityBox.setValue(currentDetail.priority());
+        priorityBox.setMaxWidth(Double.MAX_VALUE);
+        dialog.getDialogPane().setContent(new VBox(8, new Label("Priority:"), priorityBox));
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        priorityBox.valueProperty().addListener((obs, old, val) -> okButton.setDisable(val == null));
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? priorityBox.getValue() : null);
+        dialog.showAndWait().ifPresent(priority -> {
+            try{
+                issueController.changePriority(issueId, priority);
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
+    }
+
+    private void handleSoftDelete(){
+        showTextInputDialog("Delete Issue", "Reason for deletion:").ifPresent(comment -> {
+            try{
+                deletedIssueController.deleteIssue(issueId, comment);
+                if (onBack != null) onBack.run();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
+    }
+
+    private void handleUpdateIssue(){
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Update Issue");
+        TextField titleField = new TextField(currentDetail != null ? currentDetail.title() : "");
+        titleField.setPromptText("Title");
+        TextArea descField = new TextArea(currentDetail != null ? currentDetail.description() : "");
+        descField.setPromptText("Description");
+        descField.setPrefRowCount(4);
+        dialog.getDialogPane().setContent(new VBox(8,
+                new Label("Title:"), titleField,
+                new Label("Description:"), descField));
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        Runnable validate = () -> okButton.setDisable(
+                titleField.getText() == null || titleField.getText().isBlank()
+                || descField.getText() == null || descField.getText().isBlank());
+        titleField.textProperty().addListener((obs, old, val) -> validate.run());
+        descField.textProperty().addListener((obs, old, val) -> validate.run());
+        validate.run();
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK){
+            try{
+                issueController.updateIssue(issueId, titleField.getText().trim(), descField.getText().trim());
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        }
+    }
+
+    private void handleAddDependency(){
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Add Dependency");
+        dialog.setHeaderText("This issue will be blocked by the specified issue.");
+        TextField blockingIdField = new TextField();
+        blockingIdField.setPromptText("Blocking issue ID (number)");
+        dialog.getDialogPane().setContent(new VBox(8, new Label("Blocking Issue ID:"), blockingIdField));
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        blockingIdField.textProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val.isBlank()));
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? blockingIdField.getText().trim() : null);
+        dialog.showAndWait().ifPresent(blockingIdText -> {
+            try{
+                long blockingIssueId = Long.parseLong(blockingIdText);
+                issueController.addDependency(blockingIssueId, issueId);
+                reload();
+            } catch (NumberFormatException exception){
+                ScreenComponents.showError(messageLabel, new IllegalArgumentException("Issue ID must be a number."));
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
+    }
+
+    private void handleRemoveDependency(){
+        if (currentDetail == null || currentDetail.dependencies().isEmpty()){
+            ScreenComponents.showInfo(messageLabel, "No dependencies to remove");
+            return;
+        }
+        Dialog<DependencyResult> dialog = new Dialog<>();
+        dialog.setTitle("Remove Dependency");
+        ComboBox<DependencyResult> depBox = new ComboBox<>();
+        depBox.getItems().addAll(currentDetail.dependencies());
+        depBox.setConverter(new StringConverter<>(){
+            @Override public String toString(DependencyResult d){
+                if (d == null) return "";
+                return String.format("%s blocks %s", d.blockingIssueKey(), d.blockedIssueKey());
+            }
+            @Override public DependencyResult fromString(String s){ return null; }
+        });
+        depBox.setMaxWidth(Double.MAX_VALUE);
+        dialog.getDialogPane().setContent(new VBox(8, new Label("Select dependency to remove:"), depBox));
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        depBox.valueProperty().addListener((obs, old, val) -> okButton.setDisable(val == null));
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? depBox.getValue() : null);
+        dialog.showAndWait().ifPresent(dep -> {
+            try{
+                issueController.removeDependency(dep.blockingIssueId(), dep.blockedIssueId());
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
     }
 
     private Optional<String> showTextInputDialog(String title, String headerText){
