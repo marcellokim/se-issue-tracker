@@ -19,7 +19,7 @@ class IssueCreationTest {
     @Test
     @DisplayName("이슈는 reporter, 기본 상태, 생성 이력을 가지고 생성된다")
     void createIssueWithReporterDefaultStatusAndCreationHistory() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, now);
+        var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, now);
 
         assertEquals("ISSUE-1", issue.getIssueId());
         assertEquals("Login fails", issue.getTitle());
@@ -41,7 +41,7 @@ class IssueCreationTest {
     @Test
     @DisplayName("명시한 우선순위가 있으면 해당 값으로 생성된다")
     void createIssueWithExplicitPriority() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Crash", "App crashes", Priority.CRITICAL, reporter, now);
+        var issue = IssueFixtures.create("ISSUE-1", "Crash", "App crashes", Priority.CRITICAL, reporter, now);
 
         assertEquals(Priority.CRITICAL, issue.getPriority());
     }
@@ -160,14 +160,14 @@ class IssueCreationTest {
     @DisplayName("이슈 생성 필수 값은 비어 있을 수 없다")
     void rejectInvalidIssueCreationArguments() {
         assertThrows(IllegalArgumentException.class,
-                () -> IssueTestFactory.create("", "Title", "Description", null, reporter, now));
+                () -> IssueFixtures.create("", "Title", "Description", null, reporter, now));
         assertThrows(IllegalArgumentException.class,
-                () -> IssueTestFactory.create("ISSUE-1", "", "Description", null, reporter, now));
+                () -> IssueFixtures.create("ISSUE-1", "", "Description", null, reporter, now));
         assertThrows(IllegalArgumentException.class,
-                () -> IssueTestFactory.create("ISSUE-1", "Title", "", null, reporter, now));
+                () -> IssueFixtures.create("ISSUE-1", "Title", "", null, reporter, now));
         assertThrows(NullPointerException.class,
-                () -> IssueTestFactory.create("ISSUE-1", "Title", "Description", null, null, now));
+                () -> IssueFixtures.create("ISSUE-1", "Title", "Description", null, null, now));
         assertThrows(NullPointerException.class,
-                () -> IssueTestFactory.create("ISSUE-1", "Title", "Description", null, reporter, null));
+                () -> IssueFixtures.create("ISSUE-1", "Title", "Description", null, reporter, null));
     }
 }

@@ -21,8 +21,8 @@ class IssueDependencyTest {
     @Test
     @DisplayName("의존성은 blocking issue와 blocked issue 방향으로 표현된다")
     void createDependencyWithBlockingAndBlockedDirection() {
-        var blockingIssue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-        var blockedIssue = IssueTestFactory.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         var discoveredAt = createdAt.plusMinutes(20);
 
         var dependency = blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, discoveredAt);
@@ -42,7 +42,7 @@ class IssueDependencyTest {
     @Test
     @DisplayName("이슈는 자기 자신에 의존할 수 없다")
     void rejectSelfDependency() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var issue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> issue.addDependency("SELF", issue, pl, createdAt));
@@ -51,8 +51,8 @@ class IssueDependencyTest {
     @Test
     @DisplayName("같은 issueId를 가진 다른 인스턴스도 자기 의존성으로 거부한다")
     void rejectSelfDependencyByIssueId() {
-        var blockedIssue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-        var sameIssueId = IssueTestFactory.create("ISSUE-1", "Same auth", "Same logical issue", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var sameIssueId = IssueFixtures.create("ISSUE-1", "Same auth", "Same logical issue", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> blockedIssue.addDependency("SELF", sameIssueId, pl, createdAt));
@@ -61,8 +61,8 @@ class IssueDependencyTest {
     @Test
     @DisplayName("같은 blocking issue에 대한 의존성은 중복 추가할 수 없다")
     void rejectDuplicateDependency() {
-        var blockingIssue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-        var blockedIssue = IssueTestFactory.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, createdAt.plusMinutes(20));
 
         assertThrows(IllegalArgumentException.class,
@@ -72,9 +72,9 @@ class IssueDependencyTest {
     @Test
     @DisplayName("여러 blocking issue에 대한 의존성을 추가할 수 있다")
     void addMultipleDifferentDependencies() {
-        var blockingIssue1 = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth fix", null, reporter, createdAt);
-        var blockingIssue2 = IssueTestFactory.create("ISSUE-3", "Fix DB", "DB fix", null, reporter, createdAt);
-        var blockedIssue = IssueTestFactory.create("ISSUE-2", "Login UI", "UI depends", null, reporter, createdAt);
+        var blockingIssue1 = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth fix", null, reporter, createdAt);
+        var blockingIssue2 = IssueFixtures.create("ISSUE-3", "Fix DB", "DB fix", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends", null, reporter, createdAt);
 
         blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue1, pl, createdAt.plusMinutes(20));
         blockedIssue.addDependency("ISSUE-3->ISSUE-2", blockingIssue2, pl, createdAt.plusMinutes(30));
@@ -85,8 +85,8 @@ class IssueDependencyTest {
     @Test
     @DisplayName("의존성을 제거하면 양쪽 리스트에서 삭제된다")
     void removeDependencyRemovesFromBothSides() {
-        var blockingIssue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-        var blockedIssue = IssueTestFactory.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         var dependency = blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, createdAt.plusMinutes(20));
 
         blockedIssue.removeDependency(dependency, pl, createdAt.plusMinutes(30));
@@ -98,9 +98,9 @@ class IssueDependencyTest {
     @Test
     @DisplayName("존재하지 않는 의존성 제거 시 예외가 발생한다")
     void removeNonexistentDependencyThrows() {
-        var blockingIssue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-        var blockedIssue = IssueTestFactory.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
-        var otherIssue = IssueTestFactory.create("ISSUE-3", "Other", "Other issue", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var otherIssue = IssueFixtures.create("ISSUE-3", "Other", "Other issue", null, reporter, createdAt);
         var dependency = otherIssue.addDependency("ISSUE-1->ISSUE-3", blockingIssue, pl, createdAt.plusMinutes(20));
 
         assertThrows(IllegalArgumentException.class,
@@ -153,8 +153,8 @@ class IssueDependencyTest {
     @Test
     @DisplayName("rejects invalid dependency constructor arguments")
     void rejectInvalidDependencyConstructorArguments() {
-        var blockingIssue = IssueTestFactory.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-        var blockedIssue = IssueTestFactory.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> IssueDependency.fromPersistence(1L, "", 10L, 20L, createdAt));

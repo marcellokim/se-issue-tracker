@@ -96,7 +96,7 @@ class IssueFixResolveTest {
         @Test
         @DisplayName("ASSIGNED가 아니면 fixed로, FIXED가 아니면 resolved로 변경할 수 없다")
         void rejectInvalidSourceStatuses() {
-                var newIssue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+                var newIssue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
                 var assignedIssue = assignedIssue();
                 var fixedIssue = assignedIssue();
                 fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -213,7 +213,7 @@ class IssueFixResolveTest {
         }
 
         private Issue assignedIssue(String issueId) {
-                var issue = IssueTestFactory.create(issueId, "Login fails", "Cannot log in", null, reporter, createdAt);
+                var issue = IssueFixtures.create(issueId, "Login fails", "Cannot log in", null, reporter, createdAt);
                 issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
                 return issue;
         }

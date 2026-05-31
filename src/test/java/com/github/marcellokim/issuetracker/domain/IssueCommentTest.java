@@ -19,7 +19,7 @@ class IssueCommentTest {
     @Test
     @DisplayName("adding a comment records comment and COMMENTED history")
     void addCommentAndCommentedHistory() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var commentedAt = createdAt.plusMinutes(5);
 
         var comment = issue.addComment("C-1", "I will check it.", developer, commentedAt);
@@ -46,7 +46,7 @@ class IssueCommentTest {
     @Test
     @DisplayName("status-change comments keep a distinct purpose")
     void addStatusChangeReasonComment() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var commentedAt = createdAt.plusMinutes(5);
 
         var comment = issue.addComment(
@@ -67,7 +67,7 @@ class IssueCommentTest {
     @Test
     @DisplayName("deleting a comment records previous content and null new value")
     void recordCommentDeletionHistory() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var comment = Comment.fromPersistence(
                 11L,
                 100L,
@@ -92,7 +92,7 @@ class IssueCommentTest {
     @Test
     @DisplayName("comment content and writer are required")
     void rejectInvalidCommentArguments() {
-        var issue = IssueTestFactory.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+        var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> issue.addComment("", "content", developer, createdAt));
