@@ -323,7 +323,7 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
             JTextField loginId = new JTextField();
             JTextField name = new JTextField();
             JPasswordField password = new JPasswordField();
-            JComboBox<Role> role = new JComboBox<>(Role.values());
+            JComboBox<Role> role = new JComboBox<>(manageableRoles());
             JPanel form = formPanel(
                     new JLabel("Login ID"), loginId,
                     new JLabel("Name"), name,
@@ -365,7 +365,7 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
 
         @Override
         public Optional<Role> requestRole(AccountManagementPanel parent, UserResult selectedUser) {
-            JComboBox<Role> role = new JComboBox<>(Role.values());
+            JComboBox<Role> role = new JComboBox<>(manageableRoles());
             role.setSelectedItem(selectedUser.role());
             int result = JOptionPane.showConfirmDialog(
                     parent,
@@ -409,6 +409,12 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
                 panel.add(field, constraints);
             }
             return panel;
+        }
+
+        private static Role[] manageableRoles() {
+            return Arrays.stream(Role.values())
+                    .filter(role -> role != Role.ADMIN)
+                    .toArray(Role[]::new);
         }
     }
 }
