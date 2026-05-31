@@ -64,7 +64,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     @Override
     public void showAdminDashboard(UserResult user) {
         Objects.requireNonNull(user, "user");
-        AdminDashboardPanel dashboardPanel = callOnEdtAndWait(() -> {
+        SwingUtilities.invokeLater(() -> {
             titleUpdater.accept("Admin dashboard");
             AdminDashboardPanel panel = new AdminDashboardPanel(
                     user,
@@ -76,9 +76,8 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             adminDashboardCard.revalidate();
             adminDashboardCard.repaint();
             cardLayout.show(this, ADMIN_DASHBOARD_CARD);
-            return panel;
+            loadAdminDashboard(panel);
         });
-        loadAdminDashboard(dashboardPanel);
     }
 
     @Override
@@ -158,11 +157,6 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void loadAdminDashboard(AdminDashboardPanel panel) {
         AdminDashboardPresenter presenter = new AdminDashboardPresenter(dashboardController, panel);
-        if (!SwingUtilities.isEventDispatchThread()) {
-            presenter.load();
-            return;
-        }
-
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {

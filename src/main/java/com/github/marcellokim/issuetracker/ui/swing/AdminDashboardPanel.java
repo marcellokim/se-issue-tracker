@@ -5,7 +5,6 @@ import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.GridLayout;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
 import javax.swing.BorderFactory;
@@ -24,6 +23,8 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
     private static final long serialVersionUID = 1L;
     private static final String[] PROJECT_COLUMNS = {"ID", "Project", "Members", "Issues"};
     private static final String[] USER_COLUMNS = {"Login ID", "Name", "Role", "Active"};
+    private static final int[] PROJECT_COLUMN_WIDTHS = {72, 180, 88, 88};
+    private static final int[] USER_COLUMN_WIDTHS = {96, 160, 88, 72};
 
     private final DefaultTableModel projectTableModel = readOnlyTableModel(PROJECT_COLUMNS);
     private final DefaultTableModel userTableModel = readOnlyTableModel(USER_COLUMNS);
@@ -56,21 +57,21 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
     public void showDashboard(List<DashboardProjectSummary> projects, List<UserResult> users) {
         Objects.requireNonNull(projects, "projects");
         Objects.requireNonNull(users, "users");
-        runOnEdtAndWait(() -> {
+        Object[][] projectRows = projectRows(projects);
+        Object[][] userRows = userRows(users);
+        runOnEdt(() -> {
             messageLabel.setText(" ");
-            replaceRows(projectTableModel, projectRows(projects));
-            replaceRows(userTableModel, userRows(users));
+            replaceRows(projectTableModel, projectRows);
+            replaceRows(userTableModel, userRows);
         });
     }
 
     @Override
     public void showError(String message) {
-        runOnEdtAndWait(() -> {
-            String displayMessage = message == null || message.isBlank()
-                    ? "Dashboard data could not be loaded."
-                    : message;
-            messageLabel.setText(displayMessage);
-        });
+        String displayMessage = message == null || message.isBlank()
+                ? "Dashboard data could not be loaded."
+                : message;
+        runOnEdt(() -> messageLabel.setText(displayMessage));
     }
 
     private JPanel header(
@@ -134,8 +135,8 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
     private JPanel tables() {
         JPanel tables = new JPanel(new GridLayout(1, 2, SwingStyles.SECTION_GAP, 0));
         tables.setOpaque(false);
-        tables.add(section("Projects", table("adminProjectTable", projectTableModel)));
-        tables.add(section("Users", table("adminUserTable", userTableModel)));
+        tables.add(section("Projects", table("adminProjectTable", projectTableModel, PROJECT_COLUMN_WIDTHS)));
+        tables.add(section("Users", table("adminUserTable", userTableModel, USER_COLUMN_WIDTHS)));
         return tables;
     }
 
@@ -153,25 +154,24 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
         return section;
     }
 
-    private static JTable table(String name, DefaultTableModel model) {
+    private static JTable table(String name, DefaultTableModel model, int[] columnWidths) {
         JTable table = new JTable(model);
         table.setName(name);
         table.setFillsViewportHeight(true);
         table.setRowHeight(26);
         table.getTableHeader().setReorderingAllowed(false);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        applyColumnWidths(table);
+        applyColumnWidths(table, columnWidths);
         return table;
     }
 
-    private static void applyColumnWidths(JTable table) {
-        if (table.getColumnCount() != 4) {
+    private static void applyColumnWidths(JTable table, int[] columnWidths) {
+        if (table.getColumnCount() != columnWidths.length) {
             return;
         }
-        table.getColumnModel().getColumn(0).setPreferredWidth(72);
-        table.getColumnModel().getColumn(1).setPreferredWidth(160);
-        table.getColumnModel().getColumn(2).setPreferredWidth(88);
-        table.getColumnModel().getColumn(3).setPreferredWidth(112);
+        for (int index = 0; index < columnWidths.length; index++) {
+            table.getColumnModel().getColumn(index).setPreferredWidth(columnWidths[index]);
+        }
     }
 
     private static Object[][] projectRows(List<DashboardProjectSummary> projects) {
@@ -218,25 +218,11 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
         };
     }
 
-    private static void runOnEdtAndWait(Runnable action) {
+    private static void runOnEdt(Runnable action) {
         if (SwingUtilities.isEventDispatchThread()) {
             action.run();
             return;
         }
-        try {
-            SwingUtilities.invokeAndWait(action);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while updating Swing dashboard.", exception);
-        } catch (InvocationTargetException exception) {
-            Throwable cause = exception.getCause();
-            if (cause instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            if (cause instanceof Error error) {
-                throw error;
-            }
-            throw new IllegalStateException("Swing dashboard update failed.", cause);
-        }
+        SwingUtilities.invokeLater(action);
     }
 }
