@@ -1,0 +1,101 @@
+package com.github.marcellokim.issuetracker.ui.javafx;
+
+import com.github.marcellokim.issuetracker.controller.IssueController;
+import com.github.marcellokim.issuetracker.service.CommentResult;
+import com.github.marcellokim.issuetracker.service.IssueDetailResult;
+import com.github.marcellokim.issuetracker.service.UserResult;
+import java.util.List;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.Separator;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
+
+final class IssueDetailScreen extends VBox {
+
+    private final IssueController issueController;
+    private final long issueId;
+    private final Label messageLabel = ScreenComponents.messageLabel();
+    private Runnable onBack;
+
+    IssueDetailScreen(IssueController issueController, long issueId){
+        this.issueController = issueController;
+        this.issueId = issueId;
+        ScreenComponents.applyScreenDefaults(this);
+
+        Button backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
+        getChildren().add(backButton);
+        loadDetail();
+    }
+
+    void setOnBack(Runnable action){ this.onBack = action; }
+
+    private void loadDetail(){
+        try{
+            IssueDetailResult detail = issueController.viewIssueDetail(issueId);
+
+            Label titleLabel = new Label(String.format("[%s] %s", detail.issueId(), detail.title()));
+            titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+            Label statusLabel = new Label(String.format("Status: %s | Priority: %s", detail.status(), detail.priority()));
+            statusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #444;");
+
+            Label descriptionLabel = new Label(detail.description());
+            descriptionLabel.setWrapText(true);
+
+            VBox peopleBox = new VBox(4);
+            peopleBox.getChildren().add(new Label("Reporter: " + formatUser(detail.reporter())));
+            if (detail.assignee() != null) peopleBox.getChildren().add(new Label("Assignee: " + formatUser(detail.assignee())));
+            if (detail.verifier() != null) peopleBox.getChildren().add(new Label("Verifier: " + formatUser(detail.verifier())));
+            if (detail.fixer() != null) peopleBox.getChildren().add(new Label("Fixer: " + formatUser(detail.fixer())));
+            if (detail.resolver() != null) peopleBox.getChildren().add(new Label("Resolver: " + formatUser(detail.resolver())));
+
+            FlowPane actionButtons = new FlowPane(8, 8);
+            actionButtons.setAlignment(Pos.CENTER_LEFT);
+            List<String> actions = detail.availableActions();
+            for (String action : actions){
+                Button btn = new Button(action);
+                btn.setDisable(true);
+                btn.setTooltip(new javafx.scene.control.Tooltip("Coming soon"));
+                actionButtons.getChildren().add(btn);
+            }
+
+            Label commentsTitle = new Label("Comments (" + detail.comments().size() + ")");
+            commentsTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+            ListView<CommentResult> commentList = new ListView<>();
+            commentList.getItems().setAll(detail.comments());
+            commentList.setCellFactory(list -> new CommentCell());
+            commentList.setPrefHeight(200);
+
+            Label historyTitle = new Label("History (" + detail.histories().size() + " entries) | Dependencies (" + detail.dependencies().size() + " entries)");
+            historyTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
+
+            getChildren().addAll(titleLabel, statusLabel, new Separator(),
+                    descriptionLabel, new Separator(),
+                    peopleBox, new Separator(),
+                    new Label("Available Actions:"), actionButtons, new Separator(),
+                    commentsTitle, commentList,
+                    historyTitle, messageLabel);
+        } catch (Exception exception){
+            ScreenComponents.showError(messageLabel, exception);
+            getChildren().add(messageLabel);
+        }
+    }
+
+    private static String formatUser(UserResult user){
+        return user.loginId() + " (" + user.name() + ")";
+    }
+
+    private static class CommentCell extends ListCell<CommentResult> {
+        @Override
+        protected void updateItem(CommentResult comment, boolean empty){
+            super.updateItem(comment, empty);
+            if (empty || comment == null){ setText(null); setGraphic(null); return; }
+            setText(String.format("[%s] %s: %s", comment.purpose(), comment.writerLoginId(), comment.content()));
+        }
+    }
+}
