@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
@@ -115,7 +114,9 @@ final class IssueDetailScreen extends VBox {
             case "MARK_FIXED" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.FIXED));
             case "RESOLVE" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.RESOLVED));
             case "CLOSE" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.CLOSED));
-            case "START_ASSIGNMENT", "ASSIGN" -> btn.setOnAction(e -> handleAssignment());
+            case "ASSIGN" -> btn.setOnAction(e -> handleAssignment(true, true));
+            case "REASSIGN_DEV" -> btn.setOnAction(e -> handleAssignment(true, false));
+            case "CHANGE_TESTER" -> btn.setOnAction(e -> handleAssignment(false, true));
             default -> {
                 btn.setDisable(true);
                 btn.setTooltip(new Tooltip("Coming soon"));
@@ -146,10 +147,10 @@ final class IssueDetailScreen extends VBox {
         });
     }
 
-    private void handleAssignment(){
+    private void handleAssignment(boolean selectDev, boolean selectTester){
         try{
             AssignmentOptionsResult options = assignmentController.startAssignment(issueId);
-            showAssignmentDialog(options);
+            showAssignmentDialog(options, selectDev, selectTester);
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
         }
@@ -164,7 +165,9 @@ final class IssueDetailScreen extends VBox {
         textArea.setPrefRowCount(3);
         dialog.getDialogPane().setContent(textArea);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        Node okButton = dialog.getDialogPane().lookupButton(ButtonType.OK);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
         okButton.setDisable(true);
         textArea.textProperty().addListener((obs, old, val) ->
                 okButton.setDisable(val == null || val.isBlank()));
@@ -172,46 +175,54 @@ final class IssueDetailScreen extends VBox {
         return dialog.showAndWait();
     }
 
-    private void showAssignmentDialog(AssignmentOptionsResult options){
+    private void showAssignmentDialog(AssignmentOptionsResult options, boolean selectDev, boolean selectTester){
         List<AssignmentCandidateResult> devCandidates = mergedCandidates(
                 options.devAssigneeCandidates(), options.allDevAssignees());
         List<AssignmentCandidateResult> testerCandidates = mergedCandidates(
                 options.testerVerifierCandidates(), options.allTesterVerifiers());
-        if (devCandidates.isEmpty() || testerCandidates.isEmpty()){
+        if ((selectDev && devCandidates.isEmpty()) || (selectTester && testerCandidates.isEmpty())){
             ScreenComponents.showInfo(messageLabel, "No candidates available for assignment");
             return;
         }
-        Set<String> recommendedDevIds = candidateIds(options.devAssigneeCandidates());
-        Set<String> recommendedTesterIds = candidateIds(options.testerVerifierCandidates());
-
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Assign Issue");
+        VBox content = new VBox(8);
         ComboBox<AssignmentCandidateResult> devBox = new ComboBox<>();
-        devBox.getItems().addAll(devCandidates);
-        devBox.setConverter(candidateConverter(recommendedDevIds));
-        devBox.setMaxWidth(Double.MAX_VALUE);
         ComboBox<AssignmentCandidateResult> testerBox = new ComboBox<>();
-        testerBox.getItems().addAll(testerCandidates);
-        testerBox.setConverter(candidateConverter(recommendedTesterIds));
-        testerBox.setMaxWidth(Double.MAX_VALUE);
-        VBox content = new VBox(8,
-                new Label("Assignee (DEV):"), devBox,
-                new Label("Verifier (TESTER):"), testerBox);
+        if (selectDev){
+            devBox.getItems().addAll(devCandidates);
+            devBox.setConverter(candidateConverter(candidateIds(options.devAssigneeCandidates())));
+            devBox.setMaxWidth(Double.MAX_VALUE);
+            content.getChildren().addAll(new Label("Assignee (DEV):"), devBox);
+        }
+        if (selectTester){
+            testerBox.getItems().addAll(testerCandidates);
+            testerBox.setConverter(candidateConverter(candidateIds(options.testerVerifierCandidates())));
+            testerBox.setMaxWidth(Double.MAX_VALUE);
+            content.getChildren().addAll(new Label("Verifier (TESTER):"), testerBox);
+        }
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
         dialog.getDialogPane().setPrefWidth(500);
-        Node okButton = dialog.getDialogPane().lookupButton(ButtonType.OK);
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
         okButton.setDisable(true);
-        devBox.valueProperty().addListener((obs, old, val) ->
-                okButton.setDisable(val == null || testerBox.getValue() == null));
-        testerBox.valueProperty().addListener((obs, old, val) ->
-                okButton.setDisable(val == null || devBox.getValue() == null));
+        if (selectDev) devBox.valueProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || (selectTester && testerBox.getValue() == null)));
+        if (selectTester) testerBox.valueProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || (selectDev && devBox.getValue() == null)));
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK){
             try{
-                assignmentController.assignIssue(issueId,
-                        devBox.getValue().loginId(), testerBox.getValue().loginId());
+                if (selectDev && selectTester){
+                    assignmentController.assignIssue(issueId, devBox.getValue().loginId(), testerBox.getValue().loginId());
+                } else if (selectDev){
+                    assignmentController.reassignIssue(issueId, devBox.getValue().loginId());
+                } else{
+                    assignmentController.changeVerifier(issueId, testerBox.getValue().loginId());
+                }
                 reload();
             } catch (Exception exception){
                 ScreenComponents.showError(messageLabel, exception);

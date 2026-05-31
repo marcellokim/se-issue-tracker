@@ -7,7 +7,6 @@ import com.github.marcellokim.issuetracker.service.ProjectResult;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
@@ -121,7 +120,9 @@ final class IssueListScreen extends VBox {
                 new Label("Priority:"), priorityBox);
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        Node okButton = dialog.getDialogPane().lookupButton(ButtonType.OK);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
         okButton.setDisable(true);
         Runnable validateForm = () -> okButton.setDisable(
                 titleField.getText() == null || titleField.getText().isBlank()
