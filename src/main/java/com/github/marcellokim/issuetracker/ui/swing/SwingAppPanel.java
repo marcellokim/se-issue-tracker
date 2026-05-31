@@ -104,6 +104,8 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     showLoginFailure("Login was interrupted. Please try again.");
                 } catch (ExecutionException exception) {
                     showLoginFailure("Login failed. Please try again.");
+                } finally {
+                    loginWorker = null;
                 }
             }
         };

@@ -11,6 +11,7 @@ import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
+import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +61,7 @@ class SwingAppPanelTest {
         assertFalse(passwordHashing.matchCalledOnEdt());
         assertEquals("submitted-password", passwordHashing.matchedPassword());
         assertTrue(titles.awaitAdminDashboard());
+        assertTrue(waitForLoginWorkerCleared(panelRef.get()));
 
         SwingComponentTestSupport.onEdt(() -> {
             SwingAppPanel panel = panelRef.get();
@@ -78,6 +80,25 @@ class SwingAppPanelTest {
             assertTrue(password.isEnabled());
             assertEquals("", new String(password.getPassword()));
         });
+    }
+
+    private static boolean waitForLoginWorkerCleared(SwingAppPanel panel) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            AtomicReference<Object> worker = new AtomicReference<>();
+            SwingComponentTestSupport.onEdt(() -> worker.set(loginWorker(panel)));
+            if (worker.get() == null) {
+                return true;
+            }
+            Thread.sleep(20);
+        }
+        return false;
+    }
+
+    private static Object loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
+        Field worker = SwingAppPanel.class.getDeclaredField("loginWorker");
+        worker.setAccessible(true);
+        return worker.get(panel);
     }
 
     private static AuthenticationController controller(PasswordHashing passwordHashing, User... users) {

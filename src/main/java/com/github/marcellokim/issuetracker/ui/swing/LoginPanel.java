@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import java.awt.Component;
 import java.awt.GridBagLayout;
+import java.util.Arrays;
 import java.util.Objects;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -104,7 +105,12 @@ final class LoginPanel extends JPanel implements LoginView {
 
     @Override
     public String password() {
-        return new String(passwordField.getPassword());
+        char[] passwordChars = passwordField.getPassword();
+        try {
+            return new String(passwordChars);
+        } finally {
+            Arrays.fill(passwordChars, '\0');
+        }
     }
 
     @Override
