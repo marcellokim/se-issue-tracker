@@ -87,7 +87,11 @@ final class ProjectDetailScreen extends VBox {
         dialog.getDialogPane().setContent(nameField);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("OK");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        nameField.textProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val.isBlank()));
         dialog.setResultConverter(bt -> bt == ButtonType.OK ? nameField.getText().trim() : null);
         dialog.showAndWait().ifPresent(name -> {
             try{
@@ -108,7 +112,11 @@ final class ProjectDetailScreen extends VBox {
         dialog.getDialogPane().setContent(descField);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("OK");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        descField.textProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val.isBlank()));
         dialog.setResultConverter(bt -> bt == ButtonType.OK ? descField.getText().trim() : null);
         dialog.showAndWait().ifPresent(description -> {
             try{

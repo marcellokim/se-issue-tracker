@@ -68,8 +68,11 @@ final class ProjectManageScreen extends VBox {
         Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
         okButton.setText("OK");
         okButton.setDisable(true);
-        nameField.textProperty().addListener((obs, old, val) ->
-                okButton.setDisable(val == null || val.isBlank()));
+        Runnable validate = () -> okButton.setDisable(
+                nameField.getText() == null || nameField.getText().isBlank()
+                || descField.getText() == null || descField.getText().isBlank());
+        nameField.textProperty().addListener((obs, old, val) -> validate.run());
+        descField.textProperty().addListener((obs, old, val) -> validate.run());
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK){
             try{

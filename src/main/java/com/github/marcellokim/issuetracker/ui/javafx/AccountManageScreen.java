@@ -138,7 +138,10 @@ final class AccountManageScreen extends VBox {
         dialog.getDialogPane().setContent(nameField);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("OK");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        nameField.textProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val.isBlank()));
         dialog.setResultConverter(bt -> bt == ButtonType.OK ? nameField.getText().trim() : null);
         dialog.showAndWait().ifPresent(name -> {
             try{
