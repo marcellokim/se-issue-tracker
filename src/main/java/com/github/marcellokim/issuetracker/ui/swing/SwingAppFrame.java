@@ -2,12 +2,11 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.config.ApplicationContext;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
-import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.Objects;
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 
-public final class SwingAppFrame extends JFrame implements SwingNavigator {
+public final class SwingAppFrame extends JFrame {
 
     private static final long serialVersionUID = 1L;
 
@@ -27,22 +26,4 @@ public final class SwingAppFrame extends JFrame implements SwingNavigator {
         setLocationRelativeTo(null);
     }
 
-    @Override
-    public void showLogin() {
-        appPanel.showLogin();
-    }
-
-    @Override
-    public void showAdminDashboard(UserResult user) {
-        appPanel.showAdminDashboard(user);
-    }
-
-    @Override
-    public void showProjectList(UserResult user) {
-        appPanel.showProjectList(user);
-    }
-
-    void logout() {
-        appPanel.logout();
-    }
 }

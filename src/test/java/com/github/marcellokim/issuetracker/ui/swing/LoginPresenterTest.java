@@ -2,7 +2,7 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
@@ -34,7 +34,7 @@ class LoginPresenterTest {
         presenter.loginRequested();
 
         assertEquals("admin", navigator.adminUser.loginId());
-        assertSame(null, navigator.projectUser);
+        assertNull(navigator.projectUser);
         assertEquals("", view.message);
         assertFalse(view.error);
         assertTrue(view.passwordCleared);
@@ -51,7 +51,7 @@ class LoginPresenterTest {
 
             presenter.loginRequested();
 
-            assertSame(null, navigator.adminUser);
+            assertNull(navigator.adminUser);
             assertEquals(role, navigator.projectUser.role());
             assertEquals("", view.message);
             assertFalse(view.error);
@@ -71,8 +71,8 @@ class LoginPresenterTest {
 
         assertEquals("Invalid ID or password.", view.message);
         assertTrue(view.error);
-        assertSame(null, navigator.adminUser);
-        assertSame(null, navigator.projectUser);
+        assertNull(navigator.adminUser);
+        assertNull(navigator.projectUser);
         assertFalse(view.passwordCleared);
         assertTrue(view.enabled);
     }
@@ -153,11 +153,6 @@ class LoginPresenterTest {
 
         private UserResult adminUser;
         private UserResult projectUser;
-
-        @Override
-        public void showLogin() {
-            throw new AssertionError("LoginPresenter should not navigate back to login in these tests.");
-        }
 
         @Override
         public void showAdminDashboard(UserResult user) {

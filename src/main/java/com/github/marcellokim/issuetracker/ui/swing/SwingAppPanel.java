@@ -45,7 +45,6 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         showLogin();
     }
 
-    @Override
     public void showLogin() {
         runOnEdtAndWait(() -> {
             titleUpdater.accept("Issue Tracker");
@@ -88,7 +87,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         LoginView capturedView = captureLoginRequest();
         LoginPresenter presenter = new LoginPresenter(authenticationController, capturedView, this);
-        loginWorker = new SwingWorker<>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
                 presenter.loginRequested();
@@ -105,11 +104,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                 } catch (ExecutionException exception) {
                     showLoginFailure("Login failed. Please try again.");
                 } finally {
-                    loginWorker = null;
+                    clearCompletedLoginWorker(this);
                 }
             }
         };
-        loginWorker.execute();
+        loginWorker = worker;
+        worker.execute();
+    }
+
+    private void clearCompletedLoginWorker(SwingWorker<?, ?> worker) {
+        if (loginWorker == worker) {
+            loginWorker = null;
+        }
     }
 
     private LoginView captureLoginRequest() {

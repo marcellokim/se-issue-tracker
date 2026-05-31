@@ -4,8 +4,6 @@ import com.github.marcellokim.issuetracker.service.UserResult;
 
 public interface SwingNavigator {
 
-    void showLogin();
-
     void showAdminDashboard(UserResult user);
 
     void showProjectList(UserResult user);

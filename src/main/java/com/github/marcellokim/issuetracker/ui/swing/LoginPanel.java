@@ -87,13 +87,7 @@ final class LoginPanel extends JPanel implements LoginView {
         add(surface);
     }
 
-    /**
-     * Registers the action to run when the user requests login.
-     *
-     * <p>The action is invoked synchronously on the Swing Event Dispatch Thread by this panel's action
-     * listeners. Callers that perform authentication or other blocking controller/service work must offload
-     * that work from the EDT and return promptly.
-     */
+    /** Registers an EDT callback; callers must offload blocking authentication work. */
     void onLoginRequested(Runnable action) {
         loginRequested = Objects.requireNonNull(action, "action");
     }
