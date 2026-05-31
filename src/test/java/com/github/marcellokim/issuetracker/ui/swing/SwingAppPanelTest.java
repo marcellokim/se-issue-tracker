@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -13,10 +14,13 @@ import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
+import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.lang.reflect.Field;
@@ -57,6 +61,7 @@ class SwingAppPanelTest {
             var panel = new SwingAppPanel(
                     controllers.authenticationController(),
                     controllers.dashboardController(),
+                    controllers.accountController(),
                     titles::update);
             panelRef.set(panel);
             JTextField loginId = SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class);
@@ -129,6 +134,7 @@ class SwingAppPanelTest {
             SwingAppPanel panel = new SwingAppPanel(
                     controllers.authenticationController(),
                     controllers.dashboardController(),
+                    controllers.accountController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -175,6 +181,62 @@ class SwingAppPanelTest {
             SwingAppPanel panel = new SwingAppPanel(
                     controllers.authenticationController(),
                     controllers.dashboardController(),
+                    controllers.accountController(),
+                    titles::update);
+            panelRef.set(panel);
+            SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
+            SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class).setText("submitted-password");
+            SwingComponentTestSupport.find(panel, "signInButton", JButton.class).doClick();
+            SwingWorker<?, ?> worker = loginWorker(panel);
+            worker.addPropertyChangeListener(event -> {
+                if ("state".equals(event.getPropertyName())
+                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
+                    workerDone.countDown();
+                }
+            });
+            if (SwingWorker.StateValue.DONE == worker.getState()) {
+                workerDone.countDown();
+            }
+        });
+
+        assertTrue(passwordHashing.awaitMatch());
+        assertTrue(titles.awaitAdminDashboard());
+        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
+        awaitProjectRows(panelRef.get(), 1);
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panelRef.get(), "projectManagementButton", JButton.class).doClick());
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Project management",
+                    SwingComponentTestSupport.find(panelRef.get(), "placeholderTitle", JLabel.class).getText());
+            SwingComponentTestSupport.find(panelRef.get(), "backButton", JButton.class).doClick();
+        });
+
+        awaitProjectRows(panelRef.get(), 1);
+        SwingComponentTestSupport.onEdt(() -> assertEquals(
+                "Alpha",
+                SwingComponentTestSupport.find(panelRef.get(), "adminProjectTable", JTable.class).getValueAt(0, 1)));
+    }
+
+    @Test
+    @DisplayName("admin account management shows user table")
+    void adminAccountManagementShowsUserTable() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        var panelRef = new AtomicReference<SwingAppPanel>();
+        var workerDone = new CountDownLatch(1);
+        SwingControllerFixture controllers = controllers(
+                passwordHashing,
+                List.of(projectSnapshot(1L, "Alpha", 3, 7)),
+                user("admin", Role.ADMIN),
+                user("dev1", Role.DEV));
+
+        SwingComponentTestSupport.onEdt(() -> {
+            SwingAppPanel panel = new SwingAppPanel(
+                    controllers.authenticationController(),
+                    controllers.dashboardController(),
+                    controllers.accountController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -199,17 +261,16 @@ class SwingAppPanelTest {
 
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panelRef.get(), "accountManagementButton", JButton.class).doClick());
+        awaitAccountRows(panelRef.get(), 2);
+
         SwingComponentTestSupport.onEdt(() -> {
             assertEquals(
                     "Account management",
-                    SwingComponentTestSupport.find(panelRef.get(), "placeholderTitle", JLabel.class).getText());
-            SwingComponentTestSupport.find(panelRef.get(), "backButton", JButton.class).doClick();
+                    SwingComponentTestSupport.find(panelRef.get(), "accountManagementTitle", JLabel.class).getText());
+            JTable users = SwingComponentTestSupport.find(panelRef.get(), "accountUserTable", JTable.class);
+            assertEquals("admin", users.getValueAt(0, 0));
+            assertEquals("dev1", users.getValueAt(1, 0));
         });
-
-        awaitProjectRows(panelRef.get(), 1);
-        SwingComponentTestSupport.onEdt(() -> assertEquals(
-                "Alpha",
-                SwingComponentTestSupport.find(panelRef.get(), "adminProjectTable", JTable.class).getValueAt(0, 1)));
     }
 
     private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
@@ -219,12 +280,20 @@ class SwingAppPanelTest {
     }
 
     private static void awaitProjectRows(SwingAppPanel panel, int expectedRows) throws Exception {
+        awaitRows(panel, "adminProjectTable", expectedRows);
+    }
+
+    private static void awaitAccountRows(SwingAppPanel panel, int expectedRows) throws Exception {
+        awaitRows(panel, "accountUserTable", expectedRows);
+    }
+
+    private static void awaitRows(SwingAppPanel panel, String tableName, int expectedRows) throws Exception {
         CountDownLatch rowsReady = new CountDownLatch(1);
         AtomicReference<Timer> timerRef = new AtomicReference<>();
         SwingComponentTestSupport.onEdt(() -> {
             Timer timer = new Timer(25, event -> {
                 try {
-                    int rowCount = SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount();
+                    int rowCount = SwingComponentTestSupport.find(panel, tableName, JTable.class).getRowCount();
                     if (rowCount == expectedRows) {
                         ((Timer) event.getSource()).stop();
                         rowsReady.countDown();
@@ -247,7 +316,7 @@ class SwingAppPanelTest {
             if (!ready) {
                 assertEquals(
                         expectedRows,
-                        SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount());
+                        SwingComponentTestSupport.find(panel, tableName, JTable.class).getRowCount());
             }
         });
     }
@@ -258,6 +327,7 @@ class SwingAppPanelTest {
             User... users) {
         var repository = new InMemoryUserRepository(users);
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
+        PermissionPolicy permissionPolicy = new PermissionPolicy();
         return new SwingControllerFixture(
                 new AuthenticationController(service),
                 new DashboardController(
@@ -265,7 +335,16 @@ class SwingAppPanelTest {
                         new DashboardSummaryService(
                                 new FakeDashboardSummaryRepository(projects),
                                 repository,
-                                new PermissionPolicy())));
+                                permissionPolicy)),
+                new AccountController(
+                        service,
+                        new AccountService(
+                                permissionPolicy,
+                                repository,
+                                new InMemoryProjectRepository(),
+                                new InMemoryIssueRepository(),
+                                passwordHashing,
+                                () -> NOW)));
     }
 
     private static User user(String loginId, Role role) {
@@ -291,7 +370,8 @@ class SwingAppPanelTest {
 
     private record SwingControllerFixture(
             AuthenticationController authenticationController,
-            DashboardController dashboardController) {
+            DashboardController dashboardController,
+            AccountController accountController) {
     }
 
     private record FakeDashboardSummaryRepository(
