@@ -16,7 +16,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.swing.JPanel;
@@ -479,6 +481,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             showIssueDependency(issueId, panel, IssueDependencyMode.ADD, null);
             return;
         }
+        if ("UPDATE_ISSUE".equals(action)) {
+            showIssueEdit(issueId, panel, IssueEditMode.UPDATE);
+            return;
+        }
+        if ("CHANGE_PRIORITY".equals(action)) {
+            showIssueEdit(issueId, panel, IssueEditMode.CHANGE_PRIORITY);
+            return;
+        }
+        if ("SOFT_DELETE".equals(action)) {
+            showIssueSoftDelete(user, projectId, issueId, panel);
+            return;
+        }
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
@@ -523,6 +537,45 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     .ifPresent(request -> startIssueDetailTask(
                             panel,
                             presenter -> presenter.changeDependency(issueId, request)));
+        } catch (RuntimeException exception) {
+            panel.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    private void showIssueEdit(long issueId, IssueDetailPanel panel, IssueEditMode mode) {
+        try {
+            issueActionSupport.editPrompt().prompt(panel, mode, panel.currentIssueEditContext())
+                    .ifPresent(request -> startIssueDetailTask(
+                            panel,
+                            presenter -> runIssueEdit(issueId, mode, request, presenter)));
+        } catch (RuntimeException exception) {
+            panel.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    private static void runIssueEdit(
+            long issueId,
+            IssueEditMode mode,
+            IssueEditRequest request,
+            IssueDetailPresenter presenter) {
+        switch (mode) {
+            case UPDATE -> presenter.updateIssue(issueId, request);
+            case CHANGE_PRIORITY -> presenter.changePriority(issueId, request);
+            case SOFT_DELETE -> throw new IllegalArgumentException("Soft delete uses the delete workflow.");
+        }
+    }
+
+    private void showIssueSoftDelete(UserResult user, long projectId, long issueId, IssueDetailPanel panel) {
+        try {
+            issueActionSupport.editPrompt().prompt(panel, IssueEditMode.SOFT_DELETE, panel.currentIssueEditContext())
+                    .ifPresent(request -> {
+                        AtomicBoolean deleted = new AtomicBoolean(false);
+                        startIssueDetailTask(
+                                panel,
+                                presenter -> deleted.set(presenter.deleteIssue(issueId, request)),
+                                deleted::get,
+                                () -> showIssueList(user, projectId));
+                    });
         } catch (RuntimeException exception) {
             panel.showMessage(exception.getMessage(), true);
         }
@@ -627,11 +680,19 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     }
 
     private void startIssueDetailTask(IssueDetailPanel panel, IssueDetailTask task) {
+        startIssueDetailTask(panel, task, null, null);
+    }
+
+    private void startIssueDetailTask(
+            IssueDetailPanel panel,
+            IssueDetailTask task,
+            BooleanSupplier successCondition,
+            Runnable onSuccess) {
         Objects.requireNonNull(panel, "panel");
         Objects.requireNonNull(task, "task");
         cancelIssueDetailWorker();
         panel.setBusy(true);
-        IssueDetailWorker worker = new IssueDetailWorker(panel, task);
+        IssueDetailWorker worker = new IssueDetailWorker(panel, task, successCondition, onSuccess);
         issueDetailWorker.set(worker);
         worker.execute();
     }
@@ -866,10 +927,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         private final IssueDetailPanel panel;
         private final IssueDetailTask task;
+        private final BooleanSupplier successCondition;
+        private final Runnable onSuccess;
 
-        private IssueDetailWorker(IssueDetailPanel panel, IssueDetailTask task) {
+        private IssueDetailWorker(
+                IssueDetailPanel panel,
+                IssueDetailTask task,
+                BooleanSupplier successCondition,
+                Runnable onSuccess) {
             this.panel = Objects.requireNonNull(panel, "panel");
             this.task = Objects.requireNonNull(task, "task");
+            this.successCondition = successCondition;
+            this.onSuccess = onSuccess;
         }
 
         @Override
@@ -878,6 +947,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     controllers.issueController(),
                     issueActionSupport.statusChange().issueStateController(),
                     issueActionSupport.assignmentController(),
+                    issueActionSupport.deletedIssueController(),
                     new CurrentIssueDetailView(panel, this, issueDetailWorker::get));
             task.run(presenter);
             return null;
@@ -885,7 +955,24 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         @Override
         protected void done() {
-            finishWorker(issueDetailWorker, this, () -> panel.setBusy(false), panel::showMessage, "Issue detail");
+            if (!issueDetailWorker.compareAndSet(this, null)) {
+                return;
+            }
+            panel.setBusy(false);
+            if (isCancelled()) {
+                return;
+            }
+            try {
+                get();
+                if (onSuccess != null && (successCondition == null || successCondition.getAsBoolean())) {
+                    onSuccess.run();
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                panel.showMessage("Issue detail was interrupted. Please try again.", true);
+            } catch (ExecutionException exception) {
+                panel.showMessage("Issue detail failed. Please try again.", true);
+            }
         }
     }
 

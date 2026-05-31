@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
+import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -20,17 +21,18 @@ final class IssueDetailPresenter {
     private final IssueController issueController;
     private final IssueStateController issueStateController;
     private final AssignmentController assignmentController;
+    private final DeletedIssueController deletedIssueController;
     private final IssueDetailView view;
 
     IssueDetailPresenter(IssueController issueController, IssueDetailView view) {
-        this(issueController, null, null, view);
+        this(issueController, null, null, null, view);
     }
 
     IssueDetailPresenter(
             IssueController issueController,
             IssueStateController issueStateController,
             IssueDetailView view) {
-        this(issueController, issueStateController, null, view);
+        this(issueController, issueStateController, null, null, view);
     }
 
     IssueDetailPresenter(
@@ -38,9 +40,19 @@ final class IssueDetailPresenter {
             IssueStateController issueStateController,
             AssignmentController assignmentController,
             IssueDetailView view) {
+        this(issueController, issueStateController, assignmentController, null, view);
+    }
+
+    IssueDetailPresenter(
+            IssueController issueController,
+            IssueStateController issueStateController,
+            AssignmentController assignmentController,
+            DeletedIssueController deletedIssueController,
+            IssueDetailView view) {
         this.issueController = Objects.requireNonNull(issueController, "issueController");
         this.issueStateController = issueStateController;
         this.assignmentController = assignmentController;
+        this.deletedIssueController = deletedIssueController;
         this.view = Objects.requireNonNull(view, "view");
     }
 
@@ -92,6 +104,38 @@ final class IssueDetailPresenter {
             loadIssue(issueId);
         } catch (RuntimeException exception) {
             view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    void updateIssue(long issueId, IssueEditRequest request) {
+        try {
+            IssueEditRequest requiredRequest = requireEditRequest(request, IssueEditMode.UPDATE);
+            issueController.updateIssue(issueId, requiredRequest.title(), requiredRequest.description());
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    void changePriority(long issueId, IssueEditRequest request) {
+        try {
+            IssueEditRequest requiredRequest = requireEditRequest(request, IssueEditMode.CHANGE_PRIORITY);
+            issueController.changePriority(issueId, requiredRequest.priority());
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    boolean deleteIssue(long issueId, IssueEditRequest request) {
+        try {
+            IssueEditRequest requiredRequest = requireEditRequest(request, IssueEditMode.SOFT_DELETE);
+            requireDeletedIssueController().deleteIssue(issueId, requiredRequest.comment());
+            view.showMessage(" ", false);
+            return true;
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+            return false;
         }
     }
 
@@ -208,5 +252,20 @@ final class IssueDetailPresenter {
             throw new IllegalStateException("Assignment controller is not configured.");
         }
         return assignmentController;
+    }
+
+    private static IssueEditRequest requireEditRequest(IssueEditRequest request, IssueEditMode mode) {
+        IssueEditRequest requiredRequest = Objects.requireNonNull(request, REQUEST_PARAM);
+        if (requiredRequest.mode() != mode) {
+            throw new IllegalArgumentException("Unexpected issue edit request mode.");
+        }
+        return requiredRequest;
+    }
+
+    private DeletedIssueController requireDeletedIssueController() {
+        if (deletedIssueController == null) {
+            throw new IllegalStateException("Deleted issue controller is not configured.");
+        }
+        return deletedIssueController;
     }
 }
