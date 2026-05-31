@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("application entry point")
+@DisplayName("애플리케이션 진입점")
 class MainSmokeTest {
 
     @Test
