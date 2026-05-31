@@ -90,6 +90,7 @@ final class IssueDetailScreen extends VBox {
             FlowPane actionButtons = new FlowPane(8, 8);
             actionButtons.setAlignment(Pos.CENTER_LEFT);
             for (String action : detail.availableActions()){
+                if ("START_ASSIGNMENT".equals(action)) continue;
                 actionButtons.getChildren().add(createActionButton(action));
             }
 
