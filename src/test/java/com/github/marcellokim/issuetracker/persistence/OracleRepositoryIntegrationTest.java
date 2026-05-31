@@ -91,6 +91,7 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: UserRepository.findByLoginId, ProjectRepository.findByName
         @Test
         @DisplayName("seed data includes admin account and demo projects")
         void seedDataIncludesAdminAccountAndDemoProjects() {
@@ -106,6 +107,9 @@ class OracleRepositoryIntegrationTest {
                 assertEquals(admin.getLoginId(), project2.getManagedByLoginId());
         }
 
+        // Repositories: ProjectRepository.findParticipants,
+        // UserRepository.existsActiveProjectMember,
+        // AssignmentRecommendationRepository.findActiveDevCandidates/findActiveTesterCandidates
         @Test
         @DisplayName("project members and role candidates are queryable")
         void repositoryFindsProjectMembersAndRoleCandidates() {
@@ -127,6 +131,9 @@ class OracleRepositoryIntegrationTest {
                                 .size());
         }
 
+        // Repositories: IssueRepository.findByCriteria,
+        // CommentRepository.findByIssueId,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("issue, comment, history, and dependency associations are queryable")
         void repositoryReadsIssueAssociations() {
@@ -143,6 +150,8 @@ class OracleRepositoryIntegrationTest {
                 assertFalse(repositories.issueHistory().findByIssueId(dependencyIssue.id()).isEmpty());
         }
 
+        // Repositories: StatisticsRepository.calculateProjectStatistics,
+        // AssignmentRecommendationRepository.findActiveDevCandidates/findActiveTesterCandidates
         @Test
         @DisplayName("statistics and recommendation query APIs return seed data")
         void queryApisReturnStatisticsAndRecommendations() {
@@ -168,6 +177,41 @@ class OracleRepositoryIntegrationTest {
                                 .isEmpty());
         }
 
+        // Repositories: DashboardSummaryRepository.findAllProjectSummaries,
+        // IssueRepository.findByCriteria
+        @Test
+        @DisplayName("dashboard summary keeps the card counts")
+        void dashboardSummaryKeepsCardCounts() {
+                var project = repositories.projects().findByName("Project A").orElseThrow();
+                var summary = repositories.dashboardSummaries().findAllProjectSummaries().stream()
+                                .filter(value -> value.projectId() == project.getId())
+                                .findFirst()
+                                .orElseThrow();
+
+                assertEquals(project.getName(), summary.projectName());
+                assertEquals(10, summary.memberCount());
+                assertEquals(1, summary.projectLeaderCount());
+                assertEquals(5, summary.developerCount());
+                assertEquals(4, summary.testerCount());
+                assertEquals(repositories.issues().findByCriteria(activeIssueCriteria(project.getId())).size(),
+                                summary.visibleIssueCount());
+                assertFalse(summary.statusCounts().containsKey(IssueStatus.DELETED));
+        }
+
+        // Repositories: DashboardSummaryRepository.findProjectSummariesByParticipant
+        @Test
+        @DisplayName("dashboard summary follows the member")
+        void dashboardSummaryFollowsMember() {
+                var project = repositories.projects().findByName("Project A").orElseThrow();
+
+                var summaries = repositories.dashboardSummaries().findProjectSummariesByParticipant("pl1");
+
+                assertEquals(List.of(project.getId()), summaries.stream()
+                                .map(summary -> summary.projectId())
+                                .toList());
+        }
+
+        // Repositories: IssueRepository.findByCriteria
         @Test
         @DisplayName("CLOSED seed issues clear active assignee and verifier")
         void closedSeedIssuesClearActiveAssigneeAndVerifier() {
@@ -191,6 +235,7 @@ class OracleRepositoryIntegrationTest {
                 assertNotNull(statisticsClosedIssue.resolverId());
         }
 
+        // Repositories: IssueRepository.findByCriteria
         @Test
         @DisplayName("RESOLVED seed issues clear active assignee and verifier")
         void resolvedSeedIssuesClearActiveAssigneeAndVerifier() {
@@ -211,6 +256,7 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueRepository.findByCriteria
         @Test
         @DisplayName("seed covers FIXED and DELETED issue states")
         void seedCoversFixedAndDeletedIssueStates() {
@@ -238,6 +284,8 @@ class OracleRepositoryIntegrationTest {
                 assertNotNull(deletedFromClosed.resolverId());
         }
 
+        // Repositories: IssueRepository.findByCriteria,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("RESOLVED to REOPENED seed history is changed by PL")
         void reopenSeedHistoryIsChangedByPl() {
@@ -255,6 +303,8 @@ class OracleRepositoryIntegrationTest {
                 assertEquals(pl2.getLoginId(), reopenHistory.changedById());
         }
 
+        // Repositories: IssueRepository.findByCriteria,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("seed covers required status transition policy samples")
         void seedCoversRequiredStatusTransitionPolicySamples() {
@@ -273,6 +323,9 @@ class OracleRepositoryIntegrationTest {
                 assertStatusTransition("Project B", "Retired browser support checklist", "pl2", "CLOSED", "DELETED");
         }
 
+        // Repositories: IssueRepository.findByCriteria,
+        // CommentRepository.findByIssueId,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("every seed status change has a matching required comment")
         void everySeedStatusChangeHasMatchingComment() {
@@ -301,6 +354,9 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueRepository.save/findByCriteria,
+        // DeletedIssueRepository.findDeletedByProject,
+        // StatisticsRepository.calculateProjectStatistics
         @Test
         @DisplayName("normal issue lists and statistics hide DELETED issues")
         void normalIssueQueriesAndStatisticsHideDeletedIssues() {
@@ -359,6 +415,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueRepository.save, DeletedIssueRepository.softDelete,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("soft delete records restore basis in issue history")
         void softDeleteRecordsRestoreBasisInIssueHistory() {
@@ -384,6 +442,7 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueRepository.save, DeletedIssueRepository.softDelete
         @Test
         @DisplayName("Issue soft delete accepts only NEW or CLOSED status")
         void issueSoftDeleteAcceptsOnlyNewOrClosedStatus() {
@@ -411,6 +470,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueDependencyRepository.recordDependencyAdded/existsByPair,
+        // DeletedIssueRepository.softDelete, IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("Issue soft delete records removed dependency history on blocked issue")
         void issueSoftDeleteRecordsRemovedDependencyHistoryOnBlockedIssue() {
@@ -462,6 +523,41 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories:
+        // DeletedIssueRepository.softDelete/findDeletedByProject/purgeDeletedById,
+        // IssueRepository.findById, IssueHistoryRepository.findByIssueId
+        @Test
+        @DisplayName("purge removes one deleted issue")
+        void purgeRemovesOneDeletedIssue() {
+                var project = repositories.projects().findByName("Project A").orElseThrow();
+                Issue issue = null;
+
+                try {
+                        issue = createIssue(project.getId(), uniqueId("single_purge_issue"), IssueStatus.NEW);
+                        Issue deleted = repositories.deletedIssues().softDelete(
+                                        issue,
+                                        "pl1",
+                                        "Delete before single purge.",
+                                        LocalDateTime.now());
+
+                        assertTrue(repositories.deletedIssues().findDeletedByProject(project.getId()).stream()
+                                        .anyMatch(value -> value.id() == deleted.id()));
+
+                        int removed = repositories.deletedIssues().purgeDeletedById(deleted.id());
+                        issue = null;
+
+                        assertEquals(1, removed);
+                        assertTrue(repositories.issues().findById(deleted.id()).isEmpty());
+                        assertTrue(repositories.issueHistory().findByIssueId(deleted.id()).isEmpty());
+                } finally {
+                        if (issue != null) {
+                                purgeTestIssue(issue.id());
+                        }
+                }
+        }
+
+        // Repositories: IssueRepository.save/findById,
+        // DeletedIssueRepository.softDelete/restore
         @Test
         @DisplayName("Issue restore accepts only NEW or CLOSED pre-delete history")
         void issueRestoreAcceptsOnlyNewOrClosedPreDeleteHistory() {
@@ -474,9 +570,11 @@ class OracleRepositoryIntegrationTest {
                         repositories.deletedIssues().softDelete(deletedFromNew, "pl1", "Delete before restore.",
                                         LocalDateTime.now());
 
-                        Issue deletedFromNewReloaded = repositories.issues().findById(deletedFromNew.id()).orElseThrow();
+                        Issue deletedFromNewReloaded = repositories.issues().findById(deletedFromNew.id())
+                                        .orElseThrow();
                         assertEquals(IssueStatus.NEW, repositories.deletedIssues()
-                                        .restore(deletedFromNewReloaded, "pl1", "Restore NEW issue.", LocalDateTime.now())
+                                        .restore(deletedFromNewReloaded, "pl1", "Restore NEW issue.",
+                                                        LocalDateTime.now())
                                         .status());
 
                         invalidDeleted = createIssue(project.getId(), uniqueId("restore_invalid_issue"),
@@ -509,6 +607,7 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: UserRepository.save/findByLoginId/findAll
         @Test
         @DisplayName("User repository saves, updates, finds, deactivates, and activates users")
         void userRepositorySupportsCrudPolicy() {
@@ -556,6 +655,9 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories:
+        // ProjectRepository.save/findByName/addParticipant/removeParticipant/deleteById,
+        // IssueRepository.save/findById
         @Test
         @DisplayName("Project repository creates projects, manages participants, and deletes composition issues")
         void projectRepositorySupportsParticipantCrudAndCompositionDelete() {
@@ -620,6 +722,9 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories:
+        // IssueRepository.save/findById/findByCriteria/existsByProjectIdAndTitle,
+        // DeletedIssueRepository.findDeletedByProject
         @Test
         @DisplayName("Issue repository saves, searches, hides deleted issues, and purges")
         void issueRepositorySupportsSaveSearchDeletedAndPurge() {
@@ -697,6 +802,27 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueRepository.findAllById
+        @Test
+        @DisplayName("issue batch lookup finds seed rows")
+        void issueBatchLookupFindsSeedRows() {
+                var project = repositories.projects().findByName("Project A").orElseThrow();
+                Issue loginIssue = findIssueByTitle(project.getId(), "Login fails on invalid credential");
+                Issue searchIssue = findIssueByTitle(project.getId(), "Search result filter returns stale status");
+
+                var foundIds = repositories.issues().findAllById(List.of(loginIssue.id(), searchIssue.id(), -1L))
+                                .stream()
+                                .map(Issue::id)
+                                .toList();
+
+                assertEquals(2, foundIds.size());
+                assertTrue(foundIds.contains(loginIssue.id()));
+                assertTrue(foundIds.contains(searchIssue.id()));
+                assertFalse(foundIds.contains(-1L));
+        }
+
+        // Repositories: IssueRepository.save, CommentRepository.findByIssueId,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("Issue repository saves aggregate comments and histories atomically")
         void issueRepositoryPersistsAggregateCommentsAndHistories() {
@@ -747,6 +873,9 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories:
+        // CommentRepository.saveCommentAndRecordHistory/findById/findByIssueId,
+        // CommentRepository.deleteGeneralByIdAndRecordIssueChange
         @Test
         @DisplayName("Comment repository saves, updates, lists, and deletes comments with issue history")
         void commentRepositorySupportsCrud() {
@@ -860,6 +989,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: DeletedIssueRepository.softDelete,
+        // IssueHistoryRepository.findByIssueId
         @Test
         @DisplayName("IssueHistory repository finds histories recorded by workflows")
         void issueHistoryRepositoryFindsWorkflowHistories() {
@@ -885,6 +1016,9 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories:
+        // IssueDependencyRepository.recordDependencyAdded/findByDependencyId/existsByPair,
+        // IssueDependencyRepository.findDependenciesBlockingIssue/recordDependencyRemoved
         @Test
         @DisplayName("IssueDependency repository saves, checks duplicates, and deletes dependencies")
         void issueDependencyRepositorySupportsCrudAndDuplicateChecks() {
@@ -947,6 +1081,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories:
+        // IssueDependencyRepository.recordDependencyAdded/recordDependencyRemoved/findByDependencyId
         @Test
         @DisplayName("IssueDependency repository deletes by dependency id")
         void issueDependencyRepositoryDeletesByDependencyId() {
@@ -987,6 +1123,9 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories: IssueRepository.save,
+        // StatisticsRepository.calculateProjectStatistics,
+        // AssignmentRecommendationRepository.findResolvedIssuesForRecommendation
         @Test
         @DisplayName("Statistics and recommendation repositories reflect saved resolved issues")
         void statisticsAndRecommendationRepositoriesReflectSavedResolvedIssues() {
@@ -1029,6 +1168,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories via AccountService: UserRepository, ProjectRepository,
+        // IssueRepository
         @Test
         @DisplayName("Account service validates and persists account creation")
         void accountServiceValidatesAndPersistsAccountCreation() {
@@ -1063,6 +1204,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories via ProjectService: ProjectRepository, IssueRepository,
+        // UserRepository
         @Test
         @DisplayName("Project service blocks removing active assignees or verifiers")
         void projectServiceBlocksRemovingActiveAssignmentParticipants() {
@@ -1106,6 +1249,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories via workflow services: IssueRepository, CommentRepository,
+        // IssueHistoryRepository, AssignmentRecommendationRepository
         @Test
         @DisplayName("Assignment and issue state services persist workflow through Oracle")
         void assignmentAndIssueStateServicesPersistWorkflowThroughOracle() {
@@ -1172,6 +1317,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories via IssueService: IssueRepository, CommentRepository,
+        // IssueHistoryRepository
         @Test
         @DisplayName("Issue service records comment update and delete audit history")
         void issueServiceRecordsCommentUpdateAndDeleteAuditHistory() {
@@ -1217,6 +1364,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories via IssueService: IssueRepository, IssueDependencyRepository,
+        // IssueHistoryRepository
         @Test
         @DisplayName("Issue service enforces dependency project and cycle policies")
         void issueServiceEnforcesDependencyProjectAndCyclePolicies() {
@@ -1266,6 +1415,8 @@ class OracleRepositoryIntegrationTest {
                 }
         }
 
+        // Repositories via services: DeletedIssueRepository, StatisticsRepository,
+        // IssueRepository
         @Test
         @DisplayName("Deleted issue and statistics services enforce project scope")
         void deletedIssueAndStatisticsServicesEnforceProjectScope() {
