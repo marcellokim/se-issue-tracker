@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPasswordField;
 import javax.swing.SwingWorker;
 import javax.swing.SwingUtilities;
@@ -157,6 +158,59 @@ class SwingAppPanelTest {
         });
     }
 
+    @Test
+    @DisplayName("admin placeholder can return to dashboard")
+    void adminPlaceholderCanReturnToDashboard() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        var panelRef = new AtomicReference<SwingAppPanel>();
+        var workerDone = new CountDownLatch(1);
+        SwingControllerFixture controllers = controllers(
+                passwordHashing,
+                List.of(projectSnapshot(1L, "Alpha", 3, 7)),
+                user("admin", Role.ADMIN));
+
+        SwingComponentTestSupport.onEdt(() -> {
+            SwingAppPanel panel = new SwingAppPanel(
+                    controllers.authenticationController(),
+                    controllers.dashboardController(),
+                    titles::update);
+            panelRef.set(panel);
+            SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
+            SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class).setText("submitted-password");
+            SwingComponentTestSupport.find(panel, "signInButton", JButton.class).doClick();
+            SwingWorker<?, ?> worker = loginWorker(panel);
+            worker.addPropertyChangeListener(event -> {
+                if ("state".equals(event.getPropertyName())
+                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
+                    workerDone.countDown();
+                }
+            });
+            if (SwingWorker.StateValue.DONE == worker.getState()) {
+                workerDone.countDown();
+            }
+        });
+
+        assertTrue(passwordHashing.awaitMatch());
+        assertTrue(titles.awaitAdminDashboard());
+        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
+        awaitProjectRows(panelRef.get(), 1);
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panelRef.get(), "accountManagementButton", JButton.class).doClick());
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Account management",
+                    SwingComponentTestSupport.find(panelRef.get(), "placeholderTitle", JLabel.class).getText());
+            SwingComponentTestSupport.find(panelRef.get(), "backButton", JButton.class).doClick();
+        });
+
+        awaitProjectRows(panelRef.get(), 1);
+        SwingComponentTestSupport.onEdt(() -> assertEquals(
+                "Alpha",
+                SwingComponentTestSupport.find(panelRef.get(), "adminProjectTable", JTable.class).getValueAt(0, 1)));
+    }
+
     private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
         Field worker = SwingAppPanel.class.getDeclaredField("loginWorker");
         worker.setAccessible(true);
@@ -167,8 +221,12 @@ class SwingAppPanelTest {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (System.nanoTime() < deadline) {
             AtomicReference<Integer> rowCount = new AtomicReference<>();
-            SwingComponentTestSupport.onEdt(() -> rowCount.set(
-                    SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount()));
+            try {
+                SwingComponentTestSupport.onEdt(() -> rowCount.set(
+                        SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount()));
+            } catch (AssertionError ignored) {
+                rowCount.set(-1);
+            }
             if (rowCount.get() == expectedRows) {
                 return;
             }

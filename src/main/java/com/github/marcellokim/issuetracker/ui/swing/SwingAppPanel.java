@@ -2,10 +2,12 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +32,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final JPanel adminDashboardCard = new JPanel(new BorderLayout());
     private final JPanel projectListCard = new JPanel(new BorderLayout());
     private transient SwingWorker<Void, Void> loginWorker;
+    private transient volatile DashboardLoadWorker dashboardWorker;
 
     SwingAppPanel(
             AuthenticationController authenticationController,
@@ -53,6 +56,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     public void showLogin() {
         runOnEdtAndWait(() -> {
+            cancelDashboardWorker();
             titleUpdater.accept("Issue Tracker");
             loginPanel.showMessage(" ", false);
             loginPanel.clearPassword();
@@ -65,6 +69,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     public void showAdminDashboard(UserResult user) {
         Objects.requireNonNull(user, "user");
         SwingUtilities.invokeLater(() -> {
+            cancelDashboardWorker();
             titleUpdater.accept("Admin dashboard");
             AdminDashboardPanel panel = new AdminDashboardPanel(
                     user,
@@ -84,6 +89,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     public void showProjectList(UserResult user) {
         Objects.requireNonNull(user, "user");
         runOnEdtAndWait(() -> {
+            cancelDashboardWorker();
             titleUpdater.accept("Project list");
             showPlaceholder(projectListCard, "Project list", user);
             cardLayout.show(this, PROJECT_LIST_CARD);
@@ -91,6 +97,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     }
 
     void logout() {
+        cancelDashboardWorker();
         authenticationController.logout();
         showLogin();
     }
@@ -141,29 +148,42 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     }
 
     private void showPlaceholder(JPanel card, String destination, UserResult user) {
+        showPlaceholder(card, destination, user, null);
+    }
+
+    private void showPlaceholder(JPanel card, String destination, UserResult user, Runnable onBack) {
         card.removeAll();
-        card.add(new PlaceholderPanel(destination, user, this::logout), BorderLayout.CENTER);
+        card.add(new PlaceholderPanel(destination, user, onBack, this::logout), BorderLayout.CENTER);
         card.revalidate();
         card.repaint();
     }
 
     private void showAdminPlaceholder(String destination, UserResult user) {
-        runOnEdtAndWait(() -> {
+        SwingUtilities.invokeLater(() -> {
+            cancelDashboardWorker();
             titleUpdater.accept(destination);
-            showPlaceholder(adminDashboardCard, destination, user);
+            showPlaceholder(adminDashboardCard, destination, user, () -> showAdminDashboard(user));
             cardLayout.show(this, ADMIN_DASHBOARD_CARD);
         });
     }
 
     private void loadAdminDashboard(AdminDashboardPanel panel) {
-        AdminDashboardPresenter presenter = new AdminDashboardPresenter(dashboardController, panel);
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                presenter.load();
-                return null;
-            }
-        }.execute();
+        DashboardLoadWorker worker = new DashboardLoadWorker(panel);
+        dashboardWorker = worker;
+        worker.execute();
+    }
+
+    private void cancelDashboardWorker() {
+        if (dashboardWorker != null && !dashboardWorker.isDone()) {
+            dashboardWorker.cancel(true);
+        }
+        dashboardWorker = null;
+    }
+
+    private void clearCompletedDashboardWorker(DashboardLoadWorker worker) {
+        if (dashboardWorker == worker) {
+            dashboardWorker = null;
+        }
     }
 
     private void showLoginFailure(String message) {
@@ -205,6 +225,58 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             throw error;
         }
         throw new IllegalStateException("Swing UI update failed.", cause);
+    }
+
+    private final class DashboardLoadWorker extends SwingWorker<Void, Void> {
+
+        private final AdminDashboardPanel panel;
+
+        private DashboardLoadWorker(AdminDashboardPanel panel) {
+            this.panel = Objects.requireNonNull(panel, "panel");
+        }
+
+        @Override
+        protected Void doInBackground() {
+            AdminDashboardPresenter presenter = new AdminDashboardPresenter(
+                    dashboardController,
+                    new CurrentDashboardView(panel, this));
+            presenter.load();
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            clearCompletedDashboardWorker(this);
+        }
+    }
+
+    private final class CurrentDashboardView implements AdminDashboardView {
+
+        private final AdminDashboardPanel delegate;
+        private final DashboardLoadWorker worker;
+
+        private CurrentDashboardView(AdminDashboardPanel delegate, DashboardLoadWorker worker) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+            this.worker = Objects.requireNonNull(worker, "worker");
+        }
+
+        @Override
+        public void showDashboard(List<DashboardProjectSummary> projects, List<UserResult> users) {
+            if (isCurrent()) {
+                delegate.showDashboard(projects, users);
+            }
+        }
+
+        @Override
+        public void showError(String message) {
+            if (isCurrent()) {
+                delegate.showError(message);
+            }
+        }
+
+        private boolean isCurrent() {
+            return dashboardWorker == worker && !worker.isCancelled();
+        }
     }
 
     private static final class CapturedLoginView implements LoginView {

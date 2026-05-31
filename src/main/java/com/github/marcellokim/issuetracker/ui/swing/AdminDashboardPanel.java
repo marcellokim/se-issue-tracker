@@ -223,6 +223,7 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
             action.run();
             return;
         }
+        // Production dashboard loads call this from SwingWorker; direct EDT calls keep panel tests simple.
         SwingUtilities.invokeLater(action);
     }
 }
