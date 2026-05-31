@@ -9,18 +9,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
+import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
+import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
+import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
+import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -29,6 +39,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,6 +76,7 @@ class SwingAppPanelTest {
                     controllers.dashboardController(),
                     controllers.accountController(),
                     controllers.projectController(),
+                    controllers.issueController(),
                     titles::update);
             panelRef.set(panel);
             JTextField loginId = SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class);
@@ -139,6 +151,7 @@ class SwingAppPanelTest {
                     controllers.dashboardController(),
                     controllers.accountController(),
                     controllers.projectController(),
+                    controllers.issueController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -187,6 +200,7 @@ class SwingAppPanelTest {
                     controllers.dashboardController(),
                     controllers.accountController(),
                     controllers.projectController(),
+                    controllers.issueController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -246,6 +260,7 @@ class SwingAppPanelTest {
                     controllers.dashboardController(),
                     controllers.accountController(),
                     controllers.projectController(),
+                    controllers.issueController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -313,6 +328,7 @@ class SwingAppPanelTest {
                     controllers.dashboardController(),
                     controllers.accountController(),
                     controllers.projectController(),
+                    controllers.issueController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -370,15 +386,17 @@ class SwingAppPanelTest {
     }
 
     @Test
-    @DisplayName("project list opens issue list placeholder with selected project id")
-    void projectListOpensIssueListPlaceholderWithSelectedProjectId() throws Exception {
+    @DisplayName("project list opens issue list with selected project id")
+    void projectListOpensIssueListWithSelectedProjectId() throws Exception {
         var passwordHashing = new RecordingPasswordHashing();
         var titles = new RecordingTitleUpdater();
+        User tester = user("tester1", Role.TESTER);
         SwingAppPanel panel = loginProjectUser(
                 passwordHashing,
                 titles,
                 List.of(projectSnapshot(7L, "Alpha", 3, 7)),
-                user("tester1", Role.TESTER));
+                List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, tester)),
+                tester);
 
         SwingComponentTestSupport.onEdt(() -> {
             JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
@@ -387,15 +405,28 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openProjectIssuesButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
-        awaitPlaceholderTitle(panel, "Issue list #7");
+        awaitIssueRows(panel, 1);
 
         SwingComponentTestSupport.onEdt(() -> {
             assertEquals(
-                    "Issue list #7",
+                    "Alpha",
+                    SwingComponentTestSupport.find(panel, "issueListTitle", JLabel.class).getText());
+            JTable issues = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
+            assertEquals("Login bug", issues.getValueAt(0, 4));
+            issues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openIssueDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
+        awaitPlaceholderTitle(panel, "Issue detail #7");
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Issue detail #7",
                     SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText());
             SwingComponentTestSupport.find(panel, "backButton", JButton.class).doClick();
         });
-        awaitProjectListRows(panel, 1);
+        awaitIssueRows(panel, 1);
     }
 
     @Test
@@ -426,9 +457,18 @@ class SwingAppPanelTest {
             RecordingTitleUpdater titles,
             List<DashboardProjectSnapshot> projects,
             User user) throws Exception {
+        return loginProjectUser(passwordHashing, titles, projects, List.of(), user);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            User user) throws Exception {
         var panelRef = new AtomicReference<SwingAppPanel>();
         var workerDone = new CountDownLatch(1);
-        SwingControllerFixture controllers = controllers(passwordHashing, projects, user);
+        SwingControllerFixture controllers = controllers(passwordHashing, projects, issues, user);
 
         SwingComponentTestSupport.onEdt(() -> {
             SwingAppPanel panel = new SwingAppPanel(
@@ -436,6 +476,7 @@ class SwingAppPanelTest {
                     controllers.dashboardController(),
                     controllers.accountController(),
                     controllers.projectController(),
+                    controllers.issueController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText(user.getLoginId());
@@ -482,6 +523,10 @@ class SwingAppPanelTest {
 
     private static void awaitProjectListRows(SwingAppPanel panel, int expectedRows) throws Exception {
         awaitRows(panel, "projectListTable", expectedRows);
+    }
+
+    private static void awaitIssueRows(SwingAppPanel panel, int expectedRows) throws Exception {
+        awaitRows(panel, "issueListTable", expectedRows);
     }
 
     private static void awaitProjectDetailName(SwingAppPanel panel, String expectedName) throws Exception {
@@ -619,16 +664,31 @@ class SwingAppPanelTest {
             PasswordHashing passwordHashing,
             List<DashboardProjectSnapshot> projects,
             User... users) {
+        return controllers(passwordHashing, projects, List.of(), users);
+    }
+
+    private static SwingControllerFixture controllers(
+            PasswordHashing passwordHashing,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            User... users) {
         var repository = new InMemoryUserRepository(users);
         var projectRepository = new InMemoryProjectRepository();
-        projects.forEach(project -> projectRepository.withProject(com.github.marcellokim.issuetracker.domain.Project
-                .fromPersistence(
+        projects.forEach(project -> {
+            projectRepository.withProject(Project.fromPersistence(
                         project.projectId(),
                         project.projectName(),
                         project.projectDescription(),
                         "admin",
                         NOW,
-                        NOW)));
+                        NOW));
+            for (User user : users) {
+                if (user.getRole() != Role.ADMIN) {
+                    projectRepository.withParticipant(project.projectId(), user.getLoginId());
+                }
+            }
+        });
+        var issueRepository = new InMemoryIssueRepository(issues.toArray(Issue[]::new));
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         return new SwingControllerFixture(
@@ -652,7 +712,18 @@ class SwingAppPanelTest {
                         service,
                         new ProjectService(
                                 projectRepository,
-                                new InMemoryIssueRepository(),
+                                issueRepository,
+                                repository,
+                                permissionPolicy,
+                                () -> NOW)),
+                new IssueController(
+                        service,
+                        new IssueService(
+                                projectRepository,
+                                issueRepository,
+                                new FakeIssueDependencyRepository(),
+                                new FakeCommentRepository(),
+                                new FakeIssueHistoryRepository(),
                                 repository,
                                 permissionPolicy,
                                 () -> NOW)));
@@ -679,11 +750,48 @@ class SwingAppPanelTest {
                 Map.of(IssueStatus.NEW, visibleIssueCount));
     }
 
+    private static Issue issue(long id, long projectId, String title, Priority priority, User reporter) {
+        return Issue.fromPersistence(Issue.persistedState(projectId, title, "Issue description", reporter)
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .priority(priority)
+                .reportedDate(NOW)
+                .updatedAt(NOW));
+    }
+
     private record SwingControllerFixture(
             AuthenticationController authenticationController,
             DashboardController dashboardController,
             AccountController accountController,
-            ProjectController projectController) {
+            ProjectController projectController,
+            IssueController issueController) {
+    }
+
+    private static final class FakeCommentRepository implements CommentRepository {
+
+        @Override
+        public Optional<Comment> findById(long commentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<Comment> findByIssueId(long issueId) {
+            return List.of();
+        }
+
+        @Override
+        public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
+            return comment;
+        }
+
+        @Override
+        public void deleteGeneralByIdAndRecordIssueChange(
+                long issueId,
+                long commentId,
+                String writerLoginId,
+                IssueHistory history) {
+            // Comment deletion is outside the app navigation scenarios covered by this fake.
+        }
     }
 
     private record FakeDashboardSummaryRepository(
