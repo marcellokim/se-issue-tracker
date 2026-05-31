@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JTable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -112,6 +114,27 @@ class ProjectManagementPanelTest {
         assertEquals(7L, deleteRef.get());
         assertEquals(1, backClicks.get());
         assertEquals(1, logoutClicks.get());
+    }
+
+    @Test
+    @DisplayName("shows fallback text for blank error messages")
+    void showsFallbackTextForBlankErrors() throws Exception {
+        SwingComponentTestSupport.onEdt(() -> {
+            ProjectManagementPanel panel = panel(new FixedProjectDialogs());
+            panel.showMessage(" ", true);
+
+            JLabel message = SwingComponentTestSupport.find(panel, "projectManagementMessage", JLabel.class);
+
+            assertEquals("Project management failed. Please try again.", message.getText());
+        });
+    }
+
+    @Test
+    @DisplayName("rejects invalid dialog form component pairs")
+    void rejectsInvalidDialogFormComponentPairs() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> ProjectManagementPanel.JOptionPaneProjectDialogs.formPanel(new JLabel("Name")));
     }
 
     @Test

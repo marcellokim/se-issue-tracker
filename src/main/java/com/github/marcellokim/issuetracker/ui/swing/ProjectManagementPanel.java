@@ -38,6 +38,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
     private static final Color EVEN_ROW_BACKGROUND = Color.WHITE;
     private static final Color ODD_ROW_BACKGROUND = new Color(248, 250, 252);
+    private static final String DEFAULT_ERROR_MESSAGE = "Project management failed. Please try again.";
 
     private final ProjectDialogs dialogs;
     private final PanelConsumer<ProjectCreateRequest> onCreate;
@@ -108,7 +109,9 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
 
     @Override
     public void showMessage(String message, boolean error) {
-        String displayMessage = message == null || message.isBlank() ? " " : message;
+        String displayMessage = message == null || message.isBlank()
+                ? (error ? DEFAULT_ERROR_MESSAGE : " ")
+                : message;
         runOnEdt(() -> {
             messageLabel.setText(displayMessage);
             messageLabel.setForeground(error ? SwingStyles.ERROR_TEXT : SwingStyles.MUTED_TEXT);
@@ -421,7 +424,10 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
             return result == JOptionPane.OK_OPTION;
         }
 
-        private static JPanel formPanel(Component... components) {
+        static JPanel formPanel(Component... components) {
+            if (components.length % 2 != 0) {
+                throw new IllegalArgumentException("Form components must be label-field pairs.");
+            }
             JPanel panel = new JPanel(new GridBagLayout());
             GridBagConstraints constraints = new GridBagConstraints();
             constraints.insets = new Insets(4, 4, 4, 4);
