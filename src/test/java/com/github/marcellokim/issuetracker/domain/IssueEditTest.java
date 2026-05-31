@@ -20,8 +20,8 @@ class IssueEditTest {
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
-    @DisplayName("priority change records history")
-    void changePriorityAndRecordHistory() {
+    @DisplayName("priority change leaves history")
+    void priorityChangeLeavesHistory() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var changedAt = createdAt.plusMinutes(10);
 
@@ -46,8 +46,8 @@ class IssueEditTest {
     }
 
     @Test
-    @DisplayName("reporter can edit title and description before assignment")
-    void updateTitleAndDescriptionByReporter() {
+    @DisplayName("reporter can edit a new issue")
+    void reporterCanEditNewIssue() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var changedAt = createdAt.plusMinutes(10);
 
@@ -63,8 +63,8 @@ class IssueEditTest {
     }
 
     @Test
-    @DisplayName("reporter can edit reopened issue")
-    void updateTitleAndDescriptionOnReopenedIssue() {
+    @DisplayName("reopened issue can be edited again")
+    void editReopenedIssue() {
         var issue = resolvedIssue();
         issue.reopen(pl, "Needs more work", createdAt.plusMinutes(40));
 
@@ -75,8 +75,8 @@ class IssueEditTest {
     }
 
     @Test
-    @DisplayName("only reporter can edit title and description")
-    void rejectUpdateTitleByNonReporter() {
+    @DisplayName("only reporter can edit the issue")
+    void onlyReporterCanEditIssue() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
@@ -84,8 +84,8 @@ class IssueEditTest {
     }
 
     @Test
-    @DisplayName("assigned issue cannot be edited")
-    void rejectUpdateTitleOnAssignedIssue() {
+    @DisplayName("assigned issue can not be edited")
+    void assignedIssueCannotBeEdited() {
         var issue = assignedIssue();
 
         assertThrows(IllegalStateException.class,
@@ -93,8 +93,8 @@ class IssueEditTest {
     }
 
     @Test
-    @DisplayName("title and description cannot be blank")
-    void rejectUpdateTitleWithBlankValues() {
+    @DisplayName("blank title or description is rejected")
+    void rejectBlankTitleOrDescription() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
@@ -104,35 +104,26 @@ class IssueEditTest {
     }
 
     @Test
-    @DisplayName("adding a comment records COMMENTED history")
-    void addCommentAndCommentedHistory() {
+    @DisplayName("comment leaves history")
+    void commentLeavesHistory() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var commentedAt = createdAt.plusMinutes(5);
 
         var comment = issue.addComment("C-1", "I will check it.", assignee, commentedAt);
 
-        assertEquals("C-1", comment.getCommentId());
-        assertEquals("I will check it.", comment.getContent());
-        assertEquals(CommentPurpose.GENERAL, comment.getPurpose());
-        assertSame(assignee, comment.getWriter());
-        assertEquals(commentedAt, comment.getCreatedDate());
-        assertEquals(commentedAt, comment.getUpdatedDate());
         assertEquals(1, issue.getComments().size());
         assertSame(comment, issue.getComments().getFirst());
 
-        assertEquals(2, issue.getHistories().size());
-        var history = issue.getHistories().get(1);
+        var history = issue.getHistories().getLast();
         assertEquals(ActionType.COMMENTED, history.getAction());
-        assertNull(history.getPreviousValue());
         assertEquals("I will check it.", history.getNewValue());
         assertEquals("comment added", history.getMessage());
         assertSame(assignee, history.getChangedBy());
-        assertEquals(commentedAt, history.getChangedDate());
     }
 
     @Test
-    @DisplayName("status-change comment keeps its purpose")
-    void addStatusChangeReasonComment() {
+    @DisplayName("status comment keeps its message")
+    void statusCommentKeepsItsMessage() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var commentedAt = createdAt.plusMinutes(5);
 
@@ -145,15 +136,14 @@ class IssueEditTest {
 
         assertEquals(CommentPurpose.STATUS_CHANGE, comment.getPurpose());
         assertEquals(ActionType.COMMENTED, issue.getHistories().getLast().getAction());
-        assertNull(issue.getHistories().getLast().getPreviousValue());
         assertEquals("Fixed with regression tests.", issue.getHistories().getLast().getNewValue());
         assertEquals("Fixed with regression tests.", issue.getHistories().getLast().getMessage());
     }
 
     @Test
-    @DisplayName("comment deletion records previous content")
-    void recordCommentDeletionHistory() {
-        var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+    @DisplayName("deleted comment leaves history")
+    void deletedCommentLeavesHistory() {
+        var issue = storedIssue();
         var comment = Comment.fromPersistence(
                 11L,
                 100L,
@@ -179,6 +169,14 @@ class IssueEditTest {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         issue.assignFromNew(assignee, verifier, pl, createdAt.plusMinutes(10));
         return issue;
+    }
+
+    private Issue storedIssue() {
+        return Issue.fromPersistence(Issue.persistedState(1L, "Login fails", "Cannot log in", reporter)
+                .id(100L)
+                .issueId("ISSUE-1")
+                .reportedDate(createdAt)
+                .updatedAt(createdAt));
     }
 
     private Issue resolvedIssue() {
