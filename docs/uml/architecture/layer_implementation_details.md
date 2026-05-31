@@ -84,7 +84,7 @@ CLI command는 service 결과를 출력 형식으로 변환. CLI command가 repo
 
 ## Controller-Service-Repository Wiring
 
-현재 dev 구현에서 assignment/status 흐름은 DCD ver1보다 service 계층이 더 명확하게 분리됨.
+현재 dev 구현에서 assignment/status 흐름은 Layer Architecture View보다 service 계층이 더 명확하게 분리됨.
 
 ### Assignment Flow
 
@@ -119,7 +119,7 @@ AssignmentService
 - `Issue.assignFromNew`, `Issue.assignReopened`, `Issue.reassignAssignee`, `Issue.changeVerifier` 호출
 - 변경된 issue 저장
 
-따라서 DCD ver1에서 `AssignmentController`가 `IssueRepository`, `UserRepository`, `PermissionPolicy`, `AssignmentRecommendationService`, `Clock`을 직접 사용하는 것처럼 보이는 부분은 현재 구현과 다름. 현재 구현 기준으로는 이 의존성이 `AssignmentService` 쪽에 있어야 함.
+따라서 Layer Architecture View에서 `AssignmentController`가 `IssueRepository`, `UserRepository`, `PermissionPolicy`, `AssignmentRecommendationService`, `Clock`을 직접 사용하는 것처럼 보이는 부분은 현재 구현과 다름. 현재 구현 기준으로는 이 의존성이 `AssignmentService` 쪽에 있어야 함.
 
 ### Issue State Flow
 
@@ -176,7 +176,7 @@ Controller가 repository, policy, clock, recommendation service를 직접 들고
 
 ## DCD 반영 기준
 
-`dcd-ver1`은 layered implementation overview이므로 현재 구현과 맞게 service 계층 반영 권장.
+`its_layer_architecture.puml`은 layered implementation overview이므로 현재 구현과 맞게 service 계층 반영 권장.
 
 반영 대상:
 

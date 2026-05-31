@@ -1,17 +1,17 @@
-# ITS DCD 문서 설명
+# ITS DCD / Layer Architecture 문서 설명
 
-이 문서는 현재 코드 기준으로 `DCD_ver1`, `DCD_ver2`를 어떻게 읽어야 하는지 정리한다.
+이 문서는 현재 코드 기준으로 `Layer Architecture View`, `DCD`를 어떻게 읽어야 하는지 정리한다.
 
 ## 문서 역할
 
 | 문서 | 역할 | 사용 위치 |
 |---|---|---|
-| `its_dcd_ver1.puml` | 현재 구현 코드의 레이어 분리와 의존성 방향을 보여주는 구현 관점 DCD | 구현 설명, 아키텍처 검토, appendix |
-| `its_dcd_ver2.puml` | Larman/GRASP 관점의 설계 클래스 다이어그램 | 최종 보고서 본문, 설계 설명 |
+| `its_layer_architecture.puml` | 현재 구현 코드의 레이어 분리와 의존성 방향을 보여주는 레이어 아키텍처 관점 | 구현 설명, 아키텍처 검토, appendix |
+| `its_dcd.puml` | Larman/GRASP 관점의 설계 클래스 다이어그램 | 최종 보고서 본문, 설계 설명 |
 
-## DCD ver1: 현재 구현 레이어 관점
+## Layer Architecture View: 현재 구현 레이어 관점
 
-`DCD_ver1`은 현재 코드의 실제 패키지 구조와 의존성 방향을 반영한다.
+`Layer Architecture View`는 현재 코드의 실제 패키지 구조와 의존성 방향을 반영한다.
 
 현재 기준의 핵심 구조는 다음과 같다.
 
@@ -44,12 +44,13 @@
   - `User`, `Project`, `ProjectMember`, `Issue`, `Comment`, `IssueHistory`, `IssueDependency`
   - `IssueStatus`, `Priority`, `Role`, `CommentPurpose`, `ActionType`
 
-## DCD ver2: Larman / GRASP 설계 관점
+## DCD: Larman / GRASP 도메인 설계 클래스 관점
 
-`DCD_ver2`는 코드 패키지 전체를 그대로 그리는 다이어그램이 아니다. Larman 방식에 맞춰 system operation을 받는 Controller, application service, 핵심 domain class의 협력을 보여준다.
+`DCD`는 코드 패키지 전체를 그대로 그리는 다이어그램이 아니다. Larman 방식에 맞춰 도메인 모델을 설계 클래스 수준으로 확장하고, 핵심 domain class의 attribute, operation, association을 보여준다.
 
 따라서 다음 구현 세부는 의도적으로 제외한다.
 
+- Controller와 Service 조율 구조
 - JDBC 구현체
 - Repository factory
 - Database connection provider
@@ -58,16 +59,15 @@
 - 단순 Result/DTO record
 - Bootstrap 조립 코드
 
-`DCD_ver2`에서 강조하는 설계 포인트는 다음과 같다.
+`DCD`에서 강조하는 설계 포인트는 다음과 같다.
 
-- Controller는 SSD의 system operation을 받는 GRASP Controller이다.
-- Service는 여러 Repository 조회, 권한 검사, transaction 성격의 orchestration을 담당하는 Pure Fabrication/Indirection이다.
-- `PermissionPolicy`는 역할 기반 권한 검사를 중앙화한다.
+- 도메인 모델의 개념 객체를 실제 설계 클래스 형태로 확장한다.
+- 관계선에는 역할 이름, multiplicity, navigability를 명확히 표시한다.
+- operation은 구현 메서드 전체가 아니라 도메인 책임을 드러내는 핵심 행위만 표현한다.
 - `Issue`는 상태 전이, 배정 변경, 댓글, 의존성, history 생성의 Information Expert이다.
 - `Project`는 issue 목록을 in-memory collection으로 소유하지 않는다. 이슈는 `Issue.projectId`로 프로젝트와 연결된다.
-- Admin 프로젝트 상세 조회는 프로젝트 기본 정보, 참여자 정보, 프로젝트 이슈 목록을 반환한다.
-- 일반 사용자 프로젝트 상세 화면은 프로젝트 기본 정보만 반환하며, 별도 이슈 목록은 `IssueService` 또는 `DashboardSummaryService`를 통해 조회한다.
-- deleted 이슈 관리는 일반 이슈 조회/조작 경로와 분리되어 `DeletedIssueService`가 담당한다.
+- `ProjectMember`와 `IssueDependency`는 관계 자체가 정보를 갖는 association class로 표현한다.
+- persistence helper, factory method, DTO/read model은 DCD에 넣지 않는다.
 
 ## 현재 설계 기준
 

@@ -65,9 +65,9 @@ Presentation / CLI
 - `JdbcUserRepository`도 `PasswordHasher`가 아니라 `PasswordHashing` port를 받는다.
 - JDBC repository는 repository interface를 구현한다.
 
-## DCD ver1 반영 기준
+## Layer Architecture View 반영 기준
 
-`its_dcd_ver1.puml`은 현재 구현 레이어를 보여준다.
+`its_layer_architecture.puml`은 현재 구현 레이어를 보여준다.
 
 반영해야 할 주요 요소는 다음과 같다.
 
@@ -99,14 +99,15 @@ Presentation / CLI
   - `User`, `Project`, `ProjectMember`, `Issue`, `Comment`, `IssueHistory`, `IssueDependency`
   - enum/value object
 
-`DCD_ver1`은 구현 관점 문서이므로 repository, technical adapter, composition root까지 포함한다.
+`Layer Architecture View`는 구현 관점 문서이므로 repository, technical adapter, composition root까지 포함한다.
 
-## DCD ver2 반영 기준
+## DCD 반영 기준
 
-`its_dcd_ver2.puml`은 Larman/GRASP 관점 DCD이다.
+`its_dcd.puml`은 도메인 모델을 설계 클래스 수준으로 확장한 Larman/GRASP 관점 DCD이다.
 
 따라서 다음 구현 세부는 제외한다.
 
+- Controller와 Service 조율 구조
 - JDBC repository 구현체
 - `JdbcRepositoryFactory`
 - DB connection provider
@@ -117,11 +118,11 @@ Presentation / CLI
 
 대신 다음을 중심으로 표현한다.
 
-- system operation을 받는 Controller
-- use case 흐름을 조합하는 Service
-- 권한 검사를 담당하는 `PermissionPolicy`
-- 핵심 domain class와 책임
-- domain class 사이의 association
+- 핵심 domain class와 주요 attribute
+- domain object가 직접 수행하는 operation
+- domain class 사이의 association, role name, multiplicity, navigability
+- `Issue`가 담당하는 상태 전이, 배정, 댓글, 의존성 변경 책임
+- `Project`, `User`, `ProjectMember`, `Comment`, `IssueHistory`, `IssueDependency`의 도메인 관계
 
 ## 현재 주요 설계 결정
 

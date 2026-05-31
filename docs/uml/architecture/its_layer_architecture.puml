@@ -1,7 +1,7 @@
-@startuml its_dcd_ver1
+@startuml its_layer_architecture
 !include ../_shared/its-uml-style.puml
 
-title Issue Tracking System - DCD ver1: Current Layered Implementation
+title Issue Tracking System - Layer Architecture View: Current Implementation
 
 left to right direction
 hide circle
@@ -14,7 +14,7 @@ scale 0.52
 
 legend left
   == Purpose ==
-  ver1 shows the current implementation layers and dependency direction.
+  This view shows the current implementation layers and dependency direction.
   UI files are intentionally not modeled as completed JavaFX/Swing views.
   Presentation/CLI boundaries must call controllers, not services/repositories.
 

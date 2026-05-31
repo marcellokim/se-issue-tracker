@@ -99,11 +99,11 @@
 
 | 영역 | DCD/domain 근거 |
 | --- | --- |
-| 이슈 workflow | `docs/uml/dcd/its_dcd_ver2.puml`: `IssueController`, `Issue`, `Comment`, `IssueHistory`, `IssueDependency`, `PermissionPolicy` |
-| 배정 workflow | `docs/uml/dcd/its_dcd_ver2.puml`: `AssignmentController`, `AssignmentRecommendationService`, `Issue.assignFromNew`, `assignReopened`, `reassignAssignee`, `changeVerifier` |
-| 상태 전이 | `docs/uml/dcd/its_dcd_ver2.puml`: `IssueStateController`, `Issue.markFixed`, `resolve`, `rejectFix`, `close`, `reopen`, `IssueHistory(STATUS_CHANGED)` |
-| 삭제 이슈 workflow | `docs/uml/dcd/its_dcd_ver2.puml`: `DeletedIssueController`, `Issue.softDelete`, `restore`, `findDeleteStatusHistory`, dependency removal |
-| ADMIN/support workflow | `docs/uml/dcd/its_dcd_ver2.puml`: `Project`, `User`, `PermissionPolicy`, 핵심 workflow DCD에는 생략된 service/result 구현 클래스 |
+| 이슈 workflow | `docs/uml/dcd/its_dcd.puml`: `Issue`, `Comment`, `IssueHistory`, `IssueDependency` |
+| 배정 workflow | `docs/uml/dcd/its_dcd.puml`: `Issue.assignFromNew`, `assignReopened`, `reassignAssignee`, `changeVerifier`, assignee/verifier 관계 |
+| 상태 전이 | `docs/uml/dcd/its_dcd.puml`: `Issue.markFixed`, `resolve`, `rejectFix`, `close`, `reopen`, `IssueHistory(STATUS_CHANGED)` |
+| 삭제 이슈 workflow | `docs/uml/dcd/its_dcd.puml`: `Issue`, `IssueHistory`, `IssueDependency`; 삭제/복구 조율은 service/JDBC 문서에서 다룬다 |
+| ADMIN/support workflow | `docs/uml/dcd/its_dcd.puml`: `Project`, `User`, `ProjectMember`; 권한 정책과 result 구현 클래스는 DCD에서 생략한다 |
 
 ## 설계 차이 요약
 
