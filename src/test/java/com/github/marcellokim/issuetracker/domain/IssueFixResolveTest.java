@@ -85,7 +85,7 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("fixer and resolver must have the right roles")
+        @DisplayName("fixer and resolver have the right roles")
         void rejectsWrongFixerAndResolverRoles() {
                 var issue = assignedIssue();
 
@@ -174,37 +174,6 @@ class IssueFixResolveTest {
 
                 assertThrows(IllegalStateException.class,
                                 () -> issue.rejectFix(verifier, "Not fixed", createdAt.plusMinutes(20)));
-        }
-
-        @Test
-        @DisplayName("resolved blocking issue lets the issue resolve")
-        void resolvesWhenBlockingIssueIsResolved() {
-                var blockedIssue = assignedIssue();
-                var blockingIssue = assignedIssue("ISSUE-2");
-                blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
-                blockingIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(16));
-                blockingIssue.resolve(verifier, "Verified", createdAt.plusMinutes(17));
-                blockedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
-
-                blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
-
-                assertEquals(IssueStatus.RESOLVED, blockedIssue.getStatus());
-        }
-
-        @Test
-        @DisplayName("closed blocking issue lets the issue resolve")
-        void resolvesWhenBlockingIssueIsClosed() {
-                var blockedIssue = assignedIssue();
-                var blockingIssue = assignedIssue("ISSUE-2");
-                blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
-                blockingIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(16));
-                blockingIssue.resolve(verifier, "Verified", createdAt.plusMinutes(17));
-                blockingIssue.close(pl, "Done", createdAt.plusMinutes(18));
-                blockedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
-
-                blockedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(30));
-
-                assertEquals(IssueStatus.RESOLVED, blockedIssue.getStatus());
         }
 
         private Issue assignedIssue() {

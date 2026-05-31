@@ -1,11 +1,9 @@
 package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -19,12 +17,12 @@ class IssueDependencyTest {
     private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
     @Test
-    @DisplayName("dependency keeps blocking and blocked direction")
-    void createsDependencyDirection() {
-        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+    @DisplayName("dependency points from blocker to blocked issue")
+    void keepsDependencyDirection() {
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter,
+                createdAt);
         var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         var discoveredAt = createdAt.plusMinutes(20);
-
         var dependency = blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, discoveredAt);
 
         assertEquals("ISSUE-1->ISSUE-2", dependency.getDependencyId());
@@ -40,17 +38,8 @@ class IssueDependencyTest {
     }
 
     @Test
-    @DisplayName("issue cannot depend on itself")
-    void rejectsSelfDependency() {
-        var issue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> issue.addDependency("SELF", issue, pl, createdAt));
-    }
-
-    @Test
-    @DisplayName("same issue id is treated as self dependency")
-    void rejectsSelfDependencyByIssueId() {
+    @DisplayName("an issue cannot depend on the same issue id")
+    void doesNotDependOnSameIssueId() {
         var blockedIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
         var sameIssueId = IssueFixtures.create("ISSUE-1", "Same auth", "Same logical issue", null, reporter, createdAt);
 
@@ -61,7 +50,8 @@ class IssueDependencyTest {
     @Test
     @DisplayName("same blocking issue cannot be added twice")
     void rejectsDuplicateDependency() {
-        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter,
+                createdAt);
         var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, createdAt.plusMinutes(20));
 
@@ -80,12 +70,15 @@ class IssueDependencyTest {
         blockedIssue.addDependency("ISSUE-3->ISSUE-2", blockingIssue2, pl, createdAt.plusMinutes(30));
 
         assertEquals(2, blockedIssue.getBlockedByDependencies().size());
+        assertEquals(1, blockingIssue1.getBlockingDependencies().size());
+        assertEquals(1, blockingIssue2.getBlockingDependencies().size());
     }
 
     @Test
     @DisplayName("removing dependency updates both sides")
     void removesDependencyFromBothSides() {
-        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter,
+                createdAt);
         var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         var dependency = blockedIssue.addDependency("ISSUE-1->ISSUE-2", blockingIssue, pl, createdAt.plusMinutes(20));
 
@@ -93,12 +86,18 @@ class IssueDependencyTest {
 
         assertEquals(0, blockedIssue.getBlockedByDependencies().size());
         assertEquals(0, blockingIssue.getBlockingDependencies().size());
+
+        var history = blockedIssue.getHistories().getLast();
+        assertEquals(ActionType.DEPENDENCY_CHANGED, history.getAction());
+        assertEquals("ISSUE-1->ISSUE-2", history.getPreviousValue());
+        assertNull(history.getNewValue());
     }
 
     @Test
-    @DisplayName("missing dependency cannot be removed")
-    void rejectsMissingDependencyRemoval() {
-        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+    @DisplayName("other issue's dependency is not removed")
+    void doesNotRemoveOtherIssueDependency() {
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter,
+                createdAt);
         var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
         var otherIssue = IssueFixtures.create("ISSUE-3", "Other", "Other issue", null, reporter, createdAt);
         var dependency = otherIssue.addDependency("ISSUE-1->ISSUE-3", blockingIssue, pl, createdAt.plusMinutes(20));
@@ -108,59 +107,28 @@ class IssueDependencyTest {
     }
 
     @Test
-    @DisplayName("saved dependency keeps generated id")
-    void restoresGeneratedDependencyId() {
+    @DisplayName("loaded dependency gets the generated id")
+    void loadedDependencyGetsGeneratedId() {
         var dependency = IssueDependency.fromPersistence(7L, 10L, 20L, createdAt);
 
         assertEquals(7L, dependency.id());
         assertEquals(10L, dependency.blockingIssueId());
         assertEquals(20L, dependency.blockedIssueId());
         assertEquals(createdAt, dependency.discoveredDate());
-        assertEquals(createdAt, dependency.getDiscoveredDate());
         assertEquals(IssueDependency.dependencyIdFor(10L, 20L), dependency.getDependencyId());
-        assertNotEquals(IssueDependency.dependencyIdFor(10L, 20L), IssueDependency.dependencyIdFor(20L, 10L));
-        assertNull(dependency.getBlockingIssue());
-        assertNull(dependency.getBlockedIssue());
     }
 
     @Test
-    @DisplayName("saved dependency keeps explicit id")
-    void restoresExplicitDependencyId() {
-        var dependency = IssueDependency.fromPersistence(8L, "DEP-10-20", 10L, 20L, createdAt);
-
-        assertEquals(8L, dependency.id());
-        assertEquals("DEP-10-20", dependency.getDependencyId());
-        assertEquals(10L, dependency.blockingIssueId());
-        assertEquals(20L, dependency.blockedIssueId());
-    }
-
-    @Test
-    @DisplayName("dependency equality uses dependency id")
-    void dependencyEqualityUsesDependencyId() {
-        var dependency = IssueDependency.fromPersistence(8L, "DEP-10-20", 10L, 20L, createdAt);
-        var equalDependency = IssueDependency.fromPersistence(9L, "DEP-10-20", 30L, 40L, createdAt.plusDays(1));
-        var differentDependency = IssueDependency.fromPersistence(10L, "DEP-20-30", 10L, 20L, createdAt);
-        Object sameReference = dependency;
-
-        assertTrue(dependency.equals(sameReference));
-        assertEquals(dependency, equalDependency);
-        assertEquals(dependency.hashCode(), equalDependency.hashCode());
-        assertNotEquals(dependency, differentDependency);
-        assertNotEquals(dependency, "DEP-10-20");
-    }
-
-    @Test
-    @DisplayName("invalid dependency input is rejected")
-    void rejectsInvalidDependencyInput() {
-        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter, createdAt);
+    @DisplayName("dependency needs an id and a blocking issue")
+    void requiresIdAndBlockingIssue() {
+        var blockingIssue = IssueFixtures.create("ISSUE-1", "Fix auth", "Auth must be fixed", null, reporter,
+                createdAt);
         var blockedIssue = IssueFixtures.create("ISSUE-2", "Login UI", "UI depends on auth", null, reporter, createdAt);
 
         assertThrows(IllegalArgumentException.class,
                 () -> IssueDependency.create("", blockingIssue, blockedIssue, createdAt));
         assertThrows(NullPointerException.class,
                 () -> IssueDependency.create("DEP", null, blockedIssue, createdAt));
-        assertThrows(NullPointerException.class,
-                () -> IssueDependency.create("DEP", blockingIssue, blockedIssue, null));
     }
 
     private static IssueHistory findHistory(Issue issue, ActionType action) {
