@@ -22,6 +22,7 @@ final class ProjectManageScreen extends VBox {
 
         Button backButton = ScreenComponents.backButton("← Back", () -> { if (onBack != null) onBack.run(); });
         Label titleLabel = ScreenComponents.titleLabel("Project Management");
+        ScreenComponents.growInHeader(titleLabel);
         Button createButton = new Button("+ Create Project");
         createButton.setOnAction(event -> ScreenComponents.showInfo(messageLabel, "Project creation will be implemented in #195"));
 
@@ -30,7 +31,7 @@ final class ProjectManageScreen extends VBox {
         VBox.setVgrow(projectList, Priority.ALWAYS);
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(backButton, titleLabel, createButton),
+                ScreenComponents.header(backButton, titleLabel, createButton),
                 projectList, messageLabel);
         ScreenComponents.loadList(projectList, messageLabel, dashboardController::viewProjects);
     }

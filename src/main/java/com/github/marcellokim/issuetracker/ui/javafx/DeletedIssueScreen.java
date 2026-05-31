@@ -32,7 +32,7 @@ final class DeletedIssueScreen extends VBox {
         VBox.setVgrow(issueList, Priority.ALWAYS);
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(backButton, titleLabel, countLabel),
+                ScreenComponents.header(backButton, titleLabel, countLabel),
                 issueList, messageLabel);
         loadDeletedIssues();
     }

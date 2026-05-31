@@ -25,7 +25,7 @@ final class StatisticsScreen extends VBox {
         Label titleLabel = ScreenComponents.titleLabel("Statistics");
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(backButton, titleLabel),
+                ScreenComponents.header(backButton, titleLabel),
                 messageLabel);
         loadStatistics();
     }

@@ -28,13 +28,14 @@ final class IssueListScreen extends VBox {
     private Runnable onDeletedIssueManage;
     private Runnable onStatistics;
 
-    IssueListScreen(IssueController issueController, ProjectController projectController, long projectId){
+    IssueListScreen(IssueController issueController, ProjectController projectController, long projectId, boolean isPl){
         this.issueController = issueController;
         this.projectId = projectId;
         ScreenComponents.applyScreenDefaults(this);
 
         Button backButton = ScreenComponents.backButton("← Projects", () -> { if (onBack != null) onBack.run(); });
         projectInfoLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        ScreenComponents.growInHeader(projectInfoLabel);
         loadProjectInfo(projectController);
 
         searchField.setPromptText("Search...");
@@ -46,27 +47,29 @@ final class IssueListScreen extends VBox {
         registerButton.setOnAction(event -> ScreenComponents.showInfo(messageLabel, "Issue registration will be implemented in #141"));
         try{
             if (!issueController.canRegisterIssue(projectId)) registerButton.setDisable(true);
-        } catch (Exception ignored){}
+        } catch (Exception exception){
+            registerButton.setDisable(true);
+            ScreenComponents.showError(messageLabel, exception);
+        }
 
-        Button deletedButton = new Button("Deleted Issues");
-        deletedButton.setOnAction(event -> { if (onDeletedIssueManage != null) onDeletedIssueManage.run(); });
+        HBox toolbar = new HBox(10, searchField, searchButton, registerButton);
+
+        if (isPl){
+            Button deletedButton = new Button("Deleted Issues");
+            deletedButton.setOnAction(event -> { if (onDeletedIssueManage != null) onDeletedIssueManage.run(); });
+            toolbar.getChildren().add(deletedButton);
+        }
 
         Button statsButton = new Button("Statistics");
         statsButton.setOnAction(event -> { if (onStatistics != null) onStatistics.run(); });
-
-        HBox toolbar = new HBox(10, searchField, searchButton, registerButton, deletedButton, statsButton);
+        toolbar.getChildren().add(statsButton);
 
         issueList.setCellFactory(list -> new IssueCell());
-        issueList.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2){
-                IssueSummary selected = issueList.getSelectionModel().getSelectedItem();
-                if (selected != null && onIssueSelected != null) onIssueSelected.accept(selected);
-            }
-        });
+        ScreenComponents.setupListDoubleClick(issueList, i -> { if (onIssueSelected != null) onIssueSelected.accept(i); });
         VBox.setVgrow(issueList, Priority.ALWAYS);
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(backButton, projectInfoLabel),
+                ScreenComponents.header(backButton, projectInfoLabel),
                 toolbar, issueList, messageLabel);
         loadIssues();
     }

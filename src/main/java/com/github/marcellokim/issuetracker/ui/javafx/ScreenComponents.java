@@ -39,14 +39,15 @@ final class ScreenComponents {
         return header;
     }
 
-    static HBox headerWithGrow(javafx.scene.Node... nodes){
+    static HBox header(javafx.scene.Node... nodes){
         HBox header = new HBox(nodes);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setSpacing(12);
-        if (nodes.length > 1){
-            HBox.setHgrow(nodes[1], Priority.ALWAYS);
-        }
         return header;
+    }
+
+    static void growInHeader(javafx.scene.Node node){
+        HBox.setHgrow(node, Priority.ALWAYS);
     }
 
     static Label messageLabel(){

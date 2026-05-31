@@ -13,6 +13,7 @@ public final class JavaFXApp extends Application {
     private ApplicationContext context;
     private Exception initFailure;
     private Stage primaryStage;
+    private Role currentUserRole;
 
     @Override
     public void init(){
@@ -37,8 +38,10 @@ public final class JavaFXApp extends Application {
     }
 
     private void showLogin(){
+        currentUserRole = null;
         LoginScreen loginScreen = new LoginScreen(context.authenticationController());
         loginScreen.setOnLoginSuccess(user -> {
+            currentUserRole = user.role();
             if (user.role() == Role.ADMIN){
                 showAdminDashboard();
             } else{
@@ -89,7 +92,8 @@ public final class JavaFXApp extends Application {
     }
 
     private void showIssueList(long projectId){
-        IssueListScreen screen = new IssueListScreen(context.issueController(), context.projectController(), projectId);
+        boolean isPl = currentUserRole == Role.PL;
+        IssueListScreen screen = new IssueListScreen(context.issueController(), context.projectController(), projectId, isPl);
         screen.setOnIssueSelected(issue -> showIssueDetail(issue.id(), projectId));
         screen.setOnBack(this::showProjectList);
         screen.setOnDeletedIssueManage(() -> showDeletedIssueManage(projectId));

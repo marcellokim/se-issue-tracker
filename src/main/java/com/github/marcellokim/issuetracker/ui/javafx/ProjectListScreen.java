@@ -21,6 +21,7 @@ final class ProjectListScreen extends VBox {
         ScreenComponents.applyScreenDefaults(this);
 
         Label titleLabel = ScreenComponents.titleLabel("Projects");
+        ScreenComponents.growInHeader(titleLabel);
         Button logoutButton = new Button("Logout");
         logoutButton.setOnAction(event -> { if (onLogout != null) onLogout.run(); });
 
@@ -29,7 +30,7 @@ final class ProjectListScreen extends VBox {
         VBox.setVgrow(projectList, Priority.ALWAYS);
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(titleLabel, logoutButton),
+                ScreenComponents.header(titleLabel, logoutButton),
                 projectList, messageLabel);
         ScreenComponents.loadList(projectList, messageLabel, dashboardController::viewProjects);
     }

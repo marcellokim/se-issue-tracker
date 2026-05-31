@@ -30,7 +30,7 @@ final class ProjectDetailScreen extends VBox {
         VBox.setVgrow(memberList, Priority.ALWAYS);
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(backButton, titleLabel),
+                ScreenComponents.header(backButton, titleLabel),
                 messageLabel, new Label("Members:"), memberList);
         loadDetail();
     }

@@ -58,7 +58,8 @@ final class IssueDetailScreen extends VBox {
             List<String> actions = detail.availableActions();
             for (String action : actions){
                 Button btn = new Button(action);
-                btn.setOnAction(event -> ScreenComponents.showInfo(messageLabel, action + " action will be implemented in follow-up issue"));
+                btn.setDisable(true);
+                btn.setTooltip(new javafx.scene.control.Tooltip("Coming soon"));
                 actionButtons.getChildren().add(btn);
             }
 

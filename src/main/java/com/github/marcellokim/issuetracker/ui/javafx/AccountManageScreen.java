@@ -23,6 +23,7 @@ final class AccountManageScreen extends VBox {
 
         Button backButton = ScreenComponents.backButton("← Back", () -> { if (onBack != null) onBack.run(); });
         Label titleLabel = ScreenComponents.titleLabel("Account Management");
+        ScreenComponents.growInHeader(titleLabel);
         Button createButton = new Button("+ Create Account");
         createButton.setOnAction(event -> ScreenComponents.showInfo(messageLabel, "Account creation will be implemented in #195"));
 
@@ -30,7 +31,7 @@ final class AccountManageScreen extends VBox {
         VBox.setVgrow(userList, Priority.ALWAYS);
 
         getChildren().addAll(
-                ScreenComponents.headerWithGrow(backButton, titleLabel, createButton),
+                ScreenComponents.header(backButton, titleLabel, createButton),
                 userList, messageLabel);
         loadUsers();
     }
