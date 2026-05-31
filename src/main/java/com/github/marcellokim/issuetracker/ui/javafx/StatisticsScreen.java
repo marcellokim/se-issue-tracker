@@ -73,10 +73,13 @@ final class StatisticsScreen extends VBox {
 
         BarChart<String, Number> priorityBar = createBarChart("Issues by Priority", "Priority", "Count");
         priorityBar.setPrefHeight(250);
+        CategoryAxis priorityAxis = (CategoryAxis) priorityBar.getXAxis();
+        for (Priority p : Priority.values()) priorityAxis.getCategories().add(p.name());
         XYChart.Series<String, Number> prioritySeries = new XYChart.Series<>();
         prioritySeries.setName("Issues");
-        for (Map.Entry<Priority, Integer> e : report.priorityCounts().entrySet()){
-            prioritySeries.getData().add(new XYChart.Data<>(e.getKey().name(), e.getValue()));
+        for (Priority p : Priority.values()){
+            int count = report.priorityCounts().getOrDefault(p, 0);
+            prioritySeries.getData().add(new XYChart.Data<>(p.name(), count));
         }
         priorityBar.getData().add(prioritySeries);
 
@@ -115,12 +118,16 @@ final class StatisticsScreen extends VBox {
             statusTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
             BarChart<String, Number> statusChart = createBarChart("", "Month", "Count");
             statusChart.setPrefHeight(300);
-            for (Map.Entry<YearMonth, Map<IssueStatus, Integer>> monthEntry : report.monthlyStatusCounts().entrySet()){
-                for (Map.Entry<IssueStatus, Integer> statusEntry : monthEntry.getValue().entrySet()){
-                    String seriesName = statusEntry.getKey().name();
-                    XYChart.Series<String, Number> series = findOrCreateSeries(statusChart, seriesName);
-                    series.getData().add(new XYChart.Data<>(monthEntry.getKey().toString(), statusEntry.getValue()));
+            CategoryAxis statusXAxis = (CategoryAxis) statusChart.getXAxis();
+            for (YearMonth ym : report.monthlyStatusCounts().keySet()) statusXAxis.getCategories().add(ym.toString());
+            for (IssueStatus st : IssueStatus.values()){
+                XYChart.Series<String, Number> series = new XYChart.Series<>();
+                series.setName(st.name());
+                for (Map.Entry<YearMonth, Map<IssueStatus, Integer>> monthEntry : report.monthlyStatusCounts().entrySet()){
+                    int count = monthEntry.getValue().getOrDefault(st, 0);
+                    series.getData().add(new XYChart.Data<>(monthEntry.getKey().toString(), count));
                 }
+                statusChart.getData().add(series);
             }
             contentArea.getChildren().addAll(statusTitle, statusChart, new Separator());
         }
@@ -130,12 +137,16 @@ final class StatisticsScreen extends VBox {
             priorityTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
             BarChart<String, Number> priorityChart = createBarChart("", "Month", "Count");
             priorityChart.setPrefHeight(300);
-            for (Map.Entry<YearMonth, Map<Priority, Integer>> monthEntry : report.monthlyPriorityCounts().entrySet()){
-                for (Map.Entry<Priority, Integer> prioEntry : monthEntry.getValue().entrySet()){
-                    String seriesName = prioEntry.getKey().name();
-                    XYChart.Series<String, Number> series = findOrCreateSeries(priorityChart, seriesName);
-                    series.getData().add(new XYChart.Data<>(monthEntry.getKey().toString(), prioEntry.getValue()));
+            CategoryAxis prioXAxis = (CategoryAxis) priorityChart.getXAxis();
+            for (YearMonth ym : report.monthlyPriorityCounts().keySet()) prioXAxis.getCategories().add(ym.toString());
+            for (Priority p : Priority.values()){
+                XYChart.Series<String, Number> series = new XYChart.Series<>();
+                series.setName(p.name());
+                for (Map.Entry<YearMonth, Map<Priority, Integer>> monthEntry : report.monthlyPriorityCounts().entrySet()){
+                    int count = monthEntry.getValue().getOrDefault(p, 0);
+                    series.getData().add(new XYChart.Data<>(monthEntry.getKey().toString(), count));
                 }
+                priorityChart.getData().add(series);
             }
             contentArea.getChildren().addAll(priorityTitle, priorityChart);
         }
@@ -192,16 +203,6 @@ final class StatisticsScreen extends VBox {
         chart.setTitle(title);
         chart.setAnimated(false);
         return chart;
-    }
-
-    private static XYChart.Series<String, Number> findOrCreateSeries(BarChart<String, Number> chart, String name){
-        for (XYChart.Series<String, Number> s : chart.getData()){
-            if (name.equals(s.getName())) return s;
-        }
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName(name);
-        chart.getData().add(series);
-        return series;
     }
 
     private Button backToOverviewButton(){
