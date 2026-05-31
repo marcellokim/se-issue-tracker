@@ -10,6 +10,7 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.IssueDependencyRepository;
 import com.github.marcellokim.issuetracker.repository.IssueRepository;
 import com.github.marcellokim.issuetracker.repository.UserRepository;
+import java.util.List;
 import java.util.Objects;
 
 public final class IssueWorkflowService {
@@ -34,10 +35,9 @@ public final class IssueWorkflowService {
     }
 
     public IssueWorkflowActions viewAvailableActions(long issueId, String currentLoginId) {
-        long requiredIssueId = requirePositive(issueId, "issueId");
-        String requiredLoginId = requireText(currentLoginId, "currentLoginId");
-        Issue issue = findIssue(requiredIssueId);
-        User actor = findUser(requiredLoginId);
+        WorkflowContext context = workflowContext(issueId, currentLoginId);
+        Issue issue = context.issue();
+        User actor = context.actor();
 
         if (issue.status() == IssueStatus.DELETED) {
             return noActions();
@@ -72,6 +72,21 @@ public final class IssueWorkflowService {
                 (actor, comment) -> permissionPolicy.assertCanDeleteComment(actor, comment));
     }
 
+    public List<CommentActionResult> viewCommentActions(long issueId, String currentLoginId) {
+        WorkflowContext context = workflowContext(issueId, currentLoginId);
+        Issue issue = context.issue();
+        User actor = context.actor();
+        if (issue.status() == IssueStatus.DELETED || !isActiveProjectMember(actor, issue.projectId())) {
+            return List.of();
+        }
+        return commentRepository.findByIssueId(issue.id()).stream()
+                .map(comment -> new CommentActionResult(
+                        comment.getCommentId(),
+                        allows(() -> permissionPolicy.assertCanUpdateComment(actor, comment)),
+                        allows(() -> permissionPolicy.assertCanDeleteComment(actor, comment))))
+                .toList();
+    }
+
     private boolean canManageComment(
             long issueId,
             long commentId,
@@ -89,10 +104,16 @@ public final class IssueWorkflowService {
             User actor = findUser(requiredLoginId);
             return comment.issueId() == issue.id()
                     && isActiveProjectMember(actor, issue.projectId())
-                    && allows(() -> permissionCheck.check(actor, comment));
+                && allows(() -> permissionCheck.check(actor, comment));
         } catch (RuntimeException exception) {
             return false;
         }
+    }
+
+    private WorkflowContext workflowContext(long issueId, String currentLoginId) {
+        long requiredIssueId = requirePositive(issueId, "issueId");
+        String requiredLoginId = requireText(currentLoginId, "currentLoginId");
+        return new WorkflowContext(findIssue(requiredIssueId), findUser(requiredLoginId));
     }
 
     private WorkflowAccess workflowAccess(User actor, Issue issue) {
@@ -282,6 +303,9 @@ public final class IssueWorkflowService {
             boolean canManageAssignment,
             boolean canManageDependency,
             boolean canManageDeleted) {
+    }
+
+    private record WorkflowContext(Issue issue, User actor) {
     }
 
     @FunctionalInterface
