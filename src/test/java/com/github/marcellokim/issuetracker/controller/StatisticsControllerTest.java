@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.AuthFixture;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeStatisticsRepository;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeUserRepository;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.repository.StatisticsReport;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
@@ -26,10 +29,10 @@ class StatisticsControllerTest {
     @Test
     @DisplayName("statistics query keeps the selected range")
     void readsReportForRange() {
-        ControllerTestSupport.AuthFixture auth = authenticated(Role.DEV);
+        AuthFixture auth = authenticated(Role.DEV);
         auth.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
                 .withParticipant(PROJECT_ID, auth.user().getLoginId()));
-        var statistics = new ControllerTestSupport.FakeStatisticsRepository();
+        var statistics = new FakeStatisticsRepository();
         StatisticsReport expectedReport = report();
         statistics.report = expectedReport;
 
@@ -63,17 +66,17 @@ class StatisticsControllerTest {
         StatisticsController anonymousController = new StatisticsController(
                 anonymousAuth(),
                 new StatisticsService(new PermissionPolicy(),
-                        new ControllerTestSupport.FakeStatisticsRepository(),
-                        new ControllerTestSupport.FakeUserRepository()));
+                        new FakeStatisticsRepository(),
+                        new FakeUserRepository()));
         assertThrows(SecurityException.class, () -> anonymousController.viewStatistics(PROJECT_ID));
 
-        ControllerTestSupport.AuthFixture pl = authenticated(Role.PL);
+        AuthFixture pl = authenticated(Role.PL);
         pl.users().attachProjects(new InMemoryProjectRepository(project(PROJECT_ID))
                 .withParticipant(PROJECT_ID, pl.user().getLoginId()));
         StatisticsController controller = new StatisticsController(
                 pl.service(),
                 new StatisticsService(new PermissionPolicy(),
-                        new ControllerTestSupport.FakeStatisticsRepository(),
+                        new FakeStatisticsRepository(),
                         pl.users()));
         assertThrows(
                 IllegalArgumentException.class,

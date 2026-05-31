@@ -4,6 +4,7 @@ import static com.github.marcellokim.issuetracker.controller.ControllerTestSuppo
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeUserRepository;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
@@ -21,7 +22,7 @@ class AuthenticationControllerTest {
     void loginAndLogout() {
         PasswordHasher hasher = new PasswordHasher();
         User user = User.fromPersistence("dev", "dev", hasher.hash("secret"), Role.DEV, true, NOW, NOW);
-        var users = new ControllerTestSupport.FakeUserRepository(user);
+        var users = new FakeUserRepository(user);
         AuthenticationService authService = new AuthenticationService(users, hasher, new SessionStore());
         AuthenticationController controller = new AuthenticationController(authService);
 

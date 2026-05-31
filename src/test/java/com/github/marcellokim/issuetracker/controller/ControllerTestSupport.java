@@ -48,6 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 final class ControllerTestSupport {
 
@@ -219,7 +220,7 @@ final class ControllerTestSupport {
     }
 
     static String nextCommentId() {
-        return "COMMENT-test-" + java.util.UUID.randomUUID();
+        return "COMMENT-test-" + UUID.randomUUID();
     }
 
     static AuthFixture authenticated(Role role) {

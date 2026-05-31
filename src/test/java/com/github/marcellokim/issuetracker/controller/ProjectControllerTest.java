@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.AuthFixture;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeUserRepository;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.ProjectAdminDetail;
@@ -27,10 +29,10 @@ class ProjectControllerTest {
     @Test
     @DisplayName("admin opens project management")
     void adminProjectPage() {
-        ControllerTestSupport.AuthFixture auth = authenticated(Role.ADMIN);
+        AuthFixture auth = authenticated(Role.ADMIN);
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
         projects.withParticipant(PROJECT_ID, "dev1");
-        var users = new ControllerTestSupport.FakeUserRepository(auth.user(), user("dev1", Role.DEV));
+        var users = new FakeUserRepository(auth.user(), user("dev1", Role.DEV));
         ProjectController controller = projectController(auth, projects, users);
 
         List<ProjectMemberResult> participants = controller.viewProjectParticipants(PROJECT_ID);
@@ -44,12 +46,12 @@ class ProjectControllerTest {
     @Test
     @DisplayName("admin project commands reach the service")
     void adminProjectCommands() {
-        ControllerTestSupport.AuthFixture auth = authenticated(Role.ADMIN);
+        AuthFixture auth = authenticated(Role.ADMIN);
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
         ProjectController controller = projectController(
                 auth,
                 projects,
-                new ControllerTestSupport.FakeUserRepository(auth.user()));
+                new FakeUserRepository(auth.user()));
 
         ProjectResult created = controller.createProject(" project-two ", "second project");
         ProjectResult renamed = controller.renameProject(PROJECT_ID, " project-renamed ");
@@ -65,18 +67,18 @@ class ProjectControllerTest {
     @Test
     @DisplayName("non-admin project page uses the smaller detail")
     void nonAdminProjectPage() {
-        ControllerTestSupport.AuthFixture admin = authenticated(Role.ADMIN);
+        AuthFixture admin = authenticated(Role.ADMIN);
         User dev = user("dev", Role.DEV);
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
-        var users = new ControllerTestSupport.FakeUserRepository(admin.user(), dev);
+        var users = new FakeUserRepository(admin.user(), dev);
         ProjectController adminController = projectController(admin, projects, users);
         adminController.addProjectParticipant(PROJECT_ID, dev.getLoginId());
 
-        ControllerTestSupport.AuthFixture devAuth = authenticated(Role.DEV);
+        AuthFixture devAuth = authenticated(Role.DEV);
         ProjectController devController = projectController(
                 devAuth,
                 projects,
-                new ControllerTestSupport.FakeUserRepository(devAuth.user()));
+                new FakeUserRepository(devAuth.user()));
 
         ProjectResult nonAdminDetail = devController.viewProjectNonAdminDetail(PROJECT_ID);
 
@@ -89,7 +91,7 @@ class ProjectControllerTest {
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID, "project-one"));
         ProjectController controller = new ProjectController(
                 anonymousAuth(),
-                projectService(projects, new ControllerTestSupport.FakeUserRepository(user("dev1", Role.DEV))));
+                projectService(projects, new FakeUserRepository(user("dev1", Role.DEV))));
 
         assertThrows(SecurityException.class, () -> controller.createProject("blocked", "blocked"));
     }

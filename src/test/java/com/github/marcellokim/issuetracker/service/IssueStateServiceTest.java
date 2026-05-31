@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -289,12 +290,12 @@ class IssueStateServiceTest {
                 depRepo,
                 users,
                 new PermissionPolicy(),
-                java.time.LocalDateTime::now,
+                LocalDateTime::now,
                 IssueStateServiceTest::nextCommentId);
     }
 
     private static String nextCommentId() {
-        return "COMMENT-test-" + java.util.UUID.randomUUID();
+        return "COMMENT-test-" + UUID.randomUUID();
     }
 
     private Issue newIssue(long id, String issueId) {

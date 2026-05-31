@@ -2,12 +2,18 @@ package com.github.marcellokim.issuetracker.controller;
 
 import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.NOW;
 import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.PROJECT_ID;
+import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.dashboardProject;
 import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.issue;
 import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.persistedIssue;
 import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.project;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeAssignmentRecommendationRepository;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeCommentRepository;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeDashboardSummaryRepository;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeIssueRepository;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeUserRepository;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -45,14 +51,14 @@ class ControllerFlowTest {
     void adminDashboardFlow() {
         PasswordHasher hasher = new PasswordHasher();
         User admin = storedUser("admin", Role.ADMIN, hasher);
-        var users = new ControllerTestSupport.FakeUserRepository(admin);
+        var users = new FakeUserRepository(admin);
         AuthenticationService auth = new AuthenticationService(users, hasher, new SessionStore());
         AuthenticationController authentication = new AuthenticationController(auth);
         DashboardController dashboard = new DashboardController(
                 auth,
                 new DashboardSummaryService(
-                        new ControllerTestSupport.FakeDashboardSummaryRepository(
-                                List.of(ControllerTestSupport.dashboardProject(PROJECT_ID, "project-one", 2)),
+                        new FakeDashboardSummaryRepository(
+                                List.of(dashboardProject(PROJECT_ID, "project-one", 2)),
                                 List.of()),
                         users,
                         new PermissionPolicy()));
@@ -72,7 +78,7 @@ class ControllerFlowTest {
     void devProjectFlow() {
         PasswordHasher hasher = new PasswordHasher();
         User dev = storedUser("dev1", Role.DEV, hasher);
-        var users = new ControllerTestSupport.FakeUserRepository(dev);
+        var users = new FakeUserRepository(dev);
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID))
                 .withParticipant(PROJECT_ID, dev.getLoginId());
         users.attachProjects(projects);
@@ -100,14 +106,14 @@ class ControllerFlowTest {
         User pl = storedUser("pl", Role.PL, hasher);
         User dev = storedUser("dev1", Role.DEV, hasher);
         User tester = storedUser("tester1", Role.TESTER, hasher);
-        var users = new ControllerTestSupport.FakeUserRepository(pl, dev, tester);
+        var users = new FakeUserRepository(pl, dev, tester);
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID))
                 .withParticipant(PROJECT_ID, pl.getLoginId())
                 .withParticipant(PROJECT_ID, dev.getLoginId())
                 .withParticipant(PROJECT_ID, tester.getLoginId());
         users.attachProjects(projects);
         Issue issue = issue(201L, PROJECT_ID, IssueStatus.NEW);
-        var issues = new ControllerTestSupport.FakeIssueRepository(issue);
+        var issues = new FakeIssueRepository(issue);
         PermissionPolicy policy = new PermissionPolicy();
 
         AuthenticationService plAuth = loggedIn(pl, users, hasher);
@@ -118,7 +124,7 @@ class ControllerFlowTest {
                         users,
                         policy,
                         new AssignmentRecommendationService(
-                                new ControllerTestSupport.FakeAssignmentRecommendationRepository(),
+                                new FakeAssignmentRecommendationRepository(),
                                 new KNNAssignmentRecommendation()),
                         () -> NOW));
 
@@ -146,14 +152,14 @@ class ControllerFlowTest {
             AuthenticationService auth,
             InMemoryProjectRepository projects,
             InMemoryIssueRepository issues,
-            ControllerTestSupport.FakeUserRepository users,
+            FakeUserRepository users,
             PermissionPolicy policy) {
         var dependencies = new FakeIssueDependencyRepository();
         IssueService issueService = new IssueService(
                 projects,
                 issues,
                 dependencies,
-                new ControllerTestSupport.FakeCommentRepository(),
+                new FakeCommentRepository(),
                 new FakeIssueHistoryRepository(),
                 users,
                 policy,
@@ -161,7 +167,7 @@ class ControllerFlowTest {
         IssueWorkflowService workflowService = new IssueWorkflowService(
                 issues,
                 dependencies,
-                new ControllerTestSupport.FakeCommentRepository(),
+                new FakeCommentRepository(),
                 users,
                 policy);
         return new IssueController(auth, issueService, workflowService);
@@ -173,7 +179,7 @@ class ControllerFlowTest {
 
     private static AuthenticationService loggedIn(
             User user,
-            ControllerTestSupport.FakeUserRepository users,
+            FakeUserRepository users,
             PasswordHasher hasher) {
         SessionStore session = new SessionStore();
         session.start(user.getLoginId());

@@ -8,6 +8,8 @@ import static com.github.marcellokim.issuetracker.controller.ControllerTestSuppo
 import static com.github.marcellokim.issuetracker.controller.ControllerTestSupport.user;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.AuthFixture;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeIssueRepository;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
@@ -26,7 +28,7 @@ class IssueStateControllerTest {
     @Test
     @DisplayName("assigned dev can mark issue fixed")
     void devMarksFixed() {
-        ControllerTestSupport.AuthFixture auth = authenticated(Role.DEV);
+        AuthFixture auth = authenticated(Role.DEV);
         User tester = user("tester1", Role.TESTER);
         auth.users().save(tester);
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project(PROJECT_ID));
@@ -34,7 +36,7 @@ class IssueStateControllerTest {
         projects.withParticipant(PROJECT_ID, tester.getLoginId());
         auth.users().attachProjects(projects);
         Issue issue = issueWithAssigneeAndVerifier(301L, PROJECT_ID, IssueStatus.ASSIGNED, auth.user(), tester);
-        var issues = new ControllerTestSupport.FakeIssueRepository(issue);
+        var issues = new FakeIssueRepository(issue);
         IssueStateController controller = new IssueStateController(
                 auth.service(),
                 new IssueStateService(

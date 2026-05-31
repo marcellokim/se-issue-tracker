@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeCommentRepository;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -64,7 +65,7 @@ class IssueControllerTest {
     void commentPathsUseCurrentUser() {
         User dev = user("dev1", Role.DEV);
         Issue issue = persistedIssue(1L, "ISSUE-1", dev);
-        var comments = new ControllerTestSupport.FakeCommentRepository(Comment.fromPersistence(
+        var comments = new FakeCommentRepository(Comment.fromPersistence(
                 100L,
                 issue.id(),
                 dev.getLoginId(),

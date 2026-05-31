@@ -7,6 +7,9 @@ import static com.github.marcellokim.issuetracker.controller.ControllerTestSuppo
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.AuthFixture;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeDashboardSummaryRepository;
+import com.github.marcellokim.issuetracker.controller.ControllerTestSupport.FakeUserRepository;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
@@ -21,8 +24,8 @@ class DashboardControllerTest {
     @Test
     @DisplayName("logged in admin can read dashboard data")
     void adminReadsDashboard() {
-        ControllerTestSupport.AuthFixture auth = authenticated(Role.ADMIN);
-        var dashboardSummaries = new ControllerTestSupport.FakeDashboardSummaryRepository(
+        AuthFixture auth = authenticated(Role.ADMIN);
+        var dashboardSummaries = new FakeDashboardSummaryRepository(
                 List.of(dashboardProject(PROJECT_ID, "project", 1)),
                 List.of());
         DashboardController controller = new DashboardController(
@@ -41,8 +44,8 @@ class DashboardControllerTest {
         DashboardController controller = new DashboardController(
                 anonymousAuth(),
                 new DashboardSummaryService(
-                        new ControllerTestSupport.FakeDashboardSummaryRepository(List.of(), List.of()),
-                        new ControllerTestSupport.FakeUserRepository(),
+                        new FakeDashboardSummaryRepository(List.of(), List.of()),
+                        new FakeUserRepository(),
                         new PermissionPolicy()));
 
         assertThrows(SecurityException.class, controller::viewProjects);

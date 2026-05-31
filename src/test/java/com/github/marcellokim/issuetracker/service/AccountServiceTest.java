@@ -235,7 +235,7 @@ class AccountServiceTest {
                         InMemoryIssueRepository issues,
                         PasswordHashing passwordHashing) {
                 return new AccountService(new PermissionPolicy(), users, projects, issues, passwordHashing,
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private static User actor(InMemoryUserRepository users, String loginId) {

@@ -236,7 +236,7 @@ class AssignmentServiceTest {
                                 new AssignmentRecommendationService(
                                                 new InMemoryAssignmentRecommendationRepository(members),
                                                 new KNNAssignmentRecommendation()),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private InMemoryUserRepository projectMemberUsers() {

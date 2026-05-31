@@ -1284,7 +1284,7 @@ class IssueServiceTest {
                                 histories,
                                 users,
                                 new PermissionPolicy(),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private Issue persistedIssue() {

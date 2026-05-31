@@ -42,6 +42,8 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -376,7 +378,7 @@ class OracleRepositoryIntegrationTest {
                 int reportedDayBefore = countForDay(beforeReport.dailyCounts(), reportedAt);
                 int reportedMonthBefore = countForMonth(beforeReport.monthlyCounts(), reportedMonth);
                 int monthlyTrivialPriorityBefore = beforeReport.monthlyPriorityCounts()
-                                .getOrDefault(reportedMonth, java.util.Map.of())
+                                .getOrDefault(reportedMonth, Map.of())
                                 .getOrDefault(Priority.TRIVIAL, 0);
 
                 Issue deletedIssue = repositories.issues().save(Issue.create(Issue.persistedState(
@@ -407,7 +409,7 @@ class OracleRepositoryIntegrationTest {
                         assertEquals(reportedMonthBefore, countForMonth(report.monthlyCounts(), reportedMonth));
                         assertEquals(monthlyTrivialPriorityBefore,
                                         report.monthlyPriorityCounts()
-                                                        .getOrDefault(reportedMonth, java.util.Map.of())
+                                                        .getOrDefault(reportedMonth, Map.of())
                                                         .getOrDefault(Priority.TRIVIAL, 0));
                 } finally {
                         purgeTestIssue(deletedIssue.id());
@@ -1480,7 +1482,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.projects(),
                                 repositories.issues(),
                                 new PasswordHasher(),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private static ProjectService projectService() {
@@ -1489,7 +1491,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private static IssueService issueService() {
@@ -1501,7 +1503,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issueHistory(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private static AssignmentService assignmentService() {
@@ -1511,7 +1513,7 @@ class OracleRepositoryIntegrationTest {
                                 permissionPolicy(),
                                 new AssignmentRecommendationService(repositories.assignmentRecommendations(),
                                                 new KNNAssignmentRecommendation()),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private static IssueStateService issueStateService() {
@@ -1520,12 +1522,12 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issueDependencies(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                java.time.LocalDateTime::now,
+                                LocalDateTime::now,
                                 OracleRepositoryIntegrationTest::nextCommentId);
         }
 
         private static String nextCommentId() {
-                return "COMMENT-test-" + java.util.UUID.randomUUID();
+                return "COMMENT-test-" + UUID.randomUUID();
         }
 
         private static DeletedIssueService deletedIssueService() {
@@ -1534,7 +1536,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.deletedIssues(),
                                 repositories.users(),
                                 permissionPolicy(),
-                                java.time.LocalDateTime::now);
+                                LocalDateTime::now);
         }
 
         private static StatisticsService statisticsService() {
