@@ -187,10 +187,7 @@ final class IssueDetailScreen extends VBox {
         if (currentDetail != null) priorityBox.setValue(currentDetail.priority());
         priorityBox.setMaxWidth(Double.MAX_VALUE);
         dialog.getDialogPane().setContent(new VBox(8, new Label("Priority:"), priorityBox));
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okButton.setText("OK");
+        Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
         priorityBox.valueProperty().addListener((obs, old, val) ->
                 okButton.setDisable(val == null || val == currentDetail.priority()));
@@ -227,10 +224,7 @@ final class IssueDetailScreen extends VBox {
         dialog.getDialogPane().setContent(new VBox(8,
                 new Label("Title:"), titleField,
                 new Label("Description:"), descField));
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okButton.setText("OK");
+        Button okButton = setupDialogButtons(dialog);
         Runnable validate = () -> okButton.setDisable(
                 titleField.getText() == null || titleField.getText().isBlank()
                 || descField.getText() == null || descField.getText().isBlank());
@@ -255,10 +249,7 @@ final class IssueDetailScreen extends VBox {
         TextField blockingIdField = new TextField();
         blockingIdField.setPromptText("Blocking issue ID (number)");
         dialog.getDialogPane().setContent(new VBox(8, new Label("Blocking Issue ID:"), blockingIdField));
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okButton.setText("OK");
+        Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
         blockingIdField.textProperty().addListener((obs, old, val) ->
                 okButton.setDisable(val == null || !val.matches("[1-9]\\d*")));
@@ -294,10 +285,7 @@ final class IssueDetailScreen extends VBox {
         });
         depBox.setMaxWidth(Double.MAX_VALUE);
         dialog.getDialogPane().setContent(new VBox(8, new Label("Select dependency to remove:"), depBox));
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okButton.setText("OK");
+        Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
         depBox.valueProperty().addListener((obs, old, val) -> okButton.setDisable(val == null));
         dialog.setResultConverter(bt -> bt == ButtonType.OK ? depBox.getValue() : null);
@@ -319,10 +307,7 @@ final class IssueDetailScreen extends VBox {
         textArea.setPromptText("Enter text...");
         textArea.setPrefRowCount(3);
         dialog.getDialogPane().setContent(textArea);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okButton.setText("OK");
+        Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
         textArea.textProperty().addListener((obs, old, val) ->
                 okButton.setDisable(val == null || val.isBlank()));
@@ -357,11 +342,8 @@ final class IssueDetailScreen extends VBox {
             content.getChildren().addAll(new Label("Verifier (TESTER):"), testerBox);
         }
         dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
         dialog.getDialogPane().setPrefWidth(500);
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okButton.setText("OK");
+        Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
         if (selectDev) devBox.valueProperty().addListener((obs, old, val) ->
                 okButton.setDisable(val == null || (selectTester && testerBox.getValue() == null)));
@@ -413,6 +395,14 @@ final class IssueDetailScreen extends VBox {
             }
             @Override public AssignmentCandidateResult fromString(String s){ return null; }
         };
+    }
+
+    private static Button setupDialogButtons(Dialog<?> dialog){
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        return okButton;
     }
 
     private static String formatUser(UserResult user){
