@@ -14,6 +14,10 @@ import javax.swing.JPanel;
 final class PlaceholderPanel extends JPanel {
 
     PlaceholderPanel(String destination, UserResult user, Runnable onLogout) {
+        this(destination, user, null, onLogout);
+    }
+
+    PlaceholderPanel(String destination, UserResult user, Runnable onBack, Runnable onLogout) {
         Objects.requireNonNull(destination, "destination");
         Objects.requireNonNull(user, "user");
         Objects.requireNonNull(onLogout, "onLogout");
@@ -44,6 +48,15 @@ final class PlaceholderPanel extends JPanel {
         SwingStyles.applyMuted(userLabel);
         surface.add(userLabel);
         surface.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
+
+        if (onBack != null) {
+            JButton backButton = new JButton("Back");
+            backButton.setName("backButton");
+            backButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+            backButton.addActionListener(event -> onBack.run());
+            surface.add(backButton);
+            surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
+        }
 
         JButton logoutButton = new JButton("Logout");
         logoutButton.setName("logoutButton");
