@@ -66,11 +66,12 @@ class IssueListPanelTest {
     }
 
     @Test
-    @DisplayName("publishes search, register, open, back, and logout actions")
+    @DisplayName("publishes search, register, open, statistics, back, and logout actions")
     void publishesActions() throws Exception {
         var searchRef = new AtomicReference<IssueSearchRequest>();
         var registerRef = new AtomicReference<IssueRegisterRequest>();
         var openRef = new AtomicLong();
+        var statisticsClicks = new AtomicInteger();
         var backClicks = new AtomicInteger();
         var logoutClicks = new AtomicInteger();
         FixedIssueDialogs dialogs = new FixedIssueDialogs();
@@ -83,6 +84,7 @@ class IssueListPanelTest {
                             (source, request) -> searchRef.set(request),
                             (source, request) -> registerRef.set(request),
                             openRef::set,
+                            statisticsClicks::incrementAndGet,
                             backClicks::incrementAndGet,
                             logoutClicks::incrementAndGet));
             panel.showProject(project());
@@ -99,6 +101,7 @@ class IssueListPanelTest {
             JTable table = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
             table.setRowSelectionInterval(0, 0);
             SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick();
+            SwingComponentTestSupport.find(panel, "statisticsButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueListBackButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueListLogoutButton", JButton.class).doClick();
         });
@@ -106,6 +109,7 @@ class IssueListPanelTest {
         assertEquals(new IssueSearchRequest("login", IssueStatus.NEW, Priority.CRITICAL), searchRef.get());
         assertEquals(new IssueRegisterRequest("New issue", "New issue description", Priority.MINOR), registerRef.get());
         assertEquals(7L, openRef.get());
+        assertEquals(1, statisticsClicks.get());
         assertEquals(1, backClicks.get());
         assertEquals(1, logoutClicks.get());
     }
@@ -125,6 +129,8 @@ class IssueListPanelTest {
                             (source, request) -> {
                             },
                             openRef::set,
+                            () -> {
+                            },
                             () -> {
                             },
                             () -> {
@@ -195,6 +201,8 @@ class IssueListPanelTest {
                         (source, request) -> {
                         },
                         issueId -> {
+                        },
+                        () -> {
                         },
                         () -> {
                         },

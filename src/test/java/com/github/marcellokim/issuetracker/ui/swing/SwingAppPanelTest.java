@@ -13,6 +13,7 @@ import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
+import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -26,6 +27,9 @@ import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRe
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
+import com.github.marcellokim.issuetracker.repository.StatisticsReport;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.DailyIssueCount;
+import com.github.marcellokim.issuetracker.repository.StatisticsRepository.MonthlyIssueCount;
 import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
@@ -38,15 +42,19 @@ import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
+import com.github.marcellokim.issuetracker.service.StatisticsService;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
+import com.github.marcellokim.issuetracker.support.FakeStatisticsRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.lang.reflect.Field;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -436,6 +444,45 @@ class SwingAppPanelTest {
                     SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
             SwingComponentTestSupport.find(panel, "issueDetailBackButton", JButton.class).doClick();
         });
+        awaitIssueRows(panel, 1);
+    }
+
+    @Test
+    @DisplayName("issue list opens statistics and returns to issue list")
+    void issueListOpensStatisticsAndReturnsToIssueList() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User dev = user("dev1", Role.DEV);
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 7)),
+                List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, dev)),
+                dev);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 1);
+        awaitButtonEnabled(panel, "statisticsButton");
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "statisticsButton", JButton.class).doClick());
+        awaitRows(panel, "statisticsStatusTable", 2);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Statistics",
+                    SwingComponentTestSupport.find(panel, "statisticsTitle", JLabel.class).getText());
+            JTable statusTable = SwingComponentTestSupport.find(panel, "statisticsStatusTable", JTable.class);
+            assertEquals(IssueStatus.NEW, statusTable.getValueAt(0, 0));
+            SwingComponentTestSupport.find(panel, "statisticsBackButton", JButton.class).doClick();
+        });
+
         awaitIssueRows(panel, 1);
     }
 
@@ -929,11 +976,7 @@ class SwingAppPanelTest {
 
         SwingComponentTestSupport.onEdt(() -> {
             SwingAppPanel panel = new SwingAppPanel(
-                    controllers.authenticationController(),
-                    controllers.dashboardController(),
-                    controllers.accountController(),
-                    controllers.projectController(),
-                    controllers.issueController(),
+                    controllers.swingControllers(),
                     new IssueActionSupport(
                             new IssueStatusChangeSupport(
                                     controllers.issueStateController(),
@@ -1241,6 +1284,7 @@ class SwingAppPanelTest {
         var dependencyRepository = new FakeIssueDependencyRepository();
         var commentRepository = new FakeCommentRepository(comments);
         var historyRepository = new FakeIssueHistoryRepository();
+        var statisticsRepository = new FakeStatisticsRepository(statisticsReport());
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         IssueStateController issueStateController = new IssueStateController(
@@ -1304,6 +1348,9 @@ class SwingAppPanelTest {
                                 commentRepository,
                                 repository,
                                 permissionPolicy)),
+                new StatisticsController(
+                        service,
+                        new StatisticsService(permissionPolicy, statisticsRepository, repository)),
                 issueStateController,
                 assignmentController);
     }
@@ -1360,14 +1407,39 @@ class SwingAppPanelTest {
         return Comment.fromPersistence(id, issueId, writer.getLoginId(), content, CommentPurpose.GENERAL, NOW, NOW);
     }
 
+    private static StatisticsReport statisticsReport() {
+        return StatisticsReport.create(
+                Map.of(IssueStatus.NEW, 2, IssueStatus.CLOSED, 1),
+                Map.of(Priority.CRITICAL, 1, Priority.MAJOR, 2),
+                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 31), 3)),
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 3)),
+                Map.of(YearMonth.of(2026, 5), Map.of(IssueStatus.NEW, 2, IssueStatus.CLOSED, 1)),
+                Map.of(YearMonth.of(2026, 5), Map.of(Priority.CRITICAL, 1, Priority.MAJOR, 2)),
+                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 31), 2)),
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 2)),
+                List.of(new DailyIssueCount(LocalDate.of(2026, 5, 31), 4)),
+                List.of(new MonthlyIssueCount(YearMonth.of(2026, 5), 4)));
+    }
+
     private record SwingControllerFixture(
             AuthenticationController authenticationController,
             DashboardController dashboardController,
             AccountController accountController,
             ProjectController projectController,
             IssueController issueController,
+            StatisticsController statisticsController,
             IssueStateController issueStateController,
             AssignmentController assignmentController) {
+
+        SwingControllers swingControllers() {
+            return new SwingControllers(
+                    authenticationController,
+                    dashboardController,
+                    accountController,
+                    projectController,
+                    issueController,
+                    statisticsController);
+        }
     }
 
     private record SwingPromptSupport(
