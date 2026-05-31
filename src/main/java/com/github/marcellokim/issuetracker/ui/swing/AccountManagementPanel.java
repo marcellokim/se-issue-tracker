@@ -240,7 +240,7 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
             return Optional.empty();
         }
         int modelRow = userTable.convertRowIndexToModel(selectedRow);
-        if (modelRow >= users.size()) {
+        if (modelRow < 0 || modelRow >= users.size()) {
             return Optional.empty();
         }
         return Optional.of(users.get(modelRow));
@@ -264,7 +264,10 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
         }
         for (int row = 0; row < users.size(); row++) {
             if (selectedLoginId.equals(users.get(row).loginId())) {
-                userTable.setRowSelectionInterval(row, row);
+                int viewRow = userTable.convertRowIndexToView(row);
+                if (viewRow >= 0) {
+                    userTable.setRowSelectionInterval(viewRow, viewRow);
+                }
                 return;
             }
         }
@@ -388,7 +391,7 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
             return result == JOptionPane.OK_OPTION;
         }
 
-        private static JPanel formPanel(Object... components) {
+        private static JPanel formPanel(Component... components) {
             JPanel panel = new JPanel(new GridBagLayout());
             GridBagConstraints constraints = new GridBagConstraints();
             constraints.insets = new Insets(4, 4, 4, 4);
@@ -398,10 +401,10 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
                 constraints.gridy = index / 2;
                 constraints.gridx = 0;
                 constraints.weightx = 0.0;
-                panel.add((Component) components[index], constraints);
+                panel.add(components[index], constraints);
                 constraints.gridx = 1;
                 constraints.weightx = 1.0;
-                Component field = (Component) components[index + 1];
+                Component field = components[index + 1];
                 field.setPreferredSize(new Dimension(220, SwingStyles.FIELD_HEIGHT));
                 panel.add(field, constraints);
             }
