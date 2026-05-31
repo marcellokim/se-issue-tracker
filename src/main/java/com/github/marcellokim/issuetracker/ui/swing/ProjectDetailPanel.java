@@ -87,14 +87,23 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
     @Override
     public void showDetail(ProjectAdminDetail detail) {
         Objects.requireNonNull(detail, "detail");
+        ProjectResult projectResult = detail.project();
+        String idText = String.valueOf(projectResult.id());
+        String nameText = projectResult.name();
+        String descriptionText = projectResult.description();
+        String managerText = projectResult.managedByLoginId();
+        String updatedAtText = DATE_TIME_FORMATTER.format(projectResult.updatedAt());
+        List<ProjectMemberResult> participantSnapshot = List.copyOf(detail.participants());
+        List<Object[]> participantRows = participantRows(participantSnapshot);
+
         runOnEdt(() -> {
-            project = detail.project();
-            projectIdLabel.setText(String.valueOf(project.id()));
-            projectNameLabel.setText(project.name());
-            projectDescriptionLabel.setText(project.description());
-            projectManagerLabel.setText(project.managedByLoginId());
-            projectUpdatedAtLabel.setText(DATE_TIME_FORMATTER.format(project.updatedAt()));
-            replaceParticipants(detail.participants());
+            project = projectResult;
+            projectIdLabel.setText(idText);
+            projectNameLabel.setText(nameText);
+            projectDescriptionLabel.setText(descriptionText);
+            projectManagerLabel.setText(managerText);
+            projectUpdatedAtLabel.setText(updatedAtText);
+            replaceParticipants(participantSnapshot, participantRows);
             updateActionState();
         });
     }
@@ -103,11 +112,12 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
     public void showParticipants(List<ProjectMemberResult> participants) {
         Objects.requireNonNull(participants, "participants");
         List<ProjectMemberResult> snapshot = List.copyOf(participants);
+        List<Object[]> participantRows = participantRows(snapshot);
         runOnEdt(() -> {
             String selectedUserId = selectedParticipant()
                     .map(ProjectMemberResult::userId)
                     .orElse(null);
-            replaceParticipants(snapshot);
+            replaceParticipants(snapshot, participantRows);
             restoreSelection(selectedUserId);
             updateActionState();
         });
@@ -249,19 +259,25 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
         return Optional.of(participants.get(modelRow));
     }
 
-    private void replaceParticipants(List<ProjectMemberResult> participants) {
+    private void replaceParticipants(List<ProjectMemberResult> participants, List<Object[]> participantRows) {
         this.participants.clear();
         this.participants.addAll(participants);
         participantTableModel.setRowCount(0);
-        for (ProjectMemberResult participant : participants) {
-            participantTableModel.addRow(new Object[]{
-                    participant.userId(),
-                    participant.userName(),
-                    participant.role(),
-                    participant.active() ? "Active" : "Inactive",
-                    DATE_TIME_FORMATTER.format(participant.joinedAt())
-            });
+        for (Object[] row : participantRows) {
+            participantTableModel.addRow(row);
         }
+    }
+
+    private static List<Object[]> participantRows(List<ProjectMemberResult> participants) {
+        return participants.stream()
+                .map(participant -> new Object[]{
+                        participant.userId(),
+                        participant.userName(),
+                        participant.role(),
+                        participant.active() ? "Active" : "Inactive",
+                        DATE_TIME_FORMATTER.format(participant.joinedAt())
+                })
+                .toList();
     }
 
     private void restoreSelection(String selectedUserId) {
