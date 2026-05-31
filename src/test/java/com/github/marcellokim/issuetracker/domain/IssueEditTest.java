@@ -24,12 +24,13 @@ class IssueEditTest {
     void priorityChangeLeavesHistory() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var changedAt = createdAt.plusMinutes(10);
-
         issue.changePriority(Priority.CRITICAL, pl, changedAt);
 
         assertEquals(Priority.CRITICAL, issue.getPriority());
         assertEquals(2, issue.getHistories().size());
+
         var history = issue.getHistories().get(1);
+
         assertEquals(ActionType.PRIORITY_CHANGED, history.getAction());
         assertEquals(Priority.MAJOR.name(), history.getPreviousValue());
         assertEquals(Priority.CRITICAL.name(), history.getNewValue());
@@ -66,8 +67,8 @@ class IssueEditTest {
     @DisplayName("reopened issue can be edited again")
     void editReopenedIssue() {
         var issue = resolvedIssue();
-        issue.reopen(pl, "Needs more work", createdAt.plusMinutes(40));
 
+        issue.reopen(pl, "Needs more work", createdAt.plusMinutes(40));
         issue.updateTitleAndDescription("Revised title", "Revised desc", reporter, createdAt.plusMinutes(50));
 
         assertEquals("Revised title", issue.getTitle());
@@ -108,7 +109,6 @@ class IssueEditTest {
     void commentLeavesHistory() {
         var issue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
         var commentedAt = createdAt.plusMinutes(5);
-
         var comment = issue.addComment("C-1", "I will check it.", assignee, commentedAt);
 
         assertEquals(1, issue.getComments().size());
