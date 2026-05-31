@@ -102,7 +102,7 @@ public final class JavaFXApp extends Application {
     }
 
     private void showIssueDetail(long issueId, long projectId){
-        IssueDetailScreen screen = new IssueDetailScreen(context.issueController(), issueId);
+        IssueDetailScreen screen = new IssueDetailScreen(context.issueController(), context.issueStateController(), context.assignmentController(), issueId);
         screen.setOnBack(() -> showIssueList(projectId));
         primaryStage.setScene(new Scene(screen, 1024, 768));
     }
