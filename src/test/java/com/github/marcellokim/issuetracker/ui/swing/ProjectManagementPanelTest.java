@@ -78,7 +78,7 @@ class ProjectManagementPanelTest {
         var openRef = new AtomicLong();
         var renameRef = new AtomicReference<String>();
         var descriptionRef = new AtomicReference<String>();
-        var deleteRef = new AtomicLong();
+        var deleteRef = new AtomicReference<String>();
         var backClicks = new AtomicInteger();
         var logoutClicks = new AtomicInteger();
         FixedProjectDialogs dialogs = new FixedProjectDialogs();
@@ -93,7 +93,7 @@ class ProjectManagementPanelTest {
                             (source, projectId, name) -> renameRef.set(projectId + ":" + name),
                             (source, projectId, description) ->
                                     descriptionRef.set(projectId + ":" + description),
-                            (source, projectId) -> deleteRef.set(projectId),
+                            (source, projectId, projectName) -> deleteRef.set(projectId + ":" + projectName),
                             backClicks::incrementAndGet,
                             logoutClicks::incrementAndGet));
             panel.showProjects(List.of(projectSummary(7L, "Alpha", "Alpha project", 3, 7)));
@@ -113,7 +113,7 @@ class ProjectManagementPanelTest {
         assertEquals(7L, openRef.get());
         assertEquals("7:Renamed Project", renameRef.get());
         assertEquals("7:Updated project description", descriptionRef.get());
-        assertEquals(7L, deleteRef.get());
+        assertEquals("7:Alpha", deleteRef.get());
         assertEquals(1, backClicks.get());
         assertEquals(1, logoutClicks.get());
     }
@@ -175,7 +175,7 @@ class ProjectManagementPanelTest {
                         },
                         (source, projectId, description) -> {
                         },
-                        (source, ignored) -> {
+                        (source, projectId, projectName) -> {
                         },
                         () -> {
                         },

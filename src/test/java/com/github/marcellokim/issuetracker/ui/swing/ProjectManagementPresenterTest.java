@@ -91,10 +91,10 @@ class ProjectManagementPresenterTest {
                 fixture.projectController(),
                 view);
 
-        presenter.deleteProject(1L);
+        presenter.deleteProject(1L, "Alpha");
 
         assertEquals(List.of(), view.projectNames());
-        assertEquals("Project deleted: 1", view.message());
+        assertEquals("Project deleted: Alpha", view.message());
     }
 
     @Test

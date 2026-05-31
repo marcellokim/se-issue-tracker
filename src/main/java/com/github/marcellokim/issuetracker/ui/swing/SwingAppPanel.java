@@ -234,8 +234,10 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                                     startProjectTask(
                                             panelRef,
                                             presenter -> presenter.changeProjectDescription(projectId, description)),
-                            (panelRef, projectId) ->
-                                    startProjectTask(panelRef, presenter -> presenter.deleteProject(projectId)),
+                            (panelRef, projectId, projectName) ->
+                                    startProjectTask(
+                                            panelRef,
+                                            presenter -> presenter.deleteProject(projectId, projectName)),
                             () -> showAdminDashboard(user),
                             this::logout));
             adminDashboardCard.removeAll();

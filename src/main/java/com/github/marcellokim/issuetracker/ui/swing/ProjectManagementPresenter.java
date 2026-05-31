@@ -53,8 +53,9 @@ final class ProjectManagementPresenter {
         }
     }
 
-    void deleteProject(long projectId) {
-        run("Project deleted: " + projectId, () -> projectController.deleteProject(projectId));
+    void deleteProject(long projectId, String projectName) {
+        Objects.requireNonNull(projectName, "projectName");
+        run("Project deleted: " + projectName, () -> projectController.deleteProject(projectId));
     }
 
     private void run(String successMessage, Runnable action) {

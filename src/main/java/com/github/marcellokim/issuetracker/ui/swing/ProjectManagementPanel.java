@@ -171,7 +171,10 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
         deleteButton.setName("deleteProjectButton");
         deleteButton.addActionListener(event -> selectedProject()
                 .filter(project -> dialogs.confirmDelete(this, project))
-                .ifPresent(project -> actions.onDelete().accept(this, project.projectId())));
+                .ifPresent(project -> actions.onDelete().accept(
+                        this,
+                        project.projectId(),
+                        project.projectName())));
         panel.add(deleteButton);
 
         return panel;
@@ -317,7 +320,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
             PanelConsumer<Long> onOpenDetail,
             PanelBiConsumer<Long, String> onRename,
             PanelBiConsumer<Long, String> onDescriptionChange,
-            PanelConsumer<Long> onDelete,
+            PanelBiConsumer<Long, String> onDelete,
             Runnable onBack,
             Runnable onLogout) {
 
