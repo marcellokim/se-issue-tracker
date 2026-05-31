@@ -34,6 +34,7 @@ import javax.swing.SwingWorker;
 import javax.swing.SwingUtilities;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.Timer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -218,23 +219,37 @@ class SwingAppPanelTest {
     }
 
     private static void awaitProjectRows(SwingAppPanel panel, int expectedRows) throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (System.nanoTime() < deadline) {
-            AtomicReference<Integer> rowCount = new AtomicReference<>();
-            try {
-                SwingComponentTestSupport.onEdt(() -> rowCount.set(
-                        SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount()));
-            } catch (AssertionError ignored) {
-                rowCount.set(-1);
+        CountDownLatch rowsReady = new CountDownLatch(1);
+        AtomicReference<Timer> timerRef = new AtomicReference<>();
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = new Timer(25, event -> {
+                try {
+                    int rowCount = SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount();
+                    if (rowCount == expectedRows) {
+                        ((Timer) event.getSource()).stop();
+                        rowsReady.countDown();
+                    }
+                } catch (AssertionError ignored) {
+                    // Dashboard panel is installed asynchronously after admin login.
+                }
+            });
+            timer.setRepeats(true);
+            timerRef.set(timer);
+            timer.start();
+        });
+
+        boolean ready = rowsReady.await(5, TimeUnit.SECONDS);
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = timerRef.get();
+            if (timer != null) {
+                timer.stop();
             }
-            if (rowCount.get() == expectedRows) {
-                return;
+            if (!ready) {
+                assertEquals(
+                        expectedRows,
+                        SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount());
             }
-            Thread.sleep(25);
-        }
-        SwingComponentTestSupport.onEdt(() -> assertEquals(
-                expectedRows,
-                SwingComponentTestSupport.find(panel, "adminProjectTable", JTable.class).getRowCount()));
+        });
     }
 
     private static SwingControllerFixture controllers(

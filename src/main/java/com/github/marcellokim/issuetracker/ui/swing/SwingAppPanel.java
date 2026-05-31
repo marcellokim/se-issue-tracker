@@ -32,7 +32,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final JPanel adminDashboardCard = new JPanel(new BorderLayout());
     private final JPanel projectListCard = new JPanel(new BorderLayout());
     private transient SwingWorker<Void, Void> loginWorker;
-    private transient volatile DashboardLoadWorker dashboardWorker;
+    private final transient AtomicReference<DashboardLoadWorker> dashboardWorker = new AtomicReference<>();
 
     SwingAppPanel(
             AuthenticationController authenticationController,
@@ -169,20 +169,14 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void loadAdminDashboard(AdminDashboardPanel panel) {
         DashboardLoadWorker worker = new DashboardLoadWorker(panel);
-        dashboardWorker = worker;
+        dashboardWorker.set(worker);
         worker.execute();
     }
 
     private void cancelDashboardWorker() {
-        if (dashboardWorker != null && !dashboardWorker.isDone()) {
-            dashboardWorker.cancel(true);
-        }
-        dashboardWorker = null;
-    }
-
-    private void clearCompletedDashboardWorker(DashboardLoadWorker worker) {
-        if (dashboardWorker == worker) {
-            dashboardWorker = null;
+        DashboardLoadWorker worker = dashboardWorker.getAndSet(null);
+        if (worker != null && !worker.isDone()) {
+            worker.cancel(true);
         }
     }
 
@@ -246,7 +240,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         @Override
         protected void done() {
-            clearCompletedDashboardWorker(this);
+            dashboardWorker.compareAndSet(this, null);
         }
     }
 
@@ -275,7 +269,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         }
 
         private boolean isCurrent() {
-            return dashboardWorker == worker && !worker.isCancelled();
+            return dashboardWorker.get() == worker && !worker.isCancelled();
         }
     }
 
