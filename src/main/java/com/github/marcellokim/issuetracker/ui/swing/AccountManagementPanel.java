@@ -13,8 +13,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -38,11 +36,11 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
     private static final int[] USER_COLUMN_WIDTHS = {120, 180, 96, 72};
 
     private final AccountDialogs dialogs;
-    private final Consumer<AccountCreateRequest> onCreate;
-    private final BiConsumer<String, String> onRename;
-    private final BiConsumer<String, Role> onRoleChange;
-    private final Consumer<String> onActivate;
-    private final Consumer<String> onDeactivate;
+    private final PanelConsumer<AccountCreateRequest> onCreate;
+    private final PanelBiConsumer<String, String> onRename;
+    private final PanelBiConsumer<String, Role> onRoleChange;
+    private final PanelConsumer<String> onActivate;
+    private final PanelConsumer<String> onDeactivate;
     private final DefaultTableModel userTableModel = readOnlyTableModel();
     private final JTable userTable = table();
     private final JLabel messageLabel = new JLabel(" ");
@@ -56,11 +54,11 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
     AccountManagementPanel(
             UserResult user,
             AccountDialogs dialogs,
-            Consumer<AccountCreateRequest> onCreate,
-            BiConsumer<String, String> onRename,
-            BiConsumer<String, Role> onRoleChange,
-            Consumer<String> onActivate,
-            Consumer<String> onDeactivate,
+            PanelConsumer<AccountCreateRequest> onCreate,
+            PanelBiConsumer<String, String> onRename,
+            PanelBiConsumer<String, Role> onRoleChange,
+            PanelConsumer<String> onActivate,
+            PanelConsumer<String> onDeactivate,
             Runnable onBack,
             Runnable onLogout) {
         Objects.requireNonNull(user, "user");
@@ -188,31 +186,32 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
         panel.setBorder(SwingStyles.surfaceBorder());
 
         createButton.setName("createAccountButton");
-        createButton.addActionListener(event -> dialogs.requestCreate(this).ifPresent(onCreate));
+        createButton.addActionListener(event -> dialogs.requestCreate(this)
+                .ifPresent(request -> onCreate.accept(this, request)));
         panel.add(createButton);
 
         renameButton.setName("renameAccountButton");
         renameButton.addActionListener(event -> selectedUser().flatMap(user -> dialogs.requestRename(this, user)
                 .map(name -> new RenameRequest(user.loginId(), name)))
-                .ifPresent(request -> onRename.accept(request.loginId(), request.name())));
+                .ifPresent(request -> onRename.accept(this, request.loginId(), request.name())));
         panel.add(renameButton);
 
         roleButton.setName("changeRoleButton");
         roleButton.addActionListener(event -> selectedUser().flatMap(user -> dialogs.requestRole(this, user)
                 .map(role -> new RoleChangeRequest(user.loginId(), role)))
-                .ifPresent(request -> onRoleChange.accept(request.loginId(), request.role())));
+                .ifPresent(request -> onRoleChange.accept(this, request.loginId(), request.role())));
         panel.add(roleButton);
 
         activateButton.setName("activateAccountButton");
         activateButton.addActionListener(event -> selectedUser()
                 .filter(user -> dialogs.confirmActivation(this, user, true))
-                .ifPresent(user -> onActivate.accept(user.loginId())));
+                .ifPresent(user -> onActivate.accept(this, user.loginId())));
         panel.add(activateButton);
 
         deactivateButton.setName("deactivateAccountButton");
         deactivateButton.addActionListener(event -> selectedUser()
                 .filter(user -> dialogs.confirmActivation(this, user, false))
-                .ifPresent(user -> onDeactivate.accept(user.loginId())));
+                .ifPresent(user -> onDeactivate.accept(this, user.loginId())));
         panel.add(deactivateButton);
 
         return panel;
@@ -314,6 +313,18 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
     }
 
     private record RoleChangeRequest(String loginId, Role role) {
+    }
+
+    @FunctionalInterface
+    interface PanelConsumer<T> {
+
+        void accept(AccountManagementPanel panel, T value);
+    }
+
+    @FunctionalInterface
+    interface PanelBiConsumer<T, U> {
+
+        void accept(AccountManagementPanel panel, T first, U second);
     }
 
     static final class JOptionPaneAccountDialogs implements AccountDialogs {

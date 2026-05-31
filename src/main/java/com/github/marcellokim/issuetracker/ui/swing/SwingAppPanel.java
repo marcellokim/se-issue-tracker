@@ -182,18 +182,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelDashboardWorker();
             cancelAccountWorker();
             titleUpdater.accept("Account management");
-            AtomicReference<AccountManagementPanel> panelRef = new AtomicReference<>();
             AccountManagementPanel panel = new AccountManagementPanel(
                     user,
                     new AccountManagementPanel.JOptionPaneAccountDialogs(),
-                    request -> startAccountTask(panelRef.get(), presenter -> presenter.createAccount(request)),
-                    (loginId, name) -> startAccountTask(panelRef.get(), presenter -> presenter.renameAccount(loginId, name)),
-                    (loginId, role) -> startAccountTask(panelRef.get(), presenter -> presenter.changeAccountRole(loginId, role)),
-                    loginId -> startAccountTask(panelRef.get(), presenter -> presenter.activateAccount(loginId)),
-                    loginId -> startAccountTask(panelRef.get(), presenter -> presenter.deactivateAccount(loginId)),
+                    (panelRef, request) -> startAccountTask(panelRef, presenter -> presenter.createAccount(request)),
+                    (panelRef, loginId, name) ->
+                            startAccountTask(panelRef, presenter -> presenter.renameAccount(loginId, name)),
+                    (panelRef, loginId, role) ->
+                            startAccountTask(panelRef, presenter -> presenter.changeAccountRole(loginId, role)),
+                    (panelRef, loginId) -> startAccountTask(panelRef, presenter -> presenter.activateAccount(loginId)),
+                    (panelRef, loginId) -> startAccountTask(panelRef, presenter -> presenter.deactivateAccount(loginId)),
                     () -> showAdminDashboard(user),
                     this::logout);
-            panelRef.set(panel);
             adminDashboardCard.removeAll();
             adminDashboardCard.add(panel, BorderLayout.CENTER);
             adminDashboardCard.revalidate();

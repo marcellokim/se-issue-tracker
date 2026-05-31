@@ -64,11 +64,11 @@ class AccountManagementPanelTest {
             AccountManagementPanel panel = new AccountManagementPanel(
                     userResult("admin", Role.ADMIN, true),
                     dialogs,
-                    createRef::set,
-                    (loginId, name) -> renameRef.set(loginId + ":" + name),
-                    (loginId, role) -> roleRef.set(role),
-                    activateRef::set,
-                    deactivateRef::set,
+                    (source, request) -> createRef.set(request),
+                    (source, loginId, name) -> renameRef.set(loginId + ":" + name),
+                    (source, loginId, role) -> roleRef.set(role),
+                    (source, loginId) -> activateRef.set(loginId),
+                    (source, loginId) -> deactivateRef.set(loginId),
                     backClicks::incrementAndGet,
                     logoutClicks::incrementAndGet);
             panel.showUsers(List.of(userResult("dev1", Role.DEV, true)));
@@ -100,15 +100,15 @@ class AccountManagementPanelTest {
         return new AccountManagementPanel(
                 userResult("admin", Role.ADMIN, true),
                 dialogs,
-                ignored -> {
+                (panel, ignored) -> {
                 },
-                (loginId, name) -> {
+                (panel, loginId, name) -> {
                 },
-                (loginId, role) -> {
+                (panel, loginId, role) -> {
                 },
-                ignored -> {
+                (panel, ignored) -> {
                 },
-                ignored -> {
+                (panel, ignored) -> {
                 },
                 () -> {
                 },
