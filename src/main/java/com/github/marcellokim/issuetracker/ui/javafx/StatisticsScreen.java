@@ -9,7 +9,6 @@ import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
-import javafx.collections.FXCollections;
 import javafx.geometry.Side;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
@@ -195,7 +194,6 @@ final class StatisticsScreen extends VBox {
         return chart;
     }
 
-    @SuppressWarnings("unchecked")
     private static XYChart.Series<String, Number> findOrCreateSeries(BarChart<String, Number> chart, String name){
         for (XYChart.Series<String, Number> s : chart.getData()){
             if (name.equals(s.getName())) return s;
