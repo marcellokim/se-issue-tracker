@@ -13,6 +13,7 @@ import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -95,9 +96,17 @@ final class IssueDetailScreen extends VBox {
             Label commentsTitle = new Label("Comments (" + detail.comments().size() + ")");
             commentsTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
+            Set<String> editableComments = new HashSet<>();
+            Set<String> deletableComments = new HashSet<>();
+            for (CommentResult c : detail.comments()){
+                long cid = Long.parseLong(c.commentId());
+                try{ if (issueController.canUpdateComment(issueId, cid)) editableComments.add(c.commentId()); } catch (Exception ignored){}
+                try{ if (issueController.canDeleteComment(issueId, cid)) deletableComments.add(c.commentId()); } catch (Exception ignored){}
+            }
+
             ListView<CommentResult> commentList = new ListView<>();
             commentList.getItems().setAll(detail.comments());
-            commentList.setCellFactory(list -> new CommentCell());
+            commentList.setCellFactory(list -> new CommentCell(editableComments, deletableComments));
             commentList.setPrefHeight(200);
 
             VBox dependencyBox = new VBox(4);
@@ -409,12 +418,76 @@ final class IssueDetailScreen extends VBox {
         return user.loginId() + " (" + user.name() + ")";
     }
 
-    private static class CommentCell extends ListCell<CommentResult> {
+    private class CommentCell extends ListCell<CommentResult> {
+        private final Set<String> editable;
+        private final Set<String> deletable;
+
+        CommentCell(Set<String> editable, Set<String> deletable){
+            this.editable = editable;
+            this.deletable = deletable;
+        }
+
         @Override
         protected void updateItem(CommentResult comment, boolean empty){
             super.updateItem(comment, empty);
             if (empty || comment == null){ setText(null); setGraphic(null); return; }
-            setText(String.format("[%s] %s: %s", comment.purpose(), comment.writerLoginId(), comment.content()));
+            setText(null);
+            Label text = new Label(String.format("[%s] %s: %s", comment.purpose(), comment.writerLoginId(), comment.content()));
+            text.setWrapText(true);
+            FlowPane buttons = new FlowPane(4, 0);
+            if (editable.contains(comment.commentId())){
+                Button editBtn = new Button("Edit");
+                editBtn.setStyle("-fx-font-size: 10px;");
+                editBtn.setOnAction(e -> handleEditComment(comment));
+                buttons.getChildren().add(editBtn);
+            }
+            if (deletable.contains(comment.commentId())){
+                Button deleteBtn = new Button("Delete");
+                deleteBtn.setStyle("-fx-font-size: 10px;");
+                deleteBtn.setOnAction(e -> handleDeleteComment(comment));
+                buttons.getChildren().add(deleteBtn);
+            }
+            VBox box = new VBox(2, text);
+            if (!buttons.getChildren().isEmpty()) box.getChildren().add(buttons);
+            setGraphic(box);
+        }
+    }
+
+    private void handleEditComment(CommentResult comment){
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Edit Comment");
+        TextArea textArea = new TextArea(comment.content());
+        textArea.setPrefRowCount(3);
+        dialog.getDialogPane().setContent(textArea);
+        Button okButton = setupDialogButtons(dialog);
+        okButton.setDisable(true);
+        textArea.textProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val.isBlank()));
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? textArea.getText().trim() : null);
+        dialog.showAndWait().ifPresent(content -> {
+            try{
+                issueController.updateComment(issueId, Long.parseLong(comment.commentId()), content);
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
+    }
+
+    private void handleDeleteComment(CommentResult comment){
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Delete Comment");
+        dialog.setHeaderText("Delete this comment?");
+        dialog.getDialogPane().setContent(new Label(comment.content()));
+        setupDialogButtons(dialog);
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK){
+            try{
+                issueController.deleteComment(issueId, Long.parseLong(comment.commentId()));
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
         }
     }
 }

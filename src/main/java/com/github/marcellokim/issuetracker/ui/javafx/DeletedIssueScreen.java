@@ -37,13 +37,21 @@ final class DeletedIssueScreen extends VBox {
 
         Button restoreButton = new Button("Restore Selected");
         restoreButton.setDisable(true);
-        issueList.getSelectionModel().selectedItemProperty().addListener((obs, old, val) ->
-                restoreButton.setDisable(val == null));
+        Button purgeButton = new Button("Permanently Delete");
+        purgeButton.setDisable(true);
+        issueList.getSelectionModel().selectedItemProperty().addListener((obs, old, val) -> {
+            restoreButton.setDisable(val == null);
+            purgeButton.setDisable(val == null);
+        });
         restoreButton.setOnAction(event -> {
             IssueSummary selected = issueList.getSelectionModel().getSelectedItem();
             if (selected != null) handleRestore(selected);
         });
-        HBox toolbar = new HBox(8, restoreButton);
+        purgeButton.setOnAction(event -> {
+            IssueSummary selected = issueList.getSelectionModel().getSelectedItem();
+            if (selected != null) handlePurge(selected);
+        });
+        HBox toolbar = new HBox(8, restoreButton, purgeButton);
 
         getChildren().addAll(
                 ScreenComponents.header(backButton, titleLabel, countLabel),
@@ -52,6 +60,27 @@ final class DeletedIssueScreen extends VBox {
     }
 
     void setOnBack(Runnable action){ this.onBack = action; }
+
+    private void handlePurge(IssueSummary issue){
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Permanently Delete");
+        dialog.setHeaderText("Permanently delete [" + issue.issueId() + "] " + issue.title() + "?");
+        dialog.getDialogPane().setContent(new Label("This action cannot be undone."));
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("Delete");
+        dialog.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK){
+                try{
+                    deletedIssueController.purgeDeletedIssue(issue.id());
+                    loadDeletedIssues();
+                    ScreenComponents.showInfo(messageLabel, "Issue permanently deleted: " + issue.issueId());
+                } catch (Exception exception){
+                    ScreenComponents.showError(messageLabel, exception);
+                }
+            }
+        });
+    }
 
     private void handleRestore(IssueSummary issue){
         Dialog<String> dialog = new Dialog<>();
