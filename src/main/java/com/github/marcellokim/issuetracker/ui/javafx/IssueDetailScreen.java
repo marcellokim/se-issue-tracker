@@ -192,7 +192,8 @@ final class IssueDetailScreen extends VBox {
         Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
         okButton.setText("OK");
         okButton.setDisable(true);
-        priorityBox.valueProperty().addListener((obs, old, val) -> okButton.setDisable(val == null));
+        priorityBox.valueProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val == currentDetail.priority()));
         dialog.setResultConverter(bt -> bt == ButtonType.OK ? priorityBox.getValue() : null);
         dialog.showAndWait().ifPresent(priority -> {
             try{
@@ -260,7 +261,7 @@ final class IssueDetailScreen extends VBox {
         okButton.setText("OK");
         okButton.setDisable(true);
         blockingIdField.textProperty().addListener((obs, old, val) ->
-                okButton.setDisable(val == null || val.isBlank()));
+                okButton.setDisable(val == null || !val.matches("[1-9]\\d*")));
         dialog.setResultConverter(bt -> bt == ButtonType.OK ? blockingIdField.getText().trim() : null);
         dialog.showAndWait().ifPresent(blockingIdText -> {
             try{
