@@ -112,6 +112,7 @@ final class LoginPanel extends JPanel implements LoginView {
         loginIdField.setEnabled(enabled);
         passwordField.setEnabled(enabled);
         signInButton.setEnabled(enabled);
+        SwingStyles.applyPrimaryButtonState(signInButton, enabled);
     }
 
     @Override

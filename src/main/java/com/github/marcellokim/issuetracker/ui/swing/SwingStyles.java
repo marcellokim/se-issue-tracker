@@ -24,6 +24,7 @@ final class SwingStyles {
     static final Color BORDER = new Color(218, 224, 231);
     static final Color PRIMARY = new Color(32, 96, 160);
     static final Color PRIMARY_TEXT = Color.WHITE;
+    static final Color DISABLED_BUTTON_BACKGROUND = new Color(229, 234, 240);
     static final Color BODY_TEXT = new Color(36, 43, 51);
     static final Color MUTED_TEXT = new Color(95, 106, 120);
     static final Color ERROR_TEXT = new Color(154, 35, 45);
@@ -56,6 +57,10 @@ final class SwingStyles {
         button.setForeground(PRIMARY_TEXT);
         button.setFocusPainted(false);
         button.setPreferredSize(new Dimension(LOGIN_PANEL_WIDTH, BUTTON_HEIGHT));
+    }
+
+    static void applyPrimaryButtonState(JButton button, boolean enabled) {
+        button.setBackground(enabled ? PRIMARY : DISABLED_BUTTON_BACKGROUND);
     }
 
     static void fixHeight(JComponent component, int height) {

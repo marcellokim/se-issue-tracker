@@ -62,6 +62,7 @@ class LoginPanelTest {
             assertFalse(signIn.isEnabled());
             assertFalse(loginId.isEnabled());
             assertFalse(password.isEnabled());
+            assertEquals(SwingStyles.DISABLED_BUTTON_BACKGROUND, signIn.getBackground());
             assertEquals(loginId, loginIdLabel.getLabelFor());
             assertEquals(password, passwordLabel.getLabelFor());
             assertEquals("Invalid ID or password.", message.getText());
