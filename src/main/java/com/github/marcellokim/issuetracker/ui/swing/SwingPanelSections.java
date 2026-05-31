@@ -14,8 +14,11 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
 
 final class SwingPanelSections {
 
@@ -141,6 +144,47 @@ final class SwingPanelSections {
         table.setSelectionBackground(selectionBackground);
         table.setSelectionForeground(SwingStyles.BODY_TEXT);
         table.getTableHeader().setReorderingAllowed(false);
+    }
+
+    static JPanel tableSection(String title, JTable table) {
+        JPanel section = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
+        section.setBackground(SwingStyles.SURFACE);
+        section.setBorder(SwingStyles.surfaceBorder());
+
+        JLabel label = new JLabel(title);
+        SwingStyles.applySectionTitle(label);
+        section.add(label, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setColumnHeaderView(table.getTableHeader());
+        section.add(scrollPane, BorderLayout.CENTER);
+        return section;
+    }
+
+    static void applyColumnWidths(JTable table, int[] widths) {
+        if (table.getColumnCount() != widths.length) {
+            return;
+        }
+        for (int index = 0; index < widths.length; index++) {
+            table.getColumnModel().getColumn(index).setPreferredWidth(widths[index]);
+        }
+    }
+
+    static DefaultTableModel readOnlyTableModel(String[] columns) {
+        return new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+    }
+
+    static void runOnEdt(Runnable action) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            action.run();
+        } else {
+            SwingUtilities.invokeLater(action);
+        }
     }
 
     record HeaderLabels(

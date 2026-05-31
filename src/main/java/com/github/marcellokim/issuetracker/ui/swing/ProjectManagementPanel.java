@@ -6,7 +6,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,7 +14,6 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -40,7 +38,8 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
 
     private final transient ProjectDialogs dialogs;
     private final transient ProjectManagementActions actions;
-    private final DefaultTableModel projectTableModel = readOnlyTableModel();
+    private final DefaultTableModel projectTableModel = SwingPanelSections.readOnlyTableModel(PROJECT_COLUMNS);
+    private final ProjectTableRows projectRows = new ProjectTableRows(projectTableModel);
     private final JTable projectTable = table();
     private final JLabel messageLabel = new JLabel(" ");
     private final JButton createButton = new JButton("Create project");
@@ -48,7 +47,6 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     private final JButton renameButton = new JButton("Rename");
     private final JButton descriptionButton = new JButton("Change description");
     private final JButton deleteButton = new JButton("Delete");
-    private final List<DashboardProjectSummary> projects = new ArrayList<>();
 
     ProjectManagementPanel(
             UserResult user,
@@ -78,13 +76,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
         Objects.requireNonNull(projects, "projects");
         List<DashboardProjectSummary> snapshot = List.copyOf(projects);
         runOnEdt(() -> {
-            Long selectedProjectId = selectedProject()
-                    .map(DashboardProjectSummary::projectId)
-                    .orElse(null);
-            this.projects.clear();
-            this.projects.addAll(snapshot);
-            replaceRows(snapshot);
-            restoreSelection(selectedProjectId);
+            projectRows.replaceKeepingSelection(projectTable, snapshot);
             updateSelectionActions();
         });
     }
@@ -116,17 +108,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     }
 
     private JPanel tableSection() {
-        JPanel section = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
-        section.setBackground(SwingStyles.SURFACE);
-        section.setBorder(SwingStyles.surfaceBorder());
-
-        JLabel title = new JLabel("Projects");
-        SwingStyles.applySectionTitle(title);
-        section.add(title, BorderLayout.NORTH);
-        JScrollPane scrollPane = new JScrollPane(projectTable);
-        scrollPane.setColumnHeaderView(projectTable.getTableHeader());
-        section.add(scrollPane, BorderLayout.CENTER);
-        return section;
+        return SwingPanelSections.tableSection("Projects", projectTable);
     }
 
     private JPanel actions() {
@@ -203,43 +185,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     }
 
     private Optional<DashboardProjectSummary> selectedProject() {
-        int selectedRow = projectTable.getSelectedRow();
-        if (selectedRow < 0) {
-            return Optional.empty();
-        }
-        int modelRow = projectTable.convertRowIndexToModel(selectedRow);
-        if (modelRow < 0 || modelRow >= projects.size()) {
-            return Optional.empty();
-        }
-        return Optional.of(projects.get(modelRow));
-    }
-
-    private void replaceRows(List<DashboardProjectSummary> projects) {
-        projectTableModel.setRowCount(0);
-        for (DashboardProjectSummary project : projects) {
-            projectTableModel.addRow(new Object[]{
-                    project.projectId(),
-                    project.projectName(),
-                    project.projectDescription(),
-                    project.memberCount(),
-                    project.visibleIssueCount()
-            });
-        }
-    }
-
-    private void restoreSelection(Long selectedProjectId) {
-        if (selectedProjectId == null) {
-            return;
-        }
-        for (int row = 0; row < projects.size(); row++) {
-            if (selectedProjectId == projects.get(row).projectId()) {
-                int viewRow = projectTable.convertRowIndexToView(row);
-                if (viewRow >= 0) {
-                    projectTable.setRowSelectionInterval(viewRow, viewRow);
-                }
-                return;
-            }
-        }
+        return projectRows.selectedProject(projectTable);
     }
 
     private void updateSelectionActions() {
@@ -255,21 +201,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     }
 
     private void applyColumnWidths(JTable table) {
-        if (table.getColumnCount() != PROJECT_COLUMN_WIDTHS.length) {
-            return;
-        }
-        for (int index = 0; index < PROJECT_COLUMN_WIDTHS.length; index++) {
-            table.getColumnModel().getColumn(index).setPreferredWidth(PROJECT_COLUMN_WIDTHS[index]);
-        }
-    }
-
-    private static DefaultTableModel readOnlyTableModel() {
-        return new DefaultTableModel(PROJECT_COLUMNS, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        SwingPanelSections.applyColumnWidths(table, PROJECT_COLUMN_WIDTHS);
     }
 
     private static void runOnEdt(Runnable action) {
