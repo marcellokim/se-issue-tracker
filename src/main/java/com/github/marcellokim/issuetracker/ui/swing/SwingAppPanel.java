@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.swing.JPanel;
@@ -436,21 +437,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         @Override
         protected void done() {
-            if (!accountWorker.compareAndSet(this, null)) {
-                return;
-            }
-            panel.setBusy(false);
-            if (isCancelled()) {
-                return;
-            }
-            try {
-                get();
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                panel.showMessage("Account management was interrupted. Please try again.", true);
-            } catch (ExecutionException exception) {
-                panel.showMessage("Account management failed. Please try again.", true);
-            }
+            finishWorker(accountWorker, this, () -> panel.setBusy(false), panel::showMessage, "Account management");
         }
     }
 
@@ -476,21 +463,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         @Override
         protected void done() {
-            if (!projectWorker.compareAndSet(this, null)) {
-                return;
-            }
-            panel.setBusy(false);
-            if (isCancelled()) {
-                return;
-            }
-            try {
-                get();
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                panel.showMessage("Project management was interrupted. Please try again.", true);
-            } catch (ExecutionException exception) {
-                panel.showMessage("Project management failed. Please try again.", true);
-            }
+            finishWorker(projectWorker, this, () -> panel.setBusy(false), panel::showMessage, "Project management");
         }
     }
 
@@ -515,21 +488,30 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         @Override
         protected void done() {
-            if (!projectDetailWorker.compareAndSet(this, null)) {
-                return;
-            }
-            panel.setBusy(false);
-            if (isCancelled()) {
-                return;
-            }
-            try {
-                get();
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                panel.showMessage("Project detail was interrupted. Please try again.", true);
-            } catch (ExecutionException exception) {
-                panel.showMessage("Project detail failed. Please try again.", true);
-            }
+            finishWorker(projectDetailWorker, this, () -> panel.setBusy(false), panel::showMessage, "Project detail");
+        }
+    }
+
+    private static <T extends SwingWorker<Void, Void>> void finishWorker(
+            AtomicReference<T> workerRef,
+            T worker,
+            Runnable clearBusy,
+            BiConsumer<String, Boolean> showMessage,
+            String screenName) {
+        if (!workerRef.compareAndSet(worker, null)) {
+            return;
+        }
+        clearBusy.run();
+        if (worker.isCancelled()) {
+            return;
+        }
+        try {
+            worker.get();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            showMessage.accept(screenName + " was interrupted. Please try again.", true);
+        } catch (ExecutionException exception) {
+            showMessage.accept(screenName + " failed. Please try again.", true);
         }
     }
 

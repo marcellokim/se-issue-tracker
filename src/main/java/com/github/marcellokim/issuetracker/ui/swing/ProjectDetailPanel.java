@@ -6,7 +6,6 @@ import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -22,8 +21,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -35,8 +32,6 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
     private static final String[] PARTICIPANT_COLUMNS = {"User ID", "Name", "Role", "Active", "Joined"};
     private static final int[] PARTICIPANT_COLUMN_WIDTHS = {120, 180, 100, 80, 160};
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
-    private static final Color EVEN_ROW_BACKGROUND = Color.WHITE;
-    private static final Color ODD_ROW_BACKGROUND = new Color(248, 250, 252);
     private static final String DEFAULT_ERROR_MESSAGE = "Project detail failed. Please try again.";
     private static final SwingPanelSections.HeaderLabels HEADER_LABELS = new SwingPanelSections.HeaderLabels(
             "Project detail",
@@ -62,7 +57,7 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
     private final JButton addParticipantButton = new JButton("Add member");
     private final JButton removeParticipantButton = new JButton("Remove member");
     private final List<ProjectMemberResult> participants = new ArrayList<>();
-    private ProjectResult project;
+    private transient ProjectResult project;
 
     ProjectDetailPanel(
             UserResult user,
@@ -120,15 +115,11 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
 
     @Override
     public void showMessage(String message, boolean error) {
-        String displayMessage = message;
-        if (displayMessage == null || displayMessage.isBlank()) {
-            displayMessage = error ? DEFAULT_ERROR_MESSAGE : " ";
-        }
-        String text = displayMessage;
-        runOnEdt(() -> {
-            messageLabel.setText(text);
-            messageLabel.setForeground(error ? SwingStyles.ERROR_TEXT : SwingStyles.MUTED_TEXT);
-        });
+        runOnEdt(() -> SwingPanelSections.updateMessage(
+                messageLabel,
+                message,
+                error,
+                DEFAULT_ERROR_MESSAGE));
     }
 
     void setBusy(boolean busy) {
@@ -197,13 +188,13 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
 
         renameButton.setName("renameProjectDetailButton");
         renameButton.addActionListener(event -> currentProject()
-                .flatMap(project -> dialogs.requestRename(this, project))
+                .flatMap(current -> dialogs.requestRename(this, current))
                 .ifPresent(name -> actions.onRename().accept(this, projectId, name)));
         panel.add(renameButton);
 
         descriptionButton.setName("changeProjectDetailDescriptionButton");
         descriptionButton.addActionListener(event -> currentProject()
-                .flatMap(project -> dialogs.requestDescription(this, project))
+                .flatMap(current -> dialogs.requestDescription(this, current))
                 .ifPresent(description -> actions.onDescriptionChange().accept(this, projectId, description)));
         panel.add(descriptionButton);
 
@@ -224,24 +215,15 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
     private JTable table() {
         JTable table = new JTable(participantTableModel) {
             @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-                Component component = super.prepareRenderer(renderer, row, column);
-                component.setForeground(SwingStyles.BODY_TEXT);
-                if (isRowSelected(row)) {
-                    component.setBackground(SELECTION_BACKGROUND);
-                } else {
-                    component.setBackground(row % 2 == 0 ? EVEN_ROW_BACKGROUND : ODD_ROW_BACKGROUND);
-                }
-                return component;
+            public java.awt.Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+                return SwingPanelSections.stripedTableCell(
+                        this,
+                        super.prepareRenderer(renderer, row, column),
+                        row,
+                        SELECTION_BACKGROUND);
             }
         };
-        table.setName("projectParticipantTable");
-        table.setFillsViewportHeight(true);
-        table.setRowHeight(26);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setSelectionBackground(SELECTION_BACKGROUND);
-        table.setSelectionForeground(SwingStyles.BODY_TEXT);
-        table.getTableHeader().setReorderingAllowed(false);
+        SwingPanelSections.configureReadOnlyTable(table, "projectParticipantTable", SELECTION_BACKGROUND);
         table.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
                 updateActionState();
