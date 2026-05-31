@@ -2,6 +2,8 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
@@ -20,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPasswordField;
+import javax.swing.SwingWorker;
 import javax.swing.SwingUtilities;
 import javax.swing.JTextField;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +39,8 @@ class SwingAppPanelTest {
         var passwordHashing = new RecordingPasswordHashing();
         var titles = new RecordingTitleUpdater();
         var panelRef = new AtomicReference<SwingAppPanel>();
+        var workerRef = new AtomicReference<SwingWorker<?, ?>>();
+        var workerDone = new CountDownLatch(1);
         AuthenticationController controller = controller(passwordHashing, user("admin", Role.ADMIN));
 
         SwingComponentTestSupport.onEdt(() -> {
@@ -48,6 +53,17 @@ class SwingAppPanelTest {
             loginId.setText("admin");
             password.setText("submitted-password");
             signIn.doClick();
+            SwingWorker<?, ?> worker = loginWorker(panel);
+            worker.addPropertyChangeListener(event -> {
+                if ("state".equals(event.getPropertyName())
+                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
+                    workerDone.countDown();
+                }
+            });
+            if (SwingWorker.StateValue.DONE == worker.getState()) {
+                workerDone.countDown();
+            }
+            workerRef.set(worker);
 
             loginId.setText("changed");
             password.setText("changed-password");
@@ -61,7 +77,9 @@ class SwingAppPanelTest {
         assertFalse(passwordHashing.matchCalledOnEdt());
         assertEquals("submitted-password", passwordHashing.matchedPassword());
         assertTrue(titles.awaitAdminDashboard());
-        assertTrue(waitForLoginWorkerCleared(panelRef.get()));
+        assertNotNull(workerRef.get());
+        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
+        SwingComponentTestSupport.onEdt(() -> assertNull(loginWorker(panelRef.get())));
 
         SwingComponentTestSupport.onEdt(() -> {
             SwingAppPanel panel = panelRef.get();
@@ -82,23 +100,10 @@ class SwingAppPanelTest {
         });
     }
 
-    private static boolean waitForLoginWorkerCleared(SwingAppPanel panel) throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (System.nanoTime() < deadline) {
-            AtomicReference<Object> worker = new AtomicReference<>();
-            SwingComponentTestSupport.onEdt(() -> worker.set(loginWorker(panel)));
-            if (worker.get() == null) {
-                return true;
-            }
-            Thread.sleep(20);
-        }
-        return false;
-    }
-
-    private static Object loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
+    private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
         Field worker = SwingAppPanel.class.getDeclaredField("loginWorker");
         worker.setAccessible(true);
-        return worker.get(panel);
+        return (SwingWorker<?, ?>) worker.get(panel);
     }
 
     private static AuthenticationController controller(PasswordHashing passwordHashing, User... users) {
