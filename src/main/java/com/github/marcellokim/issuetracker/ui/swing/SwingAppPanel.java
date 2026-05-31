@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
+import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -22,6 +23,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private static final String PROJECT_LIST_CARD = "projectList";
 
     private final transient AuthenticationController authenticationController;
+    private final transient DashboardController dashboardController;
     private final transient Consumer<String> titleUpdater;
     private final CardLayout cardLayout = new CardLayout();
     private final LoginPanel loginPanel = new LoginPanel();
@@ -29,8 +31,12 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final JPanel projectListCard = new JPanel(new BorderLayout());
     private transient SwingWorker<Void, Void> loginWorker;
 
-    SwingAppPanel(AuthenticationController authenticationController, Consumer<String> titleUpdater) {
+    SwingAppPanel(
+            AuthenticationController authenticationController,
+            DashboardController dashboardController,
+            Consumer<String> titleUpdater) {
         this.authenticationController = Objects.requireNonNull(authenticationController, "authenticationController");
+        this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
 
         setName("appCards");
@@ -58,11 +64,21 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     @Override
     public void showAdminDashboard(UserResult user) {
         Objects.requireNonNull(user, "user");
-        runOnEdtAndWait(() -> {
+        AdminDashboardPanel dashboardPanel = callOnEdtAndWait(() -> {
             titleUpdater.accept("Admin dashboard");
-            showPlaceholder(adminDashboardCard, "Admin dashboard", user);
+            AdminDashboardPanel panel = new AdminDashboardPanel(
+                    user,
+                    () -> showAdminPlaceholder("Account management", user),
+                    () -> showAdminPlaceholder("Project management", user),
+                    this::logout);
+            adminDashboardCard.removeAll();
+            adminDashboardCard.add(panel, BorderLayout.CENTER);
+            adminDashboardCard.revalidate();
+            adminDashboardCard.repaint();
             cardLayout.show(this, ADMIN_DASHBOARD_CARD);
+            return panel;
         });
+        loadAdminDashboard(dashboardPanel);
     }
 
     @Override
@@ -130,6 +146,30 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         card.add(new PlaceholderPanel(destination, user, this::logout), BorderLayout.CENTER);
         card.revalidate();
         card.repaint();
+    }
+
+    private void showAdminPlaceholder(String destination, UserResult user) {
+        runOnEdtAndWait(() -> {
+            titleUpdater.accept(destination);
+            showPlaceholder(adminDashboardCard, destination, user);
+            cardLayout.show(this, ADMIN_DASHBOARD_CARD);
+        });
+    }
+
+    private void loadAdminDashboard(AdminDashboardPanel panel) {
+        AdminDashboardPresenter presenter = new AdminDashboardPresenter(dashboardController, panel);
+        if (!SwingUtilities.isEventDispatchThread()) {
+            presenter.load();
+            return;
+        }
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                presenter.load();
+                return null;
+            }
+        }.execute();
     }
 
     private void showLoginFailure(String message) {
