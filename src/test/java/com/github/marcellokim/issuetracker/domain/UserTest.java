@@ -9,14 +9,14 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("User domain model")
+@DisplayName("User")
 class UserTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 20, 10, 0);
 
     @Test
-    @DisplayName("create builds an active user with current timestamps")
-    void createActiveUserWithLoginIdentifierAndRole() {
+    @DisplayName("new users are active")
+    void createsActiveUser() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         assertEquals("dev1", user.getLoginId());
@@ -31,8 +31,8 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("fromPersistence restores stored lifecycle fields")
-    void restoreUserFromPersistence() {
+    @DisplayName("stored users keep their saved state")
+    void restoresSavedState() {
         LocalDateTime createdAt = NOW.minusDays(1);
 
         User user = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, false, createdAt, NOW);
@@ -43,22 +43,43 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("required user fields cannot be blank")
-    void rejectBlankUserFields() {
+    @DisplayName("login id, name, password hash, and role can not be null or empty string")
+    void rejectsMissingRequiredFields() {
+        assertThrows(IllegalArgumentException.class, () -> User.create(null, "Dev One", "hash", Role.DEV, NOW));
         assertThrows(IllegalArgumentException.class, () -> User.create("", "Dev One", "hash", Role.DEV, NOW));
+        assertThrows(IllegalArgumentException.class, () -> User.create(" ", "Dev One", "hash", Role.DEV, NOW));
+        assertThrows(IllegalArgumentException.class, () -> User.create("dev1", null, "hash", Role.DEV, NOW));
         assertThrows(IllegalArgumentException.class, () -> User.create("dev1", " ", "hash", Role.DEV, NOW));
+        assertThrows(IllegalArgumentException.class, () -> User.create("dev1", "Dev One", null, Role.DEV, NOW));
         assertThrows(IllegalArgumentException.class, () -> User.create("dev1", "Dev One", "", Role.DEV, NOW));
-    }
-
-    @Test
-    @DisplayName("role is required")
-    void rejectMissingRole() {
         assertThrows(NullPointerException.class, () -> User.create("dev1", "Dev One", "hash", null, NOW));
     }
 
     @Test
+    @DisplayName("login id is trimmed")
+    void trimsLoginId() {
+        User created = User.create(" dev1", "Dev One", "hash", Role.DEV, NOW);
+        User restored = User.fromPersistence(" tester1 ", "Tester One", "hash", Role.TESTER, false, NOW, NOW);
+
+        assertEquals("dev1", created.getLoginId());
+        assertEquals("tester1", restored.getLoginId());
+    }
+
+    @Test
+    @DisplayName("user changes need a timestamp")
+    void rejectsMissingChangeTime() {
+        User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
+
+        assertThrows(NullPointerException.class, () -> User.create("dev2", "Dev Two", "hash", Role.DEV, null));
+        assertThrows(NullPointerException.class, () -> user.rename("Dev Updated", null));
+        assertThrows(NullPointerException.class, () -> user.changeRole(Role.PL, null));
+        assertThrows(NullPointerException.class, () -> user.deactivate(null));
+        assertThrows(NullPointerException.class, () -> user.activate(null));
+    }
+
+    @Test
     @DisplayName("user can be deactivated")
-    void deactivateUser() {
+    void deactivatesUser() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         user.deactivate(NOW.plusMinutes(1));
@@ -68,8 +89,8 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("deactivated user can be reactivated")
-    void activateUser() {
+    @DisplayName("user can be reactivated")
+    void reactivatesUser() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
         user.deactivate(NOW.plusMinutes(1));
 
@@ -80,8 +101,8 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("rename updates name and updatedAt")
-    void renameUser() {
+    @DisplayName("rename changes name and timestamp")
+    void renamesUser() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         user.rename("Dev Updated", NOW.plusMinutes(1));
@@ -91,8 +112,8 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("rename rejects blank name")
-    void rejectBlankRename() {
+    @DisplayName("renaming blank names is rejected")
+    void rejectsBlankName() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         assertThrows(IllegalArgumentException.class, () -> user.rename("", NOW.plusMinutes(1)));
@@ -100,8 +121,8 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("changeRole updates role and updatedAt")
-    void changeUserRole() {
+    @DisplayName("role change updates role and timestamp")
+    void changesRole() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         user.changeRole(Role.PL, NOW.plusMinutes(1));
@@ -113,8 +134,8 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("changeRole rejects null role")
-    void rejectNullRoleChange() {
+    @DisplayName("changing to null role is rejected")
+    void rejectsNullRole() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         assertThrows(NullPointerException.class, () -> user.changeRole(null, NOW.plusMinutes(1)));
