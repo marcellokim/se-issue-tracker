@@ -5,6 +5,7 @@ import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
+import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import java.util.Objects;
 import javax.swing.JFrame;
@@ -22,7 +23,8 @@ public final class SwingAppFrame extends JFrame {
                 context.dashboardController(),
                 context.accountController(),
                 context.projectController(),
-                context.issueController());
+                context.issueController(),
+                context.issueStateController());
     }
 
     SwingAppFrame(
@@ -30,7 +32,8 @@ public final class SwingAppFrame extends JFrame {
             DashboardController dashboardController,
             AccountController accountController,
             ProjectController projectController,
-            IssueController issueController) {
+            IssueController issueController,
+            IssueStateController issueStateController) {
         super("Issue Tracker");
         this.appPanel = new SwingAppPanel(
                 authenticationController,
@@ -38,6 +41,7 @@ public final class SwingAppFrame extends JFrame {
                 accountController,
                 projectController,
                 issueController,
+                IssueStatusChangeSupport.dialog(issueStateController),
                 this::setTitle);
         setContentPane(appPanel);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);

@@ -5,11 +5,13 @@ import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -31,6 +33,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final transient AccountController accountController;
     private final transient ProjectController projectController;
     private final transient IssueController issueController;
+    private final transient IssueStatusChangeSupport statusChangeSupport;
     private final transient Consumer<String> titleUpdater;
     private final CardLayout cardLayout = new CardLayout();
     private final LoginPanel loginPanel = new LoginPanel();
@@ -52,11 +55,30 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             ProjectController projectController,
             IssueController issueController,
             Consumer<String> titleUpdater) {
+        this(
+                authenticationController,
+                dashboardController,
+                accountController,
+                projectController,
+                issueController,
+                IssueStatusChangeSupport.disabled(),
+                titleUpdater);
+    }
+
+    SwingAppPanel(
+            AuthenticationController authenticationController,
+            DashboardController dashboardController,
+            AccountController accountController,
+            ProjectController projectController,
+            IssueController issueController,
+            IssueStatusChangeSupport statusChangeSupport,
+            Consumer<String> titleUpdater) {
         this.authenticationController = Objects.requireNonNull(authenticationController, "authenticationController");
         this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
         this.accountController = Objects.requireNonNull(accountController, "accountController");
         this.projectController = Objects.requireNonNull(projectController, "projectController");
         this.issueController = Objects.requireNonNull(issueController, "issueController");
+        this.statusChangeSupport = Objects.requireNonNull(statusChangeSupport, "statusChangeSupport");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
 
         setName("appCards");
@@ -362,7 +384,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             IssueDetailPanel panel = new IssueDetailPanel(
                     user,
                     new IssueDetailPanel.IssueDetailActions(
-                            (panelRef, action) -> showIssueAction(user, projectId, issueId, action),
+                            (panelRef, action) -> showIssueAction(user, projectId, issueId, panelRef, action),
                             () -> showIssueList(user, projectId),
                             this::logout));
             projectListCard.removeAll();
@@ -374,7 +396,23 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         });
     }
 
-    private void showIssueAction(UserResult user, long projectId, long issueId, String action) {
+    private void showIssueAction(
+            UserResult user,
+            long projectId,
+            long issueId,
+            IssueDetailPanel panel,
+            String action) {
+        Optional<IssueStatus> targetStatus = IssueStatusChangeActions.targetStatus(action);
+        if (targetStatus.isPresent()) {
+            statusChangeSupport.prompt().prompt(panel, action, targetStatus.get())
+                    .ifPresent(request -> startIssueDetailTask(
+                            panel,
+                            presenter -> presenter.changeStatus(
+                                    issueId,
+                                    request.targetStatus(),
+                                    request.comment())));
+            return;
+        }
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
@@ -714,6 +752,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         protected Void doInBackground() {
             IssueDetailPresenter presenter = new IssueDetailPresenter(
                     issueController,
+                    statusChangeSupport.issueStateController(),
                     new CurrentIssueDetailView(panel, this, issueDetailWorker::get));
             task.run(presenter);
             return null;
