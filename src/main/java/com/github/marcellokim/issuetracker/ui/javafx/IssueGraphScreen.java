@@ -33,6 +33,8 @@ final class IssueGraphScreen extends VBox {
     private final IssueController issueController;
     private final long projectId;
     private final Label messageLabel = ScreenComponents.messageLabel();
+    private List<IssueSummary> cachedIssues;
+    private List<DependencyResult> cachedDeps;
     private Runnable onBack;
 
     IssueGraphScreen(IssueController issueController, long projectId){
@@ -53,16 +55,29 @@ final class IssueGraphScreen extends VBox {
                 ScreenComponents.header(backButton, titleLabel),
                 legend, canvasHolder, messageLabel);
 
-        canvasHolder.widthProperty().addListener((obs, old, val) -> drawGraph(canvasHolder));
-        canvasHolder.heightProperty().addListener((obs, old, val) -> drawGraph(canvasHolder));
+        loadData();
+        canvasHolder.widthProperty().addListener((obs, old, val) -> renderGraph(canvasHolder));
+        canvasHolder.heightProperty().addListener((obs, old, val) -> renderGraph(canvasHolder));
     }
 
     void setOnBack(Runnable action){ this.onBack = action; }
 
-    private void drawGraph(Pane holder){
+    private void loadData(){
+        try{
+            cachedIssues = issueController.viewRelatedProjectIssues(projectId);
+            cachedDeps = issueController.viewProjectDependencies(projectId);
+            ScreenComponents.showInfo(messageLabel, cachedIssues.size() + " issues, " + cachedDeps.size() + " dependencies");
+        } catch (Exception exception){
+            cachedIssues = List.of();
+            cachedDeps = List.of();
+            ScreenComponents.showError(messageLabel, exception);
+        }
+    }
+
+    private void renderGraph(Pane holder){
         double w = holder.getWidth();
         double h = holder.getHeight();
-        if (w <= 0 || h <= 0) return;
+        if (w <= 0 || h <= 0 || cachedIssues.isEmpty()) return;
 
         holder.getChildren().clear();
         Canvas canvas = new Canvas(w, h);
@@ -70,25 +85,9 @@ final class IssueGraphScreen extends VBox {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
 
-        try{
-            List<IssueSummary> issues = issueController.viewRelatedProjectIssues(projectId);
-            List<DependencyResult> deps = issueController.viewProjectDependencies(projectId);
-            if (issues.isEmpty()){
-                ScreenComponents.showInfo(messageLabel, "No issues to display");
-                return;
-            }
-
-            Map<Long, double[]> positions = layoutNodes(issues, w, h);
-            Map<Long, IssueSummary> issueMap = new HashMap<>();
-            for (IssueSummary issue : issues) issueMap.put(issue.id(), issue);
-
-            drawEdges(gc, deps, positions);
-            drawNodes(gc, issues, positions);
-
-            ScreenComponents.showInfo(messageLabel, issues.size() + " issues, " + deps.size() + " dependencies");
-        } catch (Exception exception){
-            ScreenComponents.showError(messageLabel, exception);
-        }
+        Map<Long, double[]> positions = layoutNodes(cachedIssues, w, h);
+        drawEdges(gc, cachedDeps, positions);
+        drawNodes(gc, cachedIssues, positions);
     }
 
     private static Map<Long, double[]> layoutNodes(List<IssueSummary> issues, double w, double h){
