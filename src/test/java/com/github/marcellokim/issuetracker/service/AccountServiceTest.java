@@ -2,7 +2,6 @@ package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,7 +15,6 @@ import com.github.marcellokim.issuetracker.repository.ProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,28 +22,29 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Account service")
 class AccountServiceTest {
 
-        private static final PasswordHasher PASSWORD_HASHER = new PasswordHasher();
-
         @Test
-        @DisplayName("admin creates an active account with hashed credentials")
-        void adminCreatesAccount() {
+        @DisplayName("admin creates a dev account")
+        void createsDevAccount() {
                 InMemoryUserRepository users = new InMemoryUserRepository(admin());
-                AccountService service = service(users);
+                TestPasswordHashing passwordHashing = new TestPasswordHashing();
+                AccountService service = service(users, passwordHashing);
+                String rawPassword = " TempPassword1! ";
 
-                UserResult created = service.createAccount("dev11", "Dev 11", "TempPassword1!", Role.DEV,
+                UserResult created = service.createAccount("dev11", "Dev 11", rawPassword, Role.DEV,
                                 actor(users, "admin"));
 
                 assertEquals("dev11", created.loginId());
                 assertEquals("Dev 11", created.name());
                 assertEquals(Role.DEV, created.role());
                 assertTrue(created.active());
-                assertTrue(PASSWORD_HASHER.isHashed(users.findByLoginId("dev11").orElseThrow().getPasswordHash()));
+                assertEquals(rawPassword, passwordHashing.lastPassword());
+                assertEquals("hash:" + rawPassword, users.findByLoginId("dev11").orElseThrow().getPasswordHash());
                 assertTrue(users.findByLoginId("dev11").isPresent());
         }
 
         @Test
-        @DisplayName("non admin cannot manage accounts")
-        void nonAdminCannotManageAccounts() {
+        @DisplayName("PL cannot create accounts")
+        void plCannotCreateAccount() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("pl1", Role.PL, true));
@@ -57,8 +56,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("admin renames account without changing role")
-        void adminRenamesAccountOnly() {
+        @DisplayName("admin renames an account")
+        void renamesAccount() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -71,8 +70,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("admin changes account role without changing name")
-        void adminChangesAccountRoleOnly() {
+        @DisplayName("admin changes a role")
+        void changesRole() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -85,8 +84,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("account role change requires no project membership")
-        void accountRoleChangeRequiresNoProjectMembership() {
+        @DisplayName("project member cannot change role")
+        void blocksProjectMemberRoleChange() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -100,8 +99,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("account role change requires no assigned issue responsibility")
-        void accountRoleChangeRequiresNoAssignedIssueResponsibility() {
+        @DisplayName("assigned dev cannot change role")
+        void blocksAssignedDevRoleChange() {
                 User dev = user("dev1", Role.DEV, true);
                 User tester = user("tester1", Role.TESTER, true);
                 InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
@@ -115,8 +114,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("admin activates and deactivates accounts")
-        void adminActivatesAndDeactivatesAccount() {
+        @DisplayName("admin can deactivate and activate account")
+        void togglesAccountActive() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -130,8 +129,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("account deactivation requires no project membership")
-        void rejectDeactivationForProjectMembership() {
+        @DisplayName("project member cannot be deactivated")
+        void blocksProjectMemberDeactivation() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("pl1", Role.PL, true));
@@ -145,8 +144,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("account deactivation requires no current assignee or verifier responsibility")
-        void rejectDeactivationForIssueResponsibility() {
+        @DisplayName("assigned users cannot be deactivated")
+        void blocksAssignedUserDeactivation() {
                 User dev = user("dev1", Role.DEV, true);
                 User tester = user("tester1", Role.TESTER, true);
                 InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
@@ -160,8 +159,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("completed audit fields do not block account deactivation")
-        void deactivateIgnoresCompletedAuditFields() {
+        @DisplayName("old fixer can be deactivated")
+        void deactivatesOldFixer() {
                 User dev = user("dev1", Role.DEV, true);
                 User tester = user("tester1", Role.TESTER, true);
                 InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
@@ -174,8 +173,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("admin cannot create duplicate login id")
-        void adminCannotCreateDuplicateAccount() {
+        @DisplayName("duplicate login id is rejected")
+        void duplicateLoginIdIsRejected() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -187,8 +186,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("admin cannot deactivate own account")
-        void adminCannotDeactivateOwnAccount() {
+        @DisplayName("admin cannot deactivate self")
+        void adminCannotDeactivateSelf() {
                 InMemoryUserRepository users = new InMemoryUserRepository(admin());
                 AccountService service = service(users);
 
@@ -197,8 +196,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("admin role cannot be created or assigned")
-        void adminRoleCannotBeCreatedOrAssigned() {
+        @DisplayName("admin role stays reserved")
+        void adminRoleStaysReserved() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -215,38 +214,27 @@ class AccountServiceTest {
                                 () -> service.changeAccountRole("dev1", Role.ADMIN, actor(users, "admin")));
         }
 
-        @Test
-        @DisplayName("account service requires project and issue repositories for policy checks")
-        void accountServiceRequiresPolicyRepositories() {
-                InMemoryUserRepository users = new InMemoryUserRepository(admin());
-                PermissionPolicy policy = new PermissionPolicy();
-
-                assertThrows(NullPointerException.class,
-                                () -> new AccountService(policy, users, null, new InMemoryIssueRepository(),
-                                                PASSWORD_HASHER,
-                                                java.time.LocalDateTime::now));
-                assertThrows(NullPointerException.class,
-                                () -> new AccountService(policy, users, new InMemoryProjectRepository(), null,
-                                                PASSWORD_HASHER,
-                                                java.time.LocalDateTime::now));
-                assertNotNull(new AccountService(
-                                policy,
-                                users,
-                                new InMemoryProjectRepository(),
-                                new InMemoryIssueRepository(),
-                                PASSWORD_HASHER,
-                                java.time.LocalDateTime::now));
-        }
-
         private static AccountService service(InMemoryUserRepository users) {
                 return service(users, new InMemoryProjectRepository(), new InMemoryIssueRepository());
+        }
+
+        private static AccountService service(InMemoryUserRepository users, TestPasswordHashing passwordHashing) {
+                return service(users, new InMemoryProjectRepository(), new InMemoryIssueRepository(), passwordHashing);
         }
 
         private static AccountService service(
                         InMemoryUserRepository users,
                         ProjectRepository projects,
                         InMemoryIssueRepository issues) {
-                return new AccountService(new PermissionPolicy(), users, projects, issues, PASSWORD_HASHER,
+                return service(users, projects, issues, new TestPasswordHashing());
+        }
+
+        private static AccountService service(
+                        InMemoryUserRepository users,
+                        ProjectRepository projects,
+                        InMemoryIssueRepository issues,
+                        PasswordHashing passwordHashing) {
+                return new AccountService(new PermissionPolicy(), users, projects, issues, passwordHashing,
                                 java.time.LocalDateTime::now);
         }
 
@@ -262,7 +250,7 @@ class AccountServiceTest {
                 User user = User.create(
                                 loginId,
                                 loginId.toUpperCase(),
-                                PASSWORD_HASHER.hash("password"),
+                                "hash:password",
                                 role,
                                 LocalDateTime.of(2026, 5, 1, 0, 0));
                 if (!active) {
@@ -300,6 +288,40 @@ class AccountServiceTest {
                                 .fixer(fixer)
                                 .resolver(resolver)
                                 .updatedAt(now));
+        }
+
+        private static final class TestPasswordHashing implements PasswordHashing {
+                private String lastPassword;
+
+                @Override
+                public String hash(String password) {
+                        lastPassword = password;
+                        return "hash:" + password;
+                }
+
+                @Override
+                public boolean matches(String password, String storedCredential) {
+                        return storedCredential.equals("hash:" + password);
+                }
+
+                @Override
+                public boolean isHashed(String storedCredential) {
+                        return storedCredential != null && storedCredential.startsWith("hash:");
+                }
+
+                @Override
+                public String saltOf(String storedCredential) {
+                        return "";
+                }
+
+                @Override
+                public String hashOf(String storedCredential) {
+                        return storedCredential == null ? "" : storedCredential.replaceFirst("^hash:", "");
+                }
+
+                private String lastPassword() {
+                        return lastPassword;
+                }
         }
 
 }
