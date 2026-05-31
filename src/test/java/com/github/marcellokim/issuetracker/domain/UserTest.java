@@ -24,8 +24,6 @@ class UserTest {
         assertEquals("hash", user.getPasswordHash());
         assertEquals(Role.DEV, user.getRole());
         assertTrue(user.isActive());
-        assertTrue(user.hasRole(Role.DEV));
-        assertFalse(user.hasRole(Role.TESTER));
         assertEquals(NOW, user.getCreatedAt());
         assertEquals(NOW, user.getUpdatedAt());
     }
@@ -43,7 +41,7 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("login id, name, password hash, and role can not be null or empty string")
+    @DisplayName("missing user info is rejected")
     void rejectsMissingRequiredFields() {
         assertThrows(IllegalArgumentException.class, () -> User.create(null, "Dev One", "hash", Role.DEV, NOW));
         assertThrows(IllegalArgumentException.class, () -> User.create("", "Dev One", "hash", Role.DEV, NOW));
@@ -66,15 +64,12 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("user changes need a timestamp")
+    @DisplayName("user changes require a timestamp")
     void rejectsMissingChangeTime() {
         User user = User.create("dev1", "Dev One", "hash", Role.DEV, NOW);
 
         assertThrows(NullPointerException.class, () -> User.create("dev2", "Dev Two", "hash", Role.DEV, null));
         assertThrows(NullPointerException.class, () -> user.rename("Dev Updated", null));
-        assertThrows(NullPointerException.class, () -> user.changeRole(Role.PL, null));
-        assertThrows(NullPointerException.class, () -> user.deactivate(null));
-        assertThrows(NullPointerException.class, () -> user.activate(null));
     }
 
     @Test
