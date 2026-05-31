@@ -1,11 +1,26 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
-record IssueCommentActionState(String commentId, boolean canUpdate, boolean canDelete) {
+import java.util.Objects;
+
+record IssueCommentActionState(
+        String displayCommentId,
+        Long numericCommentId,
+        String content,
+        boolean canUpdate,
+        boolean canDelete) {
 
     IssueCommentActionState {
-        if (commentId == null || commentId.isBlank()) {
+        if (displayCommentId == null || displayCommentId.isBlank()) {
             throw new IllegalArgumentException("commentId must not be blank");
         }
-        commentId = commentId.trim();
+        displayCommentId = displayCommentId.trim();
+        Objects.requireNonNull(content, "content");
+        if (numericCommentId != null && numericCommentId <= 0L) {
+            throw new IllegalArgumentException("numericCommentId must be positive");
+        }
+        if (numericCommentId == null) {
+            canUpdate = false;
+            canDelete = false;
+        }
     }
 }

@@ -44,7 +44,7 @@ class IssueDetailPanelTest {
             IssueDetailPanel panel = panel();
             panel.showDetail(
                     detail(List.of("UPDATE_ISSUE", "ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("100", true, true)));
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)));
 
             assertEquals(
                     "[ISSUE-7] Login bug",
@@ -64,6 +64,13 @@ class IssueDetailPanelTest {
             assertEquals("100", comments.getValueAt(0, 0));
             assertEquals("Y", comments.getValueAt(0, 5));
             assertEquals("Y", comments.getValueAt(0, 6));
+            assertTrue(SwingComponentTestSupport.find(panel, "addCommentButton", JButton.class).isEnabled());
+            assertFalse(SwingComponentTestSupport.find(panel, "editCommentButton", JButton.class).isEnabled());
+            assertFalse(SwingComponentTestSupport.find(panel, "deleteCommentButton", JButton.class).isEnabled());
+
+            comments.setRowSelectionInterval(0, 0);
+            assertTrue(SwingComponentTestSupport.find(panel, "editCommentButton", JButton.class).isEnabled());
+            assertTrue(SwingComponentTestSupport.find(panel, "deleteCommentButton", JButton.class).isEnabled());
 
             JTable histories = SwingComponentTestSupport.find(panel, "issueHistoryTable", JTable.class);
             assertEquals("CREATED", histories.getValueAt(0, 1));
@@ -77,6 +84,8 @@ class IssueDetailPanelTest {
     @DisplayName("publishes available action, back, and logout callbacks")
     void publishesActions() throws Exception {
         AtomicReference<String> actionRef = new AtomicReference<>();
+        AtomicReference<IssueCommentMode> commentModeRef = new AtomicReference<>();
+        AtomicReference<IssueCommentSelection> commentSelectionRef = new AtomicReference<>();
         AtomicInteger backClicks = new AtomicInteger();
         AtomicInteger logoutClicks = new AtomicInteger();
 
@@ -85,20 +94,49 @@ class IssueDetailPanelTest {
                     userResult("dev1", Role.DEV),
                     new IssueDetailPanel.IssueDetailActions(
                             (source, action) -> actionRef.set(action),
+                            (source, mode, selection) -> {
+                                commentModeRef.set(mode);
+                                commentSelectionRef.set(selection);
+                            },
                             backClicks::incrementAndGet,
                             logoutClicks::incrementAndGet));
             panel.showDetail(
                     detail(List.of("ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("100", true, true)));
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)));
 
             SwingComponentTestSupport.find(panel, "issueActionButton_ADD_COMMENT", JButton.class).doClick();
+            SwingComponentTestSupport.find(panel, "addCommentButton", JButton.class).doClick();
+            JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+            comments.setRowSelectionInterval(0, 0);
+            SwingComponentTestSupport.find(panel, "editCommentButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueDetailBackButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueDetailLogoutButton", JButton.class).doClick();
         });
 
         assertEquals("ADD_COMMENT", actionRef.get());
+        assertEquals(IssueCommentMode.UPDATE, commentModeRef.get());
+        assertEquals(100L, commentSelectionRef.get().commentId());
+        assertEquals("Confirmed in local run.", commentSelectionRef.get().content());
         assertEquals(1, backClicks.get());
         assertEquals(1, logoutClicks.get());
+    }
+
+    @Test
+    @DisplayName("disables edit and delete for non numeric comments")
+    void disablesEditAndDeleteForNonNumericComments() throws Exception {
+        SwingComponentTestSupport.onEdt(() -> {
+            IssueDetailPanel panel = panel();
+            panel.showDetail(
+                    detail(List.of("ADD_COMMENT")),
+                    List.of(new IssueCommentActionState("legacy-id", null, "Legacy comment", false, false)));
+
+            JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+            comments.setRowSelectionInterval(0, 0);
+
+            assertTrue(SwingComponentTestSupport.find(panel, "addCommentButton", JButton.class).isEnabled());
+            assertFalse(SwingComponentTestSupport.find(panel, "editCommentButton", JButton.class).isEnabled());
+            assertFalse(SwingComponentTestSupport.find(panel, "deleteCommentButton", JButton.class).isEnabled());
+        });
     }
 
     @Test
@@ -108,7 +146,7 @@ class IssueDetailPanelTest {
             IssueDetailPanel panel = panel();
             panel.showDetail(
                     detail(List.of("UPDATE_ISSUE", "ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("100", true, true)));
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)));
             panel.setSize(SwingStyles.WINDOW_SIZE);
             layoutRecursively(panel);
 
@@ -122,6 +160,8 @@ class IssueDetailPanelTest {
                 userResult("dev1", Role.DEV),
                 new IssueDetailPanel.IssueDetailActions(
                         (source, action) -> {
+                        },
+                        (source, mode, selection) -> {
                         },
                         () -> {
                         },

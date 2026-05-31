@@ -35,7 +35,9 @@ import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -64,9 +66,10 @@ class IssueDetailPresenterTest {
         assertEquals("Login bug", view.detail().title());
         assertTrue(view.detail().availableActions().contains("UPDATE_ISSUE"));
         assertTrue(view.detail().availableActions().contains("ADD_COMMENT"));
-        assertEquals(true, view.commentAction("100").canUpdate());
-        assertEquals(true, view.commentAction("100").canDelete());
-        assertEquals(false, view.commentAction("101").canUpdate());
+        assertEquals("100", view.commentAction(100L).displayCommentId());
+        assertEquals(true, view.commentAction(100L).canUpdate());
+        assertEquals(true, view.commentAction(100L).canDelete());
+        assertEquals(false, view.commentAction(101L).canUpdate());
         assertEquals(" ", view.message());
     }
 
@@ -208,6 +211,79 @@ class IssueDetailPresenterTest {
         assertEquals(assignee.getLoginId(), view.detail().assignee().loginId());
         assertEquals(nextVerifier.getLoginId(), view.detail().verifier().loginId());
         assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("adds a comment through issue controller and reloads detail")
+    void addsCommentAndReloadsDetail() {
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, "Login bug", reporter);
+        FakeCommentRepository comments = new FakeCommentRepository();
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                controller(reporter, comments, issue),
+                view);
+
+        presenter.addComment(issue.id(), " added through swing ");
+
+        assertEquals(1, view.detail().comments().size());
+        assertEquals("added through swing", view.detail().comments().getFirst().content());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("updates a comment through issue controller and reloads detail")
+    void updatesCommentAndReloadsDetail() {
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, "Login bug", reporter);
+        FakeCommentRepository comments = new FakeCommentRepository(
+                comment(100L, issue.id(), reporter, CommentPurpose.GENERAL));
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                controller(reporter, comments, issue),
+                view);
+
+        presenter.updateComment(issue.id(), 100L, "edited through swing");
+
+        assertEquals("edited through swing", view.detail().comments().getFirst().content());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("deletes a comment through issue controller and reloads detail")
+    void deletesCommentAndReloadsDetail() {
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, "Login bug", reporter);
+        FakeCommentRepository comments = new FakeCommentRepository(
+                comment(100L, issue.id(), reporter, CommentPurpose.GENERAL));
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                controller(reporter, comments, issue),
+                view);
+
+        presenter.deleteComment(issue.id(), 100L);
+
+        assertTrue(view.detail().comments().isEmpty());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("shows comment action errors without replacing current detail")
+    void showsCommentActionErrorsWithoutReplacingCurrentDetail() {
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, "Login bug", reporter);
+        FakeCommentRepository comments = new FakeCommentRepository(
+                comment(100L, issue.id(), reporter, CommentPurpose.GENERAL));
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                controller(reporter, comments, issue),
+                view);
+        presenter.loadIssue(issue.id());
+
+        presenter.deleteComment(issue.id(), 999L);
+
+        assertEquals("Comment 100", view.detail().comments().getFirst().content());
+        assertEquals("Comment not found: 999", view.message());
     }
 
     @Test
@@ -389,9 +465,9 @@ class IssueDetailPresenterTest {
             return actions;
         }
 
-        private IssueCommentActionState commentAction(String commentId) {
+        private IssueCommentActionState commentAction(long commentId) {
             return commentActions.stream()
-                    .filter(action -> action.commentId().equals(commentId))
+                    .filter(action -> action.numericCommentId() != null && action.numericCommentId() == commentId)
                     .findFirst()
                     .orElseThrow();
         }
@@ -403,29 +479,42 @@ class IssueDetailPresenterTest {
 
     private static final class FakeCommentRepository implements CommentRepository {
 
-        private final List<Comment> comments;
+        private final Map<Long, Comment> comments = new LinkedHashMap<>();
 
         private FakeCommentRepository(Comment... comments) {
-            this.comments = List.of(comments);
+            for (Comment comment : comments) {
+                this.comments.put(comment.id(), comment);
+            }
         }
 
         @Override
         public Optional<Comment> findById(long commentId) {
-            return comments.stream()
-                    .filter(comment -> comment.id() == commentId)
-                    .findFirst();
+            return Optional.ofNullable(comments.get(commentId));
         }
 
         @Override
         public List<Comment> findByIssueId(long issueId) {
-            return comments.stream()
+            return comments.values().stream()
                     .filter(comment -> comment.issueId() == issueId)
                     .toList();
         }
 
         @Override
         public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
-            throw new UnsupportedOperationException("Comment writes are outside this presenter test.");
+            Comment saved = comment;
+            if (comment.id() == 0L) {
+                long nextId = comments.keySet().stream().mapToLong(Long::longValue).max().orElse(99L) + 1L;
+                saved = Comment.fromPersistence(
+                        nextId,
+                        comment.issueId(),
+                        comment.writerId(),
+                        comment.content(),
+                        comment.purpose(),
+                        comment.createdDate(),
+                        comment.updatedDate());
+            }
+            comments.put(saved.id(), saved);
+            return saved;
         }
 
         @Override
@@ -434,7 +523,7 @@ class IssueDetailPresenterTest {
                 long commentId,
                 String writerLoginId,
                 IssueHistory history) {
-            throw new UnsupportedOperationException("Comment deletes are outside this presenter test.");
+            comments.remove(commentId);
         }
     }
 
