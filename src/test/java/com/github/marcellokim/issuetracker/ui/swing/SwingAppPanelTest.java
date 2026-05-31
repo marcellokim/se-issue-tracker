@@ -561,7 +561,8 @@ class SwingAppPanelTest {
                                 mode,
                                 assignee.getLoginId(),
                                 verifier.getLoginId())),
-                        IssueCommentDialogs::prompt),
+                        IssueCommentDialogs::prompt,
+                        IssueDependencyDialogs::prompt),
                 recommendations,
                 pl,
                 assignee,
@@ -675,6 +676,88 @@ class SwingAppPanelTest {
     }
 
     @Test
+    @DisplayName("issue detail dependency actions add, cancel remove, and remove")
+    void issueDetailDependencyActionsAddCancelRemoveAndRemove() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        Issue blockedIssue = issue(7L, 7L, "Login bug", Priority.CRITICAL, pl);
+        Issue blockingIssue = issue(8L, 7L, "Profile bug", Priority.MAJOR, pl);
+        AtomicBoolean removeConfirmed = new AtomicBoolean(false);
+        AtomicReference<IssueDependencyMode> promptedMode = new AtomicReference<>();
+        IssueDependencyPrompt dependencyPrompt = (parent, mode, selection, defaultBlockedIssueId) -> {
+            promptedMode.set(mode);
+            return switch (mode) {
+                case ADD -> {
+                    assertEquals(blockedIssue.id(), defaultBlockedIssueId);
+                    yield Optional.of(IssueDependencyRequest.add(blockingIssue.id(), blockedIssue.id()));
+                }
+                case REMOVE -> removeConfirmed.get()
+                        ? Optional.of(IssueDependencyRequest.remove(
+                                selection.blockingIssueId(),
+                                selection.blockedIssueId()))
+                        : Optional.empty();
+            };
+        };
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 2)),
+                List.of(blockedIssue, blockingIssue),
+                List.of(),
+                IssueStatusChangeDialogs::prompt,
+                IssueAssignmentDialogs::prompt,
+                IssueCommentDialogs::prompt,
+                dependencyPrompt,
+                pl);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 2);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable issues = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
+            issues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openIssueDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
+        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitRows(panel, "issueDependencyTable", 0);
+
+        awaitButtonEnabled(panel, "addDependencyButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "addDependencyButton", JButton.class).doClick());
+        awaitRows(panel, "issueDependencyTable", 1);
+        assertEquals(IssueDependencyMode.ADD, promptedMode.get());
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable dependencies = SwingComponentTestSupport.find(panel, "issueDependencyTable", JTable.class);
+            dependencies.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "removeDependencyButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "removeDependencyButton", JButton.class).doClick());
+        awaitRows(panel, "issueDependencyTable", 1);
+        assertEquals(IssueDependencyMode.REMOVE, promptedMode.get());
+
+        removeConfirmed.set(true);
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable dependencies = SwingComponentTestSupport.find(panel, "issueDependencyTable", JTable.class);
+            dependencies.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "removeDependencyButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "removeDependencyButton", JButton.class).doClick());
+        awaitRows(panel, "issueDependencyTable", 0);
+    }
+
+    @Test
     @DisplayName("project list logout returns to login")
     void projectListLogoutReturnsToLogin() throws Exception {
         var passwordHashing = new RecordingPasswordHashing();
@@ -771,7 +854,11 @@ class SwingAppPanelTest {
                 projects,
                 issues,
                 List.of(),
-                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, IssueCommentDialogs::prompt),
+                new SwingPromptSupport(
+                        statusChangePrompt,
+                        assignmentPrompt,
+                        IssueCommentDialogs::prompt,
+                        IssueDependencyDialogs::prompt),
                 new InMemoryAssignmentRecommendationRepository(users),
                 users);
     }
@@ -792,7 +879,31 @@ class SwingAppPanelTest {
                 projects,
                 issues,
                 comments,
-                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, commentPrompt),
+                statusChangePrompt,
+                assignmentPrompt,
+                commentPrompt,
+                IssueDependencyDialogs::prompt,
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
+            IssueStatusChangePrompt statusChangePrompt,
+            IssueAssignmentPrompt assignmentPrompt,
+            IssueCommentPrompt commentPrompt,
+            IssueDependencyPrompt dependencyPrompt,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                comments,
+                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, commentPrompt, dependencyPrompt),
                 new InMemoryAssignmentRecommendationRepository(users),
                 users);
     }
@@ -829,7 +940,8 @@ class SwingAppPanelTest {
                                     prompts.statusChangePrompt()),
                             controllers.assignmentController(),
                             prompts.assignmentPrompt(),
-                            prompts.commentPrompt()),
+                            prompts.commentPrompt(),
+                            prompts.dependencyPrompt()),
                     titles::update);
             panelRef.set(panel);
             User user = users[0];
@@ -1261,7 +1373,8 @@ class SwingAppPanelTest {
     private record SwingPromptSupport(
             IssueStatusChangePrompt statusChangePrompt,
             IssueAssignmentPrompt assignmentPrompt,
-            IssueCommentPrompt commentPrompt) {
+            IssueCommentPrompt commentPrompt,
+            IssueDependencyPrompt dependencyPrompt) {
     }
 
     private static final class FakeCommentRepository implements CommentRepository {

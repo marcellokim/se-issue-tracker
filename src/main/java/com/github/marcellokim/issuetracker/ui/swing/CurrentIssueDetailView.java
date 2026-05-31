@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
+import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import java.util.List;
@@ -21,8 +22,11 @@ final class CurrentIssueDetailView implements IssueDetailView {
     }
 
     @Override
-    public void showDetail(IssueDetailResult detail, List<IssueCommentActionState> commentActions) {
-        gate.update(() -> delegate.showDetail(detail, commentActions));
+    public void showDetail(
+            IssueDetailResult detail,
+            List<IssueCommentActionState> commentActions,
+            List<DependencyResult> projectDependencies) {
+        gate.update(() -> delegate.showDetail(detail, commentActions, projectDependencies));
     }
 
     @Override

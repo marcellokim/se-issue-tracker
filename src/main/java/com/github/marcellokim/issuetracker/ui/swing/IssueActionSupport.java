@@ -8,12 +8,14 @@ record IssueActionSupport(
         IssueStatusChangeSupport statusChange,
         AssignmentController assignmentController,
         IssueAssignmentPrompt assignmentPrompt,
-        IssueCommentPrompt commentPrompt) {
+        IssueCommentPrompt commentPrompt,
+        IssueDependencyPrompt dependencyPrompt) {
 
     IssueActionSupport {
         Objects.requireNonNull(statusChange, "statusChange");
         Objects.requireNonNull(assignmentPrompt, "assignmentPrompt");
         Objects.requireNonNull(commentPrompt, "commentPrompt");
+        Objects.requireNonNull(dependencyPrompt, "dependencyPrompt");
     }
 
     static IssueActionSupport disabled() {
@@ -21,7 +23,8 @@ record IssueActionSupport(
                 IssueStatusChangeSupport.disabled(),
                 null,
                 IssueAssignmentDialogs::prompt,
-                IssueCommentDialogs::prompt);
+                IssueCommentDialogs::prompt,
+                IssueDependencyDialogs::prompt);
     }
 
     static IssueActionSupport dialogs(
@@ -31,6 +34,7 @@ record IssueActionSupport(
                 IssueStatusChangeSupport.dialog(issueStateController),
                 assignmentController,
                 IssueAssignmentDialogs::prompt,
-                IssueCommentDialogs::prompt);
+                IssueCommentDialogs::prompt,
+                IssueDependencyDialogs::prompt);
     }
 }

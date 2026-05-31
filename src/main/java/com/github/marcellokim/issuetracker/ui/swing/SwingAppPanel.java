@@ -388,6 +388,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     new IssueDetailPanel.IssueDetailActions(
                             (panelRef, action) -> showIssueAction(user, projectId, issueId, panelRef, action),
                             (panelRef, mode, selection) -> showIssueComment(issueId, panelRef, mode, selection),
+                            (panelRef, mode, selection) -> showIssueDependency(issueId, panelRef, mode, selection),
                             () -> showIssueList(user, projectId),
                             this::logout));
             projectListCard.removeAll();
@@ -425,6 +426,10 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             showIssueComment(issueId, panel, IssueCommentMode.ADD, null);
             return;
         }
+        if ("ADD_DEPENDENCY".equals(action)) {
+            showIssueDependency(issueId, panel, IssueDependencyMode.ADD, null);
+            return;
+        }
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
@@ -453,6 +458,21 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     .ifPresent(request -> startIssueDetailTask(
                             panel,
                             presenter -> presenter.changeComment(issueId, request)));
+        } catch (RuntimeException exception) {
+            panel.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    private void showIssueDependency(
+            long issueId,
+            IssueDetailPanel panel,
+            IssueDependencyMode mode,
+            IssueDependencySelection selection) {
+        try {
+            issueActionSupport.dependencyPrompt().prompt(panel, mode, selection, issueId)
+                    .ifPresent(request -> startIssueDetailTask(
+                            panel,
+                            presenter -> presenter.changeDependency(issueId, request)));
         } catch (RuntimeException exception) {
             panel.showMessage(exception.getMessage(), true);
         }

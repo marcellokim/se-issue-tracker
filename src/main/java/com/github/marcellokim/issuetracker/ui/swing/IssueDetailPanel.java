@@ -38,12 +38,14 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String DEFAULT_ERROR_MESSAGE = "Issue detail failed. Please try again.";
+    private static final String ADD_DEPENDENCY_ACTION = "ADD_DEPENDENCY";
+    private static final String REMOVE_DEPENDENCY_ACTION = "REMOVE_DEPENDENCY";
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
     private static final int SUMMARY_SECTION_HEIGHT = 168;
     private static final int ACTION_SECTION_HEIGHT = 150;
     private static final int COMMENT_SECTION_HEIGHT = 220;
     private static final int HISTORY_SECTION_HEIGHT = 170;
-    private static final int DEPENDENCY_SECTION_HEIGHT = 150;
+    private static final int DEPENDENCY_SECTION_HEIGHT = 180;
     private static final String[] COMMENT_COLUMNS = {
             "ID", "Purpose", "Writer", "Content", "Updated", "Edit", "Delete"
     };
@@ -65,8 +67,8 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             new ActionSpec("CHANGE_TESTER", "Change tester"),
             new ActionSpec("UPDATE_ISSUE", "Edit issue"),
             new ActionSpec("CHANGE_PRIORITY", "Change priority"),
-            new ActionSpec("ADD_DEPENDENCY", "Add dependency"),
-            new ActionSpec("REMOVE_DEPENDENCY", "Remove dependency"),
+            new ActionSpec(ADD_DEPENDENCY_ACTION, "Add dependency"),
+            new ActionSpec(REMOVE_DEPENDENCY_ACTION, "Remove dependency"),
             new ActionSpec("ADD_COMMENT", "Add comment"),
             new ActionSpec("SOFT_DELETE", "Delete issue"));
 
@@ -90,10 +92,13 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private final JButton addCommentButton = new JButton("Add comment");
     private final JButton editCommentButton = new JButton("Edit selected");
     private final JButton deleteCommentButton = new JButton("Delete selected");
+    private final JButton addDependencyButton = new JButton("Add dependency");
+    private final JButton removeDependencyButton = new JButton("Remove selected");
     private final Map<String, JButton> actionButtons = new LinkedHashMap<>();
     private boolean busy;
     private Set<String> availableActions = Set.of();
     private transient List<IssueCommentActionState> commentActionStates = List.of();
+    private transient List<DependencyResult> dependencyActionStates = List.of();
 
     IssueDetailPanel(UserResult user, IssueDetailActions actions) {
         Objects.requireNonNull(user, "user");
@@ -112,13 +117,18 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         add(header(), BorderLayout.NORTH);
         add(content(), BorderLayout.CENTER);
         configureCommentActions();
+        configureDependencyActions();
         updateActionButtons();
     }
 
     @Override
-    public void showDetail(IssueDetailResult detail, List<IssueCommentActionState> commentActions) {
+    public void showDetail(
+            IssueDetailResult detail,
+            List<IssueCommentActionState> commentActions,
+            List<DependencyResult> projectDependencies) {
         Objects.requireNonNull(detail, "detail");
         Objects.requireNonNull(commentActions, "commentActions");
+        Objects.requireNonNull(projectDependencies, "projectDependencies");
         Map<String, IssueCommentActionState> commentActionById = commentActionById(commentActions);
         runOnEdt(() -> {
             titleLabel.setText("[" + detail.issueId() + "] " + detail.title());
@@ -131,12 +141,15 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             resolverLabel.setText("Resolver: " + formatUser(detail.resolver()));
             availableActions = Set.copyOf(detail.availableActions());
             commentActionStates = List.copyOf(commentActions);
+            dependencyActionStates = List.copyOf(projectDependencies);
             replaceRows(commentTableModel, commentRows(detail.comments(), commentActionById));
             commentTable.clearSelection();
             replaceRows(historyTableModel, historyRows(detail.histories()));
-            replaceRows(dependencyTableModel, dependencyRows(detail.dependencies()));
+            replaceRows(dependencyTableModel, dependencyRows(projectDependencies));
+            dependencyTable.clearSelection();
             updateActionButtons();
             updateCommentButtons();
+            updateDependencyButtons();
         });
     }
 
@@ -146,6 +159,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         runOnEdt(() -> {
             availableActions = Set.copyOf(actions.availableActionNames());
             updateActionButtons();
+            updateDependencyButtons();
         });
     }
 
@@ -166,6 +180,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             dependencyTable.setEnabled(!busy);
             updateActionButtons();
             updateCommentButtons();
+            updateDependencyButtons();
         });
     }
 
@@ -199,9 +214,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         content.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
         content.add(constrainedSection(SwingPanelSections.tableSection("History", historyTable), HISTORY_SECTION_HEIGHT));
         content.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
-        content.add(constrainedSection(
-                SwingPanelSections.tableSection("Dependencies", dependencyTable),
-                DEPENDENCY_SECTION_HEIGHT));
+        content.add(constrainedSection(dependencySection(), DEPENDENCY_SECTION_HEIGHT));
 
         return SwingPanelSections.verticalScrollPanel(content);
     }
@@ -240,10 +253,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         for (ActionSpec spec : ACTION_SPECS) {
             JButton button = new JButton(spec.label());
             button.setName("issueActionButton_" + spec.action());
-            button.addActionListener(event ->
-                    actions.onAction().accept(this, IssueAssignmentActions.effectiveAction(
-                            spec.action(),
-                            availableActions)));
+            button.addActionListener(event -> publishAction(spec.action()));
             actionButtons.put(spec.action(), button);
             buttons.add(button);
         }
@@ -279,6 +289,32 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         return section;
     }
 
+    private JPanel dependencySection() {
+        JPanel section = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
+        section.setBackground(SwingStyles.SURFACE);
+        section.setBorder(SwingStyles.surfaceBorder());
+
+        JPanel header = new JPanel(new BorderLayout(SwingStyles.ROW_GAP, 0));
+        header.setOpaque(false);
+        JLabel title = new JLabel("Dependencies");
+        SwingStyles.applySectionTitle(title);
+        header.add(title, BorderLayout.WEST);
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, SwingStyles.ROW_GAP, 0));
+        buttons.setOpaque(false);
+        addDependencyButton.setName("addDependencyButton");
+        removeDependencyButton.setName("removeDependencyButton");
+        buttons.add(addDependencyButton);
+        buttons.add(removeDependencyButton);
+        header.add(buttons, BorderLayout.EAST);
+
+        JScrollPane scrollPane = new JScrollPane(dependencyTable);
+        scrollPane.setColumnHeaderView(dependencyTable.getTableHeader());
+        section.add(header, BorderLayout.NORTH);
+        section.add(scrollPane, BorderLayout.CENTER);
+        return section;
+    }
+
     private static JPanel constrainedSection(JPanel section, int height) {
         Dimension size = new Dimension(SwingStyles.WINDOW_SIZE.width - SwingStyles.OUTER_PADDING * 2, height);
         section.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -305,8 +341,30 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
 
     private void updateActionButtons() {
         boolean enabled = !busy;
-        actionButtons.forEach((action, button) -> button.setEnabled(enabled && availableActions.contains(action)));
+        actionButtons.forEach((action, button) -> {
+            boolean canRun = availableActions.contains(action);
+            if (REMOVE_DEPENDENCY_ACTION.equals(action)) {
+                canRun = canRun && selectedDependency().isPresent();
+            }
+            button.setEnabled(enabled && canRun);
+        });
         addCommentButton.setEnabled(enabled && availableActions.contains("ADD_COMMENT"));
+        addDependencyButton.setEnabled(enabled && availableActions.contains(ADD_DEPENDENCY_ACTION));
+    }
+
+    private void publishAction(String action) {
+        if (ADD_DEPENDENCY_ACTION.equals(action)) {
+            actions.onDependencyAction().accept(this, IssueDependencyMode.ADD, null);
+            return;
+        }
+        if (REMOVE_DEPENDENCY_ACTION.equals(action)) {
+            selectedDependency().ifPresent(selection -> actions.onDependencyAction().accept(
+                    this,
+                    IssueDependencyMode.REMOVE,
+                    selection));
+            return;
+        }
+        actions.onAction().accept(this, IssueAssignmentActions.effectiveAction(action, availableActions));
     }
 
     private void configureCommentActions() {
@@ -324,6 +382,24 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         deleteCommentButton.addActionListener(event -> selectedComment()
                 .ifPresent(selection -> actions.onCommentAction().accept(this, IssueCommentMode.DELETE, selection)));
         updateCommentButtons();
+    }
+
+    private void configureDependencyActions() {
+        dependencyTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        setColumnWidths(dependencyTable, 64, 160, 120, 120, 132);
+        dependencyTable.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                updateDependencyButtons();
+            }
+        });
+        addDependencyButton.addActionListener(event ->
+                actions.onDependencyAction().accept(this, IssueDependencyMode.ADD, null));
+        removeDependencyButton.addActionListener(event -> selectedDependency()
+                .ifPresent(selection -> actions.onDependencyAction().accept(
+                        this,
+                        IssueDependencyMode.REMOVE,
+                        selection)));
+        updateDependencyButtons();
     }
 
     private static void setColumnWidths(JTable table, int... widths) {
@@ -354,6 +430,30 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             return Optional.empty();
         }
         return Optional.of(commentActionStates.get(modelRow));
+    }
+
+    private void updateDependencyButtons() {
+        boolean enabled = !busy && availableActions.contains(REMOVE_DEPENDENCY_ACTION) && selectedDependency().isPresent();
+        removeDependencyButton.setEnabled(enabled);
+        JButton removeActionButton = actionButtons.get(REMOVE_DEPENDENCY_ACTION);
+        if (removeActionButton != null) {
+            removeActionButton.setEnabled(enabled);
+        }
+    }
+
+    private Optional<IssueDependencySelection> selectedDependency() {
+        int selectedRow = dependencyTable.getSelectedRow();
+        if (selectedRow < 0 || selectedRow >= dependencyTable.getRowCount()) {
+            return Optional.empty();
+        }
+        int modelRow = dependencyTable.convertRowIndexToModel(selectedRow);
+        if (modelRow < 0 || modelRow >= dependencyActionStates.size()) {
+            return Optional.empty();
+        }
+        DependencyResult dependency = dependencyActionStates.get(modelRow);
+        return Optional.of(new IssueDependencySelection(
+                dependency.blockingIssueId(),
+                dependency.blockedIssueId()));
     }
 
     private static Map<String, IssueCommentActionState> commentActionById(
@@ -459,20 +559,38 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         void accept(IssueDetailPanel panel, IssueCommentMode mode, IssueCommentSelection selection);
     }
 
+    @FunctionalInterface
+    interface PanelDependencyConsumer {
+
+        void accept(IssueDetailPanel panel, IssueDependencyMode mode, IssueDependencySelection selection);
+    }
+
     record IssueDetailActions(
             PanelStringConsumer onAction,
             PanelCommentConsumer onCommentAction,
+            PanelDependencyConsumer onDependencyAction,
             Runnable onBack,
             Runnable onLogout) {
 
         IssueDetailActions(PanelStringConsumer onAction, Runnable onBack, Runnable onLogout) {
             this(onAction, (panel, mode, selection) -> {
+            }, (panel, mode, selection) -> {
+            }, onBack, onLogout);
+        }
+
+        IssueDetailActions(
+                PanelStringConsumer onAction,
+                PanelCommentConsumer onCommentAction,
+                Runnable onBack,
+                Runnable onLogout) {
+            this(onAction, onCommentAction, (panel, mode, selection) -> {
             }, onBack, onLogout);
         }
 
         IssueDetailActions {
             Objects.requireNonNull(onAction, "onAction");
             Objects.requireNonNull(onCommentAction, "onCommentAction");
+            Objects.requireNonNull(onDependencyAction, "onDependencyAction");
             Objects.requireNonNull(onBack, "onBack");
             Objects.requireNonNull(onLogout, "onLogout");
         }

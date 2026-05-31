@@ -18,6 +18,8 @@ import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +31,8 @@ import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JTable;
+import javax.swing.JViewport;
+import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -43,8 +47,9 @@ class IssueDetailPanelTest {
         SwingComponentTestSupport.onEdt(() -> {
             IssueDetailPanel panel = panel();
             panel.showDetail(
-                    detail(List.of("UPDATE_ISSUE", "ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)));
+                    detail(List.of("UPDATE_ISSUE", "ADD_DEPENDENCY", "REMOVE_DEPENDENCY", "ADD_COMMENT")),
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)),
+                    List.of(dependency()));
 
             assertEquals(
                     "[ISSUE-7] Login bug",
@@ -58,6 +63,8 @@ class IssueDetailPanelTest {
                     .isEnabled());
             assertFalse(SwingComponentTestSupport.find(panel, "issueActionButton_MARK_FIXED", JButton.class)
                     .isEnabled());
+            assertTrue(SwingComponentTestSupport.find(panel, "addDependencyButton", JButton.class).isEnabled());
+            assertFalse(SwingComponentTestSupport.find(panel, "removeDependencyButton", JButton.class).isEnabled());
 
             JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
             assertEquals(1, comments.getRowCount());
@@ -77,6 +84,8 @@ class IssueDetailPanelTest {
 
             JTable dependencies = SwingComponentTestSupport.find(panel, "issueDependencyTable", JTable.class);
             assertEquals("ISSUE-3", dependencies.getValueAt(0, 2));
+            dependencies.setRowSelectionInterval(0, 0);
+            assertTrue(SwingComponentTestSupport.find(panel, "removeDependencyButton", JButton.class).isEnabled());
         });
     }
 
@@ -86,6 +95,8 @@ class IssueDetailPanelTest {
         AtomicReference<String> actionRef = new AtomicReference<>();
         AtomicReference<IssueCommentMode> commentModeRef = new AtomicReference<>();
         AtomicReference<IssueCommentSelection> commentSelectionRef = new AtomicReference<>();
+        AtomicReference<IssueDependencyMode> dependencyModeRef = new AtomicReference<>();
+        AtomicReference<IssueDependencySelection> dependencySelectionRef = new AtomicReference<>();
         AtomicInteger backClicks = new AtomicInteger();
         AtomicInteger logoutClicks = new AtomicInteger();
 
@@ -98,17 +109,26 @@ class IssueDetailPanelTest {
                                 commentModeRef.set(mode);
                                 commentSelectionRef.set(selection);
                             },
+                            (source, mode, selection) -> {
+                                dependencyModeRef.set(mode);
+                                dependencySelectionRef.set(selection);
+                            },
                             backClicks::incrementAndGet,
                             logoutClicks::incrementAndGet));
             panel.showDetail(
-                    detail(List.of("ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)));
+                    detail(List.of("ADD_COMMENT", "ADD_DEPENDENCY", "REMOVE_DEPENDENCY")),
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)),
+                    List.of(dependency()));
 
             SwingComponentTestSupport.find(panel, "issueActionButton_ADD_COMMENT", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "addCommentButton", JButton.class).doClick();
             JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
             comments.setRowSelectionInterval(0, 0);
             SwingComponentTestSupport.find(panel, "editCommentButton", JButton.class).doClick();
+            SwingComponentTestSupport.find(panel, "addDependencyButton", JButton.class).doClick();
+            JTable dependencies = SwingComponentTestSupport.find(panel, "issueDependencyTable", JTable.class);
+            dependencies.setRowSelectionInterval(0, 0);
+            SwingComponentTestSupport.find(panel, "removeDependencyButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueDetailBackButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueDetailLogoutButton", JButton.class).doClick();
         });
@@ -117,6 +137,9 @@ class IssueDetailPanelTest {
         assertEquals(IssueCommentMode.UPDATE, commentModeRef.get());
         assertEquals(100L, commentSelectionRef.get().commentId());
         assertEquals("Confirmed in local run.", commentSelectionRef.get().content());
+        assertEquals(IssueDependencyMode.REMOVE, dependencyModeRef.get());
+        assertEquals(3L, dependencySelectionRef.get().blockingIssueId());
+        assertEquals(7L, dependencySelectionRef.get().blockedIssueId());
         assertEquals(1, backClicks.get());
         assertEquals(1, logoutClicks.get());
     }
@@ -128,7 +151,8 @@ class IssueDetailPanelTest {
             IssueDetailPanel panel = panel();
             panel.showDetail(
                     detail(List.of("ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("legacy-id", null, "Legacy comment", false, false)));
+                    List.of(new IssueCommentActionState("legacy-id", null, "Legacy comment", false, false)),
+                    List.of());
 
             JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
             comments.setRowSelectionInterval(0, 0);
@@ -145,13 +169,20 @@ class IssueDetailPanelTest {
         SwingComponentTestSupport.onEdt(() -> {
             IssueDetailPanel panel = panel();
             panel.showDetail(
-                    detail(List.of("UPDATE_ISSUE", "ADD_COMMENT")),
-                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)));
+                    detail(List.of("UPDATE_ISSUE", "ADD_COMMENT", "ADD_DEPENDENCY", "REMOVE_DEPENDENCY")),
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)),
+                    List.of(dependency()));
             panel.setSize(SwingStyles.WINDOW_SIZE);
             layoutRecursively(panel);
 
             BufferedImage image = render(panel, Path.of("build/reports/ui/issue-detail-panel.png"));
             assertTrue(hasRenderedContent(image));
+
+            scrollToDependencies(panel);
+            BufferedImage dependencyImage = render(
+                    panel,
+                    Path.of("build/reports/ui/issue-detail-dependency-section.png"));
+            assertTrue(hasRenderedContent(dependencyImage));
         });
     }
 
@@ -160,6 +191,8 @@ class IssueDetailPanelTest {
                 userResult("dev1", Role.DEV),
                 new IssueDetailPanel.IssueDetailActions(
                         (source, action) -> {
+                        },
+                        (source, mode, selection) -> {
                         },
                         (source, mode, selection) -> {
                         },
@@ -237,6 +270,20 @@ class IssueDetailPanelTest {
         Files.createDirectories(output.getParent());
         ImageIO.write(image, "png", output.toFile());
         return image;
+    }
+
+    private static void scrollToDependencies(IssueDetailPanel panel) {
+        JTable dependencies = SwingComponentTestSupport.find(panel, "issueDependencyTable", JTable.class);
+        dependencies.scrollRectToVisible(new Rectangle(0, 0, dependencies.getWidth(), dependencies.getHeight()));
+        Container ancestor = dependencies.getParent();
+        while (ancestor != null) {
+            if (ancestor instanceof JViewport viewport && viewport.getView() != null) {
+                Point position = SwingUtilities.convertPoint(dependencies, 0, 0, viewport.getView());
+                viewport.setViewPosition(new Point(0, Math.max(0, position.y - SwingStyles.ROW_GAP)));
+            }
+            ancestor = ancestor.getParent();
+        }
+        layoutRecursively(panel);
     }
 
     private static boolean hasRenderedContent(BufferedImage image) {

@@ -6,6 +6,7 @@ import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.CommentActionResult;
 import com.github.marcellokim.issuetracker.service.CommentResult;
+import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,6 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 
 final class IssueDetailPresenter {
+
+    private static final String REQUEST_PARAM = "request";
 
     private final IssueController issueController;
     private final IssueStateController issueStateController;
@@ -44,7 +47,9 @@ final class IssueDetailPresenter {
     void loadIssue(long issueId) {
         try {
             IssueDetailResult detail = issueController.viewIssueDetail(issueId);
-            view.showDetail(detail, commentActions(issueId, detail.comments()));
+            List<DependencyResult> projectDependencies =
+                    issueController.viewProjectDependencies(detail.projectId());
+            view.showDetail(detail, commentActions(issueId, detail.comments()), projectDependencies);
             view.showMessage(" ", false);
         } catch (RuntimeException exception) {
             view.showMessage(exception.getMessage(), true);
@@ -71,7 +76,7 @@ final class IssueDetailPresenter {
 
     void changeAssignment(long issueId, IssueAssignmentRequest request) {
         try {
-            IssueAssignmentRequest requiredRequest = Objects.requireNonNull(request, "request");
+            IssueAssignmentRequest requiredRequest = Objects.requireNonNull(request, REQUEST_PARAM);
             switch (requiredRequest.mode()) {
                 case ASSIGN -> requireAssignmentController().assignIssue(
                         issueId,
@@ -91,11 +96,25 @@ final class IssueDetailPresenter {
     }
 
     void changeComment(long issueId, IssueCommentRequest request) {
-        IssueCommentRequest requiredRequest = Objects.requireNonNull(request, "request");
+        IssueCommentRequest requiredRequest = Objects.requireNonNull(request, REQUEST_PARAM);
         switch (requiredRequest.mode()) {
             case ADD -> addComment(issueId, requiredRequest.content());
             case UPDATE -> updateComment(issueId, requiredRequest.commentId(), requiredRequest.content());
             case DELETE -> deleteComment(issueId, requiredRequest.commentId());
+        }
+    }
+
+    void changeDependency(long issueId, IssueDependencyRequest request) {
+        IssueDependencyRequest requiredRequest = Objects.requireNonNull(request, REQUEST_PARAM);
+        switch (requiredRequest.mode()) {
+            case ADD -> addDependency(
+                    issueId,
+                    requiredRequest.blockingIssueId(),
+                    requiredRequest.blockedIssueId());
+            case REMOVE -> removeDependency(
+                    issueId,
+                    requiredRequest.blockingIssueId(),
+                    requiredRequest.blockedIssueId());
         }
     }
 
@@ -120,6 +139,24 @@ final class IssueDetailPresenter {
     void deleteComment(long issueId, long commentId) {
         try {
             issueController.deleteComment(issueId, commentId);
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    void addDependency(long issueId, long blockingIssueId, long blockedIssueId) {
+        try {
+            issueController.addDependency(blockingIssueId, blockedIssueId);
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    void removeDependency(long issueId, long blockingIssueId, long blockedIssueId) {
+        try {
+            issueController.removeDependency(blockingIssueId, blockedIssueId);
             loadIssue(issueId);
         } catch (RuntimeException exception) {
             view.showMessage(exception.getMessage(), true);
