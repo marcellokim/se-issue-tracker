@@ -4,11 +4,13 @@ import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.controller.StatisticsController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -35,6 +37,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private final transient SwingControllers controllers;
     private final transient IssueActionSupport issueActionSupport;
+    private final transient DeletedIssuePrompt deletedIssuePrompt;
     private final transient Consumer<String> titleUpdater;
     private final CardLayout cardLayout = new CardLayout();
     private final LoginPanel loginPanel = new LoginPanel();
@@ -49,6 +52,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final transient AtomicReference<SwingWorker<Void, Void>> issueListWorker = new AtomicReference<>();
     private final transient AtomicReference<SwingWorker<Void, Void>> issueDetailWorker = new AtomicReference<>();
     private final transient AtomicReference<SwingWorker<Void, Void>> statisticsWorker = new AtomicReference<>();
+    private final transient AtomicReference<SwingWorker<Void, Void>> deletedIssueWorker = new AtomicReference<>();
 
     SwingAppPanel(
             AuthenticationController authenticationController,
@@ -91,8 +95,21 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             SwingControllers controllers,
             IssueActionSupport issueActionSupport,
             Consumer<String> titleUpdater) {
+        this(
+                controllers,
+                issueActionSupport,
+                new DeletedIssueDialogs.JOptionPaneDeletedIssuePrompt(),
+                titleUpdater);
+    }
+
+    SwingAppPanel(
+            SwingControllers controllers,
+            IssueActionSupport issueActionSupport,
+            DeletedIssuePrompt deletedIssuePrompt,
+            Consumer<String> titleUpdater) {
         this.controllers = Objects.requireNonNull(controllers, "controllers");
         this.issueActionSupport = Objects.requireNonNull(issueActionSupport, "issueActionSupport");
+        this.deletedIssuePrompt = Objects.requireNonNull(deletedIssuePrompt, "deletedIssuePrompt");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
 
         setName("appCards");
@@ -109,14 +126,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     public void showLogin() {
         runOnEdtAndWait(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Issue Tracker");
             loginPanel.showMessage(" ", false);
             loginPanel.clearPassword();
@@ -129,14 +139,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     public void showAdminDashboard(UserResult user) {
         Objects.requireNonNull(user, "user");
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Admin dashboard");
             AdminDashboardPanel panel = new AdminDashboardPanel(
                     user,
@@ -156,14 +159,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     public void showProjectList(UserResult user) {
         Objects.requireNonNull(user, "user");
         runOnEdtAndWait(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Project list");
             ProjectListPanel panel = new ProjectListPanel(
                     user,
@@ -180,14 +176,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     }
 
     void logout() {
-        cancelDashboardWorker();
-        cancelAccountWorker();
-        cancelProjectWorker();
-        cancelProjectDetailWorker();
-        cancelProjectListWorker();
-        cancelIssueListWorker();
-        cancelIssueDetailWorker();
-        cancelStatisticsWorker();
+        cancelViewWorkers();
         controllers.authenticationController().logout();
         showLogin();
     }
@@ -246,14 +235,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void showAccountManagement(UserResult user) {
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Account management");
             AccountManagementPanel panel = new AccountManagementPanel(
                     user,
@@ -278,14 +260,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void showProjectManagement(UserResult user) {
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Project management");
             ProjectManagementPanel panel = new ProjectManagementPanel(
                     user,
@@ -317,14 +292,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void showProjectDetail(UserResult user, long projectId) {
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Project detail");
             ProjectDetailPanel panel = new ProjectDetailPanel(
                     user,
@@ -360,14 +328,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void showIssueList(UserResult user, long projectId) {
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Issue list");
             IssueListPanel panel = new IssueListPanel(
                     user,
@@ -382,6 +343,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                                             panelRef,
                                             presenter -> presenter.registerIssue(projectId, request)),
                             issueId -> showIssueDetail(user, projectId, issueId),
+                            () -> showDeletedIssues(user, projectId),
                             () -> showStatistics(user, projectId),
                             () -> showProjectList(user),
                             this::logout));
@@ -396,14 +358,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void showStatistics(UserResult user, long projectId) {
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Statistics");
             StatisticsPanel panel = new StatisticsPanel(
                     user,
@@ -423,16 +378,50 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         });
     }
 
+    private void showDeletedIssues(UserResult user, long projectId) {
+        SwingUtilities.invokeLater(() -> {
+            cancelViewWorkers();
+            titleUpdater.accept("Deleted issues");
+            DeletedIssuePanel panel = new DeletedIssuePanel(
+                    user,
+                    new DeletedIssuePanel.DeletedIssueActions(
+                            (panelRef, issue) -> showDeletedIssueRestore(projectId, panelRef, issue),
+                            (panelRef, issue) -> showDeletedIssuePurge(projectId, panelRef, issue),
+                            () -> showIssueList(user, projectId),
+                            this::logout));
+            projectListCard.removeAll();
+            projectListCard.add(panel, BorderLayout.CENTER);
+            projectListCard.revalidate();
+            projectListCard.repaint();
+            cardLayout.show(this, PROJECT_LIST_CARD);
+            startDeletedIssueTask(panel, presenter -> presenter.loadDeletedIssues(projectId));
+        });
+    }
+
+    private void showDeletedIssueRestore(long projectId, DeletedIssuePanel panel, IssueSummary issue) {
+        try {
+            deletedIssuePrompt.requestRestoreComment(panel, issue)
+                    .ifPresent(comment -> startDeletedIssueTask(
+                            panel,
+                            presenter -> presenter.restoreIssue(projectId, issue.id(), comment)));
+        } catch (RuntimeException exception) {
+            panel.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    private void showDeletedIssuePurge(long projectId, DeletedIssuePanel panel, IssueSummary issue) {
+        try {
+            if (deletedIssuePrompt.confirmPurge(panel, issue)) {
+                startDeletedIssueTask(panel, presenter -> presenter.purgeDeletedIssue(projectId, issue.id()));
+            }
+        } catch (RuntimeException exception) {
+            panel.showMessage(exception.getMessage(), true);
+        }
+    }
+
     private void showIssueDetail(UserResult user, long projectId, long issueId) {
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Issue detail");
             IssueDetailPanel panel = new IssueDetailPanel(
                     user,
@@ -494,14 +483,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             return;
         }
         SwingUtilities.invokeLater(() -> {
-            cancelDashboardWorker();
-            cancelAccountWorker();
-            cancelProjectWorker();
-            cancelProjectDetailWorker();
-            cancelProjectListWorker();
-            cancelIssueListWorker();
-            cancelIssueDetailWorker();
-            cancelStatisticsWorker();
+            cancelViewWorkers();
             titleUpdater.accept("Issue action");
             showPlaceholder(
                     projectListCard,
@@ -585,6 +567,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         DashboardLoadWorker worker = new DashboardLoadWorker(panel);
         dashboardWorker.set(worker);
         worker.execute();
+    }
+
+    private void cancelViewWorkers() {
+        cancelDashboardWorker();
+        cancelAccountWorker();
+        cancelProjectWorker();
+        cancelProjectDetailWorker();
+        cancelProjectListWorker();
+        cancelIssueListWorker();
+        cancelIssueDetailWorker();
+        cancelStatisticsWorker();
+        cancelDeletedIssueWorker();
     }
 
     private void cancelDashboardWorker() {
@@ -726,6 +720,23 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void cancelStatisticsWorker() {
         SwingWorker<Void, Void> worker = statisticsWorker.getAndSet(null);
+        if (worker != null && !worker.isDone()) {
+            worker.cancel(true);
+        }
+    }
+
+    private void startDeletedIssueTask(DeletedIssuePanel panel, DeletedIssueTask task) {
+        Objects.requireNonNull(panel, "panel");
+        Objects.requireNonNull(task, "task");
+        cancelDeletedIssueWorker();
+        panel.setBusy(true);
+        DeletedIssueWorker worker = new DeletedIssueWorker(panel, task);
+        deletedIssueWorker.set(worker);
+        worker.execute();
+    }
+
+    private void cancelDeletedIssueWorker() {
+        SwingWorker<Void, Void> worker = deletedIssueWorker.getAndSet(null);
         if (worker != null && !worker.isDone()) {
             worker.cancel(true);
         }
@@ -1057,6 +1068,43 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         }
     }
 
+    private final class DeletedIssueWorker extends SwingWorker<Void, Void> {
+
+        private final DeletedIssuePanel panel;
+        private final DeletedIssueTask task;
+
+        private DeletedIssueWorker(DeletedIssuePanel panel, DeletedIssueTask task) {
+            this.panel = Objects.requireNonNull(panel, "panel");
+            this.task = Objects.requireNonNull(task, "task");
+        }
+
+        @Override
+        protected Void doInBackground() {
+            DeletedIssuePresenter presenter = new DeletedIssuePresenter(
+                    requireDeletedIssueController(),
+                    new CurrentDeletedIssueView(panel, this, deletedIssueWorker::get));
+            task.run(presenter);
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            finishWorker(
+                    deletedIssueWorker,
+                    this,
+                    () -> panel.setBusy(false),
+                    panel::showMessage,
+                    "Deleted issue management");
+        }
+
+        private DeletedIssueController requireDeletedIssueController() {
+            if (issueActionSupport.deletedIssueController() == null) {
+                throw new IllegalStateException("Deleted issue controller is not configured.");
+            }
+            return issueActionSupport.deletedIssueController();
+        }
+    }
+
     private static void finishWorker(
             AtomicReference<SwingWorker<Void, Void>> workerRef,
             SwingWorker<Void, Void> worker,
@@ -1120,6 +1168,12 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private interface StatisticsTask {
 
         void run(StatisticsPresenter presenter);
+    }
+
+    @FunctionalInterface
+    private interface DeletedIssueTask {
+
+        void run(DeletedIssuePresenter presenter);
     }
 
     @FunctionalInterface

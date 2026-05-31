@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
+import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
@@ -54,9 +55,11 @@ final class IssueListPanel extends JPanel implements IssueListView {
     private final transient IssueTableRows issueRows = new IssueTableRows(issueTableModel);
     private final JTable issueTable = table();
     private final JButton searchButton = new JButton("Search");
-    private final JButton registerButton = new JButton("Register issue");
-    private final JButton openButton = new JButton("Open detail");
+    private final JButton registerButton = new JButton("Register");
+    private final JButton openButton = new JButton("Open");
+    private final JButton deletedIssuesButton = new JButton("Deleted");
     private final JButton statisticsButton = new JButton("Statistics");
+    private final boolean canManageDeletedIssues;
     private boolean busy;
     private boolean registerAllowed;
 
@@ -68,6 +71,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         this.dialogs = Objects.requireNonNull(dialogs, "dialogs");
         this.actions = Objects.requireNonNull(actions, "actions");
         this.userLabel = new JLabel(user.name() + " (" + user.role() + ")");
+        this.canManageDeletedIssues = user.role() == Role.PL;
 
         setName("issueListPanel");
         setLayout(new BorderLayout(SwingStyles.SECTION_GAP, SwingStyles.SECTION_GAP));
@@ -195,7 +199,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         panel.setBorder(SwingStyles.surfaceBorder());
 
         searchField.setName("issueSearchField");
-        searchField.setColumns(18);
+        searchField.setColumns(8);
         panel.add(searchField);
 
         statusFilter.setName("issueStatusFilter");
@@ -217,6 +221,11 @@ final class IssueListPanel extends JPanel implements IssueListView {
         openButton.addActionListener(event -> selectedIssue()
                 .ifPresent(issue -> actions.onOpenIssue().accept(issue.id())));
         panel.add(openButton);
+
+        deletedIssuesButton.setName("deletedIssuesButton");
+        deletedIssuesButton.setVisible(canManageDeletedIssues);
+        deletedIssuesButton.addActionListener(event -> actions.onDeletedIssues().run());
+        panel.add(deletedIssuesButton);
 
         statisticsButton.setName("statisticsButton");
         statisticsButton.addActionListener(event -> actions.onStatistics().run());
@@ -292,6 +301,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         boolean enabled = !busy;
         registerButton.setEnabled(enabled && registerAllowed);
         openButton.setEnabled(enabled && selectedIssue().isPresent());
+        deletedIssuesButton.setEnabled(enabled && canManageDeletedIssues);
         statisticsButton.setEnabled(enabled);
     }
 
@@ -309,6 +319,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
             PanelConsumer<IssueSearchRequest> onSearch,
             PanelConsumer<IssueRegisterRequest> onRegister,
             LongConsumer onOpenIssue,
+            Runnable onDeletedIssues,
             Runnable onStatistics,
             Runnable onBack,
             Runnable onLogout) {
@@ -317,6 +328,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
             Objects.requireNonNull(onSearch, "onSearch");
             Objects.requireNonNull(onRegister, "onRegister");
             Objects.requireNonNull(onOpenIssue, "onOpenIssue");
+            Objects.requireNonNull(onDeletedIssues, "onDeletedIssues");
             Objects.requireNonNull(onStatistics, "onStatistics");
             Objects.requireNonNull(onBack, "onBack");
             Objects.requireNonNull(onLogout, "onLogout");

@@ -66,11 +66,12 @@ class IssueListPanelTest {
     }
 
     @Test
-    @DisplayName("publishes search, register, open, statistics, back, and logout actions")
+    @DisplayName("publishes search, register, open, deleted issue, statistics, back, and logout actions")
     void publishesActions() throws Exception {
         var searchRef = new AtomicReference<IssueSearchRequest>();
         var registerRef = new AtomicReference<IssueRegisterRequest>();
         var openRef = new AtomicLong();
+        var deletedIssueClicks = new AtomicInteger();
         var statisticsClicks = new AtomicInteger();
         var backClicks = new AtomicInteger();
         var logoutClicks = new AtomicInteger();
@@ -78,12 +79,13 @@ class IssueListPanelTest {
 
         SwingComponentTestSupport.onEdt(() -> {
             IssueListPanel panel = new IssueListPanel(
-                    userResult("dev1", Role.DEV),
+                    userResult("pl1", Role.PL),
                     dialogs,
                     new IssueListPanel.IssueListActions(
                             (source, request) -> searchRef.set(request),
                             (source, request) -> registerRef.set(request),
                             openRef::set,
+                            deletedIssueClicks::incrementAndGet,
                             statisticsClicks::incrementAndGet,
                             backClicks::incrementAndGet,
                             logoutClicks::incrementAndGet));
@@ -101,6 +103,7 @@ class IssueListPanelTest {
             JTable table = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
             table.setRowSelectionInterval(0, 0);
             SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick();
+            SwingComponentTestSupport.find(panel, "deletedIssuesButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "statisticsButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueListBackButton", JButton.class).doClick();
             SwingComponentTestSupport.find(panel, "issueListLogoutButton", JButton.class).doClick();
@@ -109,6 +112,7 @@ class IssueListPanelTest {
         assertEquals(new IssueSearchRequest("login", IssueStatus.NEW, Priority.CRITICAL), searchRef.get());
         assertEquals(new IssueRegisterRequest("New issue", "New issue description", Priority.MINOR), registerRef.get());
         assertEquals(7L, openRef.get());
+        assertEquals(1, deletedIssueClicks.get());
         assertEquals(1, statisticsClicks.get());
         assertEquals(1, backClicks.get());
         assertEquals(1, logoutClicks.get());
@@ -129,6 +133,8 @@ class IssueListPanelTest {
                             (source, request) -> {
                             },
                             openRef::set,
+                            () -> {
+                            },
                             () -> {
                             },
                             () -> {
@@ -188,12 +194,31 @@ class IssueListPanelTest {
             table.setRowSelectionInterval(0, 0);
             BufferedImage selected = render(panel, Path.of("build/reports/ui/issue-list-panel-selected.png"));
             assertTrue(hasRenderedContent(selected));
+
+            IssueListPanel plPanel = panel(Role.PL, new FixedIssueDialogs());
+            plPanel.showProject(project());
+            plPanel.showIssues(List.of(
+                    issueSummary(1L, "ISSUE-1", "Login bug", IssueStatus.NEW, Priority.CRITICAL),
+                    issueSummary(2L, "ISSUE-2", "Profile typo", IssueStatus.ASSIGNED, Priority.MINOR)));
+            plPanel.setRegisterEnabled(true);
+            plPanel.setSize(SwingStyles.WINDOW_SIZE);
+            layoutRecursively(plPanel);
+
+            assertEquals(
+                    true,
+                    SwingComponentTestSupport.find(plPanel, "deletedIssuesButton", JButton.class).isVisible());
+            BufferedImage pl = render(plPanel, Path.of("build/reports/ui/issue-list-panel-pl.png"));
+            assertTrue(hasRenderedContent(pl));
         });
     }
 
     private static IssueListPanel panel(FixedIssueDialogs dialogs) {
+        return panel(Role.DEV, dialogs);
+    }
+
+    private static IssueListPanel panel(Role role, FixedIssueDialogs dialogs) {
         return new IssueListPanel(
-                userResult("dev1", Role.DEV),
+                userResult(role == Role.PL ? "pl1" : "dev1", role),
                 dialogs,
                 new IssueListPanel.IssueListActions(
                         (source, request) -> {
@@ -201,6 +226,8 @@ class IssueListPanelTest {
                         (source, request) -> {
                         },
                         issueId -> {
+                        },
+                        () -> {
                         },
                         () -> {
                         },
