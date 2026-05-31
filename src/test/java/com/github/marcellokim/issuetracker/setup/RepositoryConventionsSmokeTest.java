@@ -136,6 +136,7 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("build.gradle", "version = '21.0.6'"),
                 new ScriptExpectation("build.gradle", "modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']"),
                 new ScriptExpectation("build.gradle", "mainClass = 'com.github.marcellokim.issuetracker.Main'"),
+                new ScriptExpectation("build.gradle", "args '--swing'"),
                 new ScriptExpectation("build.gradle", "providers.gradleProperty('pythonExecutable')"),
                 new ScriptExpectation("build.gradle", "? 'python' : 'python3'"),
                 new ScriptExpectation("build.gradle", "commandLine pythonExecutable.get(), 'scripts/lib/project_maintenance.py'"),
