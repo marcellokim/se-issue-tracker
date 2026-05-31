@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
@@ -19,6 +20,7 @@ import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -62,6 +64,7 @@ class SwingAppPanelTest {
                     controllers.authenticationController(),
                     controllers.dashboardController(),
                     controllers.accountController(),
+                    controllers.projectController(),
                     titles::update);
             panelRef.set(panel);
             JTextField loginId = SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class);
@@ -135,6 +138,7 @@ class SwingAppPanelTest {
                     controllers.authenticationController(),
                     controllers.dashboardController(),
                     controllers.accountController(),
+                    controllers.projectController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -166,8 +170,8 @@ class SwingAppPanelTest {
     }
 
     @Test
-    @DisplayName("admin placeholder can return to dashboard")
-    void adminPlaceholderCanReturnToDashboard() throws Exception {
+    @DisplayName("admin project management shows project table")
+    void adminProjectManagementShowsProjectTable() throws Exception {
         var passwordHashing = new RecordingPasswordHashing();
         var titles = new RecordingTitleUpdater();
         var panelRef = new AtomicReference<SwingAppPanel>();
@@ -182,6 +186,7 @@ class SwingAppPanelTest {
                     controllers.authenticationController(),
                     controllers.dashboardController(),
                     controllers.accountController(),
+                    controllers.projectController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -206,11 +211,15 @@ class SwingAppPanelTest {
 
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panelRef.get(), "projectManagementButton", JButton.class).doClick());
+        awaitManagedProjectRows(panelRef.get(), 1);
+
         SwingComponentTestSupport.onEdt(() -> {
             assertEquals(
                     "Project management",
-                    SwingComponentTestSupport.find(panelRef.get(), "placeholderTitle", JLabel.class).getText());
-            SwingComponentTestSupport.find(panelRef.get(), "backButton", JButton.class).doClick();
+                    SwingComponentTestSupport.find(panelRef.get(), "projectManagementTitle", JLabel.class).getText());
+            JTable projects = SwingComponentTestSupport.find(panelRef.get(), "projectManagementTable", JTable.class);
+            assertEquals("Alpha", projects.getValueAt(0, 1));
+            SwingComponentTestSupport.find(panelRef.get(), "projectManagementBackButton", JButton.class).doClick();
         });
 
         awaitProjectRows(panelRef.get(), 1);
@@ -237,6 +246,7 @@ class SwingAppPanelTest {
                     controllers.authenticationController(),
                     controllers.dashboardController(),
                     controllers.accountController(),
+                    controllers.projectController(),
                     titles::update);
             panelRef.set(panel);
             SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
@@ -287,6 +297,10 @@ class SwingAppPanelTest {
         awaitRows(panel, "accountUserTable", expectedRows);
     }
 
+    private static void awaitManagedProjectRows(SwingAppPanel panel, int expectedRows) throws Exception {
+        awaitRows(panel, "projectManagementTable", expectedRows);
+    }
+
     private static void awaitRows(SwingAppPanel panel, String tableName, int expectedRows) throws Exception {
         CountDownLatch rowsReady = new CountDownLatch(1);
         AtomicReference<Timer> timerRef = new AtomicReference<>();
@@ -326,6 +340,7 @@ class SwingAppPanelTest {
             List<DashboardProjectSnapshot> projects,
             User... users) {
         var repository = new InMemoryUserRepository(users);
+        var projectRepository = new InMemoryProjectRepository();
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         return new SwingControllerFixture(
@@ -341,9 +356,17 @@ class SwingAppPanelTest {
                         new AccountService(
                                 permissionPolicy,
                                 repository,
-                                new InMemoryProjectRepository(),
+                                projectRepository,
                                 new InMemoryIssueRepository(),
                                 passwordHashing,
+                                () -> NOW)),
+                new ProjectController(
+                        service,
+                        new ProjectService(
+                                projectRepository,
+                                new InMemoryIssueRepository(),
+                                repository,
+                                permissionPolicy,
                                 () -> NOW)));
     }
 
@@ -371,7 +394,8 @@ class SwingAppPanelTest {
     private record SwingControllerFixture(
             AuthenticationController authenticationController,
             DashboardController dashboardController,
-            AccountController accountController) {
+            AccountController accountController,
+            ProjectController projectController) {
     }
 
     private record FakeDashboardSummaryRepository(

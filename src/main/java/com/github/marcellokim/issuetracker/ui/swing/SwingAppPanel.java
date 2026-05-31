@@ -3,6 +3,7 @@ package com.github.marcellokim.issuetracker.ui.swing;
 import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
@@ -24,10 +25,12 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private static final String LOGIN_CARD = "login";
     private static final String ADMIN_DASHBOARD_CARD = "adminDashboard";
     private static final String PROJECT_LIST_CARD = "projectList";
+    private static final String WORKER_NAME = "worker";
 
     private final transient AuthenticationController authenticationController;
     private final transient DashboardController dashboardController;
     private final transient AccountController accountController;
+    private final transient ProjectController projectController;
     private final transient Consumer<String> titleUpdater;
     private final CardLayout cardLayout = new CardLayout();
     private final LoginPanel loginPanel = new LoginPanel();
@@ -36,15 +39,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private transient SwingWorker<Void, Void> loginWorker;
     private final transient AtomicReference<DashboardLoadWorker> dashboardWorker = new AtomicReference<>();
     private final transient AtomicReference<AccountManagementWorker> accountWorker = new AtomicReference<>();
+    private final transient AtomicReference<ProjectManagementWorker> projectWorker = new AtomicReference<>();
 
     SwingAppPanel(
             AuthenticationController authenticationController,
             DashboardController dashboardController,
             AccountController accountController,
+            ProjectController projectController,
             Consumer<String> titleUpdater) {
         this.authenticationController = Objects.requireNonNull(authenticationController, "authenticationController");
         this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
         this.accountController = Objects.requireNonNull(accountController, "accountController");
+        this.projectController = Objects.requireNonNull(projectController, "projectController");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
 
         setName("appCards");
@@ -63,6 +69,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         runOnEdtAndWait(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
+            cancelProjectWorker();
             titleUpdater.accept("Issue Tracker");
             loginPanel.showMessage(" ", false);
             loginPanel.clearPassword();
@@ -77,11 +84,12 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
+            cancelProjectWorker();
             titleUpdater.accept("Admin dashboard");
             AdminDashboardPanel panel = new AdminDashboardPanel(
                     user,
                     () -> showAccountManagement(user),
-                    () -> showAdminPlaceholder("Project management", user),
+                    () -> showProjectManagement(user),
                     this::logout);
             adminDashboardCard.removeAll();
             adminDashboardCard.add(panel, BorderLayout.CENTER);
@@ -98,6 +106,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         runOnEdtAndWait(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
+            cancelProjectWorker();
             titleUpdater.accept("Project list");
             showPlaceholder(projectListCard, "Project list", user);
             cardLayout.show(this, PROJECT_LIST_CARD);
@@ -107,6 +116,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     void logout() {
         cancelDashboardWorker();
         cancelAccountWorker();
+        cancelProjectWorker();
         authenticationController.logout();
         showLogin();
     }
@@ -171,6 +181,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
+            cancelProjectWorker();
             titleUpdater.accept(destination);
             showPlaceholder(adminDashboardCard, destination, user, () -> showAdminDashboard(user));
             cardLayout.show(this, ADMIN_DASHBOARD_CARD);
@@ -181,6 +192,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
+            cancelProjectWorker();
             titleUpdater.accept("Account management");
             AccountManagementPanel panel = new AccountManagementPanel(
                     user,
@@ -200,6 +212,40 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             adminDashboardCard.repaint();
             cardLayout.show(this, ADMIN_DASHBOARD_CARD);
             startAccountTask(panel, AccountManagementPresenter::loadUsers);
+        });
+    }
+
+    private void showProjectManagement(UserResult user) {
+        SwingUtilities.invokeLater(() -> {
+            cancelDashboardWorker();
+            cancelAccountWorker();
+            cancelProjectWorker();
+            titleUpdater.accept("Project management");
+            ProjectManagementPanel panel = new ProjectManagementPanel(
+                    user,
+                    new ProjectManagementPanel.JOptionPaneProjectDialogs(),
+                    new ProjectManagementPanel.ProjectManagementActions(
+                            (panelRef, request) ->
+                                    startProjectTask(panelRef, presenter -> presenter.createProject(request)),
+                            (panelRef, projectId) -> showAdminPlaceholder("Project detail #" + projectId, user),
+                            (panelRef, projectId, name) ->
+                                    startProjectTask(panelRef, presenter -> presenter.renameProject(projectId, name)),
+                            (panelRef, projectId, description) ->
+                                    startProjectTask(
+                                            panelRef,
+                                            presenter -> presenter.changeProjectDescription(projectId, description)),
+                            (panelRef, projectId, projectName) ->
+                                    startProjectTask(
+                                            panelRef,
+                                            presenter -> presenter.deleteProject(projectId, projectName)),
+                            () -> showAdminDashboard(user),
+                            this::logout));
+            adminDashboardCard.removeAll();
+            adminDashboardCard.add(panel, BorderLayout.CENTER);
+            adminDashboardCard.revalidate();
+            adminDashboardCard.repaint();
+            cardLayout.show(this, ADMIN_DASHBOARD_CARD);
+            startProjectTask(panel, ProjectManagementPresenter::loadProjects);
         });
     }
 
@@ -228,6 +274,23 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void cancelAccountWorker() {
         AccountManagementWorker worker = accountWorker.getAndSet(null);
+        if (worker != null && !worker.isDone()) {
+            worker.cancel(true);
+        }
+    }
+
+    private void startProjectTask(ProjectManagementPanel panel, ProjectTask task) {
+        Objects.requireNonNull(panel, "panel");
+        Objects.requireNonNull(task, "task");
+        cancelProjectWorker();
+        panel.setBusy(true);
+        ProjectManagementWorker worker = new ProjectManagementWorker(panel, task);
+        projectWorker.set(worker);
+        worker.execute();
+    }
+
+    private void cancelProjectWorker() {
+        ProjectManagementWorker worker = projectWorker.getAndSet(null);
         if (worker != null && !worker.isDone()) {
             worker.cancel(true);
         }
@@ -337,6 +400,46 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         }
     }
 
+    private final class ProjectManagementWorker extends SwingWorker<Void, Void> {
+
+        private final ProjectManagementPanel panel;
+        private final ProjectTask task;
+
+        private ProjectManagementWorker(ProjectManagementPanel panel, ProjectTask task) {
+            this.panel = Objects.requireNonNull(panel, "panel");
+            this.task = Objects.requireNonNull(task, "task");
+        }
+
+        @Override
+        protected Void doInBackground() {
+            ProjectManagementPresenter presenter = new ProjectManagementPresenter(
+                    dashboardController,
+                    projectController,
+                    new CurrentProjectManagementView(panel, this));
+            task.run(presenter);
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            if (!projectWorker.compareAndSet(this, null)) {
+                return;
+            }
+            panel.setBusy(false);
+            if (isCancelled()) {
+                return;
+            }
+            try {
+                get();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                panel.showMessage("Project management was interrupted. Please try again.", true);
+            } catch (ExecutionException exception) {
+                panel.showMessage("Project management failed. Please try again.", true);
+            }
+        }
+    }
+
     private final class CurrentAccountManagementView implements AccountManagementView {
 
         private final AccountManagementPanel delegate;
@@ -344,7 +447,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         private CurrentAccountManagementView(AccountManagementPanel delegate, AccountManagementWorker worker) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
-            this.worker = Objects.requireNonNull(worker, "worker");
+            this.worker = Objects.requireNonNull(worker, WORKER_NAME);
         }
 
         @Override
@@ -366,10 +469,45 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         }
     }
 
+    private final class CurrentProjectManagementView implements ProjectManagementView {
+
+        private final ProjectManagementPanel delegate;
+        private final ProjectManagementWorker worker;
+
+        private CurrentProjectManagementView(ProjectManagementPanel delegate, ProjectManagementWorker worker) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+            this.worker = Objects.requireNonNull(worker, WORKER_NAME);
+        }
+
+        @Override
+        public void showProjects(List<DashboardProjectSummary> projects) {
+            if (isCurrent()) {
+                delegate.showProjects(projects);
+            }
+        }
+
+        @Override
+        public void showMessage(String message, boolean error) {
+            if (isCurrent()) {
+                delegate.showMessage(message, error);
+            }
+        }
+
+        private boolean isCurrent() {
+            return projectWorker.get() == worker && !worker.isCancelled();
+        }
+    }
+
     @FunctionalInterface
     private interface AccountTask {
 
         void run(AccountManagementPresenter presenter);
+    }
+
+    @FunctionalInterface
+    private interface ProjectTask {
+
+        void run(ProjectManagementPresenter presenter);
     }
 
     private final class CurrentDashboardView implements AdminDashboardView {
@@ -379,7 +517,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         private CurrentDashboardView(AdminDashboardPanel delegate, DashboardLoadWorker worker) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
-            this.worker = Objects.requireNonNull(worker, "worker");
+            this.worker = Objects.requireNonNull(worker, WORKER_NAME);
         }
 
         @Override
