@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueResult;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,44 @@ class IssueControllerTest {
 
         IssueResult updated = devController.updateIssue(issue.id(), "Updated title", "Updated description");
         assertEquals("Updated title", updated.title());
+    }
+
+    @Test
+    @DisplayName("search keeps the selected filters")
+    void searchUsesFilters() {
+        User dev = user("dev1", Role.DEV);
+        User reporter = user("reporter1", Role.TESTER);
+        User assignee = user("dev-owner", Role.DEV);
+        User verifier = user("tester-owner", Role.TESTER);
+        Issue matchingIssue = searchableIssue(10L, "Login filter bug", reporter, assignee, verifier);
+        Issue wrongAssignee = searchableIssue(11L, "Login filter bug", reporter, user("other-dev", Role.DEV), verifier);
+        Issue wrongVerifier = searchableIssue(12L, "Login filter bug", reporter, assignee, user("other-tester", Role.TESTER));
+        IssueController controller = issueController(dev, matchingIssue, wrongAssignee, wrongVerifier);
+
+        List<IssueSummary> result = controller.searchIssues(
+                PROJECT_ID,
+                "login",
+                IssueStatus.ASSIGNED,
+                Priority.MAJOR,
+                reporter.getLoginId(),
+                assignee.getLoginId(),
+                verifier.getLoginId(),
+                NOW.minusDays(1),
+                NOW.plusDays(1));
+
+        assertEquals(List.of(matchingIssue.id()), result.stream().map(IssueSummary::id).toList());
+    }
+
+    @Test
+    @DisplayName("PL can change priority from the issue screen")
+    void plChangesPriority() {
+        User pl = user("pl1", Role.PL);
+        Issue issue = persistedIssue(1L, "ISSUE-1", user("reporter1", Role.DEV));
+        IssueController controller = issueController(pl, issue);
+
+        IssueResult result = controller.changePriority(issue.id(), Priority.CRITICAL);
+
+        assertEquals(Priority.CRITICAL, result.priority());
     }
 
     @Test
@@ -127,5 +166,27 @@ class IssueControllerTest {
                 () -> controller.addComment(1L, "comment"));
         assertThrows(SecurityException.class,
                 () -> controller.deleteComment(1L, 100L));
+    }
+
+    private static Issue searchableIssue(
+            long id,
+            String title,
+            User reporter,
+            User assignee,
+            User verifier) {
+        LocalDateTime reportedAt = NOW.plusMinutes(id);
+        return Issue.fromPersistence(Issue.persistedState(
+                PROJECT_ID,
+                title,
+                "Search filter path",
+                reporter)
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .reportedDate(reportedAt)
+                .updatedAt(reportedAt)
+                .priority(Priority.MAJOR)
+                .status(IssueStatus.ASSIGNED)
+                .assignee(assignee)
+                .verifier(verifier));
     }
 }

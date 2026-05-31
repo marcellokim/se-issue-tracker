@@ -1,6 +1,6 @@
 # Detailed Sequence Diagram 작성 기준
 
-이 폴더의 SD는 Larman 스타일의 detailed sequence diagram을 기준으로 작성한다. 현재 main 코드의 방향은 반영하되, 코드 호출 순서를 그대로 옮기는 reverse-engineering 문서가 아니라 설계 단계의 interaction diagram으로 작성한다.
+이 폴더의 SD는 Larman 스타일의 detailed sequence diagram을 기준으로 설계 단계의 interaction diagram으로 작성한다.
 
 ## 기본 방향
 
@@ -60,19 +60,19 @@ SD 작성 시 다음 artifact를 근거로 사용한다.
 ## 작성된 SD 목록
 
 - PUML: `sd_puml/`
-- PNG: `sd_img/`
 - GRASP 설명: `sd_grasp/`
+- PNG/SVG 이미지는 필요할 때 PlantUML로 랜더링한다. 현재 저장소에서는 `.puml`과 GRASP 설명 파일을 원본으로 관리한다.
 
-| SD | PUML | PNG | GRASP 설명 |
-| --- | --- | --- | --- |
-| UC1 Register Issue | `sd_puml/sd-01-register-issue-detailed.puml` | `sd_img/sd-01-register-issue-detailed.png` | `sd_grasp/sd-01-register-issue-grasp.txt` |
-| UC5 Assign Issue | `sd_puml/sd-05-assign-issue-detailed.puml` | `sd_img/sd-05-assign-issue-detailed.png` | `sd_grasp/sd-05-assign-issue-grasp.txt` |
-| UC6 Mark Fixed | `sd_puml/sd-06-mark-fixed-detailed.puml` | `sd_img/sd-06-mark-fixed-detailed.png` | `sd_grasp/sd-06-mark-fixed-grasp.txt` |
-| UC6 Resolve Fixed Issue | `sd_puml/sd-07-resolve-fixed-issue-detailed.puml` | `sd_img/sd-07-resolve-fixed-issue-detailed.png` | `sd_grasp/sd-07-resolve-fixed-issue-grasp.txt` |
-| UC6 Reject Fix | `sd_puml/sd-08-reject-fix-detailed.puml` | `sd_img/sd-08-reject-fix-detailed.png` | `sd_grasp/sd-08-reject-fix-grasp.txt` |
-| UC6 Close Issue | `sd_puml/sd-09-close-issue-detailed.puml` | `sd_img/sd-09-close-issue-detailed.png` | `sd_grasp/sd-09-close-issue-grasp.txt` |
-| UC6 Reopen Issue | `sd_puml/sd-10-reopen-issue-detailed.puml` | `sd_img/sd-10-reopen-issue-detailed.png` | `sd_grasp/sd-10-reopen-issue-grasp.txt` |
-| UC9 Delete Issue | `sd_puml/sd-12-delete-issue-detailed.puml` | `sd_img/sd-12-delete-issue-detailed.png` | `sd_grasp/sd-12-delete-issue-grasp.txt` |
-| UC7 Add Dependency | `sd_puml/sd-24-add-dependency-detailed.puml` | `sd_img/sd-24-add-dependency-detailed.png` | `sd_grasp/sd-24-add-dependency-grasp.txt` |
-| UC9 Restore Deleted Issue | `sd_puml/sd-26-restore-deleted-issue-detailed.puml` | `sd_img/sd-26-restore-deleted-issue-detailed.png` | `sd_grasp/sd-26-restore-deleted-issue-grasp.txt` |
-| UC16 Change Priority | `sd_puml/sd-27-change-priority-detailed.puml` | `sd_img/sd-27-change-priority-detailed.png` | `sd_grasp/sd-27-change-priority-grasp.txt` |
+| SD | PUML 원본 | GRASP 설명 |
+| --- | --- | --- |
+| UC1 Register Issue | `sd_puml/sd-01-register-issue-detailed.puml` | `sd_grasp/sd-01-register-issue-grasp.txt` |
+| UC5 Assign Issue | `sd_puml/sd-05-assign-issue-detailed.puml` | `sd_grasp/sd-05-assign-issue-grasp.txt` |
+| UC6 Mark Fixed | `sd_puml/sd-06-mark-fixed-detailed.puml` | `sd_grasp/sd-06-mark-fixed-grasp.txt` |
+| UC6 Resolve Fixed Issue | `sd_puml/sd-07-resolve-fixed-issue-detailed.puml` | `sd_grasp/sd-07-resolve-fixed-issue-grasp.txt` |
+| UC6 Reject Fix | `sd_puml/sd-08-reject-fix-detailed.puml` | `sd_grasp/sd-08-reject-fix-grasp.txt` |
+| UC6 Close Issue | `sd_puml/sd-09-close-issue-detailed.puml` | `sd_grasp/sd-09-close-issue-grasp.txt` |
+| UC6 Reopen Issue | `sd_puml/sd-10-reopen-issue-detailed.puml` | `sd_grasp/sd-10-reopen-issue-grasp.txt` |
+| UC9 Delete Issue | `sd_puml/sd-12-delete-issue-detailed.puml` | `sd_grasp/sd-12-delete-issue-grasp.txt` |
+| UC7 Add Dependency | `sd_puml/sd-24-add-dependency-detailed.puml` | `sd_grasp/sd-24-add-dependency-grasp.txt` |
+| UC9 Restore Deleted Issue | `sd_puml/sd-26-restore-deleted-issue-detailed.puml` | `sd_grasp/sd-26-restore-deleted-issue-grasp.txt` |
+| UC16 Change Priority | `sd_puml/sd-27-change-priority-detailed.puml` | `sd_grasp/sd-27-change-priority-grasp.txt` |
