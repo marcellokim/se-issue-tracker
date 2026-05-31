@@ -35,6 +35,7 @@ final class IssueGraphScreen extends VBox {
     private final Label messageLabel = ScreenComponents.messageLabel();
     private List<IssueSummary> cachedIssues;
     private List<DependencyResult> cachedDeps;
+    private Canvas canvas;
     private Runnable onBack;
 
     IssueGraphScreen(IssueController issueController, long projectId){
@@ -79,9 +80,13 @@ final class IssueGraphScreen extends VBox {
         double h = holder.getHeight();
         if (w <= 0 || h <= 0 || cachedIssues.isEmpty()) return;
 
-        holder.getChildren().clear();
-        Canvas canvas = new Canvas(w, h);
-        holder.getChildren().add(canvas);
+        if (canvas == null){
+            canvas = new Canvas(w, h);
+            holder.getChildren().add(canvas);
+        } else{
+            canvas.setWidth(w);
+            canvas.setHeight(h);
+        }
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
 
