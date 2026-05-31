@@ -26,6 +26,14 @@ application {
     mainClass = 'com.github.marcellokim.issuetracker.Main'
 }
 
+tasks.register('runSwing', JavaExec) {
+    group = 'application'
+    description = 'Runs the Swing UI entry point.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.github.marcellokim.issuetracker.Main'
+    args '--swing'
+}
+
 repositories {
     mavenCentral()
 }
