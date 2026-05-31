@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.controller.AccountController;
+import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
@@ -20,20 +21,25 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Project;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository;
 import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository.DashboardProjectSnapshot;
 import com.github.marcellokim.issuetracker.service.AccountService;
+import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
+import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
+import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
+import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
@@ -478,6 +484,115 @@ class SwingAppPanelTest {
     }
 
     @Test
+    @DisplayName("issue detail start assignment action assigns issue and reloads detail")
+    void issueDetailStartAssignmentAssignsIssueAndReloadsDetail() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        User assignee = user("dev1", Role.DEV);
+        User verifier = user("tester1", Role.TESTER);
+        AtomicReference<IssueAssignmentMode> promptedMode = new AtomicReference<>();
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 7)),
+                List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, pl)),
+                IssueStatusChangeDialogs::prompt,
+                (parent, mode, options) -> {
+                    promptedMode.set(mode);
+                    assertEquals(1, options.allDevAssignees().size());
+                    assertEquals(1, options.allTesterVerifiers().size());
+                    return Optional.of(new IssueAssignmentRequest(
+                            mode,
+                            assignee.getLoginId(),
+                            verifier.getLoginId()));
+                },
+                pl,
+                assignee,
+                verifier);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 1);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable issues = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
+            issues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openIssueDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
+        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitButtonEnabled(panel, "issueActionButton_START_ASSIGNMENT");
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_START_ASSIGNMENT", JButton.class).doClick());
+        awaitIssueDetailState(panel, "ASSIGNED / CRITICAL");
+
+        assertEquals(IssueAssignmentMode.ASSIGN, promptedMode.get());
+        SwingComponentTestSupport.onEdt(() -> assertEquals(
+                "ASSIGNED / CRITICAL",
+                SwingComponentTestSupport.find(panel, "issueDetailState", JLabel.class).getText()));
+    }
+
+    @Test
+    @DisplayName("issue detail assignment loads options off the event dispatch thread")
+    void issueDetailAssignmentLoadsOptionsOffEdt() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        User assignee = user("dev1", Role.DEV);
+        User verifier = user("tester1", Role.TESTER);
+        var recommendations = new RecordingAssignmentRecommendationRepository(pl, assignee, verifier);
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 7)),
+                List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, pl)),
+                new SwingPromptSupport(
+                        IssueStatusChangeDialogs::prompt,
+                        (parent, mode, options) -> Optional.of(new IssueAssignmentRequest(
+                                mode,
+                                assignee.getLoginId(),
+                                verifier.getLoginId()))),
+                recommendations,
+                pl,
+                assignee,
+                verifier);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 1);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable issues = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
+            issues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openIssueDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
+        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitButtonEnabled(panel, "issueActionButton_START_ASSIGNMENT");
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_START_ASSIGNMENT", JButton.class).doClick());
+
+        assertTrue(recommendations.awaitCandidateLookup());
+        assertFalse(recommendations.candidateLookupOnEdt());
+        awaitIssueDetailState(panel, "ASSIGNED / CRITICAL");
+    }
+
+    @Test
     @DisplayName("project list logout returns to login")
     void projectListLogoutReturnsToLogin() throws Exception {
         var passwordHashing = new RecordingPasswordHashing();
@@ -520,6 +635,7 @@ class SwingAppPanelTest {
                 projects,
                 issues,
                 IssueStatusChangeDialogs::prompt,
+                IssueAssignmentDialogs::prompt,
                 user);
     }
 
@@ -528,11 +644,12 @@ class SwingAppPanelTest {
             RecordingTitleUpdater titles,
             List<DashboardProjectSnapshot> projects,
             List<Issue> issues,
-            IssueStatusChangePrompt statusChangePrompt,
+            SwingPromptSupport prompts,
+            AssignmentRecommendationRepository recommendationRepository,
             User... users) throws Exception {
         var panelRef = new AtomicReference<SwingAppPanel>();
         var workerDone = new CountDownLatch(1);
-        SwingControllerFixture controllers = controllers(passwordHashing, projects, issues, users);
+        SwingControllerFixture controllers = controllers(passwordHashing, projects, issues, recommendationRepository, users);
 
         SwingComponentTestSupport.onEdt(() -> {
             SwingAppPanel panel = new SwingAppPanel(
@@ -541,7 +658,10 @@ class SwingAppPanelTest {
                     controllers.accountController(),
                     controllers.projectController(),
                     controllers.issueController(),
-                    new IssueStatusChangeSupport(controllers.issueStateController(), statusChangePrompt),
+                    new IssueActionSupport(
+                            new IssueStatusChangeSupport(controllers.issueStateController(), prompts.statusChangePrompt()),
+                            controllers.assignmentController(),
+                            prompts.assignmentPrompt()),
                     titles::update);
             panelRef.set(panel);
             User user = users[0];
@@ -567,6 +687,41 @@ class SwingAppPanelTest {
         assertNotNull(panel);
         awaitProjectListRows(panel, projects.size());
         return panel;
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            IssueStatusChangePrompt statusChangePrompt,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                statusChangePrompt,
+                IssueAssignmentDialogs::prompt,
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            IssueStatusChangePrompt statusChangePrompt,
+            IssueAssignmentPrompt assignmentPrompt,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                new SwingPromptSupport(statusChangePrompt, assignmentPrompt),
+                new InMemoryAssignmentRecommendationRepository(users),
+                users);
     }
 
     private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
@@ -772,6 +927,20 @@ class SwingAppPanelTest {
             List<DashboardProjectSnapshot> projects,
             List<Issue> issues,
             User... users) {
+        return controllers(
+                passwordHashing,
+                projects,
+                issues,
+                new InMemoryAssignmentRecommendationRepository(users),
+                users);
+    }
+
+    private static SwingControllerFixture controllers(
+            PasswordHashing passwordHashing,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            AssignmentRecommendationRepository recommendationRepository,
+            User... users) {
         var repository = new InMemoryUserRepository(users);
         var projectRepository = new InMemoryProjectRepository();
         projects.forEach(project -> {
@@ -803,6 +972,16 @@ class SwingAppPanelTest {
                         permissionPolicy,
                         () -> NOW,
                         () -> "status-change-comment"));
+        AssignmentController assignmentController = new AssignmentController(
+                service,
+                new AssignmentService(
+                        issueRepository,
+                        repository,
+                        permissionPolicy,
+                        new AssignmentRecommendationService(
+                                recommendationRepository,
+                                new KNNAssignmentRecommendation()),
+                        () -> NOW));
         return new SwingControllerFixture(
                 new AuthenticationController(service),
                 new DashboardController(
@@ -845,7 +1024,8 @@ class SwingAppPanelTest {
                                 commentRepository,
                                 repository,
                                 permissionPolicy)),
-                issueStateController);
+                issueStateController,
+                assignmentController);
     }
 
     private static User user(String loginId, Role role) {
@@ -902,7 +1082,13 @@ class SwingAppPanelTest {
             AccountController accountController,
             ProjectController projectController,
             IssueController issueController,
-            IssueStateController issueStateController) {
+            IssueStateController issueStateController,
+            AssignmentController assignmentController) {
+    }
+
+    private record SwingPromptSupport(
+            IssueStatusChangePrompt statusChangePrompt,
+            IssueAssignmentPrompt assignmentPrompt) {
     }
 
     private static final class FakeCommentRepository implements CommentRepository {
@@ -1013,6 +1199,43 @@ class SwingAppPanelTest {
 
         private boolean awaitProjectList() throws InterruptedException {
             return projectListShown.await(5, TimeUnit.SECONDS);
+        }
+    }
+
+    private static final class RecordingAssignmentRecommendationRepository
+            implements AssignmentRecommendationRepository {
+
+        private final InMemoryAssignmentRecommendationRepository delegate;
+        private final CountDownLatch candidateLookup = new CountDownLatch(1);
+        private final AtomicBoolean candidateLookupOnEdt = new AtomicBoolean(true);
+
+        private RecordingAssignmentRecommendationRepository(User... users) {
+            this.delegate = new InMemoryAssignmentRecommendationRepository(users);
+        }
+
+        @Override
+        public List<IssueRecommendationData> findResolvedIssuesForRecommendation(long projectId) {
+            return delegate.findResolvedIssuesForRecommendation(projectId);
+        }
+
+        @Override
+        public List<User> findActiveDevCandidates(long projectId) {
+            candidateLookupOnEdt.set(SwingUtilities.isEventDispatchThread());
+            candidateLookup.countDown();
+            return delegate.findActiveDevCandidates(projectId);
+        }
+
+        @Override
+        public List<User> findActiveTesterCandidates(long projectId) {
+            return delegate.findActiveTesterCandidates(projectId);
+        }
+
+        private boolean awaitCandidateLookup() throws InterruptedException {
+            return candidateLookup.await(5, TimeUnit.SECONDS);
+        }
+
+        private boolean candidateLookupOnEdt() {
+            return candidateLookupOnEdt.get();
         }
     }
 }

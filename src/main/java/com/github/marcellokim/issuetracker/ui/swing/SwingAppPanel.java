@@ -1,11 +1,13 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.controller.AccountController;
+import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -33,7 +35,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final transient AccountController accountController;
     private final transient ProjectController projectController;
     private final transient IssueController issueController;
-    private final transient IssueStatusChangeSupport statusChangeSupport;
+    private final transient IssueActionSupport issueActionSupport;
     private final transient Consumer<String> titleUpdater;
     private final CardLayout cardLayout = new CardLayout();
     private final LoginPanel loginPanel = new LoginPanel();
@@ -61,7 +63,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                 accountController,
                 projectController,
                 issueController,
-                IssueStatusChangeSupport.disabled(),
+                IssueActionSupport.disabled(),
                 titleUpdater);
     }
 
@@ -71,14 +73,14 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             AccountController accountController,
             ProjectController projectController,
             IssueController issueController,
-            IssueStatusChangeSupport statusChangeSupport,
+            IssueActionSupport issueActionSupport,
             Consumer<String> titleUpdater) {
         this.authenticationController = Objects.requireNonNull(authenticationController, "authenticationController");
         this.dashboardController = Objects.requireNonNull(dashboardController, "dashboardController");
         this.accountController = Objects.requireNonNull(accountController, "accountController");
         this.projectController = Objects.requireNonNull(projectController, "projectController");
         this.issueController = Objects.requireNonNull(issueController, "issueController");
-        this.statusChangeSupport = Objects.requireNonNull(statusChangeSupport, "statusChangeSupport");
+        this.issueActionSupport = Objects.requireNonNull(issueActionSupport, "issueActionSupport");
         this.titleUpdater = Objects.requireNonNull(titleUpdater, "titleUpdater");
 
         setName("appCards");
@@ -404,13 +406,18 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             String action) {
         Optional<IssueStatus> targetStatus = IssueStatusChangeActions.targetStatus(action);
         if (targetStatus.isPresent()) {
-            statusChangeSupport.prompt().prompt(panel, action, targetStatus.get())
+            issueActionSupport.statusChange().prompt().prompt(panel, action, targetStatus.get())
                     .ifPresent(request -> startIssueDetailTask(
                             panel,
                             presenter -> presenter.changeStatus(
                                     issueId,
                                     request.targetStatus(),
                                     request.comment())));
+            return;
+        }
+        Optional<IssueAssignmentMode> assignmentMode = IssueAssignmentActions.mode(action);
+        if (assignmentMode.isPresent()) {
+            startIssueAssignmentTask(panel, issueId, assignmentMode.get());
             return;
         }
         SwingUtilities.invokeLater(() -> {
@@ -535,6 +542,16 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         cancelIssueDetailWorker();
         panel.setBusy(true);
         IssueDetailWorker worker = new IssueDetailWorker(panel, task);
+        issueDetailWorker.set(worker);
+        worker.execute();
+    }
+
+    private void startIssueAssignmentTask(IssueDetailPanel panel, long issueId, IssueAssignmentMode mode) {
+        Objects.requireNonNull(panel, "panel");
+        Objects.requireNonNull(mode, "mode");
+        cancelIssueDetailWorker();
+        panel.setBusy(true);
+        IssueAssignmentOptionsWorker worker = new IssueAssignmentOptionsWorker(panel, issueId, mode);
         issueDetailWorker.set(worker);
         worker.execute();
     }
@@ -752,7 +769,8 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         protected Void doInBackground() {
             IssueDetailPresenter presenter = new IssueDetailPresenter(
                     issueController,
-                    statusChangeSupport.issueStateController(),
+                    issueActionSupport.statusChange().issueStateController(),
+                    issueActionSupport.assignmentController(),
                     new CurrentIssueDetailView(panel, this, issueDetailWorker::get));
             task.run(presenter);
             return null;
@@ -761,6 +779,55 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         @Override
         protected void done() {
             finishWorker(issueDetailWorker, this, () -> panel.setBusy(false), panel::showMessage, "Issue detail");
+        }
+    }
+
+    private final class IssueAssignmentOptionsWorker extends SwingWorker<Void, Void> {
+
+        private final IssueDetailPanel panel;
+        private final long issueId;
+        private final IssueAssignmentMode mode;
+        private AssignmentOptionsResult options;
+
+        private IssueAssignmentOptionsWorker(IssueDetailPanel panel, long issueId, IssueAssignmentMode mode) {
+            this.panel = Objects.requireNonNull(panel, "panel");
+            this.issueId = issueId;
+            this.mode = Objects.requireNonNull(mode, "mode");
+        }
+
+        @Override
+        protected Void doInBackground() {
+            AssignmentController assignmentController = issueActionSupport.assignmentController();
+            if (assignmentController == null) {
+                throw new IllegalStateException("Assignment controller is not configured.");
+            }
+            options = assignmentController.startAssignment(issueId);
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            if (!issueDetailWorker.compareAndSet(this, null)) {
+                return;
+            }
+            panel.setBusy(false);
+            if (isCancelled()) {
+                return;
+            }
+            try {
+                get();
+                issueActionSupport.assignmentPrompt().prompt(panel, mode, options)
+                        .ifPresent(request -> startIssueDetailTask(
+                                panel,
+                                presenter -> presenter.changeAssignment(issueId, request)));
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                panel.showMessage("Issue assignment was interrupted. Please try again.", true);
+            } catch (ExecutionException exception) {
+                panel.showMessage("Issue assignment failed. Please try again.", true);
+            } catch (RuntimeException exception) {
+                panel.showMessage(exception.getMessage(), true);
+            }
         }
     }
 

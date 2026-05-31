@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
+import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -12,18 +13,28 @@ final class IssueDetailPresenter {
 
     private final IssueController issueController;
     private final IssueStateController issueStateController;
+    private final AssignmentController assignmentController;
     private final IssueDetailView view;
 
     IssueDetailPresenter(IssueController issueController, IssueDetailView view) {
-        this(issueController, null, view);
+        this(issueController, null, null, view);
     }
 
     IssueDetailPresenter(
             IssueController issueController,
             IssueStateController issueStateController,
             IssueDetailView view) {
+        this(issueController, issueStateController, null, view);
+    }
+
+    IssueDetailPresenter(
+            IssueController issueController,
+            IssueStateController issueStateController,
+            AssignmentController assignmentController,
+            IssueDetailView view) {
         this.issueController = Objects.requireNonNull(issueController, "issueController");
         this.issueStateController = issueStateController;
+        this.assignmentController = assignmentController;
         this.view = Objects.requireNonNull(view, "view");
     }
 
@@ -55,6 +66,27 @@ final class IssueDetailPresenter {
         }
     }
 
+    void changeAssignment(long issueId, IssueAssignmentRequest request) {
+        try {
+            IssueAssignmentRequest requiredRequest = Objects.requireNonNull(request, "request");
+            switch (requiredRequest.mode()) {
+                case ASSIGN -> requireAssignmentController().assignIssue(
+                        issueId,
+                        requiredRequest.assigneeId(),
+                        requiredRequest.verifierId());
+                case REASSIGN_DEV -> requireAssignmentController().reassignIssue(
+                        issueId,
+                        requiredRequest.assigneeId());
+                case CHANGE_TESTER -> requireAssignmentController().changeVerifier(
+                        issueId,
+                        requiredRequest.verifierId());
+            }
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
     private List<IssueCommentActionState> commentActions(long issueId) {
         return issueController.viewCommentActions(issueId).stream()
                 .map(IssueDetailPresenter::toCommentActionState)
@@ -73,5 +105,12 @@ final class IssueDetailPresenter {
             throw new IllegalStateException("Issue state controller is not configured.");
         }
         return issueStateController;
+    }
+
+    private AssignmentController requireAssignmentController() {
+        if (assignmentController == null) {
+            throw new IllegalStateException("Assignment controller is not configured.");
+        }
+        return assignmentController;
     }
 }

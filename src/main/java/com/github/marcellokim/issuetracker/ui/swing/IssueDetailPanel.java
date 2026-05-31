@@ -228,7 +228,10 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         for (ActionSpec spec : ACTION_SPECS) {
             JButton button = new JButton(spec.label());
             button.setName("issueActionButton_" + spec.action());
-            button.addActionListener(event -> actions.onAction().accept(this, spec.action()));
+            button.addActionListener(event ->
+                    actions.onAction().accept(this, IssueAssignmentActions.effectiveAction(
+                            spec.action(),
+                            availableActions)));
             actionButtons.put(spec.action(), button);
             buttons.add(button);
         }
