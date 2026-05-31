@@ -25,6 +25,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private static final String LOGIN_CARD = "login";
     private static final String ADMIN_DASHBOARD_CARD = "adminDashboard";
     private static final String PROJECT_LIST_CARD = "projectList";
+    private static final String WORKER_NAME = "worker";
 
     private final transient AuthenticationController authenticationController;
     private final transient DashboardController dashboardController;
@@ -223,17 +224,20 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             ProjectManagementPanel panel = new ProjectManagementPanel(
                     user,
                     new ProjectManagementPanel.JOptionPaneProjectDialogs(),
-                    (panelRef, request) -> startProjectTask(panelRef, presenter -> presenter.createProject(request)),
-                    (panelRef, projectId) -> showAdminPlaceholder("Project detail #" + projectId, user),
-                    (panelRef, projectId, name) ->
-                            startProjectTask(panelRef, presenter -> presenter.renameProject(projectId, name)),
-                    (panelRef, projectId, description) ->
-                            startProjectTask(
-                                    panelRef,
-                                    presenter -> presenter.changeProjectDescription(projectId, description)),
-                    (panelRef, projectId) -> startProjectTask(panelRef, presenter -> presenter.deleteProject(projectId)),
-                    () -> showAdminDashboard(user),
-                    this::logout);
+                    new ProjectManagementPanel.ProjectManagementActions(
+                            (panelRef, request) ->
+                                    startProjectTask(panelRef, presenter -> presenter.createProject(request)),
+                            (panelRef, projectId) -> showAdminPlaceholder("Project detail #" + projectId, user),
+                            (panelRef, projectId, name) ->
+                                    startProjectTask(panelRef, presenter -> presenter.renameProject(projectId, name)),
+                            (panelRef, projectId, description) ->
+                                    startProjectTask(
+                                            panelRef,
+                                            presenter -> presenter.changeProjectDescription(projectId, description)),
+                            (panelRef, projectId) ->
+                                    startProjectTask(panelRef, presenter -> presenter.deleteProject(projectId)),
+                            () -> showAdminDashboard(user),
+                            this::logout));
             adminDashboardCard.removeAll();
             adminDashboardCard.add(panel, BorderLayout.CENTER);
             adminDashboardCard.revalidate();
@@ -441,7 +445,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         private CurrentAccountManagementView(AccountManagementPanel delegate, AccountManagementWorker worker) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
-            this.worker = Objects.requireNonNull(worker, "worker");
+            this.worker = Objects.requireNonNull(worker, WORKER_NAME);
         }
 
         @Override
@@ -470,7 +474,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         private CurrentProjectManagementView(ProjectManagementPanel delegate, ProjectManagementWorker worker) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
-            this.worker = Objects.requireNonNull(worker, "worker");
+            this.worker = Objects.requireNonNull(worker, WORKER_NAME);
         }
 
         @Override
@@ -511,7 +515,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
         private CurrentDashboardView(AdminDashboardPanel delegate, DashboardLoadWorker worker) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
-            this.worker = Objects.requireNonNull(worker, "worker");
+            this.worker = Objects.requireNonNull(worker, WORKER_NAME);
         }
 
         @Override

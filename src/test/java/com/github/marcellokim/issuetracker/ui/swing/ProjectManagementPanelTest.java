@@ -87,13 +87,15 @@ class ProjectManagementPanelTest {
             ProjectManagementPanel panel = new ProjectManagementPanel(
                     userResult("admin", Role.ADMIN, true),
                     dialogs,
-                    (source, request) -> createRef.set(request),
-                    (source, projectId) -> openRef.set(projectId),
-                    (source, projectId, name) -> renameRef.set(projectId + ":" + name),
-                    (source, projectId, description) -> descriptionRef.set(projectId + ":" + description),
-                    (source, projectId) -> deleteRef.set(projectId),
-                    backClicks::incrementAndGet,
-                    logoutClicks::incrementAndGet);
+                    new ProjectManagementPanel.ProjectManagementActions(
+                            (source, request) -> createRef.set(request),
+                            (source, projectId) -> openRef.set(projectId),
+                            (source, projectId, name) -> renameRef.set(projectId + ":" + name),
+                            (source, projectId, description) ->
+                                    descriptionRef.set(projectId + ":" + description),
+                            (source, projectId) -> deleteRef.set(projectId),
+                            backClicks::incrementAndGet,
+                            logoutClicks::incrementAndGet));
             panel.showProjects(List.of(projectSummary(7L, "Alpha", "Alpha project", 3, 7)));
             JTable table = SwingComponentTestSupport.find(panel, "projectManagementTable", JTable.class);
             table.setRowSelectionInterval(0, 0);
@@ -132,9 +134,11 @@ class ProjectManagementPanelTest {
     @Test
     @DisplayName("rejects invalid dialog form component pairs")
     void rejectsInvalidDialogFormComponentPairs() {
+        JLabel nameLabel = new JLabel("Name");
+
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ProjectManagementPanel.JOptionPaneProjectDialogs.formPanel(new JLabel("Name")));
+                () -> SwingPanelSections.formPanel(260, nameLabel));
     }
 
     @Test
@@ -162,20 +166,21 @@ class ProjectManagementPanelTest {
         return new ProjectManagementPanel(
                 userResult("admin", Role.ADMIN, true),
                 dialogs,
-                (source, ignored) -> {
-                },
-                (source, ignored) -> {
-                },
-                (source, projectId, name) -> {
-                },
-                (source, projectId, description) -> {
-                },
-                (source, ignored) -> {
-                },
-                () -> {
-                },
-                () -> {
-                });
+                new ProjectManagementPanel.ProjectManagementActions(
+                        (source, ignored) -> {
+                        },
+                        (source, ignored) -> {
+                        },
+                        (source, projectId, name) -> {
+                        },
+                        (source, projectId, description) -> {
+                        },
+                        (source, ignored) -> {
+                        },
+                        () -> {
+                        },
+                        () -> {
+                        }));
     }
 
     private static DashboardProjectSummary projectSummary(

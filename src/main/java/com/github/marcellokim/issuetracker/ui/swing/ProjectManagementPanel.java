@@ -5,10 +5,6 @@ import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -16,8 +12,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -33,19 +27,23 @@ import javax.swing.table.TableCellRenderer;
 final class ProjectManagementPanel extends JPanel implements ProjectManagementView {
 
     private static final long serialVersionUID = 1L;
-    private static final String[] PROJECT_COLUMNS = {"ID", "Project", "Description", "Members", "Issues"};
+    private static final String DESCRIPTION_TEXT = "Description";
+    private static final String[] PROJECT_COLUMNS = {"ID", "Project", DESCRIPTION_TEXT, "Members", "Issues"};
     private static final int[] PROJECT_COLUMN_WIDTHS = {72, 180, 280, 88, 88};
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
     private static final Color EVEN_ROW_BACKGROUND = Color.WHITE;
     private static final Color ODD_ROW_BACKGROUND = new Color(248, 250, 252);
     private static final String DEFAULT_ERROR_MESSAGE = "Project management failed. Please try again.";
+    private static final SwingPanelSections.HeaderLabels HEADER_LABELS = new SwingPanelSections.HeaderLabels(
+            "Project management",
+            "projectManagementTitle",
+            "projectManagementUser",
+            "projectManagementMessage",
+            "projectManagementBackButton",
+            "projectManagementLogoutButton");
 
-    private final ProjectDialogs dialogs;
-    private final PanelConsumer<ProjectCreateRequest> onCreate;
-    private final PanelConsumer<Long> onOpenDetail;
-    private final PanelBiConsumer<Long, String> onRename;
-    private final PanelBiConsumer<Long, String> onDescriptionChange;
-    private final PanelConsumer<Long> onDelete;
+    private final transient ProjectDialogs dialogs;
+    private final transient ProjectManagementActions actions;
     private final DefaultTableModel projectTableModel = readOnlyTableModel();
     private final JTable projectTable = table();
     private final JLabel messageLabel = new JLabel(" ");
@@ -59,22 +57,10 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     ProjectManagementPanel(
             UserResult user,
             ProjectDialogs dialogs,
-            PanelConsumer<ProjectCreateRequest> onCreate,
-            PanelConsumer<Long> onOpenDetail,
-            PanelBiConsumer<Long, String> onRename,
-            PanelBiConsumer<Long, String> onDescriptionChange,
-            PanelConsumer<Long> onDelete,
-            Runnable onBack,
-            Runnable onLogout) {
+            ProjectManagementActions actions) {
         Objects.requireNonNull(user, "user");
         this.dialogs = Objects.requireNonNull(dialogs, "dialogs");
-        this.onCreate = Objects.requireNonNull(onCreate, "onCreate");
-        this.onOpenDetail = Objects.requireNonNull(onOpenDetail, "onOpenDetail");
-        this.onRename = Objects.requireNonNull(onRename, "onRename");
-        this.onDescriptionChange = Objects.requireNonNull(onDescriptionChange, "onDescriptionChange");
-        this.onDelete = Objects.requireNonNull(onDelete, "onDelete");
-        Objects.requireNonNull(onBack, "onBack");
-        Objects.requireNonNull(onLogout, "onLogout");
+        this.actions = Objects.requireNonNull(actions, "actions");
 
         setName("projectManagementPanel");
         setLayout(new BorderLayout(SwingStyles.SECTION_GAP, SwingStyles.SECTION_GAP));
@@ -85,7 +71,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
                 SwingStyles.OUTER_PADDING,
                 SwingStyles.OUTER_PADDING));
 
-        add(header(user, onBack, onLogout), BorderLayout.NORTH);
+        add(header(user), BorderLayout.NORTH);
         add(tableSection(), BorderLayout.CENTER);
         add(actions(), BorderLayout.SOUTH);
         updateSelectionActions();
@@ -109,11 +95,13 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
 
     @Override
     public void showMessage(String message, boolean error) {
-        String displayMessage = message == null || message.isBlank()
-                ? (error ? DEFAULT_ERROR_MESSAGE : " ")
-                : message;
+        String displayMessage = message;
+        if (displayMessage == null || displayMessage.isBlank()) {
+            displayMessage = error ? DEFAULT_ERROR_MESSAGE : " ";
+        }
+        String text = displayMessage;
         runOnEdt(() -> {
-            messageLabel.setText(displayMessage);
+            messageLabel.setText(text);
             messageLabel.setForeground(error ? SwingStyles.ERROR_TEXT : SwingStyles.MUTED_TEXT);
         });
     }
@@ -127,52 +115,12 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
         });
     }
 
-    private JPanel header(UserResult user, Runnable onBack, Runnable onLogout) {
-        JPanel header = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
-        header.setBackground(SwingStyles.SURFACE);
-        header.setBorder(SwingStyles.surfaceBorder());
-
-        JPanel topRow = new JPanel(new BorderLayout(SwingStyles.SECTION_GAP, 0));
-        topRow.setOpaque(false);
-
-        JPanel titles = new JPanel();
-        titles.setOpaque(false);
-        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
-
-        JLabel title = new JLabel("Project management");
-        title.setName("projectManagementTitle");
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        SwingStyles.applyTitle(title);
-        titles.add(title);
-
-        JLabel userLabel = new JLabel(user.name() + " (" + user.role() + ")");
-        userLabel.setName("projectManagementUser");
-        userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        SwingStyles.applyMuted(userLabel);
-        titles.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
-        titles.add(userLabel);
-
-        JPanel nav = new JPanel();
-        nav.setOpaque(false);
-        JButton backButton = new JButton("Back");
-        backButton.setName("projectManagementBackButton");
-        backButton.addActionListener(event -> onBack.run());
-        nav.add(backButton);
-
-        JButton logoutButton = new JButton("Logout");
-        logoutButton.setName("projectManagementLogoutButton");
-        logoutButton.addActionListener(event -> onLogout.run());
-        nav.add(logoutButton);
-
-        messageLabel.setName("projectManagementMessage");
-        messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        SwingStyles.applyMuted(messageLabel);
-
-        topRow.add(titles, BorderLayout.CENTER);
-        topRow.add(nav, BorderLayout.EAST);
-        header.add(topRow, BorderLayout.CENTER);
-        header.add(messageLabel, BorderLayout.SOUTH);
-        return header;
+    private JPanel header(UserResult user) {
+        return SwingPanelSections.managementHeader(
+                HEADER_LABELS,
+                user,
+                messageLabel,
+                new SwingPanelSections.NavigationActions(actions.onBack(), actions.onLogout()));
     }
 
     private JPanel tableSection() {
@@ -196,25 +144,25 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
 
         createButton.setName("createProjectButton");
         createButton.addActionListener(event -> dialogs.requestCreate(this)
-                .ifPresent(request -> onCreate.accept(this, request)));
+                .ifPresent(request -> actions.onCreate().accept(this, request)));
         panel.add(createButton);
 
         openButton.setName("openProjectDetailButton");
         openButton.addActionListener(event -> selectedProject()
-                .ifPresent(project -> onOpenDetail.accept(this, project.projectId())));
+                .ifPresent(project -> actions.onOpenDetail().accept(this, project.projectId())));
         panel.add(openButton);
 
         renameButton.setName("renameProjectButton");
         renameButton.addActionListener(event -> selectedProject().flatMap(project -> dialogs.requestRename(this, project)
                 .map(name -> new RenameRequest(project.projectId(), name)))
-                .ifPresent(request -> onRename.accept(this, request.projectId(), request.name())));
+                .ifPresent(request -> actions.onRename().accept(this, request.projectId(), request.name())));
         panel.add(renameButton);
 
         descriptionButton.setName("changeProjectDescriptionButton");
         descriptionButton.addActionListener(event -> selectedProject()
                 .flatMap(project -> dialogs.requestDescription(this, project)
                         .map(description -> new DescriptionRequest(project.projectId(), description)))
-                .ifPresent(request -> onDescriptionChange.accept(
+                .ifPresent(request -> actions.onDescriptionChange().accept(
                         this,
                         request.projectId(),
                         request.description())));
@@ -223,7 +171,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
         deleteButton.setName("deleteProjectButton");
         deleteButton.addActionListener(event -> selectedProject()
                 .filter(project -> dialogs.confirmDelete(this, project))
-                .ifPresent(project -> onDelete.accept(this, project.projectId())));
+                .ifPresent(project -> actions.onDelete().accept(this, project.projectId())));
         panel.add(deleteButton);
 
         return panel;
@@ -260,7 +208,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
             public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2 && table.getSelectedRow() >= 0 && table.isEnabled()) {
                     selectedProject().ifPresent(project ->
-                            onOpenDetail.accept(ProjectManagementPanel.this, project.projectId()));
+                            actions.onOpenDetail().accept(ProjectManagementPanel.this, project.projectId()));
                 }
             }
         });
@@ -364,15 +312,36 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
         void accept(ProjectManagementPanel panel, T first, U second);
     }
 
+    record ProjectManagementActions(
+            PanelConsumer<ProjectCreateRequest> onCreate,
+            PanelConsumer<Long> onOpenDetail,
+            PanelBiConsumer<Long, String> onRename,
+            PanelBiConsumer<Long, String> onDescriptionChange,
+            PanelConsumer<Long> onDelete,
+            Runnable onBack,
+            Runnable onLogout) {
+
+        ProjectManagementActions {
+            Objects.requireNonNull(onCreate, "onCreate");
+            Objects.requireNonNull(onOpenDetail, "onOpenDetail");
+            Objects.requireNonNull(onRename, "onRename");
+            Objects.requireNonNull(onDescriptionChange, "onDescriptionChange");
+            Objects.requireNonNull(onDelete, "onDelete");
+            Objects.requireNonNull(onBack, "onBack");
+            Objects.requireNonNull(onLogout, "onLogout");
+        }
+    }
+
     static final class JOptionPaneProjectDialogs implements ProjectDialogs {
 
         @Override
         public Optional<ProjectCreateRequest> requestCreate(ProjectManagementPanel parent) {
             JTextField name = new JTextField();
             JTextField description = new JTextField();
-            JPanel form = formPanel(
+            JPanel form = SwingPanelSections.formPanel(
+                    260,
                     new JLabel("Name"), name,
-                    new JLabel("Description"), description);
+                    new JLabel(DESCRIPTION_TEXT), description);
             int result = JOptionPane.showConfirmDialog(
                     parent,
                     form,
@@ -404,7 +373,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
                 DashboardProjectSummary selectedProject) {
             String description = (String) JOptionPane.showInputDialog(
                     parent,
-                    "Description",
+                    DESCRIPTION_TEXT,
                     "Change project description",
                     JOptionPane.PLAIN_MESSAGE,
                     null,
@@ -424,27 +393,5 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
             return result == JOptionPane.OK_OPTION;
         }
 
-        static JPanel formPanel(Component... components) {
-            if (components.length % 2 != 0) {
-                throw new IllegalArgumentException("Form components must be label-field pairs.");
-            }
-            JPanel panel = new JPanel(new GridBagLayout());
-            GridBagConstraints constraints = new GridBagConstraints();
-            constraints.insets = new Insets(4, 4, 4, 4);
-            constraints.fill = GridBagConstraints.HORIZONTAL;
-            constraints.weightx = 1.0;
-            for (int index = 0; index < components.length; index += 2) {
-                constraints.gridy = index / 2;
-                constraints.gridx = 0;
-                constraints.weightx = 0.0;
-                panel.add(components[index], constraints);
-                constraints.gridx = 1;
-                constraints.weightx = 1.0;
-                Component field = components[index + 1];
-                field.setPreferredSize(new Dimension(260, SwingStyles.FIELD_HEIGHT));
-                panel.add(field, constraints);
-            }
-            return panel;
-        }
     }
 }

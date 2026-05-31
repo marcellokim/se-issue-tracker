@@ -3,19 +3,12 @@ package com.github.marcellokim.issuetracker.ui.swing;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -34,6 +27,13 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
     private static final long serialVersionUID = 1L;
     private static final String[] USER_COLUMNS = {"Login ID", "Name", "Role", "Active"};
     private static final int[] USER_COLUMN_WIDTHS = {120, 180, 96, 72};
+    private static final SwingPanelSections.HeaderLabels HEADER_LABELS = new SwingPanelSections.HeaderLabels(
+            "Account management",
+            "accountManagementTitle",
+            "accountManagementUser",
+            "accountManagementMessage",
+            "accountBackButton",
+            "accountLogoutButton");
 
     private final AccountDialogs dialogs;
     private final PanelConsumer<AccountCreateRequest> onCreate;
@@ -121,51 +121,11 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
     }
 
     private JPanel header(UserResult user, Runnable onBack, Runnable onLogout) {
-        JPanel header = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
-        header.setBackground(SwingStyles.SURFACE);
-        header.setBorder(SwingStyles.surfaceBorder());
-
-        JPanel topRow = new JPanel(new BorderLayout(SwingStyles.SECTION_GAP, 0));
-        topRow.setOpaque(false);
-
-        JPanel titles = new JPanel();
-        titles.setOpaque(false);
-        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
-
-        JLabel title = new JLabel("Account management");
-        title.setName("accountManagementTitle");
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        SwingStyles.applyTitle(title);
-        titles.add(title);
-
-        JLabel userLabel = new JLabel(user.name() + " (" + user.role() + ")");
-        userLabel.setName("accountManagementUser");
-        userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        SwingStyles.applyMuted(userLabel);
-        titles.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
-        titles.add(userLabel);
-
-        JPanel nav = new JPanel();
-        nav.setOpaque(false);
-        JButton backButton = new JButton("Back");
-        backButton.setName("accountBackButton");
-        backButton.addActionListener(event -> onBack.run());
-        nav.add(backButton);
-
-        JButton logoutButton = new JButton("Logout");
-        logoutButton.setName("accountLogoutButton");
-        logoutButton.addActionListener(event -> onLogout.run());
-        nav.add(logoutButton);
-
-        messageLabel.setName("accountManagementMessage");
-        messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        SwingStyles.applyMuted(messageLabel);
-
-        topRow.add(titles, BorderLayout.CENTER);
-        topRow.add(nav, BorderLayout.EAST);
-        header.add(topRow, BorderLayout.CENTER);
-        header.add(messageLabel, BorderLayout.SOUTH);
-        return header;
+        return SwingPanelSections.managementHeader(
+                HEADER_LABELS,
+                user,
+                messageLabel,
+                new SwingPanelSections.NavigationActions(onBack, onLogout));
     }
 
     private JPanel tableSection() {
@@ -335,7 +295,8 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
             JTextField name = new JTextField();
             JPasswordField password = new JPasswordField();
             JComboBox<Role> role = new JComboBox<>(manageableRoles());
-            JPanel form = formPanel(
+            JPanel form = SwingPanelSections.formPanel(
+                    220,
                     new JLabel("Login ID"), loginId,
                     new JLabel("Name"), name,
                     new JLabel("Password"), password,
@@ -400,26 +361,6 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
                     JOptionPane.OK_CANCEL_OPTION,
                     JOptionPane.QUESTION_MESSAGE);
             return result == JOptionPane.OK_OPTION;
-        }
-
-        private static JPanel formPanel(Component... components) {
-            JPanel panel = new JPanel(new GridBagLayout());
-            GridBagConstraints constraints = new GridBagConstraints();
-            constraints.insets = new Insets(4, 4, 4, 4);
-            constraints.fill = GridBagConstraints.HORIZONTAL;
-            constraints.weightx = 1.0;
-            for (int index = 0; index < components.length; index += 2) {
-                constraints.gridy = index / 2;
-                constraints.gridx = 0;
-                constraints.weightx = 0.0;
-                panel.add(components[index], constraints);
-                constraints.gridx = 1;
-                constraints.weightx = 1.0;
-                Component field = components[index + 1];
-                field.setPreferredSize(new Dimension(220, SwingStyles.FIELD_HEIGHT));
-                panel.add(field, constraints);
-            }
-            return panel;
         }
 
         private static Role[] manageableRoles() {
