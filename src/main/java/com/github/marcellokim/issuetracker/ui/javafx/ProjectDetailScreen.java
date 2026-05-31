@@ -173,12 +173,21 @@ final class ProjectDetailScreen extends VBox {
     }
 
     private void handleRemoveParticipant(ProjectMemberResult member){
-        try{
-            projectController.removeProjectParticipant(projectId, member.userId());
-            loadDetail();
-            ScreenComponents.showInfo(messageLabel, "Participant removed: " + member.userId());
-        } catch (Exception exception){
-            ScreenComponents.showError(messageLabel, exception);
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Remove Participant");
+        dialog.setHeaderText("Remove " + member.userId() + " (" + member.userName() + ")?");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("Remove");
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK){
+            try{
+                projectController.removeProjectParticipant(projectId, member.userId());
+                loadDetail();
+                ScreenComponents.showInfo(messageLabel, "Participant removed: " + member.userId());
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
         }
     }
 

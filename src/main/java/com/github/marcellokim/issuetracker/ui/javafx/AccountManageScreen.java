@@ -94,7 +94,9 @@ final class AccountManageScreen extends VBox {
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Password");
         ComboBox<com.github.marcellokim.issuetracker.domain.Role> roleBox = new ComboBox<>();
-        roleBox.getItems().addAll(com.github.marcellokim.issuetracker.domain.Role.values());
+        for (com.github.marcellokim.issuetracker.domain.Role r : com.github.marcellokim.issuetracker.domain.Role.values()){
+            if (r != com.github.marcellokim.issuetracker.domain.Role.ADMIN) roleBox.getItems().add(r);
+        }
         roleBox.setValue(com.github.marcellokim.issuetracker.domain.Role.DEV);
         VBox content = new VBox(8,
                 new Label("Login ID:"), loginIdField,
@@ -159,7 +161,9 @@ final class AccountManageScreen extends VBox {
         dialog.setTitle("Change Role");
         dialog.setHeaderText("Current: " + user.role());
         ComboBox<com.github.marcellokim.issuetracker.domain.Role> roleBox = new ComboBox<>();
-        roleBox.getItems().addAll(com.github.marcellokim.issuetracker.domain.Role.values());
+        for (com.github.marcellokim.issuetracker.domain.Role r : com.github.marcellokim.issuetracker.domain.Role.values()){
+            if (r != com.github.marcellokim.issuetracker.domain.Role.ADMIN) roleBox.getItems().add(r);
+        }
         roleBox.setValue(user.role());
         dialog.getDialogPane().setContent(roleBox);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
