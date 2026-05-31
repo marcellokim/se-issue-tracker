@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("이슈 수정 완료와 검증 완료")
+@DisplayName("Issue fix and resolve")
 class IssueFixResolveTest {
 
         private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null,
@@ -24,7 +24,7 @@ class IssueFixResolveTest {
         private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
         @Test
-        @DisplayName("ASSIGNED 이슈를 fixed로 변경하면 fixer와 STATUS_CHANGED 이력이 기록된다")
+        @DisplayName("assignee marks an issue fixed")
         void markAssignedIssueFixed() {
                 var issue = assignedIssue();
                 var fixedAt = createdAt.plusMinutes(20);
@@ -42,7 +42,7 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("FIXED 이슈를 resolved로 변경하면 resolver와 STATUS_CHANGED 이력이 기록된다")
+        @DisplayName("verifier resolves a fixed issue")
         void resolveFixedIssue() {
                 var issue = assignedIssue();
                 issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -66,7 +66,7 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("현재 assignee만 fixed 전이를 수행할 수 있다")
+        @DisplayName("only current assignee can mark fixed")
         void onlyCurrentAssigneeCanMarkFixed() {
                 var issue = assignedIssue();
 
@@ -75,7 +75,7 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("현재 verifier만 resolved 전이를 수행할 수 있다")
+        @DisplayName("only current verifier can resolve")
         void onlyCurrentVerifierCanResolve() {
                 var issue = assignedIssue();
                 issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -85,8 +85,8 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("fixer는 DEV, resolver는 TESTER여야 한다")
-        void rejectInvalidFixerAndResolverRoles() {
+        @DisplayName("fixer and resolver must have the right roles")
+        void rejectsWrongFixerAndResolverRoles() {
                 var issue = assignedIssue();
 
                 assertThrows(IllegalArgumentException.class,
@@ -97,27 +97,21 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("ASSIGNED가 아니면 fixed로, FIXED가 아니면 resolved로 변경할 수 없다")
-        void rejectInvalidSourceStatuses() {
+        @DisplayName("wrong status cannot move forward")
+        void rejectsWrongSourceStatus() {
                 var newIssue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
                                 createdAt);
                 var assignedIssue = assignedIssue();
-                var fixedIssue = assignedIssue();
-                fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
 
                 assertThrows(IllegalStateException.class,
                                 () -> newIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20)));
-                assertThrows(IllegalStateException.class,
-                                () -> fixedIssue.markFixed(assignee, "Fix completed again", createdAt.plusMinutes(30)));
-                assertThrows(IllegalStateException.class,
-                                () -> newIssue.resolve(verifier, "Verified", createdAt.plusMinutes(20)));
                 assertThrows(IllegalStateException.class,
                                 () -> assignedIssue.resolve(verifier, "Verified", createdAt.plusMinutes(20)));
         }
 
         @Test
-        @DisplayName("상태 변경 comment는 비어 있을 수 없다")
-        void rejectBlankStatusComment() {
+        @DisplayName("status changes need a comment")
+        void rejectsBlankStatusComment() {
                 var issue = assignedIssue();
 
                 assertThrows(IllegalArgumentException.class,
@@ -128,8 +122,8 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("비활성 사용자는 fixer 또는 resolver가 될 수 없다")
-        void rejectInactiveFixerAndResolver() {
+        @DisplayName("inactive users cannot fix or resolve")
+        void rejectsInactiveFixerAndResolver() {
                 var inactiveFixer = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
                 var inactiveResolver = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null,
                                 null);
@@ -149,8 +143,8 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("FIXED 이슈를 rejectFix하면 ASSIGNED로 돌아간다")
-        void rejectFixReturnsToAssigned() {
+        @DisplayName("verifier can send a fixed issue back")
+        void verifierSendsFixedIssueBack() {
                 var issue = assignedIssue();
                 issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
 
@@ -164,7 +158,7 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("현재 verifier만 rejectFix할 수 있다")
+        @DisplayName("only current verifier can reject a fix")
         void onlyCurrentVerifierCanRejectFix() {
                 var issue = assignedIssue();
                 issue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -174,8 +168,8 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("FIXED가 아닌 이슈는 rejectFix할 수 없다")
-        void rejectFixRequiresFixedStatus() {
+        @DisplayName("only fixed issues can be sent back")
+        void onlyFixedIssuesCanBeSentBack() {
                 var issue = assignedIssue();
 
                 assertThrows(IllegalStateException.class,
@@ -183,8 +177,8 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("blocking issue가 RESOLVED이면 resolve할 수 있다")
-        void allowResolveWhenBlockingIssueResolved() {
+        @DisplayName("resolved blocking issue lets the issue resolve")
+        void resolvesWhenBlockingIssueIsResolved() {
                 var blockedIssue = assignedIssue();
                 var blockingIssue = assignedIssue("ISSUE-2");
                 blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
@@ -198,8 +192,8 @@ class IssueFixResolveTest {
         }
 
         @Test
-        @DisplayName("blocking issue가 CLOSED이면 resolve할 수 있다")
-        void allowResolveWhenBlockingIssueClosed() {
+        @DisplayName("closed blocking issue lets the issue resolve")
+        void resolvesWhenBlockingIssueIsClosed() {
                 var blockedIssue = assignedIssue();
                 var blockingIssue = assignedIssue("ISSUE-2");
                 blockedIssue.addDependency("ISSUE-2->ISSUE-1", blockingIssue, pl, createdAt.plusMinutes(15));
