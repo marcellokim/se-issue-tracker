@@ -46,8 +46,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("admin gets projects and users")
-    void adminGetsDashboard() {
+    @DisplayName("admin sees projects and users")
+    void adminSeesDashboard() {
         User admin = user("admin", Role.ADMIN);
         User dev = user("dev", Role.DEV);
         User tester = user("tester", Role.TESTER);
@@ -71,8 +71,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("member gets joined projects only")
-    void memberGetsJoinedProjects() {
+    @DisplayName("member sees joined projects only")
+    void memberSeesJoinedProjects() {
         User dev = user("dev", Role.DEV);
         User tester = user("tester", Role.TESTER);
         DashboardProjectSnapshot project1 = snapshot(1L, "project1", Map.of());

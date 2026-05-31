@@ -58,8 +58,8 @@ class IssueServiceTest {
                         now);
 
         @Test
-        @DisplayName("registers a new issue with project and reporter")
-        void registerIssueSucceeds() {
+        @DisplayName("project member creates an issue")
+        void memberCreatesIssue() {
                 var service = service(new InMemoryIssueRepository());
 
                 IssueResult result = service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR,
@@ -73,8 +73,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("registers issue with default priority when null")
-        void registerIssueDefaultPriority() {
+        @DisplayName("missing priority becomes major")
+        void missingPriorityBecomesMajor() {
                 var service = service(new InMemoryIssueRepository());
 
                 IssueResult result = service.registerIssue(PROJECT_ID, "Bug", "desc", null, dev.getLoginId());
@@ -83,8 +83,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects issue registration with invalid input")
-        void registerIssueRejectsInvalidInput() {
+        @DisplayName("new issue needs basic input")
+        void newIssueNeedsBasicInput() {
                 var service = service(new InMemoryIssueRepository());
                 String devLoginId = dev.getLoginId();
 
@@ -99,8 +99,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects duplicate issue title in same project including deleted issues")
-        void registerIssueRejectsDuplicateTitleIncludingDeletedIssue() {
+        @DisplayName("project cannot reuse an issue title")
+        void projectCannotReuseIssueTitle() {
                 Issue deletedIssue = persistedIssue(
                                 11L,
                                 "ISSUE-11",
@@ -116,8 +116,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("allows same issue title in different projects")
-        void registerIssueAllowsSameTitleInDifferentProject() {
+        @DisplayName("another project may use the same title")
+        void otherProjectMayUseSameTitle() {
                 Issue otherProjectIssue = persistedIssue(
                                 21L,
                                 "ISSUE-21",
@@ -134,8 +134,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects issue registration for nonexistent project")
-        void registerIssueRejectsUnknownProject() {
+        @DisplayName("missing project stops registration")
+        void missingProjectStopsRegistration() {
                 var service = service(new InMemoryIssueRepository());
 
                 assertThrows(IllegalArgumentException.class,
@@ -143,8 +143,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects issue registration for nonexistent user")
-        void registerIssueRejectsUnknownUser() {
+        @DisplayName("missing reporter stops registration")
+        void missingReporterStopsRegistration() {
                 var service = service(new InMemoryIssueRepository());
 
                 assertThrows(IllegalArgumentException.class,
@@ -152,8 +152,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-project members cannot register issues in that project")
-        void registerIssueRejectsNonProjectMember() {
+        @DisplayName("outside member is not a reporter")
+        void outsideMemberIsNotReporter() {
                 var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
                                 .withProjectMembers(PROJECT_ID, pl.getLoginId());
                 var service = service(
@@ -168,8 +168,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("searches visible issues inside one project")
-        void searchProjectIssuesFiltersByProjectAndKeyword() {
+        @DisplayName("search stays inside one project")
+        void searchStaysInsideProject() {
                 Issue projectIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Login bug", IssueStatus.NEW);
                 Issue otherProjectIssue = persistedIssue(21L, "ISSUE-21", OTHER_PROJECT_ID, "Login bug",
                                 IssueStatus.NEW);
@@ -207,8 +207,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("searches project issues by reporter, assignee, and verifier")
-        void searchProjectIssuesFiltersByParticipants() {
+        @DisplayName("search can narrow by people")
+        void searchNarrowsByPeople() {
                 User tester2 = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, now, now);
                 Issue matchingIssue = assignedIssue(
                                 11L,
@@ -264,8 +264,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("search rejects deleted status filter")
-        void searchProjectIssuesRejectsDeletedStatus() {
+        @DisplayName("normal search skips deleted issues")
+        void normalSearchSkipsDeletedIssues() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
                 String devLoginId = dev.getLoginId();
@@ -285,8 +285,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("search rejects invalid reported date range")
-        void searchProjectIssuesRejectsInvalidReportedRange() {
+        @DisplayName("search range must be ordered")
+        void searchRangeMustBeOrdered() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
                 String devLoginId = dev.getLoginId();
@@ -307,8 +307,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-project members cannot search project issues")
-        void searchProjectIssuesRejectsNonProjectMember() {
+        @DisplayName("outside member cannot search the project")
+        void outsideMemberCannotSearchProject() {
                 var issue = persistedIssue();
                 var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
                                 .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
@@ -334,8 +334,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("shows only assigned participant issues for DEV and TESTER")
-        void viewRelatedProjectIssuesReturnsOnlyActorRelatedIssues() {
+        @DisplayName("project roles see their issue list")
+        void projectRolesSeeIssueList() {
                 Issue reporterOnlyIssue = persistedIssue(
                                 11L,
                                 "ISSUE-11",
@@ -402,8 +402,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-project members cannot view related project issues")
-        void viewRelatedProjectIssuesRejectsNonProjectMember() {
+        @DisplayName("outside member gets no project issues")
+        void outsideMemberGetsNoProjectIssues() {
                 var issue = persistedIssue();
                 var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
                                 .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
@@ -419,8 +419,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("issue detail result includes comments histories and dependencies")
-        void viewIssueDetailIncludesAssociatedData() {
+        @DisplayName("issue detail loads related records")
+        void issueDetailLoadsRelatedRecords() {
                 var issue = persistedIssue();
                 var blockingIssue = persistedIssue(99L, "ISSUE-99");
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
@@ -457,8 +457,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("general issue detail rejects deleted issues")
-        void viewIssueDetailRejectsDeletedIssue() {
+        @DisplayName("deleted issue takes deleted workflow")
+        void deletedIssueTakesDeletedWorkflow() {
                 var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue",
                                 IssueStatus.DELETED);
                 var service = service(new InMemoryIssueRepository(deletedIssue));
@@ -470,8 +470,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("reporter updates title and description before assignment")
-        void updateIssueSucceedsForReporterBeforeAssignment() {
+        @DisplayName("reporter edits a new issue")
+        void reporterEditsNewIssue() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -484,8 +484,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("reporter can keep the same title while updating description")
-        void updateIssueAllowsKeepingOwnTitle() {
+        @DisplayName("reporter can keep the same title")
+        void reporterKeepsSameTitle() {
                 var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Issue 1", IssueStatus.NEW);
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -496,8 +496,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects duplicate title update in same project including deleted issues")
-        void updateIssueRejectsDuplicateTitleInSameProjectIncludingDeletedIssue() {
+        @DisplayName("edit cannot take another issue title")
+        void editCannotTakeUsedTitle() {
                 var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Editable title", IssueStatus.NEW);
                 var deletedIssue = persistedIssue(11L, "ISSUE-11", PROJECT_ID, "Duplicated title", IssueStatus.DELETED);
                 var service = service(new InMemoryIssueRepository(issue, deletedIssue));
@@ -508,8 +508,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("allows duplicate title update in different project")
-        void updateIssueAllowsDuplicateTitleInDifferentProject() {
+        @DisplayName("same title is fine in another project")
+        void sameTitleIsFineElsewhere() {
                 var issue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Editable title", IssueStatus.NEW);
                 var otherProjectIssue = persistedIssue(
                                 21L,
@@ -526,8 +526,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("general issue update rejects deleted issues")
-        void updateIssueRejectsDeletedIssue() {
+        @DisplayName("deleted issue is not edited here")
+        void deletedIssueIsNotEditedHere() {
                 var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue",
                                 IssueStatus.DELETED);
                 var service = service(new InMemoryIssueRepository(deletedIssue));
@@ -538,8 +538,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-reporter cannot update title and description")
-        void updateIssueRejectsNonReporter() {
+        @DisplayName("only reporter edits title and description")
+        void onlyReporterEditsIssueText() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -549,8 +549,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("issue update rejects statuses other than NEW or REOPENED")
-        void updateIssueRejectsNonEditableStatuses() {
+        @DisplayName("editing stays with open issues")
+        void editingStaysWithOpenIssues() {
                 for (IssueStatus status : List.of(
                                 IssueStatus.ASSIGNED,
                                 IssueStatus.FIXED,
@@ -571,8 +571,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("project PL changes issue priority")
-        void changePrioritySucceedsForProjectPl() {
+        @DisplayName("project PL changes priority")
+        void plChangesPriority() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -585,8 +585,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("priority change rejects deleted issues")
-        void changePriorityRejectsDeletedIssue() {
+        @DisplayName("deleted issue priority is left alone")
+        void deletedPriorityLeftAlone() {
                 var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue",
                                 IssueStatus.DELETED);
                 var service = service(new InMemoryIssueRepository(deletedIssue));
@@ -596,8 +596,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-PL cannot change issue priority")
-        void changePriorityRejectsNonPl() {
+        @DisplayName("non-PL cannot change priority")
+        void nonPlCannotChangePriority() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -606,8 +606,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("other project PL cannot change issue priority")
-        void changePriorityRejectsOtherProjectPl() {
+        @DisplayName("other project PL cannot touch priority")
+        void otherPlCannotTouchPriority() {
                 var issue = persistedIssue();
                 var users = new InMemoryUserRepository(dev, tester, pl, otherProjectPl, admin, inactiveDev)
                                 .withProjectMembers(PROJECT_ID, pl.getLoginId())
@@ -625,8 +625,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("priority change rejects same priority")
-        void changePriorityRejectsSamePriority() {
+        @DisplayName("same priority is not a change")
+        void samePriorityIsNotChange() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
                 String plLoginId = pl.getLoginId();
@@ -636,8 +636,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("adds comment to existing issue")
-        void addCommentSucceeds() {
+        @DisplayName("project member writes a comment")
+        void memberWritesComment() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository();
                 var histories = new FakeIssueHistoryRepository();
@@ -664,8 +664,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment changes do not update issue updatedAt")
-        void commentChangesDoNotUpdateIssueUpdatedAt() {
+        @DisplayName("comment work does not touch issue updatedAt")
+        void commentDoesNotTouchIssueUpdatedAt() {
                 var issue = persistedIssue();
                 var issues = new InMemoryIssueRepository(issue);
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
@@ -680,8 +680,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment add and view reject deleted issues")
-        void addAndViewCommentRejectDeletedIssue() {
+        @DisplayName("deleted issue comments are locked")
+        void deletedIssueCommentsAreLockedEarly() {
                 var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue",
                                 IssueStatus.DELETED);
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
@@ -694,8 +694,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("views comments for an issue")
-        void viewCommentsReturnsIssueComments() {
+        @DisplayName("project member reads comments")
+        void memberReadsComments() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(
                                 comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL),
@@ -711,8 +711,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("general comment id uses persisted numeric id")
-        void addCommentUsesPersistedNumericCommentId() {
+        @DisplayName("saved comment id is returned")
+        void savedCommentIdIsReturned() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository();
                 var service = service(new InMemoryIssueRepository(issue), comments);
@@ -724,8 +724,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("ADMIN and inactive users cannot add issue comments")
-        void addCommentRejectsAdminAndInactiveUser() {
+        @DisplayName("admin and inactive users cannot comment")
+        void adminAndInactiveUsersCannotComment() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -736,8 +736,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects comment on nonexistent issue")
-        void addCommentRejectsUnknownIssue() {
+        @DisplayName("missing issue stops comment")
+        void missingIssueStopsComment() {
                 var service = service(new InMemoryIssueRepository());
 
                 assertThrows(IllegalArgumentException.class,
@@ -745,8 +745,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects comment with nonexistent user")
-        void addCommentRejectsUnknownUser() {
+        @DisplayName("unknown writer stops comment")
+        void unknownWriterStopsComment() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -755,8 +755,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects blank comment content")
-        void addCommentRejectsBlankContent() {
+        @DisplayName("comment needs text")
+        void commentNeedsText() {
                 var issue = persistedIssue();
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -765,8 +765,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-project members cannot add issue comments")
-        void addCommentRejectsNonProjectMember() {
+        @DisplayName("outside member cannot comment")
+        void outsideMemberCannotComment() {
                 var issue = persistedIssue();
                 var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
                                 .withProjectMembers(PROJECT_ID, tester.getLoginId(), pl.getLoginId());
@@ -781,8 +781,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("adds dependency between two issues")
-        void addDependencySucceeds() {
+        @DisplayName("PL adds a dependency")
+        void plAddsDependency() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -799,8 +799,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("dependency add rejects deleted issues")
-        void addDependencyRejectsDeletedIssue() {
+        @DisplayName("deleted issues stay out of dependencies")
+        void deletedIssuesStayOutOfDependencies() {
                 var deletedBlockingIssue = persistedIssue(1L, "ISSUE-1", PROJECT_ID, "Deleted blocking",
                                 IssueStatus.DELETED);
                 var blockedIssue = persistedIssue(2L, "ISSUE-2");
@@ -811,8 +811,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("dependency add rejects resolved or closed blocked issues")
-        void addDependencyRejectsCompletedBlockedIssue() {
+        @DisplayName("completed issue cannot be blocked")
+        void completedIssueCannotBeBlocked() {
                 var blockingIssue = persistedIssue(1L, "ISSUE-1");
                 var resolvedBlockedIssue = persistedIssue(2L, "ISSUE-2", PROJECT_ID, "Resolved blocked",
                                 IssueStatus.RESOLVED);
@@ -831,8 +831,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects self-dependency at service level")
-        void addDependencyRejectsSelf() {
+        @DisplayName("issue cannot block itself")
+        void issueCannotBlockItself() {
                 var issue = persistedIssue(1L, "ISSUE-1");
                 var service = service(new InMemoryIssueRepository(issue));
 
@@ -841,8 +841,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects duplicate dependency at service level")
-        void addDependencyRejectsDuplicate() {
+        @DisplayName("same dependency is not added twice")
+        void sameDependencyIsNotAddedTwice() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -855,8 +855,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects cyclic dependency between two issues")
-        void addDependencyRejectsTwoNodeCycle() {
+        @DisplayName("two-issue cycle is blocked")
+        void twoIssueCycleIsBlocked() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -869,8 +869,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects cyclic dependency across three issues")
-        void addDependencyRejectsThreeNodeCycle() {
+        @DisplayName("longer cycle is blocked")
+        void longerCycleIsBlocked() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var issueC = persistedIssue(3L, "ISSUE-3");
@@ -885,8 +885,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("removes existing dependency")
-        void removeDependencySucceeds() {
+        @DisplayName("PL removes a dependency")
+        void plRemovesDependency() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -906,7 +906,7 @@ class IssueServiceTest {
 
         @Test
         @DisplayName("other project PL cannot remove dependency")
-        void removeDependencyRejectsPlFromOtherProject() {
+        void otherProjectPlCannotRemoveDependency() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -929,8 +929,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("dependency remove rejects deleted issues")
-        void removeDependencyRejectsDeletedIssue() {
+        @DisplayName("deleted issue dependency stays untouched")
+        void deletedIssueDependencyStaysUntouched() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var deletedIssueB = persistedIssue(2L, "ISSUE-2", PROJECT_ID, "Deleted blocked", IssueStatus.DELETED);
                 var deps = new FakeIssueDependencyRepository();
@@ -942,8 +942,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects removing nonexistent dependency")
-        void removeDependencyRejectsUnknown() {
+        @DisplayName("missing dependency is not removed")
+        void missingDependencyIsNotRemoved() {
                 var service = service(new InMemoryIssueRepository());
 
                 assertThrows(IllegalArgumentException.class,
@@ -951,8 +951,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non-PL user cannot add dependency")
-        void addDependencyRejectsNonPl() {
+        @DisplayName("non-PL cannot add dependency")
+        void nonPlCannotAddDependency() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var service = service(new InMemoryIssueRepository(issueA, issueB));
@@ -962,8 +962,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("PL must belong to the blocked issue project to manage dependencies")
-        void addDependencyRejectsPlFromOtherProject() {
+        @DisplayName("PL must be on the blocked issue project")
+        void plMustBeOnBlockedProject() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var users = new InMemoryUserRepository(dev, tester, pl, otherProjectPl, admin, inactiveDev)
@@ -976,8 +976,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects cross-project dependency")
-        void addDependencyRejectsCrossProjectDependency() {
+        @DisplayName("dependency stays inside one project")
+        void dependencyStaysInsideOneProject() {
                 var blockingIssue = persistedIssue(1L, "ISSUE-1", OTHER_PROJECT_ID);
                 var blockedIssue = persistedIssue(2L, "ISSUE-2", PROJECT_ID);
                 var deps = new FakeIssueDependencyRepository();
@@ -996,8 +996,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("project member can view project dependencies")
-        void viewProjectDependenciesAllowsProjectMember() {
+        @DisplayName("project member views dependencies")
+        void memberViewsDependencies() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -1014,8 +1014,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("non project member cannot view project dependencies")
-        void viewProjectDependenciesRejectsNonProjectMember() {
+        @DisplayName("outside member cannot view dependencies")
+        void outsideMemberCannotViewDependencies() {
                 var issueA = persistedIssue(1L, "ISSUE-1");
                 var issueB = persistedIssue(2L, "ISSUE-2");
                 var deps = new FakeIssueDependencyRepository();
@@ -1030,8 +1030,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("deletes writer-owned general comment and records comment history")
-        void deleteCommentSucceeds() {
+        @DisplayName("writer deletes a general comment")
+        void writerDeletesGeneralComment() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var service = service(new InMemoryIssueRepository(issue), comments);
@@ -1048,8 +1048,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment update and delete reject deleted issues")
-        void updateAndDeleteCommentRejectDeletedIssue() {
+        @DisplayName("deleted issue comments are locked")
+        void deletedIssueCommentsAreLocked() {
                 var deletedIssue = persistedIssue(ISSUE_ID, "ISSUE-1", PROJECT_ID, "Deleted issue",
                                 IssueStatus.DELETED);
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
@@ -1063,8 +1063,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("writer updates own comment content")
-        void updateCommentSucceedsForWriter() {
+        @DisplayName("writer updates own comment")
+        void writerUpdatesOwnComment() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var histories = new FakeIssueHistoryRepository();
@@ -1089,8 +1089,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment update appends history without changing existing history")
-        void updateCommentAppendsHistoryWithoutChangingExistingHistory() {
+        @DisplayName("comment update adds a new history row")
+        void commentUpdateAddsHistory() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var histories = new FakeIssueHistoryRepository();
@@ -1119,8 +1119,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment update rejects same content")
-        void updateCommentRejectsSameContent() {
+        @DisplayName("same comment text is not an update")
+        void sameCommentTextIsIgnored() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var histories = new FakeIssueHistoryRepository();
@@ -1139,8 +1139,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("writer cannot update status-change comment content")
-        void updateStatusChangeCommentRejectsForWriter() {
+        @DisplayName("status-change comment is read-only")
+        void statusChangeCommentIsReadOnly() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(
                                 comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
@@ -1159,8 +1159,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects comment update by non-writer")
-        void updateCommentRejectsNonWriter() {
+        @DisplayName("non-writer cannot update comment")
+        void nonWriterCannotUpdateComment() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var service = service(new InMemoryIssueRepository(issue), comments);
@@ -1171,8 +1171,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment writer must still belong to the issue project to update")
-        void updateCommentRejectsWriterOutsideProject() {
+        @DisplayName("writer outside the project cannot update")
+        void writerOutsideProjectCannotUpdate() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var histories = new FakeIssueHistoryRepository();
@@ -1188,8 +1188,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects comment delete by non-writer")
-        void deleteCommentRejectsNonWriter() {
+        @DisplayName("non-writer cannot delete comment")
+        void nonWriterCannotDeleteComment() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var service = service(new InMemoryIssueRepository(issue), comments);
@@ -1200,8 +1200,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("comment writer must still belong to the issue project to delete")
-        void deleteCommentRejectsWriterOutsideProject() {
+        @DisplayName("writer outside the project cannot delete")
+        void writerOutsideProjectCannotDelete() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.GENERAL));
                 var users = new InMemoryUserRepository(dev, tester, pl, admin, inactiveDev)
@@ -1218,8 +1218,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects status-change comment delete")
-        void deleteCommentRejectsStatusChangeComment() {
+        @DisplayName("status-change comment is not deleted")
+        void statusChangeCommentIsNotDeleted() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(
                                 comment(COMMENT_ID, ISSUE_ID, dev, CommentPurpose.STATUS_CHANGE));
@@ -1231,8 +1231,8 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("rejects comment delete for different issue")
-        void deleteCommentRejectsDifferentIssue() {
+        @DisplayName("comment must belong to the issue")
+        void commentMustBelongToIssue() {
                 var issue = persistedIssue();
                 var comments = new FakeCommentRepository(comment(COMMENT_ID, 999L, dev, CommentPurpose.GENERAL));
                 var service = service(new InMemoryIssueRepository(issue), comments);

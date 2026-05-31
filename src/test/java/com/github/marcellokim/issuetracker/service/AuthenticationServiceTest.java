@@ -64,8 +64,8 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("blank login info is not accepted")
-    void rejectsBlankLoginInfo() {
+    @DisplayName("login needs id and password")
+    void loginNeedsIdAndPassword() {
         var service = service();
 
         assertEquals("ID and password are required.", service.login(null, ADMIN_PASSWORD).message());

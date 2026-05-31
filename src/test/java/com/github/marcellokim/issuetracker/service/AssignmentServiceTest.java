@@ -115,8 +115,8 @@ class AssignmentServiceTest {
         }
 
         @Test
-        @DisplayName("dev is blocked from assignment")
-        void devIsBlocked() {
+        @DisplayName("dev cannot assign issues")
+        void devCannotAssignIssues() {
                 var service = service(newIssue());
 
                 assertThrows(SecurityException.class,
@@ -125,8 +125,8 @@ class AssignmentServiceTest {
         }
 
         @Test
-        @DisplayName("other project PL is blocked")
-        void otherProjectPlIsBlocked() {
+        @DisplayName("other project PL cannot assign")
+        void otherPlCannotAssign() {
                 var users = new InMemoryUserRepository(
                                 reporter,
                                 assignee,
@@ -144,8 +144,8 @@ class AssignmentServiceTest {
         }
 
         @Test
-        @DisplayName("non-member dev is rejected")
-        void rejectsNonMemberDev() {
+        @DisplayName("non-member dev is not assigned")
+        void nonMemberDevIsNotAssigned() {
                 var users = new InMemoryUserRepository(
                                 reporter,
                                 assignee,
@@ -162,8 +162,8 @@ class AssignmentServiceTest {
         }
 
         @Test
-        @DisplayName("non-member tester is rejected")
-        void rejectsNonMemberTester() {
+        @DisplayName("non-member tester is not assigned")
+        void nonMemberTesterIsNotAssigned() {
                 var users = new InMemoryUserRepository(
                                 reporter,
                                 assignee,
@@ -181,7 +181,7 @@ class AssignmentServiceTest {
 
         @Test
         @DisplayName("outside dev cannot replace assignee")
-        void rejectsOutsideReassign() {
+        void outsideDevCannotReplaceAssignee() {
                 var users = new InMemoryUserRepository(
                                 reporter,
                                 assignee,
@@ -199,7 +199,7 @@ class AssignmentServiceTest {
 
         @Test
         @DisplayName("outside tester cannot replace verifier")
-        void rejectsOutsideVerifierChange() {
+        void outsideTesterCannotReplaceVerifier() {
                 var users = new InMemoryUserRepository(
                                 reporter,
                                 assignee,

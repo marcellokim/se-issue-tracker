@@ -43,8 +43,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("PL cannot create accounts")
-        void plCannotCreateAccount() {
+        @DisplayName("PL cannot add accounts")
+        void plCannotAddAccount() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("pl1", Role.PL, true));
@@ -84,8 +84,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("project member cannot change role")
-        void blocksProjectMemberRoleChange() {
+        @DisplayName("project member keeps the role")
+        void projectMemberKeepsRole() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));
@@ -99,8 +99,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("assigned dev cannot change role")
-        void blocksAssignedDevRoleChange() {
+        @DisplayName("assigned dev keeps the role")
+        void assignedDevKeepsRole() {
                 User dev = user("dev1", Role.DEV, true);
                 User tester = user("tester1", Role.TESTER, true);
                 InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
@@ -129,8 +129,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("project member cannot be deactivated")
-        void blocksProjectMemberDeactivation() {
+        @DisplayName("project member stays active")
+        void projectMemberStaysActive() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("pl1", Role.PL, true));
@@ -144,8 +144,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("assigned users cannot be deactivated")
-        void blocksAssignedUserDeactivation() {
+        @DisplayName("assigned user stays active")
+        void assignedUserStaysActive() {
                 User dev = user("dev1", Role.DEV, true);
                 User tester = user("tester1", Role.TESTER, true);
                 InMemoryUserRepository users = new InMemoryUserRepository(admin(), dev, tester);
@@ -173,8 +173,8 @@ class AccountServiceTest {
         }
 
         @Test
-        @DisplayName("duplicate login id is rejected")
-        void duplicateLoginIdIsRejected() {
+        @DisplayName("duplicate login id is not accepted")
+        void duplicateLoginIdIsNotAccepted() {
                 InMemoryUserRepository users = new InMemoryUserRepository(
                                 admin(),
                                 user("dev1", Role.DEV, true));

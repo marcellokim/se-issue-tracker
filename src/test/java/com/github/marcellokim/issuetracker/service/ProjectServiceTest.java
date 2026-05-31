@@ -25,7 +25,7 @@ class ProjectServiceTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 21, 10, 0);
 
     @Test
-    @DisplayName("admin creates project")
+    @DisplayName("admin creates a project")
     void adminCreatesProject() {
         var users = users(admin());
         var projects = new InMemoryProjectRepository();
@@ -40,7 +40,7 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("only admin manages projects")
+    @DisplayName("only admin can manage projects")
     void onlyAdminManagesProjects() {
         var users = users(admin(), user("pl1", Role.PL, true));
         var service = service(new InMemoryProjectRepository(), users);
@@ -62,7 +62,7 @@ class ProjectServiceTest {
 
     @Test
     @DisplayName("project name stays unique")
-    void projectNameStaysUnique() {
+    void keepsProjectNameUnique() {
         var projects = new InMemoryProjectRepository(
                 project(PROJECT_ID, "Project A"),
                 project(20L, "Project B"));
@@ -76,7 +76,7 @@ class ProjectServiceTest {
 
     @Test
     @DisplayName("admin updates project info")
-    void adminUpdatesProjectInfo() {
+    void adminUpdatesProject() {
         var projects = new InMemoryProjectRepository(project(PROJECT_ID, "Project A"));
         var service = service(projects, users(admin()));
 
@@ -89,8 +89,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("participant opens project detail")
-    void participantOpensProjectDetail() {
+    @DisplayName("participant opens project page")
+    void participantOpensProjectPage() {
         var projects = new InMemoryProjectRepository(project(PROJECT_ID, "Project A"))
                 .withParticipant(PROJECT_ID, "dev1");
         var service = service(projects, users(admin(), user("dev1", Role.DEV, true)));
@@ -103,8 +103,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("admin detail includes participants")
-    void adminDetailIncludesParticipants() {
+    @DisplayName("admin page includes participants")
+    void adminPageIncludesParticipants() {
         var projects = new InMemoryProjectRepository(project(PROJECT_ID, "Project A"))
                 .withParticipant(PROJECT_ID, "pl1")
                 .withParticipant(PROJECT_ID, "dev1");
@@ -130,8 +130,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("bad participants are not added")
-    void badParticipantsAreNotAdded() {
+    @DisplayName("only valid users are added")
+    void onlyValidUsersAreAdded() {
         var projects = new InMemoryProjectRepository(project(PROJECT_ID, "Project A"))
                 .withParticipant(PROJECT_ID, "dev1");
         var users = users(
@@ -151,7 +151,7 @@ class ProjectServiceTest {
 
     @Test
     @DisplayName("project keeps one PL")
-    void projectKeepsOnePl() {
+    void keepsOnePl() {
         var projects = new InMemoryProjectRepository(project(PROJECT_ID, "Project A"))
                 .withParticipant(PROJECT_ID, "pl1");
         var users = users(admin(), user("pl1", Role.PL, true), user("pl2", Role.PL, true))
@@ -175,8 +175,8 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("assigned user stays in project")
-    void assignedUserStaysInProject() {
+    @DisplayName("assigned user stays in the project")
+    void assignedUserStays() {
         User dev = user("dev1", Role.DEV, true);
         User tester = user("tester1", Role.TESTER, true);
         User pl = user("pl1", Role.PL, true);

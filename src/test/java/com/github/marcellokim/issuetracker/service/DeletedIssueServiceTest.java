@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +28,27 @@ class DeletedIssueServiceTest {
     private final User otherProjectPl = User.fromPersistence("pl2", "PL Two", "hash", Role.PL, true, NOW, NOW);
 
     @Test
-    @DisplayName("PL must belong to the project to manage deleted issues")
-    void rejectPlFromOtherProject() {
+    @DisplayName("PL opens the deleted issue list")
+    void plOpensDeletedList() {
+        var deletedIssues = new FakeDeletedIssueRepository(deletedIssue());
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                new InMemoryIssueRepository(deletedIssue()),
+                deletedIssues,
+                users,
+                new PermissionPolicy(),
+                java.time.LocalDateTime::now);
+
+        var result = service.viewDeletedIssues(PROJECT_ID, projectPl);
+
+        assertEquals(1, result.size());
+        assertEquals(IssueStatus.DELETED, result.get(0).status());
+    }
+
+    @Test
+    @DisplayName("other project PL is turned away")
+    void otherPlIsTurnedAway() {
         var users = new InMemoryUserRepository(reporter, projectPl, otherProjectPl)
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
@@ -43,8 +63,28 @@ class DeletedIssueServiceTest {
     }
 
     @Test
-    @DisplayName("delete transition accepts only NEW or CLOSED issues")
-    void rejectDeleteTransitionFromNonDeletableStatus() {
+    @DisplayName("soft delete keeps the reason")
+    void softDeleteKeepsReason() {
+        var deletedIssues = new FakeDeletedIssueRepository();
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                new InMemoryIssueRepository(issueWithStatus(IssueStatus.NEW)),
+                deletedIssues,
+                users,
+                new PermissionPolicy(),
+                () -> NOW);
+
+        var result = service.deleteIssue(ISSUE_ID, "not needed anymore", projectPl);
+
+        assertEquals(IssueStatus.DELETED, result.status());
+        assertEquals("not needed anymore", deletedIssues.lastMessage);
+        assertEquals(PROJECT_ID, deletedIssues.lastOverflowProjectId);
+    }
+
+    @Test
+    @DisplayName("only new or closed issues can be deleted")
+    void onlyNewOrClosedCanBeDeleted() {
         var users = new InMemoryUserRepository(reporter, projectPl)
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
@@ -59,8 +99,8 @@ class DeletedIssueServiceTest {
     }
 
     @Test
-    @DisplayName("delete reason is required")
-    void rejectBlankDeleteReason() {
+    @DisplayName("delete needs a reason")
+    void deleteNeedsReason() {
         var users = new InMemoryUserRepository(reporter, projectPl)
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
         var service = new DeletedIssueService(
@@ -75,8 +115,29 @@ class DeletedIssueServiceTest {
     }
 
     @Test
-    @DisplayName("project PL can purge one deleted issue permanently")
-    void purgeDeletedIssueRemovesOnlyDeletedIssue() {
+    @DisplayName("restore needs the deleted issue and reason")
+    void restoreNeedsDeletedIssueAndReason() {
+        var deletedIssues = new FakeDeletedIssueRepository();
+        var users = new InMemoryUserRepository(reporter, projectPl)
+                .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
+        var service = new DeletedIssueService(
+                new InMemoryIssueRepository(deletedIssue()),
+                deletedIssues,
+                users,
+                new PermissionPolicy(),
+                () -> NOW);
+
+        var result = service.restoreIssue(ISSUE_ID, "restore it", projectPl);
+
+        assertEquals(IssueStatus.NEW, result.status());
+        assertEquals("restore it", deletedIssues.lastMessage);
+        assertThrows(IllegalArgumentException.class,
+                () -> service.restoreIssue(ISSUE_ID, " ", projectPl));
+    }
+
+    @Test
+    @DisplayName("PL purges one deleted issue")
+    void plPurgesOneIssue() {
         var issues = new InMemoryIssueRepository(deletedIssue());
         var deletedIssues = new FakeDeletedIssueRepository();
         var users = new InMemoryUserRepository(reporter, projectPl)
@@ -94,8 +155,8 @@ class DeletedIssueServiceTest {
     }
 
     @Test
-    @DisplayName("single issue purge accepts only deleted issues")
-    void purgeDeletedIssueRejectsNonDeletedIssue() {
+    @DisplayName("purge skips non-deleted issues")
+    void purgeSkipsNonDeletedIssue() {
         var issues = new InMemoryIssueRepository(issueWithStatus(IssueStatus.NEW));
         var users = new InMemoryUserRepository(reporter, projectPl)
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
@@ -111,8 +172,8 @@ class DeletedIssueServiceTest {
     }
 
     @Test
-    @DisplayName("single issue purge requires the project PL")
-    void purgeDeletedIssueRejectsOtherProjectPl() {
+    @DisplayName("other project PL cannot purge")
+    void otherPlCannotPurge() {
         var issues = new InMemoryIssueRepository(deletedIssue());
         var users = new InMemoryUserRepository(reporter, projectPl, otherProjectPl)
                 .withProjectMembers(PROJECT_ID, projectPl.getLoginId());
@@ -142,23 +203,34 @@ class DeletedIssueServiceTest {
                 .updatedAt(NOW));
     }
 
-    private static final class FakeDeletedIssueRepository implements DeletedIssueRepository {
+    private final class FakeDeletedIssueRepository implements DeletedIssueRepository {
 
+        private final java.util.List<Issue> deletedIssues;
         long lastPurgedId;
+        long lastOverflowProjectId;
+        String lastMessage;
+
+        private FakeDeletedIssueRepository(Issue... deletedIssues) {
+            this.deletedIssues = java.util.List.of(deletedIssues);
+        }
 
         @Override
         public java.util.List<Issue> findDeletedByProject(long projectId) {
-            return java.util.List.of();
+            return deletedIssues.stream()
+                    .filter(issue -> issue.projectId() == projectId)
+                    .toList();
         }
 
         @Override
         public Issue softDelete(Issue issue, String changedById, String message, java.time.LocalDateTime changedDate) {
-            throw new UnsupportedOperationException("softDelete");
+            lastMessage = message;
+            return copyWithStatus(issue, IssueStatus.DELETED, changedDate);
         }
 
         @Override
         public Issue restore(Issue issue, String changedById, String message, java.time.LocalDateTime changedDate) {
-            throw new UnsupportedOperationException("restore");
+            lastMessage = message;
+            return copyWithStatus(issue, IssueStatus.NEW, changedDate);
         }
 
         @Override
@@ -169,7 +241,19 @@ class DeletedIssueServiceTest {
 
         @Override
         public int purgeDeletedBeyondLimit(long projectId, int maxDeletedIssues) {
+            lastOverflowProjectId = projectId;
             return 0;
+        }
+
+        private Issue copyWithStatus(Issue issue, IssueStatus status, LocalDateTime updatedAt) {
+            return Issue.fromPersistence(Issue.persistedState(issue.projectId(), issue.title(), issue.description(),
+                    issue.getReporter())
+                    .id(issue.id())
+                    .issueId(issue.getIssueId())
+                    .reportedDate(issue.reportedDate())
+                    .priority(issue.priority())
+                    .status(status)
+                    .updatedAt(updatedAt));
         }
     }
 }
