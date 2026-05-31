@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.config.ApplicationContext;
+import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
 import java.util.Objects;
@@ -16,12 +17,16 @@ public final class SwingAppFrame extends JFrame {
     public SwingAppFrame(ApplicationContext context) {
         this(
                 Objects.requireNonNull(context, "context").authenticationController(),
-                context.dashboardController());
+                context.dashboardController(),
+                context.accountController());
     }
 
-    SwingAppFrame(AuthenticationController authenticationController, DashboardController dashboardController) {
+    SwingAppFrame(
+            AuthenticationController authenticationController,
+            DashboardController dashboardController,
+            AccountController accountController) {
         super("Issue Tracker");
-        this.appPanel = new SwingAppPanel(authenticationController, dashboardController, this::setTitle);
+        this.appPanel = new SwingAppPanel(authenticationController, dashboardController, accountController, this::setTitle);
         setContentPane(appPanel);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(SwingStyles.WINDOW_SIZE);
