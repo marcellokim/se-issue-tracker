@@ -12,11 +12,14 @@ import org.junit.jupiter.api.Test;
 @DisplayName("이슈 수정 완료와 검증 완료")
 class IssueFixResolveTest {
 
-        private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null, null);
+        private final User reporter = User.fromPersistence("tester1", "Tester One", "hash", Role.TESTER, true, null,
+                        null);
         private final User assignee = User.fromPersistence("dev1", "Dev One", "hash", Role.DEV, true, null, null);
         private final User otherDeveloper = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
-        private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, null, null);
-        private final User otherTester = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
+        private final User verifier = User.fromPersistence("tester2", "Tester Two", "hash", Role.TESTER, true, null,
+                        null);
+        private final User otherTester = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true,
+                        null, null);
         private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, null, null);
         private final LocalDateTime createdAt = LocalDateTime.of(2026, 5, 18, 10, 0);
 
@@ -96,7 +99,8 @@ class IssueFixResolveTest {
         @Test
         @DisplayName("ASSIGNED가 아니면 fixed로, FIXED가 아니면 resolved로 변경할 수 없다")
         void rejectInvalidSourceStatuses() {
-                var newIssue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter, createdAt);
+                var newIssue = IssueFixtures.create("ISSUE-1", "Login fails", "Cannot log in", null, reporter,
+                                createdAt);
                 var assignedIssue = assignedIssue();
                 var fixedIssue = assignedIssue();
                 fixedIssue.markFixed(assignee, "Fix completed", createdAt.plusMinutes(20));
@@ -127,7 +131,8 @@ class IssueFixResolveTest {
         @DisplayName("비활성 사용자는 fixer 또는 resolver가 될 수 없다")
         void rejectInactiveFixerAndResolver() {
                 var inactiveFixer = User.fromPersistence("dev2", "Dev Two", "hash", Role.DEV, true, null, null);
-                var inactiveResolver = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null, null);
+                var inactiveResolver = User.fromPersistence("tester3", "Tester Three", "hash", Role.TESTER, true, null,
+                                null);
                 inactiveFixer.deactivate(createdAt.plusMinutes(1));
                 inactiveResolver.deactivate(createdAt.plusMinutes(1));
 
