@@ -27,7 +27,7 @@
 ### 2. 이슈 목록 조회
 
 - **호출 시점**: 화면 진입 시
-- **메서드**: `IssueController.viewRelatedProjectIssues(projectId)`
+- **메서드**: `IssueController.viewProjectIssues(projectId)`
 - **반환**: `List<IssueSummary>`
 
 | 필드 | 타입 | 설명 |
@@ -44,7 +44,7 @@
 | reportedDate | LocalDateTime | 등록일 |
 | updatedAt | LocalDateTime | 수정일 |
 
-> PL은 프로젝트 전체 이슈를 볼 수 있고, Dev/Tester는 본인이 관련된 이슈만 표시.
+> PL/Dev/Tester는 자신이 active member로 참여한 프로젝트의 삭제되지 않은 이슈 전체를 볼 수 있다. 필요한 이슈는 검색/필터 조건으로 좁혀 본다.
 
 ### 3. 이슈 검색
 
@@ -61,6 +61,7 @@
 
 - **반환**: `List<IssueSummary>`
 - **확장 검색**: `searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo)`
+  - 담당 이슈만 보고 싶으면 `assigneeId`에 현재 사용자 loginId를 넣어 검색한다.
 
 ### 4. 이슈 등록 가능 여부 확인
 
