@@ -11,6 +11,11 @@ dist/
 
 # Local runtime artifacts
 .[o]mx/
+docs/qa/artifacts/
+docs/textbook/
+AGENTS.md
+MEMORY.md
+memory.md
 
 # OS files
 .DS_Store

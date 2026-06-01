@@ -121,6 +121,12 @@ rsync -a \
     --exclude 'dist/' \
     --exclude 'dist*/' \
     --exclude 'tmp/' \
+    --exclude 'docs/qa/artifacts/' \
+    --exclude 'docs/textbook/' \
+    --exclude '*:Zone.Identifier' \
+    --exclude 'AGENTS.md' \
+    --exclude 'MEMORY.md' \
+    --exclude 'memory.md' \
     --exclude "$output_dir_name/" \
     --exclude 'SE_Term_Project_2026-1.pdf' \
     --exclude '*.zip' \
