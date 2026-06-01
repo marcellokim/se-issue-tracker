@@ -88,11 +88,18 @@ export ITS_DB_PASSWORD="ItsLocalDev2026!"
 Windows PowerShell:
 
 ```powershell
+1. DB 환경변수 설정 + DB를 고정 seed로 강제 리셋하고 실행 
 .\gradlew.bat oracleLocalInitializeDatabase --console=plain
 $env:ITS_DB_URL="jdbc:oracle:thin:@//localhost:1521/FREEPDB1"
 $env:ITS_DB_USER="ITS_USER"
 $env:ITS_DB_PASSWORD="ItsLocalDev2026!"
 .\gradlew.bat oracleConnectionCheck --console=plain
+.\gradlew.bat run --console=plain
+
+2. DB환경변수 설정 + 시드 초기화 이후 DB 상태를 유지한 채로 실행  
+$env:ITS_DB_URL="jdbc:oracle:thin:@//localhost:1521/XEPDB1"
+$env:ITS_DB_USER="ITS_USER"
+$env:ITS_DB_PASSWORD="ItsLocalDev2026!"
 .\gradlew.bat run --console=plain
 ```
 

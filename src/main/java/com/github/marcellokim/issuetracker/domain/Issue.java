@@ -455,10 +455,6 @@ public class Issue {
         return issueId + "-H" + (histories.size() + 1);
     }
 
-    /*
-     * User reference와 loginId snapshot 함께 갱신.
-     * 도메인 전이 메서드가 association 변경 규칙에 집중하도록 field/id 동기화 한 곳에 모음.
-     */
     private void setAssignee(User assignee) {
         this.assignee = assignee;
         assigneeId = loginIdOrNull(assignee);

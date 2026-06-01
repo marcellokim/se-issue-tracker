@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 class PasswordHasherTest {
 
     @Test
-    @DisplayName("stores passwords as salted PBKDF2 credentials")
-    void storesPasswordsAsSaltedPbkdf2Credentials() {
+    @DisplayName("passwords are stored as salted hashes")
+    void storesSaltedHash() {
         PasswordHasher hasher = new PasswordHasher();
 
         String credential = hasher.hash("DemoLocalAdmin!");
@@ -26,8 +26,8 @@ class PasswordHasherTest {
     }
 
     @Test
-    @DisplayName("rejects plain stored credentials")
-    void rejectsPlainStoredCredentials() {
+    @DisplayName("plain text is not a stored password")
+    void plainTextIsNotAStoredPassword() {
         PasswordHasher hasher = new PasswordHasher();
 
         assertFalse(hasher.isHashed("DemoLocalAdmin!"));
@@ -36,8 +36,8 @@ class PasswordHasherTest {
     }
 
     @Test
-    @DisplayName("rejects null and blank password inputs")
-    void rejectsNullAndBlankPasswordInputs() {
+    @DisplayName("missing password input is handled safely")
+    void missingPasswordIsHandledSafely() {
         PasswordHasher hasher = new PasswordHasher();
         String credential = hasher.hash("DemoLocalAdmin!");
 
@@ -48,8 +48,8 @@ class PasswordHasherTest {
     }
 
     @Test
-    @DisplayName("rejects malformed hashed credentials")
-    void rejectsMalformedHashedCredentials() {
+    @DisplayName("broken stored hashes are not accepted")
+    void brokenHashesAreNotAccepted() {
         PasswordHasher hasher = new PasswordHasher();
 
         assertFalse(hasher.isHashed(null));
@@ -60,8 +60,8 @@ class PasswordHasherTest {
     }
 
     @Test
-    @DisplayName("normalizes credential parts to lowercase")
-    void normalizesCredentialPartsToLowercase() {
+    @DisplayName("hash parts are read in lowercase")
+    void readsHashPartsInLowercase() {
         PasswordHasher hasher = new PasswordHasher();
         String uppercaseCredential = "00112233445566778899AABBCCDDEEFF:"
                 + "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF";

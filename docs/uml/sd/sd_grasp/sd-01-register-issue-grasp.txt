@@ -1,25 +1,20 @@
 SD 01 Register Issue - GRASP 적용 설명
 
 관련 산출물:
-- UC1 Register Issue: 새 이슈 저장, reporter/current time/status=NEW/default MAJOR, IssueHistory(CREATED) 기록
-- SSD 01: registerIssue(title, description, priority)
-- OC-01: Issue 생성, Issue.projectId를 통한 Project 참조, User-Issue reports, Issue-IssueHistory logs, User-IssueHistory changes
-- Domain Model: Issue references Project by projectId, User reports Issue, Issue logs IssueHistory, User changes IssueHistory
-- Logical Architecture: IssueController.registerIssue()
+- UC1 Register Issue
+- SSD 01: registerIssue(projectId, title, description, priority)
+- OC-01: Issue 생성, reporter 설정, status=NEW, IssueHistory(CREATED) 기록
 
 적용 GRASP:
 
-1. Controller
-issueController:IssueController가 SSD의 system operation registerIssue(...)를 처음 받는다. UI나 persistence를 직접 SD에 펼치지 않고, use case 흐름의 진입점 역할만 담당한다. priority 기본값 결정이나 CREATED history 기록은 Controller가 직접 수행하지 않는다.
+1. GRASP Controller
+`:IssueTrackingSystem` 객체가 system operation을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 유스케이스 요청을 받는 GRASP Controller 역할의 설계 객체이다.
 
-2. Creator
-현재 설계에서는 Project가 Issue 목록을 내부 collection으로 소유하지 않는다. 따라서 Controller는 선택된 Project context와 권한/입력 검증 결과를 전제로 등록 흐름을 시작하고, `Issue.create(...)`가 새 Issue 생성, 기본 priority 적용, 초기 생성 이력 기록을 담당한다. Project와 Issue의 관계는 `Issue.projectId`로 표현한다.
+2. Information Expert
+Issue는 status, priority, reporter, reportedDate, history를 가진다. 따라서 기본 priority 적용과 CREATED history 기록은 Issue 책임으로 표현한다.
 
-3. Information Expert
-newIssue:Issue는 자신의 status, priority, reportedDate, reporter, history 목록을 관리하므로 `Issue.create(...)`에서 누락된 priority를 MAJOR로 해석하고 `IssueHistory(CREATED)`를 생성한다. Project는 프로젝트명/설명/관리자 식별자 같은 자기 상태의 불변식에 집중한다.
+3. Creator
+IssueHistory(CREATED)는 새 Issue에 기록되는 이력이므로 Issue가 생성하고 자신의 history에 추가하는 것이 자연스럽다.
 
 4. Low Coupling / High Cohesion
-issueController가 Issue의 내부 필드를 직접 설정하지 않고 `Issue.create(...)`에 의도 중심 메시지를 보낸다. priority 기본값 결정과 초기 history 기록이 Controller 밖으로 이동했기 때문에 Controller와 도메인 모델 사이의 결합도가 낮아지고, 이슈 등록 불변식이 Issue 생성 작업 안에 응집된다.
-
-5. 다이어그램 추상화 수준
-권한 정책, 현재 사용자/프로젝트 조회, 현재 시각, 영속성 처리를 lifeline으로 펼치지 않은 것은 Pure Fabrication 적용이라기보다 제출용 SD의 추상화 수준 결정이다. AuthorizationService, Repository, Clock 같은 별도 설계 객체는 상세 설계에서 명시한다면 그때 Pure Fabrication 또는 Indirection의 예로 설명할 수 있다.
+GRASP Controller가 Issue 필드를 직접 설정하지 않고 `Issue.create(...)`에 의도를 전달한다. 등록 규칙은 Issue에 모이고, 권한/조회/저장 같은 구현 흐름은 SD에서 축약한다.
