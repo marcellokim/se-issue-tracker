@@ -9,6 +9,7 @@ import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
+import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
@@ -19,6 +20,7 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
@@ -53,12 +55,20 @@ class IssueDetailPresenterTest {
     void loadsIssueDetailWithActionsAndCommentPermissions() {
         User reporter = user("dev1", Role.DEV);
         Issue issue = issue(7L, "Login bug", reporter);
+        Issue related = issue(8L, "Profile bug", reporter);
         FakeCommentRepository comments = new FakeCommentRepository(
                 comment(100L, issue.id(), reporter, CommentPurpose.GENERAL),
                 comment(101L, issue.id(), reporter, CommentPurpose.STATUS_CHANGE));
+        IssueDetailControllerFixture fixture = controllerFixture(reporter, comments, issue, related);
+        fixture.dependencyRepository().addFixture(IssueDependency.fromPersistence(
+                1L,
+                IssueDependency.dependencyIdFor(issue.id(), related.id()),
+                issue.id(),
+                related.id(),
+                NOW));
         RecordingIssueDetailView view = new RecordingIssueDetailView();
         IssueDetailPresenter presenter = new IssueDetailPresenter(
-                controller(reporter, comments, issue),
+                fixture.issueController(),
                 view);
 
         presenter.loadIssue(issue.id());
@@ -70,6 +80,10 @@ class IssueDetailPresenterTest {
         assertEquals(true, view.commentAction(100L).canUpdate());
         assertEquals(true, view.commentAction(100L).canDelete());
         assertEquals(false, view.commentAction(101L).canUpdate());
+        assertTrue(view.detail().dependencies().isEmpty());
+        assertEquals(1, view.projectDependencies().size());
+        assertEquals(issue.id(), view.projectDependencies().getFirst().blockingIssueId());
+        assertEquals(related.id(), view.projectDependencies().getFirst().blockedIssueId());
         assertEquals(" ", view.message());
     }
 
@@ -268,6 +282,54 @@ class IssueDetailPresenterTest {
     }
 
     @Test
+    @DisplayName("adds and removes dependencies through issue controller and reloads project dependencies")
+    void changesDependenciesAndReloadsProjectDependencies() {
+        User pl = user("pl1", Role.PL);
+        Issue blockingIssue = issue(7L, "Login bug", pl);
+        Issue blockedIssue = issue(8L, "Profile bug", pl);
+        IssueDetailControllerFixture fixture = controllerFixture(
+                pl,
+                new FakeCommentRepository(),
+                blockingIssue,
+                blockedIssue);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(fixture.issueController(), view);
+
+        presenter.changeDependency(
+                blockingIssue.id(),
+                IssueDependencyRequest.add(blockingIssue.id(), blockedIssue.id()));
+
+        assertEquals(1, view.projectDependencies().size());
+        DependencyResult added = view.projectDependencies().getFirst();
+        assertEquals(blockingIssue.id(), added.blockingIssueId());
+        assertEquals(blockedIssue.id(), added.blockedIssueId());
+
+        presenter.changeDependency(
+                blockingIssue.id(),
+                IssueDependencyRequest.remove(blockingIssue.id(), blockedIssue.id()));
+
+        assertTrue(view.projectDependencies().isEmpty());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("shows dependency action errors without replacing current detail")
+    void showsDependencyActionErrorsWithoutReplacingCurrentDetail() {
+        User pl = user("pl1", Role.PL);
+        Issue issue = issue(7L, "Login bug", pl);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                controller(pl, new FakeCommentRepository(), issue),
+                view);
+        presenter.loadIssue(issue.id());
+
+        presenter.changeDependency(issue.id(), IssueDependencyRequest.add(issue.id(), issue.id()));
+
+        assertEquals("Login bug", view.detail().title());
+        assertEquals("Issue cannot depend on itself", view.message());
+    }
+
+    @Test
     @DisplayName("shows comment action errors without replacing current detail")
     void showsCommentActionErrorsWithoutReplacingCurrentDetail() {
         User reporter = user("dev1", Role.DEV);
@@ -378,7 +440,11 @@ class IssueDetailPresenterTest {
                                 new InMemoryAssignmentRecommendationRepository(extraUsers.toArray(User[]::new)),
                                 new KNNAssignmentRecommendation()),
                         () -> NOW));
-        return new IssueDetailControllerFixture(issueController, issueStateController, assignmentController);
+        return new IssueDetailControllerFixture(
+                issueController,
+                issueStateController,
+                assignmentController,
+                dependencies);
     }
 
     private static Project project() {
@@ -431,7 +497,8 @@ class IssueDetailPresenterTest {
     private record IssueDetailControllerFixture(
             IssueController issueController,
             IssueStateController issueStateController,
-            AssignmentController assignmentController) {
+            AssignmentController assignmentController,
+            FakeIssueDependencyRepository dependencyRepository) {
     }
 
     private static final class RecordingIssueDetailView implements IssueDetailView {
@@ -439,12 +506,17 @@ class IssueDetailPresenterTest {
         private IssueDetailResult detail;
         private IssueWorkflowActions actions;
         private List<IssueCommentActionState> commentActions = List.of();
+        private List<DependencyResult> projectDependencies = List.of();
         private String message = " ";
 
         @Override
-        public void showDetail(IssueDetailResult detail, List<IssueCommentActionState> commentActions) {
+        public void showDetail(
+                IssueDetailResult detail,
+                List<IssueCommentActionState> commentActions,
+                List<DependencyResult> projectDependencies) {
             this.detail = detail;
             this.commentActions = List.copyOf(commentActions);
+            this.projectDependencies = List.copyOf(projectDependencies);
         }
 
         @Override
@@ -470,6 +542,10 @@ class IssueDetailPresenterTest {
                     .filter(action -> action.numericCommentId() != null && action.numericCommentId() == commentId)
                     .findFirst()
                     .orElseThrow();
+        }
+
+        private List<DependencyResult> projectDependencies() {
+            return projectDependencies;
         }
 
         private String message() {
