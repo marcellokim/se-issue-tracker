@@ -51,6 +51,7 @@ class IssueListPanelTest {
             JTable table = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
             JButton open = SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class);
             JButton register = SwingComponentTestSupport.find(panel, "registerIssueButton", JButton.class);
+            JButton deleted = SwingComponentTestSupport.find(panel, "deletedIssuesButton", JButton.class);
 
             assertEquals("Alpha", SwingComponentTestSupport.find(panel, "issueListTitle", JLabel.class).getText());
             assertEquals(2, table.getRowCount());
@@ -58,6 +59,8 @@ class IssueListPanelTest {
             assertEquals("Login bug", table.getValueAt(0, 4));
             assertEquals(true, register.isEnabled());
             assertEquals(false, open.isEnabled());
+            assertEquals(true, deleted.isVisible());
+            assertEquals(true, deleted.isEnabled());
 
             table.setRowSelectionInterval(1, 1);
 
@@ -79,7 +82,7 @@ class IssueListPanelTest {
 
         SwingComponentTestSupport.onEdt(() -> {
             IssueListPanel panel = new IssueListPanel(
-                    userResult("pl1", Role.PL),
+                    userResult("dev1", Role.DEV),
                     dialogs,
                     new IssueListPanel.IssueListActions(
                             (source, request) -> searchRef.set(request),

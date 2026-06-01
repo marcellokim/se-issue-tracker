@@ -110,6 +110,11 @@ class DeletedIssuePanelTest {
             BufferedImage selected = render(panel, Path.of("build/reports/ui/deleted-issue-panel-selected.png"));
 
             assertTrue(hasRenderedContent(selected));
+
+            panel.showMessage("Only PL can manage deleted issues.", true);
+            BufferedImage error = render(panel, Path.of("build/reports/ui/deleted-issue-panel-error.png"));
+
+            assertTrue(hasRenderedContent(error));
         });
     }
 
