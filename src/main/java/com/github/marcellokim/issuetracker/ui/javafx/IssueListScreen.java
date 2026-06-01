@@ -5,11 +5,16 @@ import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -44,7 +49,7 @@ final class IssueListScreen extends VBox {
         searchButton.setOnAction(event -> searchIssues());
 
         Button registerButton = new Button("+ Register Issue");
-        registerButton.setOnAction(event -> ScreenComponents.showInfo(messageLabel, "Issue registration will be implemented in #141"));
+        registerButton.setOnAction(event -> showRegisterDialog());
         try{
             if (!issueController.canRegisterIssue(projectId)) registerButton.setDisable(true);
         } catch (Exception exception){
@@ -95,6 +100,46 @@ final class IssueListScreen extends VBox {
             ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
+        }
+    }
+
+    private void showRegisterDialog(){
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Register Issue");
+        TextField titleField = new TextField();
+        titleField.setPromptText("Issue title");
+        TextArea descField = new TextArea();
+        descField.setPromptText("Description");
+        descField.setPrefRowCount(4);
+        ComboBox<com.github.marcellokim.issuetracker.domain.Priority> priorityBox = new ComboBox<>();
+        priorityBox.getItems().addAll(com.github.marcellokim.issuetracker.domain.Priority.values());
+        priorityBox.setValue(com.github.marcellokim.issuetracker.domain.Priority.MAJOR);
+        VBox content = new VBox(8,
+                new Label("Title:"), titleField,
+                new Label("Description:"), descField,
+                new Label("Priority:"), priorityBox);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        Runnable validateForm = () -> okButton.setDisable(
+                titleField.getText() == null || titleField.getText().isBlank()
+                || descField.getText() == null || descField.getText().isBlank());
+        titleField.textProperty().addListener((obs, old, val) -> validateForm.run());
+        descField.textProperty().addListener((obs, old, val) -> validateForm.run());
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK){
+            try{
+                issueController.registerIssue(projectId,
+                        titleField.getText().trim(),
+                        descField.getText().trim(),
+                        priorityBox.getValue());
+                loadIssues();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
         }
     }
 

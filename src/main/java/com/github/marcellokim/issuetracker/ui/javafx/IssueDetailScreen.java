@@ -1,37 +1,62 @@
 package com.github.marcellokim.issuetracker.ui.javafx;
 
+import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
+import com.github.marcellokim.issuetracker.controller.IssueStateController;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
+import com.github.marcellokim.issuetracker.service.AssignmentCandidateResult;
+import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
 
 final class IssueDetailScreen extends VBox {
 
     private final IssueController issueController;
+    private final IssueStateController issueStateController;
+    private final AssignmentController assignmentController;
     private final long issueId;
+    private final Button backButton;
     private final Label messageLabel = ScreenComponents.messageLabel();
     private Runnable onBack;
 
-    IssueDetailScreen(IssueController issueController, long issueId){
+    IssueDetailScreen(IssueController issueController, IssueStateController issueStateController, AssignmentController assignmentController, long issueId){
         this.issueController = issueController;
+        this.issueStateController = issueStateController;
+        this.assignmentController = assignmentController;
         this.issueId = issueId;
         ScreenComponents.applyScreenDefaults(this);
-
-        Button backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
+        this.backButton = ScreenComponents.backButton("← Issues", () -> { if (onBack != null) onBack.run(); });
         getChildren().add(backButton);
         loadDetail();
     }
 
     void setOnBack(Runnable action){ this.onBack = action; }
+
+    private void reload(){
+        getChildren().clear();
+        getChildren().add(backButton);
+        loadDetail();
+    }
 
     private void loadDetail(){
         try{
@@ -55,12 +80,8 @@ final class IssueDetailScreen extends VBox {
 
             FlowPane actionButtons = new FlowPane(8, 8);
             actionButtons.setAlignment(Pos.CENTER_LEFT);
-            List<String> actions = detail.availableActions();
-            for (String action : actions){
-                Button btn = new Button(action);
-                btn.setDisable(true);
-                btn.setTooltip(new javafx.scene.control.Tooltip("Coming soon"));
-                actionButtons.getChildren().add(btn);
+            for (String action : detail.availableActions()){
+                actionButtons.getChildren().add(createActionButton(action));
             }
 
             Label commentsTitle = new Label("Comments (" + detail.comments().size() + ")");
@@ -84,6 +105,159 @@ final class IssueDetailScreen extends VBox {
             ScreenComponents.showError(messageLabel, exception);
             getChildren().add(messageLabel);
         }
+    }
+
+    private Button createActionButton(String action){
+        Button btn = new Button(action);
+        switch (action){
+            case "ADD_COMMENT" -> btn.setOnAction(e -> handleAddComment());
+            case "MARK_FIXED" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.FIXED));
+            case "RESOLVE" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.RESOLVED));
+            case "CLOSE" -> btn.setOnAction(e -> handleStatusChange(IssueStatus.CLOSED));
+            case "ASSIGN" -> btn.setOnAction(e -> handleAssignment(true, true));
+            case "REASSIGN_DEV" -> btn.setOnAction(e -> handleAssignment(true, false));
+            case "CHANGE_TESTER" -> btn.setOnAction(e -> handleAssignment(false, true));
+            default -> {
+                btn.setDisable(true);
+                btn.setTooltip(new Tooltip("Coming soon"));
+            }
+        }
+        return btn;
+    }
+
+    private void handleAddComment(){
+        showTextInputDialog("Add Comment", "Enter comment:").ifPresent(content -> {
+            try{
+                issueController.addComment(issueId, content);
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
+    }
+
+    private void handleStatusChange(IssueStatus targetStatus){
+        showTextInputDialog("Change Status", "Reason for " + targetStatus + ":").ifPresent(comment -> {
+            try{
+                issueStateController.changeStatus(issueId, targetStatus, comment);
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        });
+    }
+
+    private void handleAssignment(boolean selectDev, boolean selectTester){
+        try{
+            AssignmentOptionsResult options = assignmentController.startAssignment(issueId);
+            showAssignmentDialog(options, selectDev, selectTester);
+        } catch (Exception exception){
+            ScreenComponents.showError(messageLabel, exception);
+        }
+    }
+
+    private Optional<String> showTextInputDialog(String title, String headerText){
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText(headerText);
+        TextArea textArea = new TextArea();
+        textArea.setPromptText("Enter text...");
+        textArea.setPrefRowCount(3);
+        dialog.getDialogPane().setContent(textArea);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        textArea.textProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || val.isBlank()));
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? textArea.getText().trim() : null);
+        return dialog.showAndWait();
+    }
+
+    private void showAssignmentDialog(AssignmentOptionsResult options, boolean selectDev, boolean selectTester){
+        List<AssignmentCandidateResult> devCandidates = mergedCandidates(
+                options.devAssigneeCandidates(), options.allDevAssignees());
+        List<AssignmentCandidateResult> testerCandidates = mergedCandidates(
+                options.testerVerifierCandidates(), options.allTesterVerifiers());
+        if ((selectDev && devCandidates.isEmpty()) || (selectTester && testerCandidates.isEmpty())){
+            ScreenComponents.showInfo(messageLabel, "No candidates available for assignment");
+            return;
+        }
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Assign Issue");
+        VBox content = new VBox(8);
+        ComboBox<AssignmentCandidateResult> devBox = new ComboBox<>();
+        ComboBox<AssignmentCandidateResult> testerBox = new ComboBox<>();
+        if (selectDev){
+            devBox.getItems().addAll(devCandidates);
+            devBox.setConverter(candidateConverter(candidateIds(options.devAssigneeCandidates())));
+            devBox.setMaxWidth(Double.MAX_VALUE);
+            content.getChildren().addAll(new Label("Assignee (DEV):"), devBox);
+        }
+        if (selectTester){
+            testerBox.getItems().addAll(testerCandidates);
+            testerBox.setConverter(candidateConverter(candidateIds(options.testerVerifierCandidates())));
+            testerBox.setMaxWidth(Double.MAX_VALUE);
+            content.getChildren().addAll(new Label("Verifier (TESTER):"), testerBox);
+        }
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        dialog.getDialogPane().setPrefWidth(500);
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("OK");
+        okButton.setDisable(true);
+        if (selectDev) devBox.valueProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || (selectTester && testerBox.getValue() == null)));
+        if (selectTester) testerBox.valueProperty().addListener((obs, old, val) ->
+                okButton.setDisable(val == null || (selectDev && devBox.getValue() == null)));
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK){
+            try{
+                if (selectDev && selectTester){
+                    assignmentController.assignIssue(issueId, devBox.getValue().loginId(), testerBox.getValue().loginId());
+                } else if (selectDev){
+                    assignmentController.reassignIssue(issueId, devBox.getValue().loginId());
+                } else{
+                    assignmentController.changeVerifier(issueId, testerBox.getValue().loginId());
+                }
+                reload();
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
+        }
+    }
+
+    private static List<AssignmentCandidateResult> mergedCandidates(
+            List<AssignmentCandidateResult> recommended, List<AssignmentCandidateResult> all){
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+        List<AssignmentCandidateResult> merged = new ArrayList<>();
+        for (AssignmentCandidateResult c : recommended){
+            if (seen.add(c.loginId())) merged.add(c);
+        }
+        for (AssignmentCandidateResult c : all){
+            if (seen.add(c.loginId())) merged.add(c);
+        }
+        return merged;
+    }
+
+    private static Set<String> candidateIds(List<AssignmentCandidateResult> candidates){
+        Set<String> ids = new LinkedHashSet<>();
+        for (AssignmentCandidateResult c : candidates) ids.add(c.loginId());
+        return ids;
+    }
+
+    private static StringConverter<AssignmentCandidateResult> candidateConverter(Set<String> recommendedIds){
+        return new StringConverter<>(){
+            @Override public String toString(AssignmentCandidateResult c){
+                if (c == null) return "";
+                String prefix = recommendedIds.contains(c.loginId()) ? "[Recommended] " : "";
+                return String.format("%s%s (%s) - %s", prefix, c.loginId(), c.name(), c.reason());
+            }
+            @Override public AssignmentCandidateResult fromString(String s){ return null; }
+        };
     }
 
     private static String formatUser(UserResult user){
