@@ -5,72 +5,59 @@ title Detailed SD 01 - Register Issue
 hide footbox
 
 actor "Auth User" as User
-participant "issueController:IssueController" as IC
+participant ":IssueTrackingSystem" as IC
 participant "targetProject:Project" as Project
+participant "reporter:User" as Reporter
+participant "newIssue:Issue" as Issue
 
-User -> IC : registerIssue(title, description, priority)
+User -> IC : registerIssue(projectId, title, description, priority)
 
-alt not authorized
-  IC --> User : permissionDenied()
-else invalid title or description
-  IC --> User : validationError(missingFields)
-else valid and authorized
+alt login, permission, or project membership is invalid
+  IC --> User : registrationRejected(reason)
+else title/description invalid or duplicate title exists
+  IC --> User : registrationRejected(reason)
+else registration is accepted
   note right of IC
-  issueController는 UC1의 SSD system operation을 수신한다.
-  권한 정책, 프로젝트 조회, 현재 시각, 영속성 처리는
-  구현 조정 객체가 담당하지만 이 SD에서는 note/guard로 축약한다.
-  사후조건은 domain object 책임 메시지로 표현한다.
+  Current code uses service/repository/clock internally.
+  At SD level they are summarized as checks before
+  domain objects realize the postconditions.
   end note
 
-  IC -> Project : verifySelectedProject(projectId)
-  activate Project
-  Project --> IC : projectReady(projectId)
-  deactivate Project
+  IC -> Project : confirmSelectedProject()
+  Project --> IC : projectConfirmed
+  IC -> Reporter : confirmReporter()
+  Reporter --> IC : reporterConfirmed
 
-  create "newIssue:Issue" as Issue
-  IC --> Issue : create(PersistedState(projectId, title,\ndescription, reporter)\n.priority(priority or MAJOR)\n.reportedDate(now))
+  create Issue
+  IC --> Issue : create(projectId, title, description,\npriority or MAJOR, reporter, now)
   activate Issue
 
   create "createdHistory:IssueHistory" as CreatedHistory
-  Issue --> CreatedHistory : new(action=CREATED,\npreviousValue=null,\nnewValue=NEW,\nchangedBy=currentUser,\nchangedDate=now)
+  Issue --> CreatedHistory : new(CREATED,\nprevious=null, new=NEW,\nchangedBy=reporter)
   Issue -> Issue : addHistory(createdHistory)
 
-  note right of Issue
-  OC-01 사후조건:
-  - Issue.status = NEW
-  - reporter = currentUser
-  - reportedDate = now
-  - priority = priority 또는 MAJOR
-  - IssueHistory(CREATED) 기록
-  - changedBy=currentUser는
-    User-IssueHistory changes association 형성을 의미
-  end note
-
-  Issue --> IC : createdWithHistory
+  Issue --> IC : issueCreated(status=NEW)
   deactivate Issue
-
-  note right of IC
-  Persistence is omitted:
-  the created Issue and its CREATED history are saved
-  after the domain postconditions are satisfied.
-  end note
-
-  note over Project, Issue
-  Creator / Information Expert:
-  Project는 Issue collection을 소유하지 않는다.
-  Controller는 selected Project context만 확인하고,
-  Issue.create(...)가 priority 기본값 적용과 CREATED history 기록을 담당한다.
-  프로젝트 관계는 Issue.projectId로 표현한다.
-  end note
-
-  IC --> User : issueRegistered(issueId,\nstatus=NEW,\nconfirmation)
+  IC --> User : issueRegistered(issueId, status=NEW)
 end
 
-opt Auth User wants to add an initial comment
-  ref over User, IC
-  UC2 Add Comment
-  addComment(issueId, content)
-  end ref
+opt user adds an initial comment
+  User -> IC : addComment(issueId, content)
+  alt content is blank
+    IC --> User : commentRejected(reason)
+  else comment is accepted
+    IC -> Issue : addComment(content, reporter, now)
+    activate Issue
+    create "initialComment:Comment" as Comment
+    Issue --> Comment : new(content, writer=reporter, createdAt=now)
+    create "commentHistory:IssueHistory" as CommentHistory
+    Issue --> CommentHistory : new(COMMENTED, message="comment added")
+    Issue -> Issue : addComment(initialComment)
+    Issue -> Issue : addHistory(commentHistory)
+    Issue --> IC : commentAdded(commentId)
+    deactivate Issue
+    IC --> User : commentAdded(commentId)
+  end
 end
 
 @enduml

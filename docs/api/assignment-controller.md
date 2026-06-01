@@ -25,7 +25,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `startAssignment` | UC8 Recommend Assignment Candidates; 배정 전 후보 조회 보조 오퍼레이션 | `docs/uml/dcd/its_dcd_ver2.puml`의 `AssignmentController` -> `AssignmentRecommendationService.recommendAssignmentCandidates` |
+| `startAssignment` | UC8 Recommend Assignment Candidates; 배정 전 후보 조회 보조 오퍼레이션 | DCD의 `Issue` assignee/verifier 관계와 상태별 배정 operation; 구현 `AssignmentRecommendationService.recommendAssignmentCandidates` |
 | `assignIssue` | UC5, OC-03 NEW to ASSIGNED, OC-12 REOPENED to ASSIGNED | `Issue.assignFromNew`, `Issue.assignReopened`, `IssueHistory(ASSIGNMENT_CHANGED, STATUS_CHANGED)`, assignee/verifier 연관 |
 | `reassignIssue` | UC5, OC-04 ASSIGNED to ASSIGNED | `Issue.reassignAssignee`, `IssueHistory(ASSIGNMENT_CHANGED)`, assignee 연관 변경 |
 | `changeVerifier` | UC5, OC-05 FIXED to FIXED | `Issue.changeVerifier`, `IssueHistory(ASSIGNMENT_CHANGED)`, verifier 연관 변경 |

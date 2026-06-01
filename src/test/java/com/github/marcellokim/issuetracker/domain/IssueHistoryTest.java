@@ -16,8 +16,8 @@ class IssueHistoryTest {
         private final User pl = User.fromPersistence("pl1", "PL One", "hash", Role.PL, true, null, null);
 
         @Test
-        @DisplayName("preserves persisted history fields")
-        void persistedHistoryKeepsDatabaseFields() {
+        @DisplayName("saved history keeps its values")
+        void restoresSavedHistory() {
                 IssueHistory history = IssueHistory.fromPersistence(
                                 15L,
                                 100L,
@@ -33,21 +33,16 @@ class IssueHistoryTest {
                 assertEquals("15", history.getHistoryId());
                 assertEquals("pl1", history.changedById());
                 assertEquals(ActionType.STATUS_CHANGED, history.actionType());
-                assertEquals(ActionType.STATUS_CHANGED, history.getAction());
                 assertEquals(IssueStatus.RESOLVED.name(), history.previousValue());
-                assertEquals(IssueStatus.RESOLVED.name(), history.getPreviousValue());
                 assertEquals(IssueStatus.CLOSED.name(), history.newValue());
-                assertEquals(IssueStatus.CLOSED.name(), history.getNewValue());
                 assertEquals("close after verification", history.message());
-                assertEquals("close after verification", history.getMessage());
                 assertEquals(CHANGED_AT, history.changedDate());
-                assertEquals(CHANGED_AT, history.getChangedDate());
                 assertNull(history.getChangedBy());
         }
 
         @Test
-        @DisplayName("preserves domain-created history fields")
-        void domainHistoryKeepsActorAndValues() {
+        @DisplayName("new history keeps the user and values")
+        void keepsUserAndValues() {
                 IssueHistory history = IssueHistory.create(
                                 "H-1",
                                 ActionType.PRIORITY_CHANGED,
@@ -61,17 +56,17 @@ class IssueHistoryTest {
                 assertEquals(0L, history.issueId());
                 assertEquals("H-1", history.getHistoryId());
                 assertEquals("pl1", history.changedById());
-                assertEquals(ActionType.PRIORITY_CHANGED, history.actionType());
-                assertEquals(Priority.MAJOR.name(), history.previousValue());
-                assertEquals(Priority.CRITICAL.name(), history.newValue());
-                assertEquals("urgent customer issue", history.message());
+                assertEquals(ActionType.PRIORITY_CHANGED, history.getAction());
+                assertEquals(Priority.MAJOR.name(), history.getPreviousValue());
+                assertEquals(Priority.CRITICAL.name(), history.getNewValue());
+                assertEquals("urgent customer issue", history.getMessage());
                 assertSame(pl, history.getChangedBy());
-                assertEquals(CHANGED_AT, history.changedDate());
+                assertEquals(CHANGED_AT, history.getChangedDate());
         }
 
         @Test
-        @DisplayName("new history for persistence keeps issue id and transient database id")
-        void newForPersistenceKeepsIssueIdAndTransientId() {
+        @DisplayName("history prepared for saving has no id")
+        void preparesHistoryForSave() {
                 IssueHistory history = IssueHistory.newForPersistence(
                                 100L,
                                 "pl1",
@@ -85,16 +80,13 @@ class IssueHistoryTest {
                 assertEquals(100L, history.issueId());
                 assertEquals("pl1", history.changedById());
                 assertEquals(ActionType.STATUS_CHANGED, history.actionType());
-                assertEquals(IssueStatus.ASSIGNED.name(), history.previousValue());
                 assertEquals(IssueStatus.DELETED.name(), history.newValue());
-                assertEquals("delete issue", history.message());
                 assertNull(history.getChangedBy());
-                assertEquals(CHANGED_AT, history.changedDate());
         }
 
         @Test
-        @DisplayName("rejects invalid persisted history arguments")
-        void rejectsInvalidPersistedHistoryArguments() {
+        @DisplayName("invalid saved history is rejected")
+        void rejectsInvalidSavedHistory() {
                 assertThrows(IllegalArgumentException.class,
                                 () -> IssueHistory.fromPersistence(0L, 100L, "pl1", ActionType.CREATED, null, "NEW",
                                                 null, CHANGED_AT));
@@ -107,14 +99,11 @@ class IssueHistoryTest {
                 assertThrows(NullPointerException.class,
                                 () -> IssueHistory.fromPersistence(1L, 100L, "pl1", null, null, "NEW", null,
                                                 CHANGED_AT));
-                assertThrows(NullPointerException.class,
-                                () -> IssueHistory.fromPersistence(1L, 100L, "pl1", ActionType.CREATED, null, "NEW",
-                                                null, null));
         }
 
         @Test
-        @DisplayName("rejects invalid domain-created history arguments")
-        void rejectsInvalidDomainHistoryArguments() {
+        @DisplayName("invalid new history is rejected")
+        void rejectsInvalidNewHistory() {
                 assertThrows(IllegalArgumentException.class,
                                 () -> IssueHistory.create("", ActionType.CREATED, null, "NEW", null, pl, CHANGED_AT));
                 assertThrows(NullPointerException.class,

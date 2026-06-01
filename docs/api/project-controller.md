@@ -42,7 +42,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `createProject` | UC13, SSD-19 create project; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd_ver2.puml`의 `Project` 클래스와 Admin manages 연관; 구현 `Project.create`, `ProjectResult.from` |
+| `createProject` | UC13, SSD-19 create project; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd.puml`의 `Project` 클래스와 managed by 관계; 구현 `Project.create`, `ProjectResult.from` |
 | `renameProject`, `changeProjectDescription` | UC13 프로젝트 관리 보조 API | `Project.rename`, `Project.changeDescription`, `ProjectResult.from` |
 | `addProjectParticipant` | UC13, SSD-20 add project member; 필수 OC 목록에는 없는 보조 API | DCD `User participates in Project`; 구현 `ProjectRepository.addParticipant`, `ProjectMemberResult` |
 | `removeProjectParticipant` | UC13, SSD-21 remove project member; 필수 OC 목록에는 없는 보조 API | DCD `User participates in Project`; 구현 `ProjectRepository.removeParticipant`, active assignment guard |

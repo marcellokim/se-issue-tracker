@@ -5,56 +5,34 @@ title Detailed SD 26 - Restore Deleted Issue
 hide footbox
 
 actor "PL" as PL
-participant "deletedIssueController:DeletedIssueController" as DIC
+participant ":IssueTrackingSystem" as DIC
 participant "targetIssue:Issue" as Issue
 participant "deleteHistory:IssueHistory" as DeleteHistory
 
 PL -> DIC : viewDeletedIssues(projectId)
-DIC --> PL : deletedIssueList(issues)
+DIC --> PL : deletedIssueList
 
 PL -> DIC : restoreIssue(issueId, comment)
 
-alt not PL or permission denied
-  DIC --> PL : restoreRejected(reason)
-else issue not found or permanently deleted
-  DIC --> PL : restoreRejected(reason)
-else Issue is not DELETED
+alt PL cannot restore, issue is not DELETED, or comment is blank
   DIC --> PL : restoreRejected(reason)
 else valid restore target
-  note right of DIC
-  previousStatusFromDeleteHistory는
-  NEW/CLOSED -> DELETED 전이 때의
-  IssueHistory.previousValue에서 읽는다.
-  이 값이 restoreTargetStatus가 된다.
-  end note
-
-  DIC -> Issue : restore(currentPL, comment, now)
-  activate Issue
-  Issue -> Issue : findDeleteStatusHistory()
+  DIC -> Issue : findDeleteTransition()
   Issue -> DeleteHistory : previousValue()
-  DeleteHistory --> Issue : previousStatusFromDeleteHistory(NEW or CLOSED)
-  Issue -> Issue : restoreTargetStatus := previousStatusFromDeleteHistory
-
-  Issue -> Issue : changeStatus(restoreTargetStatus)
-  Issue -> Issue : keepReporterFixerResolverCommentsHistory()
-  Issue -> Issue : keepAssigneeVerifierNull()
-
+  DeleteHistory --> Issue : NEW or CLOSED
+  DIC -> Issue : restoreTo(previousStatus,\ncurrentPL, comment, now)
+  activate Issue
   create "restoreHistory:IssueHistory" as RestoreHistory
-  Issue -> RestoreHistory : new(action=STATUS_CHANGED,\npreviousValue=DELETED,\nnewValue=restoreTargetStatus,\nchangedBy=currentPL,\nchangedDate=now)
-  Issue -> Issue : addHistory(restoreHistory)
-
-  note right of Issue
-  OC-11 사후조건:
-  - 새 Issue를 만들지 않고 기존 Issue 복구
-  - status = NEW 또는 CLOSED
-  - reporter/fixer/resolver/comments/history 유지
-  - assignee/verifier는 null 유지
-  - 삭제 때 제거된 dependency는 자동 복원하지 않음
-  end note
-
-  Issue --> DIC : restoredIssue(status=restoreTargetStatus)
+  Issue --> RestoreHistory : new(STATUS_CHANGED,\nDELETED -> previousStatus)
+  Issue -> Issue : status=previousStatus;\nkeep reporter/fixer/resolver;\nkeep assignee/verifier empty
+  Issue --> DIC : restored(status=previousStatus)
   deactivate Issue
-  DIC --> PL : issueRestored(issueId,\nstatus=restoreTargetStatus)
+
+  DIC --> PL : issueRestored(issueId, status)
 end
+
+note right of Issue
+Dependencies removed during soft delete are not restored automatically.
+end note
 
 @enduml
