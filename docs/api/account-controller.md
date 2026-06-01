@@ -26,7 +26,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `createAccount` | UC12, SSD-16; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd_ver2.puml`의 `User` role/active 필드; 구현 `AccountService.createAccount`, `User.create`, `UserResult.from` |
+| `createAccount` | UC12, SSD-16; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd.puml`의 `User` role/active 필드; 구현 `AccountService.createAccount`, `User.create`, `UserResult.from` |
 | `renameAccount`, `changeAccountRole` | UC12, SSD-17; 필수 OC 목록에는 없는 보조 API | DCD의 `User` role/name 생명주기; 구현 `User.rename`, `User.changeRole`, `AccountService.rejectRoleChangeWithProjectResponsibility` |
 | `activateAccount`, `deactivateAccount` | UC12, SSD-18; 필수 OC 목록에는 없는 보조 API | DCD의 `User.isActive`; 구현 `User.activate`, `User.deactivate`, `AccountService.rejectDeactivationWithProjectResponsibility` |
 

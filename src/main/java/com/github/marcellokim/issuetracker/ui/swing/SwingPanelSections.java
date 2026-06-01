@@ -2,21 +2,32 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.List;
 import java.util.Objects;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
 
 final class SwingPanelSections {
 
     private static final String FORM_PAIR_ERROR = "Form components must be label-field pairs.";
+    private static final Color EVEN_ROW_BACKGROUND = Color.WHITE;
+    private static final Color ODD_ROW_BACKGROUND = new Color(248, 250, 252);
 
     private SwingPanelSections() {
     }
@@ -99,6 +110,125 @@ final class SwingPanelSections {
             panel.add(field, constraints);
         }
         return panel;
+    }
+
+    static void updateMessage(
+            JLabel messageLabel,
+            String message,
+            boolean error,
+            String defaultErrorMessage) {
+        String text = message;
+        if (text == null || text.isBlank()) {
+            text = error ? defaultErrorMessage : " ";
+        }
+        messageLabel.setText(text);
+        messageLabel.setForeground(error ? SwingStyles.ERROR_TEXT : SwingStyles.MUTED_TEXT);
+    }
+
+    static Component stripedTableCell(
+            JTable table,
+            Component component,
+            int row,
+            Color selectionBackground) {
+        component.setForeground(SwingStyles.BODY_TEXT);
+        if (table.isRowSelected(row)) {
+            component.setBackground(selectionBackground);
+        } else {
+            component.setBackground(row % 2 == 0 ? EVEN_ROW_BACKGROUND : ODD_ROW_BACKGROUND);
+        }
+        return component;
+    }
+
+    static void configureReadOnlyTable(JTable table, String name, Color selectionBackground) {
+        table.setName(name);
+        table.setFillsViewportHeight(true);
+        table.setRowHeight(26);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setSelectionBackground(selectionBackground);
+        table.setSelectionForeground(SwingStyles.BODY_TEXT);
+        table.getTableHeader().setReorderingAllowed(false);
+    }
+
+    static JPanel tableSection(String title, JTable table) {
+        JPanel section = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
+        section.setBackground(SwingStyles.SURFACE);
+        section.setBorder(SwingStyles.surfaceBorder());
+
+        JLabel label = new JLabel(title);
+        SwingStyles.applySectionTitle(label);
+        section.add(label, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setColumnHeaderView(table.getTableHeader());
+        section.add(scrollPane, BorderLayout.CENTER);
+        return section;
+    }
+
+    static JPanel navigationHeader(List<JLabel> labels, List<JButton> buttons) {
+        JPanel header = new JPanel(new BorderLayout(SwingStyles.SECTION_GAP, 0));
+        header.setBackground(SwingStyles.SURFACE);
+        header.setBorder(SwingStyles.surfaceBorder());
+        header.add(stackedLabels(labels), BorderLayout.CENTER);
+        header.add(buttonRow(buttons), BorderLayout.EAST);
+        return header;
+    }
+
+    static JPanel verticalScrollPanel(Component content) {
+        JScrollPane scrollPane = new JScrollPane(
+                content,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private static JPanel stackedLabels(List<JLabel> labels) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        for (int index = 0; index < labels.size(); index++) {
+            if (index > 0) {
+                panel.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
+            }
+            panel.add(labels.get(index));
+        }
+        return panel;
+    }
+
+    private static JPanel buttonRow(List<JButton> buttons) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        buttons.forEach(panel::add);
+        return panel;
+    }
+
+    static void applyColumnWidths(JTable table, int[] widths) {
+        if (table.getColumnCount() != widths.length) {
+            return;
+        }
+        for (int index = 0; index < widths.length; index++) {
+            table.getColumnModel().getColumn(index).setPreferredWidth(widths[index]);
+        }
+    }
+
+    static DefaultTableModel readOnlyTableModel(String[] columns) {
+        return new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+    }
+
+    static void runOnEdt(Runnable action) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            action.run();
+        } else {
+            SwingUtilities.invokeLater(action);
+        }
     }
 
     record HeaderLabels(

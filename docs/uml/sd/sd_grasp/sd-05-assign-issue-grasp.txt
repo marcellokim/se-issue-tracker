@@ -1,50 +1,23 @@
 SD 05 Assign / Update Issue Assignment - GRASP 적용 설명
 
 관련 산출물:
-- UC5 Assign / Update Issue Assignment: PL이 상태별로 이슈 배정 정보를 생성하거나 갱신
-- SSD 05: startAssignment(issueId), assignIssue(issueId, assigneeId, verifierId), reassignIssue(issueId, assigneeId), changeVerifier(issueId, verifierId)
-- OC-03: NEW -> ASSIGNED, assignee/verifier 설정, ASSIGNMENT_CHANGED 및 STATUS_CHANGED 기록
-- OC-04: ASSIGNED -> ASSIGNED, assignee만 변경, status 유지, ASSIGNMENT_CHANGED만 기록
-- OC-05: FIXED -> FIXED, verifier만 변경, status 유지, ASSIGNMENT_CHANGED만 기록
-- OC-12: REOPENED -> ASSIGNED, assignee/verifier 재설정, fixer/resolver 보존, ASSIGNMENT_CHANGED 및 STATUS_CHANGED 기록
-- UC2 Add Comment: UC5에서 배정 관련 comment를 선택적으로 추가할 수 있음
-- Logical Architecture: AssignmentController, AssignmentRecommendationService
+- UC5 Assign / Update Issue Assignment
+- SSD 05: startAssignment, assignIssue, reassignIssue, changeVerifier
+- OC-03/04/05/12: 상태별 배정 변경과 이력 기록
 
 적용 GRASP:
 
-1. Controller
-assignmentController:AssignmentController가 UC5의 system operation을 수신한다. startAssignment, assignIssue, reassignIssue, changeVerifier 흐름을 조정하지만 assignee/verifier/status를 직접 조작하지 않는다. 권한 또는 상태가 유효하지 않은 경우에는 후보 추천으로 내려가지 않고 먼저 assignmentRejected(reason)을 반환한다.
+1. GRASP Controller
+`:IssueTrackingSystem` 객체가 PL의 배정 관련 system operation을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 배정 유스케이스를 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-targetIssue:Issue는 현재 status, assignee, verifier, fixer, resolver, history를 알고 있으므로 상태별 배정 변경 책임을 맡는다. NEW/REOPENED 배정, ASSIGNED 재배정, FIXED verifier 변경은 모두 Issue의 role relation과 상태 불변식을 사용한다.
+Issue는 현재 status, assignee, verifier, fixer, resolver를 알고 있다. 따라서 상태별 배정/재배정 규칙은 Issue가 수행하는 것으로 표현한다.
 
 3. Creator
-assignmentHistory와 statusHistory는 targetIssue에 종속되어 logs association으로 연결된다. 따라서 targetIssue가 IssueHistory를 생성하고 자신의 history 목록에 추가한다.
+ASSIGNMENT_CHANGED와 필요한 STATUS_CHANGED 이력은 Issue의 변화에서 발생하므로 Issue가 생성하고 기록한다.
 
-4. Low Coupling / High Cohesion
-AssignmentController는 상태별 의도 메시지(assignFromNew, assignReopened, reassignAssignee, changeVerifier)를 전달한다. 실제 association 형성/제거, status 변경 또는 유지, history 기록은 targetIssue 안에 응집된다.
+4. Protected Variations
+후보 추천은 별도 UC8로 분리한다. 추천 방식이 바뀌어도 배정 상태 변경 책임은 Issue 쪽에 남는다.
 
-5. Pure Fabrication
-AssignmentRecommendationService는 후보 추천 규칙을 모으는 서비스 객체이다. 다만 SD-05에서는 네 branch가 한 PNG에서 보이도록 UC8 후보 추천 상세를 ref frame으로 접었다. UC8 후보 추천은 권한/상태 rejection 이후 각 valid status branch 내부에서만 수행된다. 상태별 후보 반환도 branch 내부에서 분리해 표현한다. NEW/REOPENED는 Dev assignee 후보와 Tester verifier 후보를 모두 반환하고, ASSIGNED는 Dev assignee 후보만, FIXED는 Tester verifier 후보만 반환한다.
-
-6. Protected Variations
-UC8 후보 추천 규칙과 상태별 배정 정책은 서로 다른 변경 축이다. 추천은 AssignmentRecommendationService 뒤에 숨기고, 상태별 사후조건은 Issue의 메서드로 분기하여 정책 변경 영향을 줄인다.
-
-7. Information Expert - 상태별 불변식
-OC-04는 verifier/fixer/resolver 유지, OC-05는 assignee/fixer/resolver 유지, OC-12는 fixer/resolver 보존을 명시한다. 이 association들의 현재 값을 알고 있는 객체가 Issue이므로, 변경하지 않아야 하는 책임도 Issue에 둔다.
-
-8. Artifact 정합성
-SD-05는 UC5 대표 SD이므로 SSD 05의 네 branch와 OC-03/04/05/12를 모두 반영한다.
-반영된 branch는 다음과 같다.
-- ASSIGNED -> ASSIGNED: reassignIssue(issueId, assigneeId), status 유지, ASSIGNMENT_CHANGED only, verifier/fixer/resolver 변경 없음
-- FIXED -> FIXED: changeVerifier(issueId, verifierId), status 유지, ASSIGNMENT_CHANGED only, assignee/fixer/resolver 변경 없음
-- NEW -> ASSIGNED: assignIssue(issueId, assigneeId, verifierId), ASSIGNMENT_CHANGED + STATUS_CHANGED
-- REOPENED -> ASSIGNED: assignIssue(issueId, assigneeId, verifierId), ASSIGNMENT_CHANGED + STATUS_CHANGED, fixer/resolver 보존
-
-주의:
-ASSIGNED -> ASSIGNED와 FIXED -> FIXED는 상태 전이가 아니므로 STATUS_CHANGED history를 만들지 않는다.
-기존 status는 각각 ASSIGNED, FIXED로 유지되며, 변경된 배정 정보만 IssueHistory(actionType=ASSIGNMENT_CHANGED)에 기록한다.
-모든 UC5 IssueHistory 생성 메시지는 changedDate=now를 포함한다.
-UC2 Add Comment는 UC5의 선택적 extension 흐름이므로 opt/ref fragment로 별도 표시한다.
-권한/상태 rejection은 후보 추천보다 먼저 처리한다.
-PNG 가독성을 위해 네 branch의 내부 메시지를 압축하고, branch summary note를 상단에 배치했다.
+5. Low Coupling / High Cohesion
+GRASP Controller는 branch에 맞는 의도 메시지만 보내고, association 변경과 history 기록은 Issue 안에 응집된다.

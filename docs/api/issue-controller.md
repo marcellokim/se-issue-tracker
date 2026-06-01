@@ -59,7 +59,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `registerIssue` | UC1, OC-01, SSD-01 | `docs/uml/dcd/its_dcd_ver2.puml`의 `IssueController.registerIssue`, `Issue.create`, `IssueHistory(CREATED)`, reporter 연관 |
+| `registerIssue` | UC1, OC-01, SSD-01 | `docs/uml/dcd/its_dcd.puml`의 `Issue`, `IssueHistory`, reporter 연관; 구현 `IssueController.registerIssue`, `IssueService.registerIssue` |
 | `addComment` | UC2, OC-02, SSD-02 | `IssueService.addComment`, `Comment`, `IssueHistory(COMMENTED)`, writer 연관 |
 | `addDependency` | UC7, OC-14, SSD-24 | `Issue.addDependency`, `IssueDependency`, blocking/blocked issue 연관, `IssueHistory(DEPENDENCY_CHANGED)` |
 | `removeDependency` | UC7, OC-15, SSD-25 | DCD는 `removeDependency(dependencyId)`로 표현하지만, 구현은 `IssueService.removeDependency(blockingIssueId, blockedIssueId)`와 `Issue.removeDependency`를 사용 |

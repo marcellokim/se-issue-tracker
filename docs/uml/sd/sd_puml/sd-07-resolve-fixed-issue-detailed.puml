@@ -5,66 +5,35 @@ title Detailed SD 07 - Resolve Fixed Issue
 hide footbox
 
 actor "Tester" as Tester
-participant "issueStateController:IssueStateController" as ISC
+participant ":IssueTrackingSystem" as ISC
 participant "targetIssue:Issue" as Issue
 participant "blockingIssue:Issue" as BlockingIssue
 
-Tester -> ISC : changeStatus(issueId,\ntargetStatus=RESOLVED, comment)
+Tester -> ISC : changeStatus(issueId, RESOLVED, comment)
 
-ISC -> Issue : checkResolvePreconditions(currentTester, comment)
-Issue -> Issue : verifyStatus(FIXED)
-Issue -> Issue : verifyVerifier(currentTester)
-Issue -> Issue : verifyComment(comment)
-Issue --> ISC : resolveAllowed or reason
-
-alt precondition failed (not verifier or status is not FIXED or comment is empty)
+alt Tester cannot resolve this issue or comment is blank
   ISC --> Tester : statusChangeRejected(reason)
-else preconditions valid
-  loop each blocking IssueDependency
+else basic transition rule is satisfied
+  loop each issue blocking targetIssue
     Issue -> BlockingIssue : isResolvedOrClosed()
     BlockingIssue --> Issue : true or false
   end
 
   alt unresolved blocking issue exists
-    Issue --> ISC : resolveBlocked(blockingIssueId)
     ISC --> Tester : statusChangeRejected(blockingIssueId)
-  else all blocking issues are RESOLVED or CLOSED
-  note right of Issue
-  dependency는 별도 IssueStatus가 아니라
-  FIXED -> RESOLVED 전이에 대한 guard이다.
-  end note
-
-  ISC -> Issue : resolve(currentTester, comment, now)
-  activate Issue
-
-  create "resolveComment:Comment" as Comment
-  Issue --> Comment : new(content=comment,\nwriter=currentTester,\ncreatedDate=now)
-  Issue -> Issue : addComment(resolveComment)
-
-  create "commentHistory:IssueHistory" as CommentHistory
-  Issue --> CommentHistory : new(action=COMMENTED,\nmessage=comment,\nchangedBy=currentTester,\nchangedDate=now)
-  Issue -> Issue : addHistory(commentHistory)
-
-  Issue -> Issue : setResolver(currentTester)
-  Issue -> Issue : changeStatus(RESOLVED)
-
-  create "statusHistory:IssueHistory" as StatusHistory
-  Issue --> StatusHistory : new(action=STATUS_CHANGED,\npreviousValue=FIXED,\nnewValue=RESOLVED,\nchangedBy=currentTester,\nchangedDate=now)
-  Issue -> Issue : addHistory(statusHistory)
-
-  note right of Issue
-  OC-07 사후조건:
-  - Comment 생성 및 Issue에 추가
-  - resolver = currentTester
-  - Issue.status = RESOLVED
-  - assignee/verifier/fixer 유지
-  - IssueHistory(COMMENTED) 기록
-  - IssueHistory(STATUS_CHANGED) 기록
-  end note
-
-  Issue --> ISC : updatedIssue(status=RESOLVED,\nresolver=currentTester)
-  deactivate Issue
-  ISC --> Tester : updatedIssue(issueId,\nstatus=RESOLVED,\nresolver=currentTester)
+  else all blocking issues are resolved or closed
+    ISC -> Issue : resolve(currentTester, comment, now)
+    activate Issue
+    create "resolveComment:Comment" as Comment
+    Issue --> Comment : new(content=comment, writer=currentTester)
+    create "commentHistory:IssueHistory" as CommentHistory
+    Issue --> CommentHistory : new(COMMENTED, message=comment)
+    create "statusHistory:IssueHistory" as StatusHistory
+    Issue --> StatusHistory : new(STATUS_CHANGED, FIXED -> RESOLVED)
+    Issue -> Issue : resolver=currentTester;\nclear assignee/verifier;\nstatus=RESOLVED
+    Issue --> ISC : updated(status=RESOLVED)
+    deactivate Issue
+    ISC --> Tester : updatedIssue(issueId, status=RESOLVED)
   end
 end
 

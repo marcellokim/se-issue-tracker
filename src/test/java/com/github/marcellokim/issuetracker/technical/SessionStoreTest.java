@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 class SessionStoreTest {
 
     @Test
-    @DisplayName("starts, reads, and clears a user session")
-    void startsReadsAndClearsSession() {
+    @DisplayName("session remembers the logged in user")
+    void remembersLoggedInUser() {
         SessionStore store = new SessionStore();
 
         assertFalse(store.currentLoginId().isPresent());
@@ -29,8 +29,8 @@ class SessionStoreTest {
     }
 
     @Test
-    @DisplayName("rejects blank session login id")
-    void rejectsBlankSessionLoginId() {
+    @DisplayName("blank login id is not a session")
+    void blankLoginIdIsNotASession() {
         SessionStore store = new SessionStore();
 
         assertThrows(IllegalArgumentException.class, () -> store.start(null));

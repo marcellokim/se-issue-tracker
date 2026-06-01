@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,10 +35,11 @@ class IssueWorkflowServiceTest {
     private final User assignee = user("assignee", Role.DEV);
     private final User tester = user("tester", Role.TESTER);
     private final User pl = user("pl", Role.PL);
+    private final User outsider = user("outsider", Role.DEV);
 
     @Test
-    @DisplayName("reporter can update and comment on a new issue")
-    void reporterCanUpdateAndCommentOnNewIssue() {
+    @DisplayName("reporter gets edit and comment buttons")
+    void reporterGetsIssueButtons() {
         Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
 
         IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), reporter.getLoginId());
@@ -50,8 +52,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("project lead sees management actions that match current issue status")
-    void projectLeadSeesStatusAwareManagementActions() {
+    @DisplayName("PL gets new issue management buttons")
+    void plGetsNewIssueButtons() {
         Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
 
         IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), pl.getLoginId());
@@ -68,8 +70,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("assignee can mark assigned issue as fixed")
-    void assigneeCanMarkAssignedIssueFixed() {
+    @DisplayName("assignee gets the fixed button")
+    void assigneeGetsFixedButton() {
         Issue issue = issue(1L, IssueStatus.ASSIGNED, reporter, assignee, tester);
 
         IssueWorkflowActions actions = service(issue).viewAvailableActions(issue.id(), assignee.getLoginId());
@@ -80,8 +82,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("tester resolves fixed issue only when blocking issues are complete")
-    void testerResolveRequiresCompleteBlockingIssues() {
+    @DisplayName("tester waits until blockers are done")
+    void testerWaitsForBlockers() {
         Issue blocking = issue(1L, IssueStatus.NEW, reporter, assignee, tester);
         Issue fixed = issue(2L, IssueStatus.FIXED, reporter, assignee, tester);
         FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
@@ -101,8 +103,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("project lead can close resolved issues and reopen resolved or closed issues")
-    void projectLeadCanCloseAndReopenCompletedIssues() {
+    @DisplayName("PL gets close and reopen buttons")
+    void plGetsCloseAndReopenButtons() {
         Issue resolved = issue(1L, IssueStatus.RESOLVED, reporter, assignee, tester);
         Issue closed = issue(2L, IssueStatus.CLOSED, reporter, assignee, tester);
         IssueWorkflowService service = service(resolved, closed);
@@ -120,8 +122,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("deleted issue exposes no normal workflow actions")
-    void deletedIssueExposesNoNormalWorkflowActions() {
+    @DisplayName("deleted issue shows no normal buttons")
+    void deletedIssueShowsNoButtons() {
         Issue deleted = issue(1L, IssueStatus.DELETED, reporter, null, null);
 
         IssueWorkflowActions actions = service(deleted).viewAvailableActions(deleted.id(), pl.getLoginId());
@@ -133,8 +135,8 @@ class IssueWorkflowServiceTest {
     }
 
     @Test
-    @DisplayName("comment actions require same issue, active membership, writer, and GENERAL purpose")
-    void commentActionsRequireWriterAndGeneralPurpose() {
+    @DisplayName("comment buttons follow writer rules")
+    void commentButtonsFollowWriterRules() {
         Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
         Issue otherIssue = issue(2L, IssueStatus.NEW, reporter, null, null);
         FakeCommentRepository comments = new FakeCommentRepository(
@@ -149,6 +151,108 @@ class IssueWorkflowServiceTest {
         assertFalse(service.canUpdateComment(issue.id(), 101L, reporter.getLoginId()));
     }
 
+    @Test
+    @DisplayName("comment action list follows writer and issue access")
+    void commentActionListFollowsWriterAndIssueAccess() {
+        Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
+        Issue deleted = issue(2L, IssueStatus.DELETED, reporter, null, null);
+        FakeCommentRepository comments = new FakeCommentRepository(
+                comment(100L, issue.id(), reporter, CommentPurpose.GENERAL),
+                comment(101L, issue.id(), reporter, CommentPurpose.STATUS_CHANGE));
+        InMemoryUserRepository users = new InMemoryUserRepository(reporter, assignee, tester, pl, outsider)
+                .withProjectMembers(
+                        PROJECT_ID,
+                        reporter.getLoginId(),
+                        assignee.getLoginId(),
+                        tester.getLoginId(),
+                        pl.getLoginId());
+        IssueWorkflowService service = service(new FakeIssueDependencyRepository(), comments, users, issue, deleted);
+
+        List<CommentActionResult> actions = service.viewCommentActions(issue.id(), reporter.getLoginId());
+
+        assertEquals(2, actions.size());
+        assertTrue(actions.get(0).canUpdate());
+        assertTrue(actions.get(0).canDelete());
+        assertFalse(actions.get(1).canUpdate());
+        assertFalse(actions.get(1).canDelete());
+        assertTrue(service.viewCommentActions(deleted.id(), reporter.getLoginId()).isEmpty());
+        assertTrue(service.viewCommentActions(issue.id(), outsider.getLoginId()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("workflow action names follow enabled flags")
+    void workflowActionNamesFollowEnabledFlags() {
+        IssueWorkflowActions actions = new IssueWorkflowActions(
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true);
+
+        assertEquals(List.of(
+                "UPDATE_ISSUE",
+                "CHANGE_PRIORITY",
+                "START_ASSIGNMENT",
+                "ASSIGN",
+                "REASSIGN_DEV",
+                "CHANGE_TESTER",
+                "MARK_FIXED",
+                "REJECT_FIX",
+                "RESOLVE",
+                "CLOSE",
+                "REOPEN",
+                "ADD_DEPENDENCY",
+                "REMOVE_DEPENDENCY",
+                "ADD_COMMENT",
+                "SOFT_DELETE"), actions.availableActionNames());
+        assertTrue(new IssueWorkflowActions(
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false).availableActionNames().isEmpty());
+    }
+
+    @Test
+    @DisplayName("outsider gets no buttons")
+    void outsiderGetsNoButtons() {
+        Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
+        InMemoryUserRepository users = new InMemoryUserRepository(reporter, assignee, tester, pl, outsider)
+                .withProjectMembers(
+                        PROJECT_ID,
+                        reporter.getLoginId(),
+                        assignee.getLoginId(),
+                        tester.getLoginId(),
+                        pl.getLoginId());
+
+        IssueWorkflowActions actions = service(users, issue).viewAvailableActions(issue.id(), outsider.getLoginId());
+
+        assertFalse(actions.canUpdateIssue());
+        assertFalse(actions.canAddComment());
+        assertFalse(actions.canStartAssignment());
+        assertFalse(actions.canSoftDelete());
+    }
+
     private IssueWorkflowService service(Issue... issues) {
         return service(new FakeIssueDependencyRepository(), new FakeCommentRepository(), issues);
     }
@@ -161,11 +265,23 @@ class IssueWorkflowServiceTest {
             FakeIssueDependencyRepository dependencies,
             FakeCommentRepository comments,
             Issue... issues) {
+        return service(dependencies, comments, users(), issues);
+    }
+
+    private IssueWorkflowService service(InMemoryUserRepository users, Issue... issues) {
+        return service(new FakeIssueDependencyRepository(), new FakeCommentRepository(), users, issues);
+    }
+
+    private IssueWorkflowService service(
+            FakeIssueDependencyRepository dependencies,
+            FakeCommentRepository comments,
+            InMemoryUserRepository users,
+            Issue... issues) {
         return new IssueWorkflowService(
                 new InMemoryIssueRepository(issues),
                 dependencies,
                 comments,
-                users(),
+                users,
                 new PermissionPolicy());
     }
 

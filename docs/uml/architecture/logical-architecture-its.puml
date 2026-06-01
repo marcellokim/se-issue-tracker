@@ -6,8 +6,8 @@ title Issue Tracking System - Logical Architecture Overview
 top to bottom direction
 
 skinparam componentStyle rectangle
-skinparam nodesep 42
-skinparam ranksep 44
+skinparam nodesep 48
+skinparam ranksep 48
 skinparam linetype ortho
 skinparam rectangle {
   FontSize 13
@@ -15,19 +15,29 @@ skinparam rectangle {
   FontColor #263238
 }
 
-rectangle "Presentation Layer\n--\nJavaFX UI\nSwing UI" as PRES <<boundary>> #E3F2FD
+rectangle "Presentation Layer\n--\nJavaFX UI entry point\nFuture UI toolkits reuse the same application boundary" as PRES <<presentation>> #E3F2FD
 
-rectangle "Application Layer\n--\nUse Case Controllers\nApplication Policies / Services" as APP <<control>> #FFF8E1
+rectangle "Application Bootstrap\n--\nMain\nApplicationContext\nApplicationBootstrap" as BOOT <<bootstrap>> #E8F5E9
 
-rectangle "Use Case / Policy Partitions\n--\nIssue / Assignment / State / Deleted Issue\nStatistics / Permission" as PARTITIONS <<control>> #FFF3E0
+rectangle "Controller Layer\n--\nUse-case entry points\nCurrent-user boundary" as CTRL <<controller>> #FFF8E1
 
-rectangle "Domain Layer\n--\nIssue Aggregate\nUser / Project\nIssue role relations\nRepository interfaces\nValue types" as DOM <<domain>> #F1F8E9
+rectangle "Service / Policy Layer\n--\nUse-case orchestration\nPermissionPolicy\nWorkflow / recommendation policies" as SERVICE <<service>> #FFF3E0
 
-rectangle "Technical Services\n--\nPersistence implementations\nSecurity support" as TECH <<infrastructure>> #F3E5F5
+rectangle "Domain Model\n--\nUser / Project / ProjectMember\nIssue / Comment / IssueHistory / IssueDependency\nRole / Status / Priority / Action values" as DOMAIN <<domain>> #F1F8E9
 
-PRES -down-> APP : user actions
-APP -down-> PARTITIONS : use-case policy selection
-PARTITIONS -down-> DOM : domain coordination
-APP -down-> DOM : repository abstractions
-TECH -up-> DOM : implements repositories / supports security
+rectangle "Application Ports\n--\nRepository interfaces\nClock / PasswordHashing\nCurrentUserSession / CommentIdProvider" as PORTS <<port>> #E0F2F1
+
+rectangle "Infrastructure Adapters\n--\nJDBC repositories\nPasswordHasher / SessionStore / SystemClock\nCommentIdGenerator" as INFRA <<adapter>> #F3E5F5
+
+database "Oracle Database" as DB #ECEFF1
+
+PRES -down-> BOOT : starts application
+BOOT -down-> CTRL : wires controllers
+BOOT -down-> SERVICE : wires services and policies
+BOOT -down-> INFRA : creates adapters
+CTRL -down-> SERVICE : delegates use cases
+SERVICE -down-> DOMAIN : applies domain behavior
+SERVICE -down-> PORTS : uses ports
+INFRA -up-> PORTS : implements ports
+INFRA -down-> DB : persists data
 @enduml

@@ -456,17 +456,3 @@ extension point: UC2(Add Comment)
 - [ ] 최종 제출 PDF 반영 전 팀원이 UC별 wording, actor 표현(`Admin`, `Auth User`, `Tester`, `Dev`, `PL`), include/extend 설명, 상태명, `reportedDate` 용어를 공동 검수한다.
 
 ---
-
-## 변경 이력
-- 2026-04-29 _초안 작성_
-- 2026-05-01 _텍스트 문법 수정_
-- 2026-05-02 _가정 사항 변경을 반영하여 재작성 : 이슈 등록 actor를 Tester로 한정, UC2를 코멘트 추가로 변경, 등록&해결 전이 시 코멘트 정책 반영_
-- 2026-05-02 _명세 정합성 보강 : 오타·단계 번호 정정, UC4 Extensions에 UC5 호출 명시, UC6 Trigger·Extension Point 명확화, UC12 include 관계 요약 표에 추가, Extension Points 항목 추가, include/extend 표기 통일_
-- 2026-05-05 _UC 구조 변경 : 기존 UC5(배정 및 상태 변경)를 UC5(이슈 배정)와 UC6(이슈 상태 변경)로 분리, 기존 UC6(Assignee 추천)을 UC8로 번호 재배정, UC14(권한 검사)로 include 참조 일괄 수정, UC1 Primary Actor를 Auth User로 확장, UC2 Actor 직접 연결 제거 및 subfunction으로 정리, UC4에 UC15(이슈 수정) extension point 추가, UC5에 verifier 지정 흐름 반영, UC6에 역할별 허용 전이 요약, 역전이(FIXED→ASSIGNED) & RESOLVED→CLOSED 전이 추가, 유스케이스 관계 요약 전체 갱신_
-- 2026-05-09 _UC5 Postconditions 수정: 배정 사유 코멘트 항목 삭제 (extend 관계이므로 선택적), 관계 요약표 UC5→UC2 설명 수정_
-- 2026-05-10 _#63 리뷰 반영 전면 보강: 작성 범위·핵심 UC 선정 근거·Actor 정의·include/extend 관계 설명 섹션 추가, UC5 Main Flow 권한 검사 순서를 목록 노출 이전으로 이동(보안 노출 방지), UC6 REOPENED 자동 필드 설명 통일, include/extend 관계 요약에 UC4→UC2 extend 추가, 관계 요약표에 UC16→UC14 include 추가, 전체 유스케이스 커버리지 매트릭스 추가, 데모 시나리오 매핑 추가, UC4→UC16 extend 관계 제거(다이어그램 미확정으로 명세에서 선제거)_
-- 2026-05-10 _#63 리뷰 추가 반영: Actor↔UC 매핑표와 팀 문장 검수 TODO 추가, UC1 액터 범위와 대표 Tester 시나리오 구분, UC 헤더 표기 통일_
-- 2026-05-11 _대면회의 반영: UC9를 Manage Deleted Issue로 수정, 삭제/복구 Brief 명세와 FIFO 영구 삭제 내부 보관 정책을 추가_
-- 2026-05-13 _SSD/도메인 모델 정합성 반영: UC9 삭제 경로를 NEW/CLOSED→DELETED로 확장, 복구 경로를 DELETED→삭제 직전 상태로 수정, deleted 전이 시각과 복구 상태를 IssueHistory 기반으로 결정하도록 명시_
-- 2026-05-14 _팀 회의 반영: UC5를 배정/배정 변경 범위로 확장하고 UC8을 Recommend Assignment Candidates로 재정의, 상태별 assignee/verifier 후보 반환 정책과 ASSIGNMENT_CHANGED 이력, UC6 STATUS_CHANGED 이력, fixer/resolver-history 동기화 메모, UC10 filters.scope, resolver 보존 정책을 반영_
-- 2026-05-30 _유스케이스 명세 최종 다듬기 종료_
