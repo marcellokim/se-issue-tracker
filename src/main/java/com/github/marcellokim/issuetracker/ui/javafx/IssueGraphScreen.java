@@ -164,7 +164,6 @@ final class IssueGraphScreen extends VBox {
                 if (pA == null || pB == null) continue;
                 double dx = pB[0] - pA[0];
                 double dy = pB[1] - pA[1];
-                double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
                 double fx = ATTRACTION * dx;
                 double fy = ATTRACTION * dy;
                 double[] fA = forces.get(dep.blockingIssueId());
@@ -195,7 +194,7 @@ final class IssueGraphScreen extends VBox {
             double dx = to[0] - from[0];
             double dy = to[1] - from[1];
             double dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 1) continue;
+            if (dist < NODE_RADIUS * 2 + 6) continue;
             double ux = dx / dist;
             double uy = dy / dist;
 
