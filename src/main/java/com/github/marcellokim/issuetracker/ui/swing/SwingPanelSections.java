@@ -8,13 +8,16 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.List;
 import java.util.Objects;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -159,6 +162,47 @@ final class SwingPanelSections {
         scrollPane.setColumnHeaderView(table.getTableHeader());
         section.add(scrollPane, BorderLayout.CENTER);
         return section;
+    }
+
+    static JPanel navigationHeader(List<JLabel> labels, List<JButton> buttons) {
+        JPanel header = new JPanel(new BorderLayout(SwingStyles.SECTION_GAP, 0));
+        header.setBackground(SwingStyles.SURFACE);
+        header.setBorder(SwingStyles.surfaceBorder());
+        header.add(stackedLabels(labels), BorderLayout.CENTER);
+        header.add(buttonRow(buttons), BorderLayout.EAST);
+        return header;
+    }
+
+    static JPanel verticalScrollPanel(Component content) {
+        JScrollPane scrollPane = new JScrollPane(
+                content,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private static JPanel stackedLabels(List<JLabel> labels) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        for (int index = 0; index < labels.size(); index++) {
+            if (index > 0) {
+                panel.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
+            }
+            panel.add(labels.get(index));
+        }
+        return panel;
+    }
+
+    private static JPanel buttonRow(List<JButton> buttons) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        buttons.forEach(panel::add);
+        return panel;
     }
 
     static void applyColumnWidths(JTable table, int[] widths) {

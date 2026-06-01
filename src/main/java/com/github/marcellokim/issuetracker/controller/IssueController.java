@@ -4,6 +4,7 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.User;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.CommentActionResult;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
@@ -13,7 +14,6 @@ import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -55,7 +55,7 @@ public final class IssueController {
             return detail;
         }
         IssueWorkflowActions actions = issueWorkflowService.viewAvailableActions(issueId, user.getLoginId());
-        return detail.withAvailableActions(availableActionNames(actions));
+        return detail.withAvailableActions(actions.availableActionNames());
     }
 
     public List<IssueSummary> searchIssues(long projectId, String keyword, IssueStatus status,
@@ -148,6 +148,11 @@ public final class IssueController {
         return requireIssueWorkflowService().viewAvailableActions(issueId, user.getLoginId());
     }
 
+    public List<CommentActionResult> viewCommentActions(long issueId) {
+        User user = requireCurrentUser();
+        return requireIssueWorkflowService().viewCommentActions(issueId, user.getLoginId());
+    }
+
     public boolean canUpdateComment(long issueId, long commentId) {
         User user = requireCurrentUser();
         return requireIssueWorkflowService().canUpdateComment(issueId, commentId, user.getLoginId());
@@ -168,56 +173,6 @@ public final class IssueController {
             throw new IllegalStateException("Issue workflow service is not configured.");
         }
         return issueWorkflowService;
-    }
-
-    private static List<String> availableActionNames(IssueWorkflowActions actions) {
-        ArrayList<String> names = new ArrayList<>();
-        if (actions.canUpdateIssue()) {
-            names.add("UPDATE_ISSUE");
-        }
-        if (actions.canChangePriority()) {
-            names.add("CHANGE_PRIORITY");
-        }
-        if (actions.canStartAssignment()) {
-            names.add("START_ASSIGNMENT");
-        }
-        if (actions.canAssign()) {
-            names.add("ASSIGN");
-        }
-        if (actions.canReassign()) {
-            names.add("REASSIGN_DEV");
-        }
-        if (actions.canChangeVerifier()) {
-            names.add("CHANGE_TESTER");
-        }
-        if (actions.canMarkFixed()) {
-            names.add("MARK_FIXED");
-        }
-        if (actions.canRejectFix()) {
-            names.add("REJECT_FIX");
-        }
-        if (actions.canResolve()) {
-            names.add("RESOLVE");
-        }
-        if (actions.canClose()) {
-            names.add("CLOSE");
-        }
-        if (actions.canReopen()) {
-            names.add("REOPEN");
-        }
-        if (actions.canAddDependency()) {
-            names.add("ADD_DEPENDENCY");
-        }
-        if (actions.canRemoveDependency()) {
-            names.add("REMOVE_DEPENDENCY");
-        }
-        if (actions.canAddComment()) {
-            names.add("ADD_COMMENT");
-        }
-        if (actions.canSoftDelete()) {
-            names.add("SOFT_DELETE");
-        }
-        return List.copyOf(names);
     }
 
 }

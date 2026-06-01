@@ -43,6 +43,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final transient AtomicReference<SwingWorker<Void, Void>> projectDetailWorker = new AtomicReference<>();
     private final transient AtomicReference<SwingWorker<Void, Void>> projectListWorker = new AtomicReference<>();
     private final transient AtomicReference<SwingWorker<Void, Void>> issueListWorker = new AtomicReference<>();
+    private final transient AtomicReference<SwingWorker<Void, Void>> issueDetailWorker = new AtomicReference<>();
 
     SwingAppPanel(
             AuthenticationController authenticationController,
@@ -78,6 +79,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Issue Tracker");
             loginPanel.showMessage(" ", false);
             loginPanel.clearPassword();
@@ -96,6 +98,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Admin dashboard");
             AdminDashboardPanel panel = new AdminDashboardPanel(
                     user,
@@ -121,6 +124,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Project list");
             ProjectListPanel panel = new ProjectListPanel(
                     user,
@@ -143,6 +147,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         cancelProjectDetailWorker();
         cancelProjectListWorker();
         cancelIssueListWorker();
+        cancelIssueDetailWorker();
         authenticationController.logout();
         showLogin();
     }
@@ -207,6 +212,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Account management");
             AccountManagementPanel panel = new AccountManagementPanel(
                     user,
@@ -237,6 +243,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Project management");
             ProjectManagementPanel panel = new ProjectManagementPanel(
                     user,
@@ -274,6 +281,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Project detail");
             ProjectDetailPanel panel = new ProjectDetailPanel(
                     user,
@@ -315,6 +323,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Issue list");
             IssueListPanel panel = new IssueListPanel(
                     user,
@@ -348,8 +357,38 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             cancelProjectDetailWorker();
             cancelProjectListWorker();
             cancelIssueListWorker();
+            cancelIssueDetailWorker();
             titleUpdater.accept("Issue detail");
-            showPlaceholder(projectListCard, "Issue detail #" + issueId, user, () -> showIssueList(user, projectId));
+            IssueDetailPanel panel = new IssueDetailPanel(
+                    user,
+                    new IssueDetailPanel.IssueDetailActions(
+                            (panelRef, action) -> showIssueAction(user, projectId, issueId, action),
+                            () -> showIssueList(user, projectId),
+                            this::logout));
+            projectListCard.removeAll();
+            projectListCard.add(panel, BorderLayout.CENTER);
+            projectListCard.revalidate();
+            projectListCard.repaint();
+            cardLayout.show(this, PROJECT_LIST_CARD);
+            startIssueDetailTask(panel, presenter -> presenter.loadIssue(issueId));
+        });
+    }
+
+    private void showIssueAction(UserResult user, long projectId, long issueId, String action) {
+        SwingUtilities.invokeLater(() -> {
+            cancelDashboardWorker();
+            cancelAccountWorker();
+            cancelProjectWorker();
+            cancelProjectDetailWorker();
+            cancelProjectListWorker();
+            cancelIssueListWorker();
+            cancelIssueDetailWorker();
+            titleUpdater.accept("Issue action");
+            showPlaceholder(
+                    projectListCard,
+                    "Issue action " + action,
+                    user,
+                    () -> showIssueDetail(user, projectId, issueId));
             cardLayout.show(this, PROJECT_LIST_CARD);
         });
     }
@@ -447,6 +486,23 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
 
     private void cancelIssueListWorker() {
         SwingWorker<Void, Void> worker = issueListWorker.getAndSet(null);
+        if (worker != null && !worker.isDone()) {
+            worker.cancel(true);
+        }
+    }
+
+    private void startIssueDetailTask(IssueDetailPanel panel, IssueDetailTask task) {
+        Objects.requireNonNull(panel, "panel");
+        Objects.requireNonNull(task, "task");
+        cancelIssueDetailWorker();
+        panel.setBusy(true);
+        IssueDetailWorker worker = new IssueDetailWorker(panel, task);
+        issueDetailWorker.set(worker);
+        worker.execute();
+    }
+
+    private void cancelIssueDetailWorker() {
+        SwingWorker<Void, Void> worker = issueDetailWorker.getAndSet(null);
         if (worker != null && !worker.isDone()) {
             worker.cancel(true);
         }
@@ -644,6 +700,31 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         }
     }
 
+    private final class IssueDetailWorker extends SwingWorker<Void, Void> {
+
+        private final IssueDetailPanel panel;
+        private final IssueDetailTask task;
+
+        private IssueDetailWorker(IssueDetailPanel panel, IssueDetailTask task) {
+            this.panel = Objects.requireNonNull(panel, "panel");
+            this.task = Objects.requireNonNull(task, "task");
+        }
+
+        @Override
+        protected Void doInBackground() {
+            IssueDetailPresenter presenter = new IssueDetailPresenter(
+                    issueController,
+                    new CurrentIssueDetailView(panel, this, issueDetailWorker::get));
+            task.run(presenter);
+            return null;
+        }
+
+        @Override
+        protected void done() {
+            finishWorker(issueDetailWorker, this, () -> panel.setBusy(false), panel::showMessage, "Issue detail");
+        }
+    }
+
     private static void finishWorker(
             AtomicReference<SwingWorker<Void, Void>> workerRef,
             SwingWorker<Void, Void> worker,
@@ -695,6 +776,12 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private interface IssueListTask {
 
         void run(IssueListPresenter presenter);
+    }
+
+    @FunctionalInterface
+    private interface IssueDetailTask {
+
+        void run(IssueDetailPresenter presenter);
     }
 
     @FunctionalInterface
