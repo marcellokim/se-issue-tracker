@@ -26,6 +26,7 @@ import com.github.marcellokim.issuetracker.service.AccountService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
@@ -418,13 +419,13 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitPlaceholderTitle(panel, "Issue detail #7");
+        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
 
         SwingComponentTestSupport.onEdt(() -> {
             assertEquals(
-                    "Issue detail #7",
-                    SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText());
-            SwingComponentTestSupport.find(panel, "backButton", JButton.class).doClick();
+                    "[ISSUE-7] Login bug",
+                    SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
+            SwingComponentTestSupport.find(panel, "issueDetailBackButton", JButton.class).doClick();
         });
         awaitIssueRows(panel, 1);
     }
@@ -564,19 +565,19 @@ class SwingAppPanelTest {
         });
     }
 
-    private static void awaitPlaceholderTitle(SwingAppPanel panel, String expectedTitle) throws Exception {
-        CountDownLatch placeholderReady = new CountDownLatch(1);
+    private static void awaitIssueDetailTitle(SwingAppPanel panel, String expectedTitle) throws Exception {
+        CountDownLatch detailReady = new CountDownLatch(1);
         AtomicReference<Timer> timerRef = new AtomicReference<>();
         SwingComponentTestSupport.onEdt(() -> {
             Timer timer = new Timer(25, event -> {
                 try {
-                    String actual = SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText();
+                    String actual = SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText();
                     if (expectedTitle.equals(actual)) {
                         ((Timer) event.getSource()).stop();
-                        placeholderReady.countDown();
+                        detailReady.countDown();
                     }
                 } catch (AssertionError ignored) {
-                    // Placeholder is installed asynchronously after navigation.
+                    // Detail panel is installed asynchronously after navigation.
                 }
             });
             timer.setRepeats(true);
@@ -584,7 +585,7 @@ class SwingAppPanelTest {
             timer.start();
         });
 
-        boolean ready = placeholderReady.await(5, TimeUnit.SECONDS);
+        boolean ready = detailReady.await(5, TimeUnit.SECONDS);
         SwingComponentTestSupport.onEdt(() -> {
             Timer timer = timerRef.get();
             if (timer != null) {
@@ -593,7 +594,7 @@ class SwingAppPanelTest {
             if (!ready) {
                 assertEquals(
                         expectedTitle,
-                        SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText());
+                        SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
             }
         });
     }
@@ -689,6 +690,9 @@ class SwingAppPanelTest {
             }
         });
         var issueRepository = new InMemoryIssueRepository(issues.toArray(Issue[]::new));
+        var dependencyRepository = new FakeIssueDependencyRepository();
+        var commentRepository = new FakeCommentRepository();
+        var historyRepository = new FakeIssueHistoryRepository();
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         return new SwingControllerFixture(
@@ -721,12 +725,18 @@ class SwingAppPanelTest {
                         new IssueService(
                                 projectRepository,
                                 issueRepository,
-                                new FakeIssueDependencyRepository(),
-                                new FakeCommentRepository(),
-                                new FakeIssueHistoryRepository(),
+                                dependencyRepository,
+                                commentRepository,
+                                historyRepository,
                                 repository,
                                 permissionPolicy,
-                                () -> NOW)));
+                                () -> NOW),
+                        new IssueWorkflowService(
+                                issueRepository,
+                                dependencyRepository,
+                                commentRepository,
+                                repository,
+                                permissionPolicy)));
     }
 
     private static User user(String loginId, Role role) {

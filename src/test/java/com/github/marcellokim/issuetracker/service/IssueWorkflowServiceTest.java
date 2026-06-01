@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -148,6 +149,88 @@ class IssueWorkflowServiceTest {
         assertFalse(service.canUpdateComment(otherIssue.id(), 100L, reporter.getLoginId()));
         assertFalse(service.canDeleteComment(issue.id(), 100L, assignee.getLoginId()));
         assertFalse(service.canUpdateComment(issue.id(), 101L, reporter.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("comment action list follows writer and issue access")
+    void commentActionListFollowsWriterAndIssueAccess() {
+        Issue issue = issue(1L, IssueStatus.NEW, reporter, null, null);
+        Issue deleted = issue(2L, IssueStatus.DELETED, reporter, null, null);
+        FakeCommentRepository comments = new FakeCommentRepository(
+                comment(100L, issue.id(), reporter, CommentPurpose.GENERAL),
+                comment(101L, issue.id(), reporter, CommentPurpose.STATUS_CHANGE));
+        InMemoryUserRepository users = new InMemoryUserRepository(reporter, assignee, tester, pl, outsider)
+                .withProjectMembers(
+                        PROJECT_ID,
+                        reporter.getLoginId(),
+                        assignee.getLoginId(),
+                        tester.getLoginId(),
+                        pl.getLoginId());
+        IssueWorkflowService service = service(new FakeIssueDependencyRepository(), comments, users, issue, deleted);
+
+        List<CommentActionResult> actions = service.viewCommentActions(issue.id(), reporter.getLoginId());
+
+        assertEquals(2, actions.size());
+        assertTrue(actions.get(0).canUpdate());
+        assertTrue(actions.get(0).canDelete());
+        assertFalse(actions.get(1).canUpdate());
+        assertFalse(actions.get(1).canDelete());
+        assertTrue(service.viewCommentActions(deleted.id(), reporter.getLoginId()).isEmpty());
+        assertTrue(service.viewCommentActions(issue.id(), outsider.getLoginId()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("workflow action names follow enabled flags")
+    void workflowActionNamesFollowEnabledFlags() {
+        IssueWorkflowActions actions = new IssueWorkflowActions(
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true);
+
+        assertEquals(List.of(
+                "UPDATE_ISSUE",
+                "CHANGE_PRIORITY",
+                "START_ASSIGNMENT",
+                "ASSIGN",
+                "REASSIGN_DEV",
+                "CHANGE_TESTER",
+                "MARK_FIXED",
+                "REJECT_FIX",
+                "RESOLVE",
+                "CLOSE",
+                "REOPEN",
+                "ADD_DEPENDENCY",
+                "REMOVE_DEPENDENCY",
+                "ADD_COMMENT",
+                "SOFT_DELETE"), actions.availableActionNames());
+        assertTrue(new IssueWorkflowActions(
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false).availableActionNames().isEmpty());
     }
 
     @Test
