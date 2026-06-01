@@ -28,6 +28,13 @@ public final class FakeIssueDependencyRepository implements IssueDependencyRepos
     }
 
     @Override
+    public List<IssueDependency> findDependenciesBlockedByIssue(long blockingIssueId) {
+        return dependencies.values().stream()
+                .filter(d -> d.blockingIssueId() == blockingIssueId)
+                .toList();
+    }
+
+    @Override
     public List<IssueDependency> findByProjectId(long projectId) {
         return List.copyOf(dependencies.values());
     }

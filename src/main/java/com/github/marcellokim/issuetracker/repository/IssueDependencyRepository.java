@@ -10,6 +10,8 @@ public interface IssueDependencyRepository {
 
     List<IssueDependency> findDependenciesBlockingIssue(long blockedIssueId);
 
+    List<IssueDependency> findDependenciesBlockedByIssue(long blockingIssueId);
+
     List<IssueDependency> findByProjectId(long projectId);
 
     boolean existsByPair(long blockingIssueId, long blockedIssueId);

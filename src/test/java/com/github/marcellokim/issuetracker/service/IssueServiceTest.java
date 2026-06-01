@@ -452,8 +452,8 @@ class IssueServiceTest {
                 assertEquals(String.valueOf(COMMENT_ID), detail.comments().getFirst().commentId());
                 assertEquals(1, detail.histories().size());
                 assertEquals(ActionType.COMMENTED, detail.histories().getFirst().actionType());
-                assertEquals(1, detail.dependencies().size());
-                assertEquals("dep-1", detail.dependencies().getFirst().dependencyId());
+                assertEquals(1, detail.blockedByDependencies().size());
+                assertEquals("dep-1", detail.blockedByDependencies().getFirst().dependencyId());
         }
 
         @Test
@@ -811,23 +811,16 @@ class IssueServiceTest {
         }
 
         @Test
-        @DisplayName("completed issue cannot be blocked")
-        void completedIssueCannotBeBlocked() {
+        @DisplayName("completed issue can still receive dependency - resolve-time check handles it")
+        void completedIssueCanReceiveDependency() {
                 var blockingIssue = persistedIssue(1L, "ISSUE-1");
                 var resolvedBlockedIssue = persistedIssue(2L, "ISSUE-2", PROJECT_ID, "Resolved blocked",
                                 IssueStatus.RESOLVED);
-                var closedBlockedIssue = persistedIssue(3L, "ISSUE-3", PROJECT_ID, "Closed blocked",
-                                IssueStatus.CLOSED);
-                var service = service(new InMemoryIssueRepository(
-                                blockingIssue,
-                                resolvedBlockedIssue,
-                                closedBlockedIssue));
-                String plLoginId = pl.getLoginId();
+                var service = service(new InMemoryIssueRepository(blockingIssue, resolvedBlockedIssue));
 
-                assertThrows(IllegalStateException.class,
-                                () -> service.addDependency(1L, 2L, plLoginId));
-                assertThrows(IllegalStateException.class,
-                                () -> service.addDependency(1L, 3L, plLoginId));
+                DependencyResult result = service.addDependency(1L, 2L, pl.getLoginId());
+                assertEquals(1L, result.blockingIssueId());
+                assertEquals(2L, result.blockedIssueId());
         }
 
         @Test

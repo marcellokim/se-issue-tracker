@@ -111,23 +111,37 @@ final class IssueDetailScreen extends VBox {
             commentList.setCellFactory(list -> new CommentCell(editableComments, deletableComments));
             commentList.setPrefHeight(200);
 
-            Label dependencyTitle = new Label("Dependencies (" + detail.dependencies().size() + ")");
-            dependencyTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-            ListView<String> depListView = new ListView<>();
-            for (DependencyResult dep : detail.dependencies()){
-                depListView.getItems().add(String.format("%s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey()));
+            Label blockedByTitle = new Label("Blocked by (" + detail.blockedByDependencies().size() + ")");
+            blockedByTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+            ListView<String> blockedByListView = new ListView<>();
+            for (DependencyResult dep : detail.blockedByDependencies()){
+                blockedByListView.getItems().add(String.format("%s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey()));
             }
-            depListView.setPrefHeight(Math.min(100, detail.dependencies().size() * 26 + 4));
+            blockedByListView.setPrefHeight(Math.min(80, detail.blockedByDependencies().size() * 26 + 4));
+
+            Label blockingTitle = new Label("Blocking (" + detail.blockingDependencies().size() + ")");
+            blockingTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+            ListView<String> blockingListView = new ListView<>();
+            for (DependencyResult dep : detail.blockingDependencies()){
+                blockingListView.getItems().add(String.format("%s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey()));
+            }
+            blockingListView.setPrefHeight(Math.min(80, detail.blockingDependencies().size() * 26 + 4));
 
             Label historyTitle = new Label("History (" + detail.histories().size() + " entries)");
             historyTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
 
-            getChildren().addAll(titleLabel, statusLabel, new Separator(),
+            VBox content = new VBox(8, titleLabel, statusLabel, new Separator(),
                     descriptionLabel, new Separator(),
                     peopleBox, new Separator(),
                     new Label("Available Actions:"), actionButtons, new Separator(),
                     commentsTitle, commentList,
-                    dependencyTitle, depListView, historyTitle, messageLabel);
+                    blockedByTitle, blockedByListView,
+                    blockingTitle, blockingListView,
+                    historyTitle, messageLabel);
+            javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(content);
+            scrollPane.setFitToWidth(true);
+            VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
+            getChildren().add(scrollPane);
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
             getChildren().add(messageLabel);
@@ -261,18 +275,23 @@ final class IssueDetailScreen extends VBox {
             ScreenComponents.showError(messageLabel, exception);
             return;
         }
-        List<IssueSummary> candidates = projectIssues.stream()
+        Set<Long> existingBlockedByIds = currentDetail.blockedByDependencies().stream()
+                .map(DependencyResult::blockingIssueId).collect(java.util.stream.Collectors.toSet());
+        Set<Long> existingBlockingIds = currentDetail.blockingDependencies().stream()
+                .map(DependencyResult::blockedIssueId).collect(java.util.stream.Collectors.toSet());
+        List<IssueSummary> allCandidates = projectIssues.stream()
                 .filter(i -> i.id() != issueId)
                 .toList();
-        if (candidates.isEmpty()){
+        if (allCandidates.isEmpty()){
             ScreenComponents.showInfo(messageLabel, "No other issues available");
             return;
         }
-        Dialog<IssueSummary> dialog = new Dialog<>();
+        Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Add Dependency");
-        dialog.setHeaderText("This issue will be blocked by the selected issue.");
+        ComboBox<String> directionBox = new ComboBox<>();
+        directionBox.getItems().addAll("Blocked by", "Blocks");
+        directionBox.setValue("Blocked by");
         ComboBox<IssueSummary> issueBox = new ComboBox<>();
-        issueBox.getItems().addAll(candidates);
         issueBox.setConverter(new StringConverter<>(){
             @Override public String toString(IssueSummary s){
                 return s == null ? "" : String.format("[%s] %s (%s)", s.issueId(), s.title(), s.status());
@@ -280,35 +299,53 @@ final class IssueDetailScreen extends VBox {
             @Override public IssueSummary fromString(String str){ return null; }
         });
         issueBox.setMaxWidth(Double.MAX_VALUE);
-        dialog.getDialogPane().setContent(new VBox(8, new Label("Blocking Issue:"), issueBox));
+        Runnable refreshCandidates = () -> {
+            issueBox.getItems().clear();
+            issueBox.setValue(null);
+            Set<Long> excluded = "Blocked by".equals(directionBox.getValue()) ? existingBlockedByIds : existingBlockingIds;
+            allCandidates.stream().filter(i -> !excluded.contains(i.id())).forEach(issueBox.getItems()::add);
+        };
+        directionBox.valueProperty().addListener((obs, old, val) -> refreshCandidates.run());
+        refreshCandidates.run();
+        dialog.getDialogPane().setContent(new VBox(8,
+                new Label("Direction:"), directionBox,
+                new Label("Issue:"), issueBox));
         dialog.getDialogPane().setPrefWidth(500);
         Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
         issueBox.valueProperty().addListener((obs, old, val) -> okButton.setDisable(val == null));
-        dialog.setResultConverter(bt -> bt == ButtonType.OK ? issueBox.getValue() : null);
-        dialog.showAndWait().ifPresent(blocking -> {
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK && issueBox.getValue() != null){
             try{
-                issueController.addDependency(blocking.id(), issueId);
+                long selectedId = issueBox.getValue().id();
+                if ("Blocked by".equals(directionBox.getValue())){
+                    issueController.addDependency(selectedId, issueId);
+                } else{
+                    issueController.addDependency(issueId, selectedId);
+                }
                 reload();
             } catch (Exception exception){
                 ScreenComponents.showError(messageLabel, exception);
             }
-        });
+        }
     }
 
     private void handleRemoveDependency(){
-        if (currentDetail == null || currentDetail.dependencies().isEmpty()){
+        if (currentDetail == null
+                || (currentDetail.blockedByDependencies().isEmpty() && currentDetail.blockingDependencies().isEmpty())){
             ScreenComponents.showInfo(messageLabel, "No dependencies to remove");
             return;
         }
         Dialog<DependencyResult> dialog = new Dialog<>();
         dialog.setTitle("Remove Dependency");
         ComboBox<DependencyResult> depBox = new ComboBox<>();
-        depBox.getItems().addAll(currentDetail.dependencies());
+        depBox.getItems().addAll(currentDetail.blockedByDependencies());
+        depBox.getItems().addAll(currentDetail.blockingDependencies());
         depBox.setConverter(new StringConverter<>(){
             @Override public String toString(DependencyResult d){
                 if (d == null) return "";
-                return String.format("%s blocks %s", d.blockingIssueKey(), d.blockedIssueKey());
+                String direction = d.blockedIssueId() == issueId ? "[Blocked by] " : "[Blocking] ";
+                return direction + String.format("%s blocks %s", d.blockingIssueKey(), d.blockedIssueKey());
             }
             @Override public DependencyResult fromString(String s){ return null; }
         });

@@ -226,6 +226,7 @@ class IssueDetailPanelTest {
                 List.of(comment()),
                 List.of(history()),
                 List.of(dependency()),
+                List.of(),
                 actions);
     }
 
