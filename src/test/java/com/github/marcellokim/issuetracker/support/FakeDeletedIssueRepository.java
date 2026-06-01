@@ -23,6 +23,15 @@ public final class FakeDeletedIssueRepository implements DeletedIssueRepository 
         this.issueRepository = issueRepository;
     }
 
+    public FakeDeletedIssueRepository addDeletedIssue(Issue issue) {
+        if (issue.status() != IssueStatus.DELETED) {
+            throw new IllegalArgumentException("issue must be deleted");
+        }
+        deletedIssues.put(issue.id(), issue);
+        save(issue);
+        return this;
+    }
+
     @Override
     public List<Issue> findDeletedByProject(long projectId) {
         return deletedIssues.values().stream()

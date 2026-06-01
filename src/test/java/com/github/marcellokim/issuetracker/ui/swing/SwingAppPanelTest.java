@@ -38,6 +38,7 @@ import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
@@ -64,6 +65,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -486,6 +488,89 @@ class SwingAppPanelTest {
             SwingComponentTestSupport.find(panel, "statisticsBackButton", JButton.class).doClick();
         });
 
+        awaitIssueRows(panel, 1);
+    }
+
+    @Test
+    @DisplayName("issue list opens deleted issue management and refreshes restore and purge actions")
+    void issueListOpensDeletedIssueManagementAndRefreshesActions() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        Issue restoreTarget = deletedIssue(7L, 7L, "Removed login bug", Priority.CRITICAL, pl);
+        Issue purgeTarget = deletedIssue(8L, 7L, "Removed profile typo", Priority.MINOR, pl);
+        AtomicLong restorePromptIssueId = new AtomicLong();
+        AtomicLong purgePromptIssueId = new AtomicLong();
+        DeletedIssuePrompt deletedIssuePrompt = new DeletedIssuePrompt() {
+            @Override
+            public Optional<String> requestRestoreComment(java.awt.Component parent, IssueSummary issue) {
+                restorePromptIssueId.set(issue.id());
+                return Optional.of("restore from Swing");
+            }
+
+            @Override
+            public boolean confirmPurge(java.awt.Component parent, IssueSummary issue) {
+                purgePromptIssueId.set(issue.id());
+                return true;
+            }
+        };
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 0)),
+                List.of(restoreTarget, purgeTarget),
+                List.of(),
+                IssueStatusChangeDialogs::prompt,
+                IssueAssignmentDialogs::prompt,
+                IssueCommentDialogs::prompt,
+                IssueDependencyDialogs::prompt,
+                deletedIssuePrompt,
+                IssueEditDialogs::prompt,
+                pl);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 0);
+        awaitButtonEnabled(panel, "deletedIssuesButton");
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "deletedIssuesButton", JButton.class).doClick());
+        awaitRows(panel, "deletedIssueTable", 2);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Deleted issue management",
+                    SwingComponentTestSupport.find(panel, "deletedIssueTitle", JLabel.class).getText());
+            assertEquals(
+                    "Deleted issues 2/30",
+                    SwingComponentTestSupport.find(panel, "deletedIssueCount", JLabel.class).getText());
+            JTable deletedIssues = SwingComponentTestSupport.find(panel, "deletedIssueTable", JTable.class);
+            deletedIssues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "restoreDeletedIssueButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "restoreDeletedIssueButton", JButton.class).doClick());
+        awaitRows(panel, "deletedIssueTable", 1);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable deletedIssues = SwingComponentTestSupport.find(panel, "deletedIssueTable", JTable.class);
+            deletedIssues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "purgeDeletedIssueButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "purgeDeletedIssueButton", JButton.class).doClick());
+        awaitRows(panel, "deletedIssueTable", 0);
+
+        assertEquals(restoreTarget.id(), restorePromptIssueId.get());
+        assertEquals(purgeTarget.id(), purgePromptIssueId.get());
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "deletedIssueBackButton", JButton.class).doClick());
         awaitIssueRows(panel, 1);
     }
 
@@ -1094,6 +1179,32 @@ class SwingAppPanelTest {
             List<DashboardProjectSnapshot> projects,
             List<Issue> issues,
             List<Comment> comments,
+            IssueStatusChangePrompt statusChangePrompt,
+            IssueAssignmentPrompt assignmentPrompt,
+            IssueCommentPrompt commentPrompt,
+            IssueDependencyPrompt dependencyPrompt,
+            DeletedIssuePrompt deletedIssuePrompt,
+            IssueEditPrompt editPrompt,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                comments,
+                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, commentPrompt, dependencyPrompt),
+                new InMemoryAssignmentRecommendationRepository(users),
+                deletedIssuePrompt,
+                editPrompt,
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
             SwingPromptSupport prompts,
             AssignmentRecommendationRepository recommendationRepository,
             User... users) throws Exception {
@@ -1119,6 +1230,30 @@ class SwingAppPanelTest {
             AssignmentRecommendationRepository recommendationRepository,
             IssueEditPrompt editPrompt,
             User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                comments,
+                prompts,
+                recommendationRepository,
+                new DeletedIssueDialogs.JOptionPaneDeletedIssuePrompt(),
+                editPrompt,
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
+            SwingPromptSupport prompts,
+            AssignmentRecommendationRepository recommendationRepository,
+            DeletedIssuePrompt deletedIssuePrompt,
+            IssueEditPrompt editPrompt,
+            User... users) throws Exception {
         var panelRef = new AtomicReference<SwingAppPanel>();
         var workerDone = new CountDownLatch(1);
         SwingControllerFixture controllers = controllers(
@@ -1142,6 +1277,7 @@ class SwingAppPanelTest {
                             prompts.dependencyPrompt(),
                             controllers.deletedIssueController(),
                             editPrompt),
+                    deletedIssuePrompt,
                     titles::update);
             panelRef.set(panel);
             User user = users[0];
@@ -1459,6 +1595,11 @@ class SwingAppPanelTest {
         });
         var issueRepository = new InMemoryIssueRepository(issues.toArray(Issue[]::new));
         var deletedIssueRepository = new FakeDeletedIssueRepository(issueRepository);
+        for (Issue issue : issues) {
+            if (issue.status() == IssueStatus.DELETED) {
+                deletedIssueRepository.addDeletedIssue(issue);
+            }
+        }
         var dependencyRepository = new FakeIssueDependencyRepository();
         var commentRepository = new FakeCommentRepository(comments);
         var historyRepository = new FakeIssueHistoryRepository();
@@ -1568,6 +1709,16 @@ class SwingAppPanelTest {
                 .id(id)
                 .issueId("ISSUE-" + id)
                 .priority(priority)
+                .reportedDate(NOW)
+                .updatedAt(NOW));
+    }
+
+    private static Issue deletedIssue(long id, long projectId, String title, Priority priority, User reporter) {
+        return Issue.fromPersistence(Issue.persistedState(projectId, title, "Issue description", reporter)
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .priority(priority)
+                .status(IssueStatus.DELETED)
                 .reportedDate(NOW)
                 .updatedAt(NOW));
     }

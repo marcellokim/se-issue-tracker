@@ -5,12 +5,8 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.util.Optional;
-import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -44,18 +40,18 @@ final class IssueEditDialogs {
         descriptionArea.setName("issueEditDescriptionArea");
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
-        JScrollPane descriptionPane = aligned(new JScrollPane(descriptionArea));
+        JScrollPane descriptionPane = SwingPanelSections.aligned(new JScrollPane(descriptionArea));
 
-        JPanel fields = verticalFields();
-        fields.add(fieldLabel("Title"));
+        JPanel fields = SwingPanelSections.verticalFieldPanel();
+        fields.add(SwingPanelSections.fieldLabel("Title"));
         fields.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
         fields.add(titleField);
         fields.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
-        fields.add(fieldLabel("Description"));
+        fields.add(SwingPanelSections.fieldLabel("Description"));
         fields.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
         fields.add(descriptionPane);
 
-        JPanel panel = formPanel(EDIT_ISSUE_TITLE, "issueEditDialogTitle");
+        JPanel panel = SwingPanelSections.dialogFormPanel(EDIT_ISSUE_TITLE, "issueEditDialogTitle");
         panel.add(fields, BorderLayout.CENTER);
         return new UpdateForm(panel, titleField, descriptionArea);
     }
@@ -67,12 +63,12 @@ final class IssueEditDialogs {
         priorityBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, SwingStyles.FIELD_HEIGHT));
         priorityBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel fields = verticalFields();
-        fields.add(fieldLabel("Priority"));
+        JPanel fields = SwingPanelSections.verticalFieldPanel();
+        fields.add(SwingPanelSections.fieldLabel("Priority"));
         fields.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
         fields.add(priorityBox);
 
-        JPanel panel = formPanel("Change priority", "priorityDialogTitle");
+        JPanel panel = SwingPanelSections.dialogFormPanel("Change priority", "priorityDialogTitle");
         panel.add(fields, BorderLayout.CENTER);
         return new PriorityForm(panel, priorityBox);
     }
@@ -82,11 +78,11 @@ final class IssueEditDialogs {
         commentArea.setName("issueDeleteCommentArea");
         commentArea.setLineWrap(true);
         commentArea.setWrapStyleWord(true);
-        JScrollPane commentPane = aligned(new JScrollPane(commentArea));
+        JScrollPane commentPane = SwingPanelSections.aligned(new JScrollPane(commentArea));
 
-        JPanel panel = formPanel(DELETE_ISSUE_TITLE, "issueDeleteDialogTitle");
-        JPanel fields = verticalFields();
-        fields.add(fieldLabel("Comment"));
+        JPanel panel = SwingPanelSections.dialogFormPanel(DELETE_ISSUE_TITLE, "issueDeleteDialogTitle");
+        JPanel fields = SwingPanelSections.verticalFieldPanel();
+        fields.add(SwingPanelSections.fieldLabel("Comment"));
         fields.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
         fields.add(commentPane);
         panel.add(fields, BorderLayout.CENTER);
@@ -151,38 +147,6 @@ final class IssueEditDialogs {
                         JOptionPane.ERROR_MESSAGE);
             }
         }
-    }
-
-    private static JPanel formPanel(String titleText, String titleName) {
-        JPanel panel = new JPanel(new BorderLayout(SwingStyles.ROW_GAP, SwingStyles.ROW_GAP));
-        panel.setBorder(BorderFactory.createEmptyBorder(
-                SwingStyles.ROW_GAP,
-                SwingStyles.ROW_GAP,
-                SwingStyles.ROW_GAP,
-                SwingStyles.ROW_GAP));
-        JLabel title = new JLabel(titleText);
-        title.setName(titleName);
-        SwingStyles.applySectionTitle(title);
-        panel.add(title, BorderLayout.NORTH);
-        return panel;
-    }
-
-    private static JPanel verticalFields() {
-        JPanel fields = new JPanel();
-        fields.setLayout(new BoxLayout(fields, BoxLayout.Y_AXIS));
-        fields.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return fields;
-    }
-
-    private static JLabel fieldLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
-    }
-
-    private static <T extends JComponent> T aligned(T component) {
-        component.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return component;
     }
 
     record UpdateForm(JPanel panel, JTextField titleField, JTextArea descriptionArea) {

@@ -14,6 +14,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -110,6 +111,38 @@ final class SwingPanelSections {
             panel.add(field, constraints);
         }
         return panel;
+    }
+
+    static JPanel dialogFormPanel(String titleText, String titleName) {
+        JPanel panel = new JPanel(new BorderLayout(SwingStyles.ROW_GAP, SwingStyles.ROW_GAP));
+        panel.setBorder(BorderFactory.createEmptyBorder(
+                SwingStyles.ROW_GAP,
+                SwingStyles.ROW_GAP,
+                SwingStyles.ROW_GAP,
+                SwingStyles.ROW_GAP));
+        JLabel title = new JLabel(titleText);
+        title.setName(titleName);
+        SwingStyles.applySectionTitle(title);
+        panel.add(title, BorderLayout.NORTH);
+        return panel;
+    }
+
+    static JPanel verticalFieldPanel() {
+        JPanel fields = new JPanel();
+        fields.setLayout(new BoxLayout(fields, BoxLayout.Y_AXIS));
+        fields.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return fields;
+    }
+
+    static JLabel fieldLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    static <T extends JComponent> T aligned(T component) {
+        component.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return component;
     }
 
     static void updateMessage(
