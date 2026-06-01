@@ -56,6 +56,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
     private final JButton searchButton = new JButton("Search");
     private final JButton registerButton = new JButton("Register issue");
     private final JButton openButton = new JButton("Open detail");
+    private final JButton statisticsButton = new JButton("Statistics");
     private boolean busy;
     private boolean registerAllowed;
 
@@ -216,6 +217,10 @@ final class IssueListPanel extends JPanel implements IssueListView {
         openButton.addActionListener(event -> selectedIssue()
                 .ifPresent(issue -> actions.onOpenIssue().accept(issue.id())));
         panel.add(openButton);
+
+        statisticsButton.setName("statisticsButton");
+        statisticsButton.addActionListener(event -> actions.onStatistics().run());
+        panel.add(statisticsButton);
         return panel;
     }
 
@@ -287,6 +292,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         boolean enabled = !busy;
         registerButton.setEnabled(enabled && registerAllowed);
         openButton.setEnabled(enabled && selectedIssue().isPresent());
+        statisticsButton.setEnabled(enabled);
     }
 
     private void applyColumnWidths(JTable table) {
@@ -303,6 +309,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
             PanelConsumer<IssueSearchRequest> onSearch,
             PanelConsumer<IssueRegisterRequest> onRegister,
             LongConsumer onOpenIssue,
+            Runnable onStatistics,
             Runnable onBack,
             Runnable onLogout) {
 
@@ -310,6 +317,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
             Objects.requireNonNull(onSearch, "onSearch");
             Objects.requireNonNull(onRegister, "onRegister");
             Objects.requireNonNull(onOpenIssue, "onOpenIssue");
+            Objects.requireNonNull(onStatistics, "onStatistics");
             Objects.requireNonNull(onBack, "onBack");
             Objects.requireNonNull(onLogout, "onLogout");
         }
