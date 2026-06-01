@@ -283,6 +283,16 @@ class RepositoryConventionsSmokeTest {
         }
     }
 
+    @Test
+    @DisplayName("제출 패키징은 Python 표준 라이브러리로 zip을 생성한다")
+    void packageSubmissionUsesPythonZipArchive() throws IOException {
+        var text = Files.readString(Path.of("scripts/package-submission.sh"));
+
+        assertFalse(text.contains("require_tool zip"), "zip CLI가 없어도 제출 패키지를 만들 수 있어야 합니다.");
+        assertTrue(text.contains("import zipfile"), "Python 표준 zipfile 모듈로 archive를 생성해야 합니다.");
+        assertTrue(text.contains("zipfile.ZIP_DEFLATED"), "제출 zip은 압축된 zip archive여야 합니다.");
+    }
+
     private static boolean containsAny(String text, String... candidates) {
         for (String candidate : candidates) {
             if (text.contains(candidate)) {
