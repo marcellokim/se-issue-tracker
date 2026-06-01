@@ -68,11 +68,14 @@ final class AccountManageScreen extends VBox {
     }
 
     private void updateActionButtons(){
-        boolean hasSelection = selectedUser().isPresent();
-        renameButton.setDisable(!hasSelection);
-        roleButton.setDisable(!hasSelection);
-        activateButton.setDisable(!hasSelection);
-        deactivateButton.setDisable(!hasSelection);
+        Optional<UserResult> selected = selectedUser();
+        boolean hasSelection = selected.isPresent();
+        boolean isAdmin = hasSelection && selected.get().role() == com.github.marcellokim.issuetracker.domain.Role.ADMIN;
+        boolean isActive = hasSelection && selected.get().active();
+        renameButton.setDisable(!hasSelection || isAdmin);
+        roleButton.setDisable(!hasSelection || isAdmin);
+        activateButton.setDisable(!hasSelection || isActive || isAdmin);
+        deactivateButton.setDisable(!hasSelection || !isActive || isAdmin);
     }
 
     private void loadUsers(){
@@ -192,12 +195,21 @@ final class AccountManageScreen extends VBox {
     }
 
     private void handleDeactivate(UserResult user){
-        try{
-            accountController.deactivateAccount(user.loginId());
-            loadUsers();
-            ScreenComponents.showInfo(messageLabel, "Account deactivated: " + user.loginId());
-        } catch (Exception exception){
-            ScreenComponents.showError(messageLabel, exception);
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Deactivate Account");
+        dialog.setHeaderText("Deactivate account: " + user.loginId() + " (" + user.name() + ")?");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("Deactivate");
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK){
+            try{
+                accountController.deactivateAccount(user.loginId());
+                loadUsers();
+                ScreenComponents.showInfo(messageLabel, "Account deactivated: " + user.loginId());
+            } catch (Exception exception){
+                ScreenComponents.showError(messageLabel, exception);
+            }
         }
     }
 
