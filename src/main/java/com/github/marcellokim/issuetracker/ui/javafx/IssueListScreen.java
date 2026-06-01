@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.ui.javafx;
 
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
+import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import java.util.List;
@@ -26,6 +27,8 @@ final class IssueListScreen extends VBox {
     private final long projectId;
     private final ListView<IssueSummary> issueList = new ListView<>();
     private final TextField searchField = new TextField();
+    private final ComboBox<IssueStatus> statusFilter = new ComboBox<>();
+    private final ComboBox<com.github.marcellokim.issuetracker.domain.Priority> priorityFilter = new ComboBox<>();
     private final Label messageLabel = ScreenComponents.messageLabel();
     private final Label projectInfoLabel = new Label();
     private Consumer<IssueSummary> onIssueSelected;
@@ -43,8 +46,16 @@ final class IssueListScreen extends VBox {
         ScreenComponents.growInHeader(projectInfoLabel);
         loadProjectInfo(projectController);
 
-        searchField.setPromptText("Search...");
-        searchField.setMaxWidth(300);
+        searchField.setPromptText("Keyword...");
+        searchField.setMaxWidth(200);
+        statusFilter.setPromptText("Status");
+        statusFilter.getItems().add(null);
+        for (IssueStatus s : IssueStatus.values()){
+            if (s != IssueStatus.DELETED) statusFilter.getItems().add(s);
+        }
+        priorityFilter.setPromptText("Priority");
+        priorityFilter.getItems().add(null);
+        priorityFilter.getItems().addAll(com.github.marcellokim.issuetracker.domain.Priority.values());
         Button searchButton = new Button("Search");
         searchButton.setOnAction(event -> searchIssues());
 
@@ -57,7 +68,7 @@ final class IssueListScreen extends VBox {
             ScreenComponents.showError(messageLabel, exception);
         }
 
-        HBox toolbar = new HBox(10, searchField, searchButton, registerButton);
+        HBox toolbar = new HBox(10, searchField, statusFilter, priorityFilter, searchButton, registerButton);
 
         if (isPl){
             Button deletedButton = new Button("Deleted Issues");
@@ -146,7 +157,9 @@ final class IssueListScreen extends VBox {
     private void searchIssues(){
         try{
             String keyword = searchField.getText().isBlank() ? null : searchField.getText();
-            List<IssueSummary> issues = issueController.searchIssues(projectId, keyword, null, null);
+            IssueStatus status = statusFilter.getValue();
+            com.github.marcellokim.issuetracker.domain.Priority priority = priorityFilter.getValue();
+            List<IssueSummary> issues = issueController.searchIssues(projectId, keyword, status, priority);
             issueList.getItems().setAll(issues);
             ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){
