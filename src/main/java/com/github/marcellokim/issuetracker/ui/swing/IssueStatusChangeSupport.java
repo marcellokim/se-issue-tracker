@@ -5,7 +5,7 @@ import java.util.Objects;
 
 record IssueStatusChangeSupport(
         IssueStateController issueStateController,
-    IssueStatusChangePrompt prompt) {
+        IssueStatusChangePrompt prompt) {
 
     IssueStatusChangeSupport {
         Objects.requireNonNull(prompt, "prompt");
