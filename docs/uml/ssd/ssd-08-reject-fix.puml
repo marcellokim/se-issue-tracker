@@ -3,15 +3,9 @@
 title SSD 08 - UC6 상태 변경: Fix 거절
 actor "Tester" as A
 participant ":Issue Tracking System" as S
-note over A, S
-사전조건: Tester 로그인, verifier 본인, Issue가 FIXED 상태, 거절 사유 존재, UC14 권한 검사
-end note
 A -> S: changeStatus(issueId, targetStatus=ASSIGNED, comment)
 S --> A: updatedIssue(issueId, status=ASSIGNED, fixer=retained)
 note over S
 UC6 includes UC2; the comment is mandatory and recorded with the status change.
-결과: status=ASSIGNED로 복귀, 기존 assignee/verifier/fixer 유지
-새 DEV로 바꾸려면 PL이 UC5-RA로 assignee를 재배정한다.
-실패 사유 Comment와 IssueHistory(STATUS_CHANGED, previousValue=FIXED, newValue=ASSIGNED) 기록
 end note
 @enduml

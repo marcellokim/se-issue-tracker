@@ -2,14 +2,14 @@
 
 이 폴더는 전체 SSD 후보의 PlantUML 파일을 관리한다. PNG/SVG는 팀 리뷰와 최종 PDF 삽입이 필요할 때 PlantUML로 생성한다.
 
-제출 문서에는 `ssd-01-register-issue`와 `ssd-05-assign-issue`만 대표 SSD로 사용한다. 나머지는 개발 기준 정합성 확인과 Operation Contract/시퀀스 다이어그램 작성 보조용 reference이며, 최종 PDF 본문에는 전부 넣지 않는다.
+제출 문서에는 `ssd-01-register-issue`, `ssd-05-assign-issue`, `ssd-06-mark-fixed`를 대표 SSD로 사용한다. 나머지는 개발 기준 정합성 확인과 Operation Contract/시퀀스 다이어그램 작성 보조용 reference이며, 최종 PDF 본문에는 전부 넣지 않는다.
 
 ## 제출용 선별 기준
 
-- 제출 대표 SSD: `ssd-01-register-issue`, `ssd-05-assign-issue`
-- 개발 reference SSD: `02`-`04`, `06`-`27`
+- 제출 대표 SSD: `ssd-01-register-issue`, `ssd-05-assign-issue`, `ssd-06-mark-fixed`
+- 개발 reference SSD: `02`-`04`, `07`-`27`
 - 내부 정책 reference: `ssd-13-purge-deleted-issues`
-- UC14 권한 검사는 각 protected SSD의 precondition/note로 표현하고, `ssd-22-verify-permission`은 개발 참고용으로만 둔다.
+- UC14 권한 검사는 UC 명세와 Operation Contract에서 다루며, SSD에서는 필요한 경우 system 내부 처리나 짧은 note로만 표현한다. `ssd-22-verify-permission`은 개발 참고용으로만 둔다.
 - PNG/SVG는 필요할 때 PlantUML로 다시 생성한다.
 
 ## 렌더 검증

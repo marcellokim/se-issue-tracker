@@ -5,14 +5,6 @@ title SSD 17 - UC12 Update Account
 actor "Admin" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건:
-- Admin이 로그인되어 있다.
-- 대상 User가 존재한다.
-- 대상 User는 ADMIN 계정이 아니다.
-- Admin은 자기 자신의 계정을 수정하지 않는다.
-- UC14 권한 검사는 시스템 내부에서 수행된다.
-end note
 
 alt 계정 이름 변경
   A -> S: renameAccount(loginId, name)
@@ -23,17 +15,5 @@ else 계정 역할 변경
   S --> A: accountRoleChanged(loginId, role, confirmation)
 end
 
-note over S
-결과:
-- 이름 변경 경로에서는 User.name이 변경된다.
-- 역할 변경 경로에서는 User.role이 변경된다.
-- 변경 시 User.updatedAt이 갱신된다.
-
-역할 변경 정책:
-- ADMIN 계정으로 변경할 수 없다.
-- 대상 User가 프로젝트 participant이면 역할 변경을 거부한다.
-- 대상 User가 현재 진행 중인 assignee/verifier 책임을 가지고 있으면 역할 변경을 거부한다.
-- fixer/resolver는 완료 이력으로 보며 현재 책임으로 보지 않는다.
-end note
 
 @enduml

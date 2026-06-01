@@ -5,13 +5,6 @@ title SSD 03 - UC3 Search / Browse Issues
 actor "Auth User" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건:
-- Auth User가 로그인되어 있다.
-- 대상 Project가 존재한다.
-- Auth User는 대상 Project의 active member이다.
-- UC14 권한 검사는 시스템 내부에서 수행된다.
-end note
 
 A -> S: searchIssues(issueSearchFilters)
 S --> A: issueList(issues)

@@ -5,35 +5,9 @@ title SSD 11 - UC8 Recommend Assignment Candidates
 actor "PL" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건:
-- PL이 로그인되어 있다.
-- 대상 Issue가 존재한다.
-- UC5 startAssignment 흐름에서 include된다.
-- PL은 대상 Issue가 속한 Project의 active PL이다.
-end note
 
 A -> S: startAssignment(issueId)
 S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
 
-note over S
-결과:
-- Issue.status에 따라 UC5에 필요한 후보 종류를 반환한다.
-- NEW/REOPENED: DEV assignee 후보와 TESTER verifier 후보를 반환한다.
-- ASSIGNED: DEV assignee 후보만 반환한다.
-- FIXED: TESTER verifier 후보만 반환한다.
-- RESOLVED/CLOSED/DELETED: 배정/변경 대상 상태가 아니므로 startAssignment 흐름에서 거부된다.
-
-devAssigneeCandidates와 testerVerifierCandidates는 각각 top 3 후보이다.
-allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
-
-추천 기준:
-- assignee 후보는 과거 완료 Issue의 fixer 이력과 이슈 내용 유사도를 참고한다.
-- verifier 후보는 과거 완료 Issue의 resolver 이력과 이슈 내용 유사도를 참고한다.
-- 해결 이력이 없으면 top 추천 후보는 비어 있을 수 있지만, 프로젝트 소속 active 후보 전체 목록은 함께 반환된다.
-- 해당 역할의 active project member가 없으면 빈 후보 목록을 반환한다.
-
-UC8은 Issue 상태, 담당자, 코멘트, IssueHistory를 변경하지 않는다.
-end note
 
 @enduml

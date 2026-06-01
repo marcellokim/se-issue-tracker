@@ -446,7 +446,7 @@ begin
         from (
          select 'Project A' as project_name,
                 'Assignment notification not shown' as title,
-                'New assignment notifications should be visible before owner selection.' as description,
+                'Assignment notification screen should show missing owner selection, dashboard status, and update keywords.' as description,
                 timestamp '2026-03-02 09:00:00' as reported_at,
                 'MINOR' as priority,
                 'NEW' as status,
@@ -485,7 +485,7 @@ begin
          union all
          select 'Project A',
                 'Login form validation race',
-                'Validation race should be fixed before resolution.',
+                'Login validation race should be fixed before resolution to avoid auth failure and timeout errors.',
                 timestamp '2026-03-03 09:00:00',
                 'CRITICAL',
                 'FIXED',
@@ -680,7 +680,7 @@ begin
          union all
          select 'Project B',
                 'Report export fails after generation',
-                'Report export generation fix is waiting for verification.',
+                'Report export generation failure is waiting for verification after format validation.',
                 timestamp '2026-03-12 09:00:00',
                 'MAJOR',
                 'FIXED',
@@ -693,7 +693,7 @@ begin
          union all
          select 'Project B',
                 'Export filename timezone mismatch',
-                'Timezone mismatch in export filename has been fixed.',
+                'Export filename timezone mismatch has been fixed after format validation.',
                 timestamp '2026-03-12 09:00:00',
                 'MINOR',
                 'FIXED',
@@ -758,7 +758,7 @@ begin
          union all
          select 'Project B',
                 'Dashboard statistics misses closed issues',
-                'Statistics should include closed issues in status trend queries.',
+                'Dashboard statistics should include closed issues in status trend report queries.',
                 timestamp '2026-04-16 09:00:00',
                 'MAJOR',
                 'CLOSED',
@@ -784,7 +784,7 @@ begin
          union all
          select 'Project B',
                 'Slow project overview query',
-                'Project overview query optimization is closed.',
+                'Project overview query optimization is closed after slow dashboard performance tuning.',
                 timestamp '2026-05-03 09:00:00',
                 'BLOCKER',
                 'CLOSED',
@@ -994,43 +994,11 @@ begin
              s.created_at as updated_at
         from (
          select 'Project A' as project_name,
-                'Dependency resolution flow blocked' as issue_title,
-                'pl1' as writer_login,
-                'Assigned to dev1 and tester1' as content,
+                'Login form validation race' as issue_title,
+                'dev3' as writer_login,
+                'Login form validation race fix implemented' as content,
                 'STATUS_CHANGE' as purpose,
-                timestamp '2026-03-03 10:00:00' as created_at
-           from dual
-         union all
-         select 'Project A',
-                'API error badge missing',
-                'pl1',
-                'Assigned to dev2 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-03-03 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Login form validation race',
-                'pl1',
-                'Assigned to dev3 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-03-03 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Login form validation race',
-                'dev3',
-                'Login form validation race fix implemented',
-                'STATUS_CHANGE',
-                timestamp '2026-03-04 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Session timeout warning absent',
-                'pl1',
-                'Assigned to dev4 and tester1',
-                'STATUS_CHANGE',
-                timestamp '2026-04-10 10:00:00'
+                timestamp '2026-03-04 10:00:00' as created_at
            from dual
          union all
          select 'Project A',
@@ -1039,14 +1007,6 @@ begin
                 'Session timeout warning absent fix implemented',
                 'STATUS_CHANGE',
                 timestamp '2026-05-07 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Search result filter returns stale status',
-                'pl1',
-                'Assigned to dev1 and tester1',
-                'STATUS_CHANGE',
-                timestamp '2026-04-01 10:00:00'
            from dual
          union all
          select 'Project A',
@@ -1063,14 +1023,6 @@ begin
                 'Search result filter returns stale status verification complete',
                 'STATUS_CHANGE',
                 timestamp '2026-04-03 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Verification rejection returns to assignee',
-                'pl1',
-                'Assigned to dev1 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-04-01 10:00:00'
            from dual
          union all
          select 'Project A',
@@ -1107,14 +1059,6 @@ begin
          union all
          select 'Project A',
                 'Profile page cache invalidation',
-                'pl1',
-                'Assigned to dev2 and tester1',
-                'STATUS_CHANGE',
-                timestamp '2026-04-07 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Profile page cache invalidation',
                 'dev2',
                 'Profile page cache invalidation fix implemented',
                 'STATUS_CHANGE',
@@ -1131,14 +1075,6 @@ begin
          union all
          select 'Project A',
                 'Notification preference save',
-                'pl1',
-                'Assigned to dev3 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-04-13 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Notification preference save',
                 'dev3',
                 'Notification preference save fix implemented',
                 'STATUS_CHANGE',
@@ -1151,14 +1087,6 @@ begin
                 'Notification preference save verification complete',
                 'STATUS_CHANGE',
                 timestamp '2026-05-10 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Login fails on invalid credential',
-                'pl1',
-                'Assigned to dev1 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-04-13 10:00:00'
            from dual
          union all
          select 'Project A',
@@ -1187,14 +1115,6 @@ begin
          union all
          select 'Project A',
                 'Comment edit audit trail',
-                'pl1',
-                'Assigned to dev1 and tester1',
-                'STATUS_CHANGE',
-                timestamp '2026-05-02 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Comment edit audit trail',
                 'dev1',
                 'Comment edit audit trail fix implemented',
                 'STATUS_CHANGE',
@@ -1215,14 +1135,6 @@ begin
                 'Comment edit audit trail closed by PL',
                 'STATUS_CHANGE',
                 timestamp '2026-05-05 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Project member removal guard',
-                'pl1',
-                'Assigned to dev2 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-05-08 10:00:00'
            from dual
          union all
          select 'Project A',
@@ -1251,14 +1163,6 @@ begin
          union all
          select 'Project A',
                 'Statistics chart label overflow',
-                'pl1',
-                'Assigned to dev4 and tester4',
-                'STATUS_CHANGE',
-                timestamp '2026-05-08 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Statistics chart label overflow',
                 'dev4',
                 'Statistics chart label overflow fix implemented',
                 'STATUS_CHANGE',
@@ -1279,14 +1183,6 @@ begin
                 'Statistics chart label overflow closed by PL',
                 'STATUS_CHANGE',
                 timestamp '2026-05-11 10:00:00'
-           from dual
-         union all
-         select 'Project A',
-                'Reopened login regression',
-                'pl1',
-                'Assigned to dev2 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-05-08 10:00:00'
            from dual
          union all
          select 'Project A',
@@ -1321,38 +1217,6 @@ begin
                 timestamp '2026-05-12 10:00:00'
            from dual
          union all
-         select 'Project A',
-                'Duplicate mobile login report',
-                'pl1',
-                'Deleted duplicate NEW issue before assignment',
-                'STATUS_CHANGE',
-                timestamp '2026-05-20 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Bulk import validation stuck',
-                'pl2',
-                'Assigned to dev5 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-03-01 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Email digest delivery delay',
-                'pl2',
-                'Assigned to dev6 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-05-01 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Report export fails after generation',
-                'pl2',
-                'Assigned to dev7 and tester4',
-                'STATUS_CHANGE',
-                timestamp '2026-03-12 10:00:00'
-           from dual
-         union all
          select 'Project B',
                 'Report export fails after generation',
                 'dev7',
@@ -1363,26 +1227,10 @@ begin
          union all
          select 'Project B',
                 'Export filename timezone mismatch',
-                'pl2',
-                'Assigned to dev8 and tester4',
-                'STATUS_CHANGE',
-                timestamp '2026-03-12 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Export filename timezone mismatch',
                 'dev8',
                 'Export filename timezone mismatch fix implemented',
                 'STATUS_CHANGE',
                 timestamp '2026-04-08 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Reopened issue keeps old assignee',
-                'pl2',
-                'Assigned to dev6 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-03-15 10:00:00'
            from dual
          union all
          select 'Project B',
@@ -1411,14 +1259,6 @@ begin
          union all
          select 'Project B',
                 'Reopened issue keeps old assignee',
-                'pl2',
-                'Assigned to dev6 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-03-19 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Reopened issue keeps old assignee',
                 'dev6',
                 'Regression fix implemented',
                 'STATUS_CHANGE',
@@ -1431,14 +1271,6 @@ begin
                 'Regression verification complete',
                 'STATUS_CHANGE',
                 timestamp '2026-04-15 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'SLA report excludes reopened issue',
-                'pl2',
-                'Assigned to dev5 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-04-04 10:00:00'
            from dual
          union all
          select 'Project B',
@@ -1459,14 +1291,6 @@ begin
          union all
          select 'Project B',
                 'Attachment preview broken',
-                'pl2',
-                'Assigned to dev5 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-04-04 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Attachment preview broken',
                 'dev5',
                 'Attachment preview broken fix implemented',
                 'STATUS_CHANGE',
@@ -1483,14 +1307,6 @@ begin
          union all
          select 'Project B',
                 'Mobile dashboard empty state',
-                'pl2',
-                'Assigned to dev6 and tester4',
-                'STATUS_CHANGE',
-                timestamp '2026-04-04 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Mobile dashboard empty state',
                 'dev6',
                 'Mobile dashboard empty state fix implemented',
                 'STATUS_CHANGE',
@@ -1503,14 +1319,6 @@ begin
                 'Mobile dashboard empty state verification complete',
                 'STATUS_CHANGE',
                 timestamp '2026-05-01 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Dashboard statistics misses closed issues',
-                'pl2',
-                'Assigned to dev5 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-04-16 10:00:00'
            from dual
          union all
          select 'Project B',
@@ -1547,14 +1355,6 @@ begin
          union all
          select 'Project B',
                 'Dashboard statistics misses closed issues',
-                'pl2',
-                'Assigned to dev5 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-05-16 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Dashboard statistics misses closed issues',
                 'dev5',
                 'Follow-up dashboard fix implemented',
                 'STATUS_CHANGE',
@@ -1575,14 +1375,6 @@ begin
                 'Reclosed after release regression verification',
                 'STATUS_CHANGE',
                 timestamp '2026-05-19 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Release note typo cleanup',
-                'pl2',
-                'Assigned to dev5 and tester2',
-                'STATUS_CHANGE',
-                timestamp '2026-05-03 10:00:00'
            from dual
          union all
          select 'Project B',
@@ -1611,14 +1403,6 @@ begin
          union all
          select 'Project B',
                 'Slow project overview query',
-                'pl2',
-                'Assigned to dev7 and tester4',
-                'STATUS_CHANGE',
-                timestamp '2026-05-03 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Slow project overview query',
                 'dev7',
                 'Slow project overview query fix implemented',
                 'STATUS_CHANGE',
@@ -1643,14 +1427,6 @@ begin
          union all
          select 'Project B',
                 'Permission label mismatch',
-                'pl2',
-                'Assigned to dev8 and tester5',
-                'STATUS_CHANGE',
-                timestamp '2026-05-10 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Permission label mismatch',
                 'dev8',
                 'Permission label mismatch fix implemented',
                 'STATUS_CHANGE',
@@ -1671,14 +1447,6 @@ begin
                 'Permission label mismatch closed by PL',
                 'STATUS_CHANGE',
                 timestamp '2026-05-13 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Reopened export regression',
-                'pl2',
-                'Assigned to dev6 and tester3',
-                'STATUS_CHANGE',
-                timestamp '2026-05-18 10:00:00'
            from dual
          union all
          select 'Project B',
@@ -1715,14 +1483,6 @@ begin
          union all
          select 'Project B',
                 'Retired browser support checklist',
-                'pl2',
-                'Assigned to dev8 and tester5',
-                'STATUS_CHANGE',
-                timestamp '2026-05-18 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Retired browser support checklist',
                 'dev8',
                 'Retired browser support checklist fix implemented',
                 'STATUS_CHANGE',
@@ -1743,14 +1503,6 @@ begin
                 'Retired browser support checklist closed by PL',
                 'STATUS_CHANGE',
                 timestamp '2026-05-21 10:00:00'
-           from dual
-         union all
-         select 'Project B',
-                'Retired browser support checklist',
-                'pl2',
-                'Deleted retired CLOSED issue after archive',
-                'STATUS_CHANGE',
-                timestamp '2026-05-22 10:00:00'
            from dual
          union all
          select 'Project A',
@@ -2076,7 +1828,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev1/tester1',
-                'Assigned to dev1 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-03-03 10:00:00'
            from dual
          union all
@@ -2086,7 +1838,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev1 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-03-03 10:00:00'
            from dual
          union all
@@ -2106,7 +1858,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev2/tester2',
-                'Assigned to dev2 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-03-03 10:00:00'
            from dual
          union all
@@ -2116,7 +1868,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev2 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-03-03 10:00:00'
            from dual
          union all
@@ -2136,7 +1888,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev3/tester3',
-                'Assigned to dev3 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-03-03 10:00:00'
            from dual
          union all
@@ -2146,7 +1898,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev3 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-03-03 10:00:00'
            from dual
          union all
@@ -2176,7 +1928,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev4/tester1',
-                'Assigned to dev4 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-04-10 10:00:00'
            from dual
          union all
@@ -2186,7 +1938,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev4 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-04-10 10:00:00'
            from dual
          union all
@@ -2216,7 +1968,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev1/tester1',
-                'Assigned to dev1 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-04-01 10:00:00'
            from dual
          union all
@@ -2226,7 +1978,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev1 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-04-01 10:00:00'
            from dual
          union all
@@ -2266,7 +2018,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev1/tester2',
-                'Assigned to dev1 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-01 10:00:00'
            from dual
          union all
@@ -2276,7 +2028,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev1 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-01 10:00:00'
            from dual
          union all
@@ -2336,7 +2088,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev2/tester1',
-                'Assigned to dev2 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-04-07 10:00:00'
            from dual
          union all
@@ -2346,7 +2098,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev2 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-04-07 10:00:00'
            from dual
          union all
@@ -2386,7 +2138,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev3/tester3',
-                'Assigned to dev3 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-04-13 10:00:00'
            from dual
          union all
@@ -2396,7 +2148,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev3 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-04-13 10:00:00'
            from dual
          union all
@@ -2436,7 +2188,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev1/tester2',
-                'Assigned to dev1 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-13 10:00:00'
            from dual
          union all
@@ -2446,7 +2198,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev1 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-13 10:00:00'
            from dual
          union all
@@ -2496,7 +2248,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev1/tester1',
-                'Assigned to dev1 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-05-02 10:00:00'
            from dual
          union all
@@ -2506,7 +2258,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev1 and tester1',
+                'Issue assigned from NEW',
                 timestamp '2026-05-02 10:00:00'
            from dual
          union all
@@ -2556,7 +2308,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev2/tester3',
-                'Assigned to dev2 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-05-08 10:00:00'
            from dual
          union all
@@ -2566,7 +2318,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev2 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-05-08 10:00:00'
            from dual
          union all
@@ -2616,7 +2368,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev4/tester4',
-                'Assigned to dev4 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-05-08 10:00:00'
            from dual
          union all
@@ -2626,7 +2378,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev4 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-05-08 10:00:00'
            from dual
          union all
@@ -2676,7 +2428,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev2/tester2',
-                'Assigned to dev2 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-05-08 10:00:00'
            from dual
          union all
@@ -2686,7 +2438,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev2 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-05-08 10:00:00'
            from dual
          union all
@@ -2776,7 +2528,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev5/tester2',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-03-01 10:00:00'
            from dual
          union all
@@ -2786,7 +2538,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-03-01 10:00:00'
            from dual
          union all
@@ -2806,7 +2558,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev6/tester3',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-05-01 10:00:00'
            from dual
          union all
@@ -2816,7 +2568,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-05-01 10:00:00'
            from dual
          union all
@@ -2836,7 +2588,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev7/tester4',
-                'Assigned to dev7 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-03-12 10:00:00'
            from dual
          union all
@@ -2846,7 +2598,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev7 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-03-12 10:00:00'
            from dual
          union all
@@ -2876,7 +2628,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev8/tester4',
-                'Assigned to dev8 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-03-12 10:00:00'
            from dual
          union all
@@ -2886,7 +2638,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev8 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-03-12 10:00:00'
            from dual
          union all
@@ -2916,7 +2668,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev6/tester3',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-03-15 10:00:00'
            from dual
          union all
@@ -2926,7 +2678,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-03-15 10:00:00'
            from dual
          union all
@@ -2966,7 +2718,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev6/tester3',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from REOPENED',
                 timestamp '2026-03-19 10:00:00'
            from dual
          union all
@@ -2976,7 +2728,7 @@ begin
                 'STATUS_CHANGED',
                 'REOPENED',
                 'ASSIGNED',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from REOPENED',
                 timestamp '2026-03-19 10:00:00'
            from dual
          union all
@@ -3016,7 +2768,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev5/tester2',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-04 10:00:00'
            from dual
          union all
@@ -3026,7 +2778,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-04 10:00:00'
            from dual
          union all
@@ -3066,7 +2818,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev5/tester3',
-                'Assigned to dev5 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-04-04 10:00:00'
            from dual
          union all
@@ -3076,7 +2828,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev5 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-04-04 10:00:00'
            from dual
          union all
@@ -3116,7 +2868,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev6/tester4',
-                'Assigned to dev6 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-04-04 10:00:00'
            from dual
          union all
@@ -3126,7 +2878,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev6 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-04-04 10:00:00'
            from dual
          union all
@@ -3166,7 +2918,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev5/tester2',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-16 10:00:00'
            from dual
          union all
@@ -3176,7 +2928,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-04-16 10:00:00'
            from dual
          union all
@@ -3226,7 +2978,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev5/tester2',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from REOPENED',
                 timestamp '2026-05-16 10:00:00'
            from dual
          union all
@@ -3236,7 +2988,7 @@ begin
                 'STATUS_CHANGED',
                 'REOPENED',
                 'ASSIGNED',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from REOPENED',
                 timestamp '2026-05-16 10:00:00'
            from dual
          union all
@@ -3286,7 +3038,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev5/tester2',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-05-03 10:00:00'
            from dual
          union all
@@ -3296,7 +3048,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev5 and tester2',
+                'Issue assigned from NEW',
                 timestamp '2026-05-03 10:00:00'
            from dual
          union all
@@ -3346,7 +3098,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev7/tester4',
-                'Assigned to dev7 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-05-03 10:00:00'
            from dual
          union all
@@ -3356,7 +3108,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev7 and tester4',
+                'Issue assigned from NEW',
                 timestamp '2026-05-03 10:00:00'
            from dual
          union all
@@ -3406,7 +3158,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev8/tester5',
-                'Assigned to dev8 and tester5',
+                'Issue assigned from NEW',
                 timestamp '2026-05-10 10:00:00'
            from dual
          union all
@@ -3416,7 +3168,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev8 and tester5',
+                'Issue assigned from NEW',
                 timestamp '2026-05-10 10:00:00'
            from dual
          union all
@@ -3466,7 +3218,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev6/tester3',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-05-18 10:00:00'
            from dual
          union all
@@ -3476,7 +3228,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev6 and tester3',
+                'Issue assigned from NEW',
                 timestamp '2026-05-18 10:00:00'
            from dual
          union all
@@ -3536,7 +3288,7 @@ begin
                 'ASSIGNMENT_CHANGED',
                 null,
                 'dev8/tester5',
-                'Assigned to dev8 and tester5',
+                'Issue assigned from NEW',
                 timestamp '2026-05-18 10:00:00'
            from dual
          union all
@@ -3546,7 +3298,7 @@ begin
                 'STATUS_CHANGED',
                 'NEW',
                 'ASSIGNED',
-                'Assigned to dev8 and tester5',
+                'Issue assigned from NEW',
                 timestamp '2026-05-18 10:00:00'
            from dual
          union all
@@ -3604,7 +3356,10 @@ begin
              'COMMENTED',
              null,
              c.content,
-             c.content,
+             case
+                when c.purpose = 'GENERAL' then 'comment added'
+                else c.content
+             end,
              c.created_at as changed_at,
              i.id
         from comments c
@@ -3714,11 +3469,13 @@ begin
          select max(history.changed_at)
            from issue_history history
           where history.issue_id = target.id
+            and history.action_type <> 'COMMENTED'
       )
     where exists (
       select 1
         from issue_history history
        where history.issue_id = target.id
+         and history.action_type <> 'COMMENTED'
    )
       and exists (
       select 1

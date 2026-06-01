@@ -5,14 +5,6 @@ title SSD 05 - UC5 Assign / Update Issue Assignment
 actor "PL" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건:
-- PL이 로그인되어 있다.
-- 대상 Issue가 존재한다.
-- Issue가 NEW, REOPENED, ASSIGNED 또는 FIXED 상태이다.
-- PL은 대상 Issue가 속한 Project의 active PL이다.
-- UC14 권한 검사는 시스템 내부에서 수행된다.
-end note
 
 A -> S: startAssignment(issueId)
 S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
@@ -56,13 +48,5 @@ else Issue.status == FIXED
   S --> A: verifierChanged(issueId, status=FIXED, confirmation)
 end
 
-note over S
-결과:
-- NEW/REOPENED -> ASSIGNED: assignee DEV와 verifier TESTER를 설정하고 status를 ASSIGNED로 변경한다.
-- ASSIGNED -> ASSIGNED: assignee DEV만 변경하고 status를 유지한다.
-- FIXED -> FIXED: verifier TESTER만 변경하고 status를 유지한다.
-- 모든 배정/변경 branch는 IssueHistory(ASSIGNMENT_CHANGED)를 기록한다.
-- NEW/REOPENED -> ASSIGNED는 IssueHistory(STATUS_CHANGED)도 함께 기록한다.
-end note
 
 @enduml
