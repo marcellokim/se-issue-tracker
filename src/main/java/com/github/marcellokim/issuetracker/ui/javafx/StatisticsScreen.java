@@ -9,6 +9,7 @@ import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
+import javafx.concurrent.Task;
 import javafx.geometry.Side;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
@@ -52,12 +53,19 @@ final class StatisticsScreen extends VBox {
     void setOnBack(Runnable action){ this.onBack = action; }
 
     private void loadOverview(){
-        try{
-            report = statisticsController.viewStatistics(projectId);
+        ScreenComponents.showInfo(messageLabel, "Loading statistics...");
+        Task<StatisticsReportResult> task = new Task<>(){
+            @Override protected StatisticsReportResult call(){
+                return statisticsController.viewStatistics(projectId);
+            }
+        };
+        task.setOnSucceeded(event -> {
+            report = task.getValue();
             showOverview();
-        } catch (Exception exception){
-            ScreenComponents.showError(messageLabel, exception);
-        }
+        });
+        task.setOnFailed(event -> ScreenComponents.showError(messageLabel,
+                new RuntimeException("Statistics loading failed.")));
+        new Thread(task).start();
     }
 
     private void showOverview(){
@@ -67,8 +75,10 @@ final class StatisticsScreen extends VBox {
         statusPie.setTitle("Issues by Status");
         statusPie.setLegendSide(Side.BOTTOM);
         statusPie.setPrefHeight(280);
-        for (Map.Entry<IssueStatus, Integer> e : report.statusCounts().entrySet()){
-            statusPie.getData().add(new PieChart.Data(e.getKey() + " (" + e.getValue() + ")", e.getValue()));
+        for (IssueStatus s : IssueStatus.values()){
+            if (s == IssueStatus.DELETED) continue;
+            int count = report.statusCounts().getOrDefault(s, 0);
+            statusPie.getData().add(new PieChart.Data(s + " (" + count + ")", count));
         }
 
         BarChart<String, Number> priorityBar = createBarChart("Issues by Priority", "Priority", "Count");
@@ -121,6 +131,7 @@ final class StatisticsScreen extends VBox {
             CategoryAxis statusXAxis = (CategoryAxis) statusChart.getXAxis();
             for (YearMonth ym : report.monthlyStatusCounts().keySet()) statusXAxis.getCategories().add(ym.toString());
             for (IssueStatus st : IssueStatus.values()){
+                if (st == IssueStatus.DELETED) continue;
                 XYChart.Series<String, Number> series = new XYChart.Series<>();
                 series.setName(st.name());
                 for (Map.Entry<YearMonth, Map<IssueStatus, Integer>> monthEntry : report.monthlyStatusCounts().entrySet()){
