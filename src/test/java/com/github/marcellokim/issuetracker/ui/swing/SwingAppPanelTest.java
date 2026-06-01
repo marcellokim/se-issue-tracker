@@ -229,6 +229,72 @@ class SwingAppPanelTest {
     }
 
     @Test
+    @DisplayName("admin project management opens project detail")
+    void adminProjectManagementOpensProjectDetail() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        var panelRef = new AtomicReference<SwingAppPanel>();
+        var workerDone = new CountDownLatch(1);
+        SwingControllerFixture controllers = controllers(
+                passwordHashing,
+                List.of(projectSnapshot(1L, "Alpha", 3, 7)),
+                user("admin", Role.ADMIN));
+
+        SwingComponentTestSupport.onEdt(() -> {
+            SwingAppPanel panel = new SwingAppPanel(
+                    controllers.authenticationController(),
+                    controllers.dashboardController(),
+                    controllers.accountController(),
+                    controllers.projectController(),
+                    titles::update);
+            panelRef.set(panel);
+            SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText("admin");
+            SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class).setText("submitted-password");
+            SwingComponentTestSupport.find(panel, "signInButton", JButton.class).doClick();
+            SwingWorker<?, ?> worker = loginWorker(panel);
+            worker.addPropertyChangeListener(event -> {
+                if ("state".equals(event.getPropertyName())
+                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
+                    workerDone.countDown();
+                }
+            });
+            if (SwingWorker.StateValue.DONE == worker.getState()) {
+                workerDone.countDown();
+            }
+        });
+
+        assertTrue(passwordHashing.awaitMatch());
+        assertTrue(titles.awaitAdminDashboard());
+        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
+        awaitProjectRows(panelRef.get(), 1);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            SwingComponentTestSupport.find(panelRef.get(), "projectManagementButton", JButton.class).doClick();
+        });
+        awaitManagedProjectRows(panelRef.get(), 1);
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panelRef.get(), "projectManagementTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panelRef.get(), "openProjectDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panelRef.get(), "openProjectDetailButton", JButton.class).doClick());
+        awaitProjectDetailName(panelRef.get(), "Alpha");
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Project detail",
+                    SwingComponentTestSupport.find(panelRef.get(), "projectDetailTitle", JLabel.class).getText());
+            assertEquals(
+                    "Alpha",
+                    SwingComponentTestSupport.find(panelRef.get(), "projectDetailNameValue", JLabel.class).getText());
+            SwingComponentTestSupport.find(panelRef.get(), "projectDetailBackButton", JButton.class).doClick();
+        });
+
+        awaitManagedProjectRows(panelRef.get(), 1);
+    }
+
+    @Test
     @DisplayName("admin account management shows user table")
     void adminAccountManagementShowsUserTable() throws Exception {
         var passwordHashing = new RecordingPasswordHashing();
@@ -301,6 +367,69 @@ class SwingAppPanelTest {
         awaitRows(panel, "projectManagementTable", expectedRows);
     }
 
+    private static void awaitProjectDetailName(SwingAppPanel panel, String expectedName) throws Exception {
+        CountDownLatch detailReady = new CountDownLatch(1);
+        AtomicReference<Timer> timerRef = new AtomicReference<>();
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = new Timer(25, event -> {
+                try {
+                    String actual = SwingComponentTestSupport.find(panel, "projectDetailNameValue", JLabel.class)
+                            .getText();
+                    if (expectedName.equals(actual)) {
+                        ((Timer) event.getSource()).stop();
+                        detailReady.countDown();
+                    }
+                } catch (AssertionError ignored) {
+                    // Detail panel is installed asynchronously after the selected project opens.
+                }
+            });
+            timer.setRepeats(true);
+            timerRef.set(timer);
+            timer.start();
+        });
+
+        boolean ready = detailReady.await(5, TimeUnit.SECONDS);
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = timerRef.get();
+            if (timer != null) {
+                timer.stop();
+            }
+            if (!ready) {
+                assertEquals(
+                        expectedName,
+                        SwingComponentTestSupport.find(panel, "projectDetailNameValue", JLabel.class).getText());
+            }
+        });
+    }
+
+    private static void awaitButtonEnabled(SwingAppPanel panel, String buttonName) throws Exception {
+        CountDownLatch enabled = new CountDownLatch(1);
+        AtomicReference<Timer> timerRef = new AtomicReference<>();
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = new Timer(25, event -> {
+                JButton button = SwingComponentTestSupport.find(panel, buttonName, JButton.class);
+                if (button.isEnabled()) {
+                    ((Timer) event.getSource()).stop();
+                    enabled.countDown();
+                }
+            });
+            timer.setRepeats(true);
+            timerRef.set(timer);
+            timer.start();
+        });
+
+        boolean ready = enabled.await(5, TimeUnit.SECONDS);
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = timerRef.get();
+            if (timer != null) {
+                timer.stop();
+            }
+            if (!ready) {
+                assertTrue(SwingComponentTestSupport.find(panel, buttonName, JButton.class).isEnabled());
+            }
+        });
+    }
+
     private static void awaitRows(SwingAppPanel panel, String tableName, int expectedRows) throws Exception {
         CountDownLatch rowsReady = new CountDownLatch(1);
         AtomicReference<Timer> timerRef = new AtomicReference<>();
@@ -341,6 +470,14 @@ class SwingAppPanelTest {
             User... users) {
         var repository = new InMemoryUserRepository(users);
         var projectRepository = new InMemoryProjectRepository();
+        projects.forEach(project -> projectRepository.withProject(com.github.marcellokim.issuetracker.domain.Project
+                .fromPersistence(
+                        project.projectId(),
+                        project.projectName(),
+                        project.projectDescription(),
+                        "admin",
+                        NOW,
+                        NOW)));
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         return new SwingControllerFixture(

@@ -4,7 +4,6 @@ import com.github.marcellokim.issuetracker.service.DashboardProjectSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -19,7 +18,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -31,8 +29,6 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     private static final String[] PROJECT_COLUMNS = {"ID", "Project", DESCRIPTION_TEXT, "Members", "Issues"};
     private static final int[] PROJECT_COLUMN_WIDTHS = {72, 180, 280, 88, 88};
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
-    private static final Color EVEN_ROW_BACKGROUND = Color.WHITE;
-    private static final Color ODD_ROW_BACKGROUND = new Color(248, 250, 252);
     private static final String DEFAULT_ERROR_MESSAGE = "Project management failed. Please try again.";
     private static final SwingPanelSections.HeaderLabels HEADER_LABELS = new SwingPanelSections.HeaderLabels(
             "Project management",
@@ -95,15 +91,11 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
 
     @Override
     public void showMessage(String message, boolean error) {
-        String displayMessage = message;
-        if (displayMessage == null || displayMessage.isBlank()) {
-            displayMessage = error ? DEFAULT_ERROR_MESSAGE : " ";
-        }
-        String text = displayMessage;
-        runOnEdt(() -> {
-            messageLabel.setText(text);
-            messageLabel.setForeground(error ? SwingStyles.ERROR_TEXT : SwingStyles.MUTED_TEXT);
-        });
+        runOnEdt(() -> SwingPanelSections.updateMessage(
+                messageLabel,
+                message,
+                error,
+                DEFAULT_ERROR_MESSAGE));
     }
 
     void setBusy(boolean busy) {
@@ -183,24 +175,15 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
     private JTable table() {
         JTable table = new JTable(projectTableModel) {
             @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-                Component component = super.prepareRenderer(renderer, row, column);
-                component.setForeground(SwingStyles.BODY_TEXT);
-                if (isRowSelected(row)) {
-                    component.setBackground(SELECTION_BACKGROUND);
-                } else {
-                    component.setBackground(row % 2 == 0 ? EVEN_ROW_BACKGROUND : ODD_ROW_BACKGROUND);
-                }
-                return component;
+            public java.awt.Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+                return SwingPanelSections.stripedTableCell(
+                        this,
+                        super.prepareRenderer(renderer, row, column),
+                        row,
+                        SELECTION_BACKGROUND);
             }
         };
-        table.setName("projectManagementTable");
-        table.setFillsViewportHeight(true);
-        table.setRowHeight(26);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setSelectionBackground(SELECTION_BACKGROUND);
-        table.setSelectionForeground(SwingStyles.BODY_TEXT);
-        table.getTableHeader().setReorderingAllowed(false);
+        SwingPanelSections.configureReadOnlyTable(table, "projectManagementTable", SELECTION_BACKGROUND);
         table.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
                 updateSelectionActions();
