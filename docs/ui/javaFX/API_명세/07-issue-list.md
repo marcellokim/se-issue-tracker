@@ -44,7 +44,7 @@
 | reportedDate | LocalDateTime | 등록일 |
 | updatedAt | LocalDateTime | 수정일 |
 
-> PL은 프로젝트 전체 이슈를 볼 수 있고, Dev/Tester는 본인이 관련된 이슈만 표시.
+> 프로젝트 멤버(PL/Dev/Tester)는 프로젝트 전체 일반 이슈를 볼 수 있고, 담당자 조건은 검색 필터로 좁힌다.
 
 ### 3. 이슈 검색
 

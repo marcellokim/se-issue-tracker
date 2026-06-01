@@ -65,9 +65,9 @@
 3. 프로젝트 선택 시 `ProjectController.viewProjectNonAdminDetail(projectId)`
    - 프로젝트 기본 정보를 조회한다.
 4. 같은 프로젝트 화면에서 `IssueController.viewRelatedProjectIssues(projectId)`
-   - PL은 해당 프로젝트의 일반 이슈를 조회한다.
-   - DEV/TESTER는 reporter, 현재 assignee, 현재 verifier로 관련된 이슈를 조회한다.
-   - fixer/resolver 같은 완료 이력자는 현재 관련 이슈 기준에 포함하지 않는다.
+   - PL/DEV/TESTER 프로젝트 멤버는 해당 프로젝트의 일반 이슈를 조회한다.
+   - reporter, 현재 assignee, 현재 verifier 조건은 `IssueController.searchIssues(...)` 필터로 좁힌다.
+   - 완료 이력인 fixer/resolver는 기본 이슈 목록 범위를 제한하지 않는다.
 5. 같은 프로젝트 화면에서 `StatisticsController.viewStatistics(projectId)`
    - 해당 프로젝트 통계를 조회한다.
 6. 이슈 선택 시 `IssueController.viewIssueDetail(issueId)`
