@@ -7,7 +7,4 @@ A -> S: addStatusChangeComment(issueId, comment)
 S --> A: statusChangeCommentAccepted(commentId, createdDate)
 A -> S: changeStatus(issueId, targetStatus=FIXED)
 S --> A: updatedIssue(issueId, status=FIXED)
-note over S
-UC6은 UC2 Add Comment를 include하므로 상태 변경 사유 코멘트는 필수이다.
-end note
 @enduml

@@ -1,6 +1,8 @@
-# Operation Contracts - 필수 적용 대상
+# Operation Contracts
 
-이 문서는 UC 명세에서 Fully Dressed로 다룬 핵심 시나리오와 SSD에서 결과를 그림만으로 이해하기 어려운 필수 system operation을 대상으로 작성한다.
+이 문서는 UC 명세에서 Fully Dressed로 다룬 핵심 시나리오와 SSD에서 결과를 그림만으로 이해하기 어려운 system operation을 대상으로 작성한다. 보고서 본문에서는 `OC-01 Register Issue`, `OC-07 Resolve Fixed Issue`, `OC-14 Add Dependency`를 대표 Operation Contract로 사용한다. 세 operation은 각각 이슈 생성, 상태 전이, 이슈 의존성 관계 생성을 보여주기 때문에 SSD만으로는 부족한 도메인 객체의 생성, association 변화, 속성값 변화를 설명하기에 적합하다.
+
+나머지 OC는 구현 정책과 설계 검토를 위한 reference로 유지한다.
 
 작성 기준:
 - Reference는 대응 Use Case를 기준으로 적는다.

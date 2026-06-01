@@ -9,20 +9,6 @@ participant ":Issue Tracking System" as S
 A -> S: startAssignment(issueId)
 S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
 
-note over S
-UC5는 UC8 Recommend Assignment Candidates를 include한다.
-
-상태별 후보 반환:
-- NEW/REOPENED: DEV assignee 후보와 TESTER verifier 후보를 반환한다.
-- ASSIGNED: DEV assignee 후보를 반환한다.
-- FIXED: TESTER verifier 후보를 반환한다.
-
-devAssigneeCandidates와 testerVerifierCandidates는 top 3 후보이다.
-allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
-해결 이력이 없으면 top 추천 후보는 비어 있을 수 있지만, 프로젝트 소속 active 후보 전체 목록은 함께 반환된다.
-필요한 역할의 후보가 없으면 빈 후보 목록을 반환하고, PL은 배정을 완료할 수 없다.
-end note
-
 alt Issue.status == NEW or REOPENED
   opt UC2 Add Comment 선택
     A -> S: addComment(issueId, content)
