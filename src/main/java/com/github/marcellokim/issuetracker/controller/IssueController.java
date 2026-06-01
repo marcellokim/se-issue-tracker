@@ -87,6 +87,12 @@ public final class IssueController {
                 user.getLoginId());
     }
 
+    public List<IssueSummary> searchRelatedProjectIssues(long projectId, String keyword, IssueStatus status,
+            Priority priority) {
+        User user = requireCurrentUser();
+        return issueService.searchRelatedProjectIssues(projectId, keyword, status, priority, user.getLoginId());
+    }
+
     public List<IssueSummary> viewRelatedProjectIssues(long projectId) {
         User user = requireCurrentUser();
         return issueService.viewRelatedProjectIssues(projectId, user.getLoginId());
