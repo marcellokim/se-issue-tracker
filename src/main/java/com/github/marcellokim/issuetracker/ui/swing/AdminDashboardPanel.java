@@ -161,7 +161,7 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
         JTable table = new JTable(model);
         table.setName(name);
         table.setFillsViewportHeight(true);
-        table.getTableHeader().setReorderingAllowed(false);
+        SwingStyles.disableHeaderReordering(table);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         SwingStyles.applyTableStyle(table);
         applyColumnWidths(table, columnWidths);

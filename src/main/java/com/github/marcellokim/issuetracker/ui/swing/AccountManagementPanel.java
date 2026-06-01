@@ -187,7 +187,7 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
         table.setName("accountUserTable");
         table.setFillsViewportHeight(true);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.getTableHeader().setReorderingAllowed(false);
+        SwingStyles.disableHeaderReordering(table);
         SwingStyles.applyTableStyle(table);
         table.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {

@@ -46,7 +46,6 @@ public final class SwingAppFrame extends JFrame {
         super.setVisible(visible);
         if (visible) {
             toFront();
-            requestFocus();
             appPanel.requestLoginFocus();
         }
     }

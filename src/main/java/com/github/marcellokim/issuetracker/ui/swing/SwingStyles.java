@@ -10,6 +10,7 @@ import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.border.Border;
 import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.table.JTableHeader;
 
 final class SwingStyles {
 
@@ -92,9 +93,19 @@ final class SwingStyles {
         table.setGridColor(TABLE_GRID);
         table.setShowGrid(true);
         table.setIntercellSpacing(new Dimension(0, 1));
-        table.getTableHeader().setBackground(TABLE_HEADER_BACKGROUND);
-        table.getTableHeader().setForeground(BODY_TEXT);
-        table.getTableHeader().setFont(table.getTableHeader().getFont().deriveFont(Font.BOLD));
+        JTableHeader header = table.getTableHeader();
+        if (header != null) {
+            header.setBackground(TABLE_HEADER_BACKGROUND);
+            header.setForeground(BODY_TEXT);
+            header.setFont(header.getFont().deriveFont(Font.BOLD));
+        }
+    }
+
+    static void disableHeaderReordering(JTable table) {
+        JTableHeader header = table.getTableHeader();
+        if (header != null) {
+            header.setReorderingAllowed(false);
+        }
     }
 
     static void fixHeight(JComponent component, int height) {

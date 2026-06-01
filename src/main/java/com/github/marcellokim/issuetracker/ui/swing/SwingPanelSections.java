@@ -180,7 +180,7 @@ final class SwingPanelSections {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setSelectionBackground(selectionBackground);
         table.setSelectionForeground(SwingStyles.BODY_TEXT);
-        table.getTableHeader().setReorderingAllowed(false);
+        SwingStyles.disableHeaderReordering(table);
         SwingStyles.applyTableStyle(table);
     }
 

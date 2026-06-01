@@ -3,8 +3,6 @@ package com.github.marcellokim.issuetracker.ui.swing;
 import java.awt.Component;
 import java.awt.GridBagLayout;
 import java.awt.Window;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Objects;
 import javax.swing.BorderFactory;
@@ -54,7 +52,6 @@ final class LoginPanel extends JPanel implements LoginView {
         surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
 
         loginIdField.setName("loginIdField");
-        installFocusRequest(loginIdField);
         SwingStyles.fixHeight(loginIdField, SwingStyles.FIELD_HEIGHT);
         loginIdField.setMaximumSize(loginIdField.getPreferredSize());
         loginIdField.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -69,7 +66,6 @@ final class LoginPanel extends JPanel implements LoginView {
         surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
 
         passwordField.setName("passwordField");
-        installFocusRequest(passwordField);
         SwingStyles.fixHeight(passwordField, SwingStyles.FIELD_HEIGHT);
         passwordField.setMaximumSize(passwordField.getPreferredSize());
         passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -136,25 +132,10 @@ final class LoginPanel extends JPanel implements LoginView {
         passwordField.setText("");
     }
 
-    private static void installFocusRequest(Component component) {
-        component.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent event) {
-                requestInputFocus(component);
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent event) {
-                requestInputFocus(component);
-            }
-        });
-    }
-
     private static void requestInputFocus(Component component) {
         Window window = SwingUtilities.getWindowAncestor(component);
         if (window != null) {
             window.toFront();
-            window.requestFocus();
         }
         if (!component.requestFocusInWindow()) {
             component.requestFocus();
