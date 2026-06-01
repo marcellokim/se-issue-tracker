@@ -10,21 +10,30 @@ import javafx.scene.layout.VBox;
 
 final class ScreenComponents {
 
+    private static final String STYLESHEET = "/javafx/app.css";
+
     private ScreenComponents(){}
 
     static void applyScreenDefaults(VBox screen){
         screen.setPadding(new Insets(20));
         screen.setSpacing(12);
+        screen.setStyle("-fx-background-color: #f1f5f9;");
+    }
+
+    static void applyStylesheet(javafx.scene.Scene scene){
+        java.net.URL css = ScreenComponents.class.getResource(STYLESHEET);
+        if (css != null) scene.getStylesheets().add(css.toExternalForm());
     }
 
     static Label titleLabel(String text){
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        label.getStyleClass().add("title-label");
         return label;
     }
 
     static Button backButton(String text, Runnable onBack){
         Button button = new Button(text);
+        button.getStyleClass().add("back-button");
         button.setOnAction(event -> { if (onBack != null) onBack.run(); });
         return button;
     }
@@ -52,18 +61,28 @@ final class ScreenComponents {
 
     static Label messageLabel(){
         Label label = new Label();
-        label.setStyle("-fx-text-fill: #666;");
+        label.getStyleClass().add("message-label");
         return label;
     }
 
     static void showError(Label messageLabel, Exception exception){
         messageLabel.setText(exception.getMessage());
-        messageLabel.setStyle("-fx-text-fill: red;");
+        messageLabel.getStyleClass().removeAll("message-label");
+        messageLabel.getStyleClass().add("error-label");
     }
 
     static void showInfo(Label messageLabel, String text){
         messageLabel.setText(text);
-        messageLabel.setStyle("-fx-text-fill: #666;");
+        messageLabel.getStyleClass().removeAll("error-label");
+        messageLabel.getStyleClass().add("message-label");
+    }
+
+    static String shortIssueId(String issueId){
+        if (issueId == null) return "";
+        if (issueId.startsWith("ISSUE-")){
+            return issueId.length() > 14 ? issueId.substring(0, 14) : issueId;
+        }
+        return issueId.length() > 8 ? issueId.substring(0, 8) + "..." : issueId;
     }
 
     static <T> void setupListDoubleClick(javafx.scene.control.ListView<T> listView, java.util.function.Consumer<T> onSelected){

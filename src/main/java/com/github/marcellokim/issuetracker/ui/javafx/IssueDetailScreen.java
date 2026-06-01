@@ -72,7 +72,7 @@ final class IssueDetailScreen extends VBox {
             IssueDetailResult detail = issueController.viewIssueDetail(issueId);
             this.currentDetail = detail;
 
-            Label titleLabel = new Label(String.format("[%s] %s", detail.issueId(), detail.title()));
+            Label titleLabel = new Label(String.format("[%s] %s", ScreenComponents.shortIssueId(detail.issueId()), detail.title()));
             titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
             Label statusLabel = new Label(String.format("Status: %s | Priority: %s", detail.status(), detail.priority()));
@@ -115,7 +115,7 @@ final class IssueDetailScreen extends VBox {
             blockedByTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
             ListView<String> blockedByListView = new ListView<>();
             for (DependencyResult dep : detail.blockedByDependencies()){
-                blockedByListView.getItems().add(String.format("%s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey()));
+                blockedByListView.getItems().add(String.format("%s blocks %s", ScreenComponents.shortIssueId(dep.blockingIssueKey()), ScreenComponents.shortIssueId(dep.blockedIssueKey())));
             }
             blockedByListView.setPrefHeight(Math.min(80, detail.blockedByDependencies().size() * 26 + 4));
 
@@ -123,7 +123,7 @@ final class IssueDetailScreen extends VBox {
             blockingTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
             ListView<String> blockingListView = new ListView<>();
             for (DependencyResult dep : detail.blockingDependencies()){
-                blockingListView.getItems().add(String.format("%s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey()));
+                blockingListView.getItems().add(String.format("%s blocks %s", ScreenComponents.shortIssueId(dep.blockingIssueKey()), ScreenComponents.shortIssueId(dep.blockedIssueKey())));
             }
             blockingListView.setPrefHeight(Math.min(80, detail.blockingDependencies().size() * 26 + 4));
 
@@ -294,7 +294,7 @@ final class IssueDetailScreen extends VBox {
         ComboBox<IssueSummary> issueBox = new ComboBox<>();
         issueBox.setConverter(new StringConverter<>(){
             @Override public String toString(IssueSummary s){
-                return s == null ? "" : String.format("[%s] %s (%s)", s.issueId(), s.title(), s.status());
+                return s == null ? "" : String.format("[%s] %s (%s)", ScreenComponents.shortIssueId(s.issueId()), s.title(), s.status());
             }
             @Override public IssueSummary fromString(String str){ return null; }
         });
