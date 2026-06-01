@@ -107,6 +107,7 @@ active project member와 active PL 판단이 `IssueService`, `IssueStateService`
 | Policy | 선별 적용 | `PermissionPolicy`는 적절하다. membership, dependency resolution처럼 중복되는 조건은 실제 drift가 확인된 지점부터 추가 policy로 뺀다. |
 | Specification | 보류 | status/priority branch가 아직 작고, Specification을 넣으면 호출 구조가 더 무거워진다. dependency resolution처럼 실행/표시 경로가 갈라진 규칙에만 후보가 있다. |
 | Strategy | 보류 | 상태별 알고리즘이 분리될 정도로 복잡하지 않다. 현재 switch와 domain method가 더 읽기 쉽다. |
+| State | 보류 | 상태 전이 규칙이 단순해 개별 상태 클래스를 두는 것보다 현재 switch와 domain method 조합이 더 작고 명확하다. |
 | Factory/Builder | 현 구조 유지 | `Issue.PersistedState`는 persistence rehydration과 creation input을 분리하는 데 충분하다. 별도 factory는 현재 이득이 작다. |
 | Facade | 보류 | controller가 service를 직접 호출해도 흐름이 과도하게 복잡하지 않다. |
 | Result/Either | 보류 | 현재 서비스 예외 흐름과 controller 호출 방식에 맞춰져 있다. 전체 error-handling 정책 없이 부분 도입하지 않는다. |
@@ -122,6 +123,7 @@ active project member와 active PL 판단이 `IssueService`, `IssueStateService`
 | 3 | resolve blocking issue policy 공유 | `IssueStateService`와 `IssueWorkflowService`가 같은 unresolved blocking issue 판단을 쓰게 한다. |
 | 4 | deleted issue restore lifecycle boundary 정리 | restore 가능한 pre-delete status 정책을 service/domain 이름으로 드러내고 JDBC는 transaction과 SQL에 집중하게 한다. |
 | 5 | current issue responsibility 용어 정리 | account role/deactivation guard와 project membership 관련 guard에서 같은 개념을 같은 이름으로 사용한다. |
+| 6 | dependency 중복 검증 로직 단일화 | `Issue`의 self/loaded duplicate 검증과 `IssueService`의 persisted duplicate 검증 경계를 명확히 해 drift 위험을 줄인다. |
 
 ## Current Conclusion
 
