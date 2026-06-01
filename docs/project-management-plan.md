@@ -24,7 +24,7 @@
 
 - **M1 - 요구사항 및 설계 기준선**: 요구사항 추적, 유스케이스, 도메인 모델, SSD, Operation Contract
 - **M2 - 핵심 도메인 및 영속 저장소**: 모델, 서비스, 검색, 상태 전이, 저장소, 통계, 추천
-- **M3 - 다중 UI 및 데모 흐름**: JavaFX/Swing UI와 PDF 데모 시나리오
+- **M3 - 다중 UI 및 데모 흐름**: JavaFX 전체 UI와 Swing 전체 UI가 같은 controller/service/domain/persistence 계층을 재사용하는 데모 흐름
 - **M4 - 검증 및 제출 패키지**: 테스트, 최종 문서, 발표, 영상, 제출 zip
 
 기존의 `초기 설정`, `핵심 기능`, `UI`, `테스트`, `문서`, `데모` 마일스톤은 과거 분류용 이력이므로 닫아 두고, 앞으로 새 작업은 M1~M4 중심으로 배치합니다.
@@ -57,11 +57,11 @@
 | [#20](https://github.com/marcellokim/se-issue-tracker/issues/20) feat: 이슈 배정과 상태 변경 흐름 구현 | M2 | 기능/상태 전이 |
 | [#21](https://github.com/marcellokim/se-issue-tracker/issues/21) feat: 일/월별 이슈 통계와 추이 조회 구현 | M2 | 기능/통계 |
 | [#22](https://github.com/marcellokim/se-issue-tracker/issues/22) feat: 해결 이력 기반 담당자 추천 기능 구현 | M2 | 기능/추천 |
-| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) feat: JavaFX 메인 UI로 기본 사용자 흐름 구현 | M3 | 기능/UI |
-| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) feat: Swing 보조 UI로 모델 재사용 구조 입증 | M3 | 기능/UI |
+| [#23](https://github.com/marcellokim/se-issue-tracker/issues/23) feat: JavaFX 전체 UI 데모 흐름 parent 관리 | M3 | 기능/UI |
+| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) feat: Swing 전체 UI 데모 흐름 parent 관리 | M3 | 기능/UI |
 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) test: 모델, 서비스, 영속 저장소 JUnit 테스트 구성 | M4 | 테스트 |
 | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) docs: 최종 프로젝트 문서, 발표 자료, 영상, 제출 패키지 준비 | M4 | 문서/제출 |
-| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) chore: GitHub Project 자동 등록과 진행 이력 캡처 준비 | M1 | 작업/자동화 |
+| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) chore: GitHub Project 진행 이력과 제출 증빙 캡처 준비 | M4 | 작업/자동화 |
 | [#39](https://github.com/marcellokim/se-issue-tracker/issues/39) docs: MVC, GRASP, Repository, Strategy 설계원칙 기준선 정리 | M1 | 문서/설계 원칙 |
 | [#43](https://github.com/marcellokim/se-issue-tracker/issues/43) feat: Tester 검증 실패 시 fixed 이슈를 assigned로 되돌리는 역전이 구현 | M2 | 기능/상태 전이 |
 | [#44](https://github.com/marcellokim/se-issue-tracker/issues/44) feat: deleted 상태와 삭제 후보 보관/FIFO 정리 정책 구현 | M2 | 기능/상태 전이/저장소 |
@@ -77,10 +77,10 @@
 3. #18, #44, #45로 DB schema, seed 데이터, soft-delete, dependency 저장 구조를 준비합니다.
 4. #19로 이슈 등록/검색/상세/코멘트 서비스를 연결합니다.
 5. #21, #22를 붙여 통계/추천 요구사항을 완성합니다.
-6. #23, #24에서 UI 두 개를 같은 서비스 계층에 연결합니다.
+6. #23, #24에서 JavaFX 전체 UI와 Swing 전체 UI를 같은 서비스 계층에 연결합니다.
 7. #25로 핵심 모델/서비스/저장소 테스트를 보강합니다.
 8. #26에서 문서/발표/영상/제출 패키지를 닫습니다.
 
 ## 자동화 메모
 
-현재 Project URL 변수는 설정되어 있지만, 사용자 계정 소유 GitHub Project에 자동 등록하려면 `ADD_TO_PROJECT_PAT` secret이 필요합니다. 이 값은 보안 정보이므로 문서나 커밋에 적지 않습니다. 설정이 끝나면 새 이슈/PR 생성 시 Project 자동 등록 워크플로우가 실제로 동작하는지 #27에서 확인합니다.
+현재 Project URL 변수는 설정되어 있지만, 사용자 계정 소유 GitHub Project 자동 등록과 보드 정렬은 `ADD_TO_PROJECT_PAT` secret 상태에 따라 달라질 수 있습니다. 이 값은 보안 정보이므로 문서나 커밋에 적지 않습니다. 제출 직전에는 #27에서 GitHub Project 진행 이력, PR/issue 상태, 마일스톤 증빙을 사람이 확인할 수 있는 형태로 캡처합니다.

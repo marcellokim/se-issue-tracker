@@ -6,7 +6,7 @@
 ## 1. 과제 제출 정보
 - **과제명**: SE 2026 Spring Term Project - 이슈관리 시스템 개발
 - **구현 언어**: Java
-- **최종 제출 마감**: 2026-06-02 21:00
+- **최종 제출 마감**: 2026-06-04 21:00 KST
 - **발표 일정**: 2026-06-03 / 2026-06-08 수업 시간
 - **GitHub 저장소**: <https://github.com/marcellokim/se-issue-tracker>
 - **GitHub 프로젝트**: <https://github.com/users/marcellokim/projects/1>
@@ -39,9 +39,11 @@
 - [x] 초기 세팅 / git hook / 라벨 동기화 / 제출 패키징 스크립트
 - [x] 사용자용 운영 가이드 및 자동화 옵션 문서
 - [x] 도메인 모델 구현
-- [ ] UI(JavaFX + Swing) 구현
-- [ ] 통계 / 추천 기능 구현
+- [x] JavaFX 전체 UI 구현
+- [x] Swing 전체 UI 구현
+- [x] 통계 / 추천 기능 구현
 - [ ] 최종 발표 자료 / 동영상 / 프로젝트 문서 PDF 완성
+- [ ] 최종 제출 패키지 freeze 및 증빙 정리
 
 ## 5. 로컬 실행 및 개발 시작
 ### 필수 환경
@@ -93,10 +95,14 @@ Windows에서 `python3` 대신 `python` 또는 `py`만 잡히는 경우에는 Gr
 ```
 
 ### 애플리케이션 실행 확인
-아직 실제 JavaFX 화면은 #23에서 구현합니다. 현재 단계에서는 Gradle 실행 골격과 JavaFX 런타임 설정이 잡혀 있는지만 확인합니다.
+기본 실행은 JavaFX UI이며, Swing UI는 별도 Gradle task로 실행합니다. Oracle DB를 사용하는 데모 실행은 [docs/local-oracle-testing.md](docs/local-oracle-testing.md)의 앱 DB 준비 절차를 먼저 따릅니다.
 
 ```bash
-./gradlew run
+# JavaFX
+./gradlew run --console=plain
+
+# Swing
+./gradlew runSwing --console=plain
 ```
 
 ### 정해진 작업 흐름
