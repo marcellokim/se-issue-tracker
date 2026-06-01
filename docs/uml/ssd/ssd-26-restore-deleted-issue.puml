@@ -10,11 +10,12 @@ A -> S: viewDeletedIssues(projectId)
 S --> A: deletedIssueList(issues)
 
 A -> S: restoreIssue(issueId, comment)
-S --> A: issueRestored(issueId, status=NEW or CLOSED, confirmation)
-
-note over S
-UC9는 UC2 Add Comment를 include한다.
-따라서 restoreIssue의 comment는 복구 사유로 필수 입력된다.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: restoreRejected(reason)
+else comment가 비어 있음
+  S --> A: restoreRejected(commentRequired)
+else PL이 DELETED 이슈를 복구
+  S --> A: issueRestored(issueId, status=NEW or CLOSED, confirmation)
+end
 
 @enduml

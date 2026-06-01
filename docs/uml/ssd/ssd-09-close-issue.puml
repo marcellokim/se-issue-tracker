@@ -4,8 +4,11 @@ title SSD 09 - UC6 상태 변경: Close 처리
 actor "PL" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=CLOSED, comment)
-S --> A: updatedIssue(issueId, status=CLOSED, assignee=null, verifier=null)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else PL이 RESOLVED 이슈를 close
+  S --> A: updatedIssue(issueId, status=CLOSED, assignee=null, verifier=null)
+end
 @enduml

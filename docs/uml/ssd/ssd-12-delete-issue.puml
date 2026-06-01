@@ -6,6 +6,12 @@ participant ":Issue Tracking System" as S
 
 
 A -> S: deleteIssue(issueId, comment)
-S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+alt 상태 또는 권한이 맞지 않음
+  S --> A: deleteRejected(reason)
+else comment가 비어 있음
+  S --> A: deleteRejected(commentRequired)
+else PL이 NEW/CLOSED 이슈를 soft delete
+  S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+end
 
 @enduml

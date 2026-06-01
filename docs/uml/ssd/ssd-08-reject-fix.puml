@@ -4,8 +4,11 @@ title SSD 08 - UC6 상태 변경: Fix 거절
 actor "Tester" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=ASSIGNED, comment)
-S --> A: updatedIssue(issueId, status=ASSIGNED, fixer=retained)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else 현재 verifier TESTER가 fix 거절
+  S --> A: updatedIssue(issueId, status=ASSIGNED, fixer=retained)
+end
 @enduml

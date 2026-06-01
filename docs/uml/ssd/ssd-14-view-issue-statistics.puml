@@ -7,18 +7,7 @@ participant ":Issue Tracking System" as S
 
 
 A -> S: viewStatistics(projectId, dailyPeriod, monthlyPeriod)
-S --> A: statisticsReport(
-  statusCounts,
-  priorityCounts,
-  dailyIssueCounts,
-  monthlyIssueCounts,
-  monthlyStatusCounts,
-  monthlyPriorityCounts,
-  dailyStatusChangeCounts,
-  monthlyStatusChangeCounts,
-  dailyCommentCounts,
-  monthlyCommentCounts
-)
+S --> A: statisticsReport(summaryCounts, trendCounts, commentCounts)
 
 
 @enduml

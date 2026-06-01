@@ -6,7 +6,7 @@
 
 작성 기준:
 - Reference는 대응 Use Case를 기준으로 적는다.
-- Preconditions는 UC 명세, SSD note, 기본 가정의 권한/상태 정책을 함께 반영한다.
+- Preconditions는 UC 명세, SSD, 기본 가정의 권한/상태 정책을 함께 반영한다.
 - Postconditions는 필요한 경우에만 instance 생성/삭제, association 형성/붕괴, 속성값 변화를 명시한다.
 - `IssueHistory`가 생성되는 경우 해당 `Issue`와 `User`의 기록 association도 함께 형성된 것으로 본다.
 - 모든 새 `IssueHistory` instance의 `changedDate`는 현재 시각으로 설정된다.
@@ -215,8 +215,8 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 대상 `Issue`의 현재 assignee이다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active member이다.
 - `Issue.status`는 `ASSIGNED`이다.
-- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `ASSIGNED -> FIXED` 전이를 수행할 권한을 가진다.
+- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 
 ### 4. Postconditions
 
@@ -257,9 +257,9 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 대상 `Issue`의 현재 verifier이다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active member이다.
 - `Issue.status`는 `FIXED`이다.
-- 대상 `Issue`와 연결된 모든 blocking issue는 `RESOLVED` 또는 `CLOSED` 상태이다.
-- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `FIXED -> RESOLVED` 전이를 수행할 권한을 가진다.
+- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
+- 대상 `Issue`와 연결된 모든 blocking issue는 `RESOLVED` 또는 `CLOSED` 상태이다.
 
 ### 4. Postconditions
 
@@ -306,8 +306,8 @@ Use Case: UC6 Change Issue State
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `RESOLVED`이다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
-- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `RESOLVED -> CLOSED` 전이를 수행할 권한을 가진다.
+- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 
 ### 4. Postconditions
 
@@ -348,8 +348,8 @@ Use Case: UC6 Change Issue State
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `RESOLVED` 또는 `CLOSED`이다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
-- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `RESOLVED/CLOSED -> REOPENED` 전이를 수행할 권한을 가진다.
+- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 
 ### 4. Postconditions
 
@@ -392,8 +392,8 @@ Use Case: UC9 Manage Deleted Issue
 - 대상 `Issue`가 존재한다.
 - `Issue.status`는 `NEW` 또는 `CLOSED`이다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
-- 삭제 사유인 `comment`는 비어 있지 않다.
 - 현재 사용자는 이슈를 삭제할 권한을 가진다.
+- 삭제 사유인 `comment`는 비어 있지 않다.
 - 대상 이슈는 아직 물리적으로 삭제되지 않았다.
 
 ### 4. Postconditions
@@ -438,9 +438,9 @@ Use Case: UC9 Manage Deleted Issue
 - `Issue.status`는 `DELETED`이다.
 - 대상 `Issue`는 아직 물리적으로 삭제되지 않았다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active PL이다.
+- 현재 사용자는 이슈를 복구할 권한을 가진다.
 - 복구 사유인 `comment`는 비어 있지 않다.
 - 복구할 상태는 `IssueHistory(STATUS_CHANGED, newValue=DELETED).previousValue`에서 확인할 수 있다.
-- 현재 사용자는 이슈를 복구할 권한을 가진다.
 
 ### 4. Postconditions
 
@@ -530,8 +530,8 @@ Use Case: UC6 Change Issue State
 - 현재 사용자는 대상 `Issue`의 현재 verifier이다.
 - 현재 사용자는 대상 `Issue`가 속한 `Project`의 active member이다.
 - `Issue.status`는 `FIXED`이다.
-- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 - 현재 사용자는 `FIXED -> ASSIGNED` 전이를 수행할 권한을 가진다.
+- UC6은 UC2 Add Comment를 include하므로 `comment`는 비어 있지 않다.
 
 ### 4. Postconditions
 

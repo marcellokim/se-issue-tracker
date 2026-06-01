@@ -1,4 +1,4 @@
-# SSD PUML 전체 모음
+﻿# SSD PUML 전체 모음
 
 이 파일은 `docs/uml/ssd/`의 개별 SSD PUML 파일을 Markdown으로 모은 문서입니다.
 
@@ -46,28 +46,12 @@ actor "Auth User" as A
 participant ":Issue Tracking System" as S
 
 
-A -> S: searchIssues(issueSearchFilters)
-S --> A: issueList(issues)
-
-note over S
-issueSearchFilters:
-- projectId
-- keyword(title/description)
-- status
-- priority
-- reporterId
-- assigneeId
-- verifierId
-- reportedDateRange
-
-정책:
-- keyword가 비어 있으면 keyword 조건 없이 검색한다.
-- status와 priority가 비어 있으면 해당 조건 없이 검색한다.
-- reporterId, assigneeId, verifierId가 비어 있으면 해당 조건 없이 검색한다.
-- reportedDateRange가 비어 있으면 기간 조건 없이 검색한다.
-- 일반 검색에서는 DELETED 상태 이슈를 반환하지 않는다.
-- DELETED 이슈 관리는 UC9 Manage Deleted Issue에서 처리한다.
-end note
+A -> S: searchIssues(projectId, issueSearchFilters)
+alt 조건 없이 브라우즈
+  S --> A: issueList(nonDeletedProjectIssues)
+else 조건 검색
+  S --> A: issueList(matchingNonDeletedIssues)
+end
 
 @enduml
 ```
@@ -98,20 +82,6 @@ participant ":Issue Tracking System" as S
 
 A -> S: startAssignment(issueId)
 S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
-
-note over S
-UC5는 UC8 Recommend Assignment Candidates를 include한다.
-
-상태별 후보 반환:
-- NEW/REOPENED: DEV assignee 후보와 TESTER verifier 후보를 반환한다.
-- ASSIGNED: DEV assignee 후보를 반환한다.
-- FIXED: TESTER verifier 후보를 반환한다.
-
-devAssigneeCandidates와 testerVerifierCandidates는 top 3 후보이다.
-allDevAssignees와 allTesterVerifiers는 프로젝트 소속 active 후보 전체이다.
-해결 이력이 없으면 top 추천 후보는 비어 있을 수 있지만, 프로젝트 소속 active 후보 전체 목록은 함께 반환된다.
-필요한 역할의 후보가 없으면 빈 후보 목록을 반환하고, PL은 배정을 완료할 수 없다.
-end note
 
 alt Issue.status == NEW or REOPENED
   opt UC2 Add Comment 선택
@@ -150,13 +120,14 @@ end
 title SSD 06 - UC6 상태 변경: Fixed 처리
 actor "DEV" as A
 participant ":Issue Tracking System" as S
-A -> S: addStatusChangeComment(issueId, comment)
-S --> A: statusChangeCommentAccepted(commentId, createdDate)
-A -> S: changeStatus(issueId, targetStatus=FIXED)
-S --> A: updatedIssue(issueId, status=FIXED)
-note over S
-UC6은 UC2 Add Comment를 include하므로 상태 변경 사유 코멘트는 필수이다.
-end note
+A -> S: changeStatus(issueId, targetStatus=FIXED, comment)
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else 현재 assignee DEV가 FIXED 처리
+  S --> A: updatedIssue(issueId, status=FIXED, fixer=currentDev)
+end
 @enduml
 ```
 
@@ -169,10 +140,15 @@ title SSD 07 - UC6 상태 변경: Resolve 처리
 actor "Tester" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=RESOLVED, comment)
-S --> A: updatedIssue(issueId, status=RESOLVED, resolver=currentTester)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else unresolved blocking issue가 존재함
+  S --> A: statusChangeRejected(blockingIssueNotResolved)
+else 현재 verifier TESTER가 resolve
+  S --> A: updatedIssue(issueId, status=RESOLVED, resolver=currentTester)
+end
 @enduml
 ```
 
@@ -185,10 +161,13 @@ title SSD 08 - UC6 상태 변경: Fix 거절
 actor "Tester" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=ASSIGNED, comment)
-S --> A: updatedIssue(issueId, status=ASSIGNED, fixer=retained)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else 현재 verifier TESTER가 fix 거절
+  S --> A: updatedIssue(issueId, status=ASSIGNED, fixer=retained)
+end
 @enduml
 ```
 
@@ -201,10 +180,13 @@ title SSD 09 - UC6 상태 변경: Close 처리
 actor "PL" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=CLOSED, comment)
-S --> A: updatedIssue(issueId, status=CLOSED, assignee=null, verifier=null)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else PL이 RESOLVED 이슈를 close
+  S --> A: updatedIssue(issueId, status=CLOSED, assignee=null, verifier=null)
+end
 @enduml
 ```
 
@@ -217,10 +199,13 @@ title SSD 10 - UC6 상태 변경: Reopen 처리
 actor "PL" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=REOPENED, comment)
-S --> A: updatedIssue(issueId, status=REOPENED, fixer=preserved, resolver=preserved)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else PL이 RESOLVED/CLOSED 이슈를 reopen
+  S --> A: updatedIssue(issueId, status=REOPENED, fixer=preserved, resolver=preserved)
+end
 @enduml
 ```
 
@@ -253,7 +238,13 @@ participant ":Issue Tracking System" as S
 
 
 A -> S: deleteIssue(issueId, comment)
-S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+alt 상태 또는 권한이 맞지 않음
+  S --> A: deleteRejected(reason)
+else comment가 비어 있음
+  S --> A: deleteRejected(commentRequired)
+else PL이 NEW/CLOSED 이슈를 soft delete
+  S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+end
 
 @enduml
 ```
@@ -294,18 +285,7 @@ participant ":Issue Tracking System" as S
 
 
 A -> S: viewStatistics(projectId, dailyPeriod, monthlyPeriod)
-S --> A: statisticsReport(
-  statusCounts,
-  priorityCounts,
-  dailyIssueCounts,
-  monthlyIssueCounts,
-  monthlyStatusCounts,
-  monthlyPriorityCounts,
-  dailyStatusChangeCounts,
-  monthlyStatusChangeCounts,
-  dailyCommentCounts,
-  monthlyCommentCounts
-)
+S --> A: statisticsReport(summaryCounts, trendCounts, commentCounts)
 
 
 @enduml
@@ -550,12 +530,13 @@ A -> S: viewDeletedIssues(projectId)
 S --> A: deletedIssueList(issues)
 
 A -> S: restoreIssue(issueId, comment)
-S --> A: issueRestored(issueId, status=NEW or CLOSED, confirmation)
-
-note over S
-UC9는 UC2 Add Comment를 include한다.
-따라서 restoreIssue의 comment는 복구 사유로 필수 입력된다.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: restoreRejected(reason)
+else comment가 비어 있음
+  S --> A: restoreRejected(commentRequired)
+else PL이 DELETED 이슈를 복구
+  S --> A: issueRestored(issueId, status=NEW or CLOSED, confirmation)
+end
 
 @enduml
 ```

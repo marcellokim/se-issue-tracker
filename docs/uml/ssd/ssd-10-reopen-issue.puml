@@ -4,8 +4,11 @@ title SSD 10 - UC6 상태 변경: Reopen 처리
 actor "PL" as A
 participant ":Issue Tracking System" as S
 A -> S: changeStatus(issueId, targetStatus=REOPENED, comment)
-S --> A: updatedIssue(issueId, status=REOPENED, fixer=preserved, resolver=preserved)
-note over S
-UC6 includes UC2; the comment is mandatory and recorded with the status change.
-end note
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else PL이 RESOLVED/CLOSED 이슈를 reopen
+  S --> A: updatedIssue(issueId, status=REOPENED, fixer=preserved, resolver=preserved)
+end
 @enduml
