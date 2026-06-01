@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -24,6 +25,8 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.Scrollable;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
@@ -38,7 +41,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
     private static final int SUMMARY_SECTION_HEIGHT = 168;
     private static final int ACTION_SECTION_HEIGHT = 150;
-    private static final int COMMENT_SECTION_HEIGHT = 190;
+    private static final int COMMENT_SECTION_HEIGHT = 220;
     private static final int HISTORY_SECTION_HEIGHT = 170;
     private static final int DEPENDENCY_SECTION_HEIGHT = 150;
     private static final String[] COMMENT_COLUMNS = {
@@ -84,9 +87,13 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private final JTable commentTable = table(commentTableModel, "issueCommentTable");
     private final JTable historyTable = table(historyTableModel, "issueHistoryTable");
     private final JTable dependencyTable = table(dependencyTableModel, "issueDependencyTable");
+    private final JButton addCommentButton = new JButton("Add comment");
+    private final JButton editCommentButton = new JButton("Edit selected");
+    private final JButton deleteCommentButton = new JButton("Delete selected");
     private final Map<String, JButton> actionButtons = new LinkedHashMap<>();
     private boolean busy;
     private Set<String> availableActions = Set.of();
+    private transient List<IssueCommentActionState> commentActionStates = List.of();
 
     IssueDetailPanel(UserResult user, IssueDetailActions actions) {
         Objects.requireNonNull(user, "user");
@@ -104,6 +111,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
 
         add(header(), BorderLayout.NORTH);
         add(content(), BorderLayout.CENTER);
+        configureCommentActions();
         updateActionButtons();
     }
 
@@ -122,10 +130,13 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             fixerLabel.setText("Fixer: " + formatUser(detail.fixer()));
             resolverLabel.setText("Resolver: " + formatUser(detail.resolver()));
             availableActions = Set.copyOf(detail.availableActions());
+            commentActionStates = List.copyOf(commentActions);
             replaceRows(commentTableModel, commentRows(detail.comments(), commentActionById));
+            commentTable.clearSelection();
             replaceRows(historyTableModel, historyRows(detail.histories()));
             replaceRows(dependencyTableModel, dependencyRows(detail.dependencies()));
             updateActionButtons();
+            updateCommentButtons();
         });
     }
 
@@ -154,6 +165,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             historyTable.setEnabled(!busy);
             dependencyTable.setEnabled(!busy);
             updateActionButtons();
+            updateCommentButtons();
         });
     }
 
@@ -183,7 +195,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         content.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
         content.add(constrainedSection(actionSection(), ACTION_SECTION_HEIGHT));
         content.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
-        content.add(constrainedSection(SwingPanelSections.tableSection("Comments", commentTable), COMMENT_SECTION_HEIGHT));
+        content.add(constrainedSection(commentSection(), COMMENT_SECTION_HEIGHT));
         content.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
         content.add(constrainedSection(SwingPanelSections.tableSection("History", historyTable), HISTORY_SECTION_HEIGHT));
         content.add(Box.createVerticalStrut(SwingStyles.SECTION_GAP));
@@ -239,6 +251,34 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         return section;
     }
 
+    private JPanel commentSection() {
+        JPanel section = new JPanel(new BorderLayout(0, SwingStyles.ROW_GAP));
+        section.setBackground(SwingStyles.SURFACE);
+        section.setBorder(SwingStyles.surfaceBorder());
+
+        JPanel header = new JPanel(new BorderLayout(SwingStyles.ROW_GAP, 0));
+        header.setOpaque(false);
+        JLabel title = new JLabel("Comments");
+        SwingStyles.applySectionTitle(title);
+        header.add(title, BorderLayout.WEST);
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, SwingStyles.ROW_GAP, 0));
+        buttons.setOpaque(false);
+        addCommentButton.setName("addCommentButton");
+        editCommentButton.setName("editCommentButton");
+        deleteCommentButton.setName("deleteCommentButton");
+        buttons.add(addCommentButton);
+        buttons.add(editCommentButton);
+        buttons.add(deleteCommentButton);
+        header.add(buttons, BorderLayout.EAST);
+
+        JScrollPane scrollPane = new JScrollPane(commentTable);
+        scrollPane.setColumnHeaderView(commentTable.getTableHeader());
+        section.add(header, BorderLayout.NORTH);
+        section.add(scrollPane, BorderLayout.CENTER);
+        return section;
+    }
+
     private static JPanel constrainedSection(JPanel section, int height) {
         Dimension size = new Dimension(SwingStyles.WINDOW_SIZE.width - SwingStyles.OUTER_PADDING * 2, height);
         section.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -266,13 +306,61 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private void updateActionButtons() {
         boolean enabled = !busy;
         actionButtons.forEach((action, button) -> button.setEnabled(enabled && availableActions.contains(action)));
+        addCommentButton.setEnabled(enabled && availableActions.contains("ADD_COMMENT"));
+    }
+
+    private void configureCommentActions() {
+        commentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        setColumnWidths(commentTable, 64, 92, 96, 320, 132, 64, 64);
+        commentTable.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                updateCommentButtons();
+            }
+        });
+        addCommentButton.addActionListener(event ->
+                actions.onCommentAction().accept(this, IssueCommentMode.ADD, null));
+        editCommentButton.addActionListener(event -> selectedComment()
+                .ifPresent(selection -> actions.onCommentAction().accept(this, IssueCommentMode.UPDATE, selection)));
+        deleteCommentButton.addActionListener(event -> selectedComment()
+                .ifPresent(selection -> actions.onCommentAction().accept(this, IssueCommentMode.DELETE, selection)));
+        updateCommentButtons();
+    }
+
+    private static void setColumnWidths(JTable table, int... widths) {
+        for (int index = 0; index < widths.length && index < table.getColumnCount(); index++) {
+            table.getColumnModel().getColumn(index).setPreferredWidth(widths[index]);
+        }
+    }
+
+    private void updateCommentButtons() {
+        Optional<IssueCommentActionState> selected = selectedCommentState();
+        editCommentButton.setEnabled(!busy && selected.map(IssueCommentActionState::canUpdate).orElse(false));
+        deleteCommentButton.setEnabled(!busy && selected.map(IssueCommentActionState::canDelete).orElse(false));
+    }
+
+    private Optional<IssueCommentSelection> selectedComment() {
+        return selectedCommentState()
+                .filter(state -> state.numericCommentId() != null)
+                .map(state -> new IssueCommentSelection(state.numericCommentId(), state.content()));
+    }
+
+    private Optional<IssueCommentActionState> selectedCommentState() {
+        int selectedRow = commentTable.getSelectedRow();
+        if (selectedRow < 0 || selectedRow >= commentTable.getRowCount()) {
+            return Optional.empty();
+        }
+        int modelRow = commentTable.convertRowIndexToModel(selectedRow);
+        if (modelRow < 0 || modelRow >= commentActionStates.size()) {
+            return Optional.empty();
+        }
+        return Optional.of(commentActionStates.get(modelRow));
     }
 
     private static Map<String, IssueCommentActionState> commentActionById(
             List<IssueCommentActionState> commentActions) {
         Map<String, IssueCommentActionState> byId = new LinkedHashMap<>();
         for (IssueCommentActionState action : commentActions) {
-            byId.put(action.commentId(), action);
+            byId.put(action.displayCommentId(), action);
         }
         return byId;
     }
@@ -365,10 +453,26 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         void accept(IssueDetailPanel panel, String value);
     }
 
-    record IssueDetailActions(PanelStringConsumer onAction, Runnable onBack, Runnable onLogout) {
+    @FunctionalInterface
+    interface PanelCommentConsumer {
+
+        void accept(IssueDetailPanel panel, IssueCommentMode mode, IssueCommentSelection selection);
+    }
+
+    record IssueDetailActions(
+            PanelStringConsumer onAction,
+            PanelCommentConsumer onCommentAction,
+            Runnable onBack,
+            Runnable onLogout) {
+
+        IssueDetailActions(PanelStringConsumer onAction, Runnable onBack, Runnable onLogout) {
+            this(onAction, (panel, mode, selection) -> {
+            }, onBack, onLogout);
+        }
 
         IssueDetailActions {
             Objects.requireNonNull(onAction, "onAction");
+            Objects.requireNonNull(onCommentAction, "onCommentAction");
             Objects.requireNonNull(onBack, "onBack");
             Objects.requireNonNull(onLogout, "onLogout");
         }

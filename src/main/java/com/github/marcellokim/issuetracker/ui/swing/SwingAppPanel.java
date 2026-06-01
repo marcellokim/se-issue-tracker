@@ -387,6 +387,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     user,
                     new IssueDetailPanel.IssueDetailActions(
                             (panelRef, action) -> showIssueAction(user, projectId, issueId, panelRef, action),
+                            (panelRef, mode, selection) -> showIssueComment(issueId, panelRef, mode, selection),
                             () -> showIssueList(user, projectId),
                             this::logout));
             projectListCard.removeAll();
@@ -420,6 +421,10 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             startIssueAssignmentTask(panel, issueId, assignmentMode.get());
             return;
         }
+        if ("ADD_COMMENT".equals(action)) {
+            showIssueComment(issueId, panel, IssueCommentMode.ADD, null);
+            return;
+        }
         SwingUtilities.invokeLater(() -> {
             cancelDashboardWorker();
             cancelAccountWorker();
@@ -436,6 +441,21 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
                     () -> showIssueDetail(user, projectId, issueId));
             cardLayout.show(this, PROJECT_LIST_CARD);
         });
+    }
+
+    private void showIssueComment(
+            long issueId,
+            IssueDetailPanel panel,
+            IssueCommentMode mode,
+            IssueCommentSelection selection) {
+        try {
+            issueActionSupport.commentPrompt().prompt(panel, mode, selection)
+                    .ifPresent(request -> startIssueDetailTask(
+                            panel,
+                            presenter -> presenter.changeComment(issueId, request)));
+        } catch (RuntimeException exception) {
+            panel.showMessage(exception.getMessage(), true);
+        }
     }
 
     private void loadAdminDashboard(AdminDashboardPanel panel) {

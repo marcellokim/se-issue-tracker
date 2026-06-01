@@ -7,18 +7,21 @@ import java.util.Objects;
 record IssueActionSupport(
         IssueStatusChangeSupport statusChange,
         AssignmentController assignmentController,
-        IssueAssignmentPrompt assignmentPrompt) {
+        IssueAssignmentPrompt assignmentPrompt,
+        IssueCommentPrompt commentPrompt) {
 
     IssueActionSupport {
         Objects.requireNonNull(statusChange, "statusChange");
         Objects.requireNonNull(assignmentPrompt, "assignmentPrompt");
+        Objects.requireNonNull(commentPrompt, "commentPrompt");
     }
 
     static IssueActionSupport disabled() {
         return new IssueActionSupport(
                 IssueStatusChangeSupport.disabled(),
                 null,
-                IssueAssignmentDialogs::prompt);
+                IssueAssignmentDialogs::prompt,
+                IssueCommentDialogs::prompt);
     }
 
     static IssueActionSupport dialogs(
@@ -27,6 +30,7 @@ record IssueActionSupport(
         return new IssueActionSupport(
                 IssueStatusChangeSupport.dialog(issueStateController),
                 assignmentController,
-                IssueAssignmentDialogs::prompt);
+                IssueAssignmentDialogs::prompt,
+                IssueCommentDialogs::prompt);
     }
 }

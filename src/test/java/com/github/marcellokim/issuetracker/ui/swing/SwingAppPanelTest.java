@@ -14,6 +14,7 @@ import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.domain.Comment;
+import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
 import com.github.marcellokim.issuetracker.domain.IssueHistory;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
@@ -559,7 +560,8 @@ class SwingAppPanelTest {
                         (parent, mode, options) -> Optional.of(new IssueAssignmentRequest(
                                 mode,
                                 assignee.getLoginId(),
-                                verifier.getLoginId()))),
+                                verifier.getLoginId())),
+                        IssueCommentDialogs::prompt),
                 recommendations,
                 pl,
                 assignee,
@@ -590,6 +592,86 @@ class SwingAppPanelTest {
         assertTrue(recommendations.awaitCandidateLookup());
         assertFalse(recommendations.candidateLookupOnEdt());
         awaitIssueDetailState(panel, "ASSIGNED / CRITICAL");
+    }
+
+    @Test
+    @DisplayName("issue detail comment actions add, update, cancel delete, and delete")
+    void issueDetailCommentActionsAddUpdateCancelDeleteAndDelete() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, 7L, "Login bug", Priority.CRITICAL, reporter);
+        AtomicBoolean deleteConfirmed = new AtomicBoolean(false);
+        IssueCommentPrompt commentPrompt = (parent, mode, selection) -> switch (mode) {
+            case ADD -> Optional.of(IssueCommentRequest.add("new comment through swing"));
+            case UPDATE -> Optional.of(IssueCommentRequest.update(selection.commentId(), "edited through swing"));
+            case DELETE -> deleteConfirmed.get()
+                    ? Optional.of(IssueCommentRequest.delete(selection.commentId()))
+                    : Optional.empty();
+        };
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 7)),
+                List.of(issue),
+                List.of(comment(100L, issue.id(), reporter, "original comment")),
+                IssueStatusChangeDialogs::prompt,
+                IssueAssignmentDialogs::prompt,
+                commentPrompt,
+                reporter);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 1);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable issues = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
+            issues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openIssueDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
+        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitRows(panel, "issueCommentTable", 1);
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_ADD_COMMENT", JButton.class).doClick());
+        awaitRows(panel, "issueCommentTable", 2);
+        awaitCommentContent(panel, 1, "new comment through swing");
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+            comments.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "editCommentButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "editCommentButton", JButton.class).doClick());
+        awaitCommentContent(panel, 0, "edited through swing");
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+            comments.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "deleteCommentButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "deleteCommentButton", JButton.class).doClick());
+        awaitRows(panel, "issueCommentTable", 2);
+
+        deleteConfirmed.set(true);
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+            comments.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "deleteCommentButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "deleteCommentButton", JButton.class).doClick());
+        awaitRows(panel, "issueCommentTable", 1);
+        awaitCommentContent(panel, 0, "new comment through swing");
     }
 
     @Test
@@ -647,46 +729,15 @@ class SwingAppPanelTest {
             SwingPromptSupport prompts,
             AssignmentRecommendationRepository recommendationRepository,
             User... users) throws Exception {
-        var panelRef = new AtomicReference<SwingAppPanel>();
-        var workerDone = new CountDownLatch(1);
-        SwingControllerFixture controllers = controllers(passwordHashing, projects, issues, recommendationRepository, users);
-
-        SwingComponentTestSupport.onEdt(() -> {
-            SwingAppPanel panel = new SwingAppPanel(
-                    controllers.authenticationController(),
-                    controllers.dashboardController(),
-                    controllers.accountController(),
-                    controllers.projectController(),
-                    controllers.issueController(),
-                    new IssueActionSupport(
-                            new IssueStatusChangeSupport(controllers.issueStateController(), prompts.statusChangePrompt()),
-                            controllers.assignmentController(),
-                            prompts.assignmentPrompt()),
-                    titles::update);
-            panelRef.set(panel);
-            User user = users[0];
-            SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText(user.getLoginId());
-            SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class).setText("submitted-password");
-            SwingComponentTestSupport.find(panel, "signInButton", JButton.class).doClick();
-            SwingWorker<?, ?> worker = loginWorker(panel);
-            worker.addPropertyChangeListener(event -> {
-                if ("state".equals(event.getPropertyName())
-                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
-                    workerDone.countDown();
-                }
-            });
-            if (SwingWorker.StateValue.DONE == worker.getState()) {
-                workerDone.countDown();
-            }
-        });
-
-        assertTrue(passwordHashing.awaitMatch());
-        assertTrue(titles.awaitProjectList());
-        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
-        SwingAppPanel panel = panelRef.get();
-        assertNotNull(panel);
-        awaitProjectListRows(panel, projects.size());
-        return panel;
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                List.of(),
+                prompts,
+                recommendationRepository,
+                users);
     }
 
     private static SwingAppPanel loginProjectUser(
@@ -719,9 +770,91 @@ class SwingAppPanelTest {
                 titles,
                 projects,
                 issues,
-                new SwingPromptSupport(statusChangePrompt, assignmentPrompt),
+                List.of(),
+                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, IssueCommentDialogs::prompt),
                 new InMemoryAssignmentRecommendationRepository(users),
                 users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
+            IssueStatusChangePrompt statusChangePrompt,
+            IssueAssignmentPrompt assignmentPrompt,
+            IssueCommentPrompt commentPrompt,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                comments,
+                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, commentPrompt),
+                new InMemoryAssignmentRecommendationRepository(users),
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
+            SwingPromptSupport prompts,
+            AssignmentRecommendationRepository recommendationRepository,
+            User... users) throws Exception {
+        var panelRef = new AtomicReference<SwingAppPanel>();
+        var workerDone = new CountDownLatch(1);
+        SwingControllerFixture controllers = controllers(
+                passwordHashing,
+                projects,
+                issues,
+                comments,
+                recommendationRepository,
+                users);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            SwingAppPanel panel = new SwingAppPanel(
+                    controllers.authenticationController(),
+                    controllers.dashboardController(),
+                    controllers.accountController(),
+                    controllers.projectController(),
+                    controllers.issueController(),
+                    new IssueActionSupport(
+                            new IssueStatusChangeSupport(
+                                    controllers.issueStateController(),
+                                    prompts.statusChangePrompt()),
+                            controllers.assignmentController(),
+                            prompts.assignmentPrompt(),
+                            prompts.commentPrompt()),
+                    titles::update);
+            panelRef.set(panel);
+            User user = users[0];
+            SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText(user.getLoginId());
+            SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class).setText("submitted-password");
+            SwingComponentTestSupport.find(panel, "signInButton", JButton.class).doClick();
+            SwingWorker<?, ?> worker = loginWorker(panel);
+            worker.addPropertyChangeListener(event -> {
+                if ("state".equals(event.getPropertyName())
+                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
+                    workerDone.countDown();
+                }
+            });
+            if (SwingWorker.StateValue.DONE == worker.getState()) {
+                workerDone.countDown();
+            }
+        });
+
+        assertTrue(passwordHashing.awaitMatch());
+        assertTrue(titles.awaitProjectList());
+        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
+        SwingAppPanel panel = panelRef.get();
+        assertNotNull(panel);
+        awaitProjectListRows(panel, projects.size());
+        return panel;
     }
 
     private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
@@ -853,6 +986,39 @@ class SwingAppPanelTest {
         });
     }
 
+    private static void awaitCommentContent(SwingAppPanel panel, int row, String expectedContent) throws Exception {
+        CountDownLatch contentReady = new CountDownLatch(1);
+        AtomicReference<Timer> timerRef = new AtomicReference<>();
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = new Timer(25, event -> {
+                try {
+                    JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+                    if (row < comments.getRowCount() && expectedContent.equals(comments.getValueAt(row, 3))) {
+                        ((Timer) event.getSource()).stop();
+                        contentReady.countDown();
+                    }
+                } catch (AssertionError ignored) {
+                    // Comment table reloads asynchronously after comment actions.
+                }
+            });
+            timer.setRepeats(true);
+            timerRef.set(timer);
+            timer.start();
+        });
+
+        boolean ready = contentReady.await(5, TimeUnit.SECONDS);
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = timerRef.get();
+            if (timer != null) {
+                timer.stop();
+            }
+            if (!ready) {
+                JTable comments = SwingComponentTestSupport.find(panel, "issueCommentTable", JTable.class);
+                assertEquals(expectedContent, comments.getValueAt(row, 3));
+            }
+        });
+    }
+
     private static void awaitButtonEnabled(SwingAppPanel panel, String buttonName) throws Exception {
         CountDownLatch enabled = new CountDownLatch(1);
         AtomicReference<Timer> timerRef = new AtomicReference<>();
@@ -931,6 +1097,7 @@ class SwingAppPanelTest {
                 passwordHashing,
                 projects,
                 issues,
+                List.of(),
                 new InMemoryAssignmentRecommendationRepository(users),
                 users);
     }
@@ -939,6 +1106,7 @@ class SwingAppPanelTest {
             PasswordHashing passwordHashing,
             List<DashboardProjectSnapshot> projects,
             List<Issue> issues,
+            List<Comment> comments,
             AssignmentRecommendationRepository recommendationRepository,
             User... users) {
         var repository = new InMemoryUserRepository(users);
@@ -959,7 +1127,7 @@ class SwingAppPanelTest {
         });
         var issueRepository = new InMemoryIssueRepository(issues.toArray(Issue[]::new));
         var dependencyRepository = new FakeIssueDependencyRepository();
-        var commentRepository = new FakeCommentRepository();
+        var commentRepository = new FakeCommentRepository(comments);
         var historyRepository = new FakeIssueHistoryRepository();
         var service = new AuthenticationService(repository, passwordHashing, new SessionStore());
         PermissionPolicy permissionPolicy = new PermissionPolicy();
@@ -1076,6 +1244,10 @@ class SwingAppPanelTest {
                 .updatedAt(NOW));
     }
 
+    private static Comment comment(long id, long issueId, User writer, String content) {
+        return Comment.fromPersistence(id, issueId, writer.getLoginId(), content, CommentPurpose.GENERAL, NOW, NOW);
+    }
+
     private record SwingControllerFixture(
             AuthenticationController authenticationController,
             DashboardController dashboardController,
@@ -1088,24 +1260,51 @@ class SwingAppPanelTest {
 
     private record SwingPromptSupport(
             IssueStatusChangePrompt statusChangePrompt,
-            IssueAssignmentPrompt assignmentPrompt) {
+            IssueAssignmentPrompt assignmentPrompt,
+            IssueCommentPrompt commentPrompt) {
     }
 
     private static final class FakeCommentRepository implements CommentRepository {
 
+        private final Map<Long, Comment> comments = new java.util.LinkedHashMap<>();
+
+        private FakeCommentRepository() {
+        }
+
+        private FakeCommentRepository(List<Comment> comments) {
+            for (Comment comment : comments) {
+                this.comments.put(comment.id(), comment);
+            }
+        }
+
         @Override
         public Optional<Comment> findById(long commentId) {
-            return Optional.empty();
+            return Optional.ofNullable(comments.get(commentId));
         }
 
         @Override
         public List<Comment> findByIssueId(long issueId) {
-            return List.of();
+            return comments.values().stream()
+                    .filter(comment -> comment.issueId() == issueId)
+                    .toList();
         }
 
         @Override
         public Comment saveCommentAndRecordHistory(Comment comment, IssueHistory history) {
-            return comment;
+            Comment saved = comment;
+            if (comment.id() == 0L) {
+                long nextId = comments.keySet().stream().mapToLong(Long::longValue).max().orElse(99L) + 1L;
+                saved = Comment.fromPersistence(
+                        nextId,
+                        comment.issueId(),
+                        comment.writerId(),
+                        comment.content(),
+                        comment.purpose(),
+                        comment.createdDate(),
+                        comment.updatedDate());
+            }
+            comments.put(saved.id(), saved);
+            return saved;
         }
 
         @Override
@@ -1114,7 +1313,7 @@ class SwingAppPanelTest {
                 long commentId,
                 String writerLoginId,
                 IssueHistory history) {
-            // Comment deletion is outside the app navigation scenarios covered by this fake.
+            comments.remove(commentId);
         }
     }
 

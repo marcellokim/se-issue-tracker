@@ -5,8 +5,11 @@ import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.CommentActionResult;
+import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 final class IssueDetailPresenter {
@@ -41,7 +44,7 @@ final class IssueDetailPresenter {
     void loadIssue(long issueId) {
         try {
             IssueDetailResult detail = issueController.viewIssueDetail(issueId);
-            view.showDetail(detail, commentActions(issueId));
+            view.showDetail(detail, commentActions(issueId, detail.comments()));
             view.showMessage(" ", false);
         } catch (RuntimeException exception) {
             view.showMessage(exception.getMessage(), true);
@@ -87,17 +90,73 @@ final class IssueDetailPresenter {
         }
     }
 
-    private List<IssueCommentActionState> commentActions(long issueId) {
-        return issueController.viewCommentActions(issueId).stream()
-                .map(IssueDetailPresenter::toCommentActionState)
+    void changeComment(long issueId, IssueCommentRequest request) {
+        IssueCommentRequest requiredRequest = Objects.requireNonNull(request, "request");
+        switch (requiredRequest.mode()) {
+            case ADD -> addComment(issueId, requiredRequest.content());
+            case UPDATE -> updateComment(issueId, requiredRequest.commentId(), requiredRequest.content());
+            case DELETE -> deleteComment(issueId, requiredRequest.commentId());
+        }
+    }
+
+    void addComment(long issueId, String content) {
+        try {
+            issueController.addComment(issueId, content);
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    void updateComment(long issueId, long commentId, String content) {
+        try {
+            issueController.updateComment(issueId, commentId, content);
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    void deleteComment(long issueId, long commentId) {
+        try {
+            issueController.deleteComment(issueId, commentId);
+            loadIssue(issueId);
+        } catch (RuntimeException exception) {
+            view.showMessage(exception.getMessage(), true);
+        }
+    }
+
+    private List<IssueCommentActionState> commentActions(long issueId, List<CommentResult> comments) {
+        Map<String, CommentActionResult> actionsById = commentActionsById(issueId);
+        return comments.stream()
+                .map(comment -> commentAction(comment, actionsById.get(comment.commentId())))
                 .toList();
     }
 
-    private static IssueCommentActionState toCommentActionState(CommentActionResult result) {
+    private Map<String, CommentActionResult> commentActionsById(long issueId) {
+        Map<String, CommentActionResult> actionsById = new LinkedHashMap<>();
+        for (CommentActionResult action : issueController.viewCommentActions(issueId)) {
+            actionsById.put(action.commentId(), action);
+        }
+        return actionsById;
+    }
+
+    private static IssueCommentActionState commentAction(CommentResult comment, CommentActionResult action) {
+        Long commentId = numericCommentId(comment.commentId());
         return new IssueCommentActionState(
-                result.commentId(),
-                result.canUpdate(),
-                result.canDelete());
+                comment.commentId(),
+                commentId,
+                comment.content(),
+                action != null && action.canUpdate(),
+                action != null && action.canDelete());
+    }
+
+    private static Long numericCommentId(String commentId) {
+        try {
+            return Long.valueOf(commentId);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     private IssueStateController requireIssueStateController() {
