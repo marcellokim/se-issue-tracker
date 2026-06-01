@@ -98,6 +98,13 @@ public final class JavaFXApp extends Application {
         screen.setOnBack(this::showProjectList);
         screen.setOnDeletedIssueManage(() -> showDeletedIssueManage(projectId));
         screen.setOnStatistics(() -> showStatistics(projectId));
+        screen.setOnGraph(() -> showIssueGraph(projectId));
+        primaryStage.setScene(new Scene(screen, 1024, 768));
+    }
+
+    private void showIssueGraph(long projectId){
+        IssueGraphScreen screen = new IssueGraphScreen(context.issueController(), projectId);
+        screen.setOnBack(() -> showIssueList(projectId));
         primaryStage.setScene(new Scene(screen, 1024, 768));
     }
 
