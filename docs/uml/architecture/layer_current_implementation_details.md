@@ -156,7 +156,6 @@ deleted 이슈는 일반 이슈 조회/조작 경로와 분리한다.
 - `viewDeletedIssues`
 - `deleteIssue`
 - `restoreIssue`
-- `purgeOverflow`
 - `purgeDeletedIssue`
 
 단건 물리 삭제는 `purgeDeletedIssue`로 명시적으로 분리되어 있으며, DELETED 상태의 이슈만 대상으로 한다.

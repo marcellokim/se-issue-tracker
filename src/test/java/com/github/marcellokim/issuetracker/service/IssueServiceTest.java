@@ -387,16 +387,10 @@ class IssueServiceTest {
                 List<IssueSummary> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
                 String adminLoginId = admin.getLoginId();
 
-                assertEquals(List.of(reporterOnlyIssue.id(), assignedDevIssue.id()), devResults.stream()
-                                .map(IssueSummary::id)
-                                .toList());
-                assertEquals(List.of(assignedDevIssue.id()), testerResults.stream()
-                                .map(IssueSummary::id)
-                                .toList());
-                assertEquals(List.of(reporterOnlyIssue.id(), assignedDevIssue.id(), completedHistoryOnlyIssue.id()),
-                                plResults.stream()
-                                                .map(IssueSummary::id)
-                                                .toList());
+                List<Long> allProjectIssueIds = List.of(reporterOnlyIssue.id(), assignedDevIssue.id(), completedHistoryOnlyIssue.id());
+                assertEquals(allProjectIssueIds, devResults.stream().map(IssueSummary::id).toList());
+                assertEquals(allProjectIssueIds, testerResults.stream().map(IssueSummary::id).toList());
+                assertEquals(allProjectIssueIds, plResults.stream().map(IssueSummary::id).toList());
                 assertThrows(SecurityException.class,
                                 () -> service.viewRelatedProjectIssues(PROJECT_ID, adminLoginId));
         }

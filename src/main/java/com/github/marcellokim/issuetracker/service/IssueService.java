@@ -189,7 +189,6 @@ public final class IssueService {
                 null,
                 null,
                 false)).stream()
-                .filter(issue -> canViewInRelatedList(context.actor(), issue))
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
@@ -200,7 +199,7 @@ public final class IssueService {
         findProject(requiredProjectId);
         User actor = findUser(requiredLoginId);
         permissionPolicy.assertCanViewIssue(actor);
-        requireActiveProjectMember(actor, requiredProjectId, "Only project members can view related project issues.");
+        requireActiveProjectMember(actor, requiredProjectId, "Only project members can view project issues.");
         return issueRepository.findByCriteria(IssueSearchCriteria.create(
                 requiredProjectId,
                 null,
@@ -212,7 +211,6 @@ public final class IssueService {
                 null,
                 null,
                 false)).stream()
-                .filter(issue -> canViewInRelatedList(actor, issue))
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
@@ -471,16 +469,6 @@ public final class IssueService {
         return issueRepository.findByCriteria(criteria).stream()
                 .filter(issue -> issue.projectId() == criteria.projectId())
                 .toList();
-    }
-
-    private boolean canViewInRelatedList(User actor, Issue issue) {
-        return permissionPolicy.canViewAllProjectIssues(actor) || isRelatedParticipant(issue, actor.getLoginId());
-    }
-
-    private static boolean isRelatedParticipant(Issue issue, String loginId) {
-        return loginId.equals(issue.reporterId())
-                || loginId.equals(issue.assigneeId())
-                || loginId.equals(issue.verifierId());
     }
 
     private static void requireSameProjectDependency(Issue blockingIssue, Issue blockedIssue) {

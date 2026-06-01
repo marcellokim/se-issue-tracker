@@ -141,10 +141,6 @@ public final class PermissionPolicy {
         return isAdmin(user);
     }
 
-    public boolean canViewAllProjectIssues(User user) {
-        return isActiveUser(user) && user.getRole() == Role.PL;
-    }
-
     public void assertCanViewStatistics(User user) {
         requireAuthenticatedUserRole(user, "Only active PL, DEV, or TESTER users can view statistics.");
     }

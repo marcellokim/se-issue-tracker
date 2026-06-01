@@ -122,7 +122,6 @@ package "Controller Layer\n(system operation receivers)" #FFF8E1 {
     +viewDeletedIssues(projectId): List<IssueSummary>
     +deleteIssue(issueId, comment): IssueSummary
     +restoreIssue(issueId, comment): IssueSummary
-    +purgeOverflow(projectId): int
     +purgeDeletedIssue(issueId): void
   }
 
@@ -199,7 +198,6 @@ package "Service Layer\n(application services, policies, ports, DTO/results)" #F
     +viewDeletedIssues(projectId, actor): List<IssueSummary>
     +deleteIssue(issueId, comment, actor): IssueSummary
     +restoreIssue(issueId, comment, actor): IssueSummary
-    +purgeOverflow(projectId, actor): int
     +purgeDeletedIssue(issueId, actor): void
   }
 

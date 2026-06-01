@@ -115,7 +115,6 @@ deleted issue 조회, soft delete, restore, purge, FIFO 보관 정책은 일반 
 - `DeletedIssueRepository.softDelete(...)`
 - `DeletedIssueRepository.restore(...)`
 - `DeletedIssueRepository.purgeDeletedIssue(...)`
-- `DeletedIssueRepository.purgeOverflow(...)`
 
 ## 5. `existsByResponsibleUser` 이름이 모호함
 
