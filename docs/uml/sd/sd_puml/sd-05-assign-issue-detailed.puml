@@ -2,131 +2,105 @@
 !include ../_shared/its-uml-style.puml
 
 title Detailed SD 05 - Assign / Update Issue Assignment
-scale 0.58
 hide footbox
 
 actor "PL" as PL
-participant "assignmentController:AssignmentController" as AC
+participant ":IssueTrackingSystem" as AC
 participant "targetIssue:Issue" as Issue
+participant "projectMembers:User[*]" as Members
+participant "assignmentHistory:IssueHistory[*]" as PastHistory
 
 PL -> AC : startAssignment(issueId)
-AC -> Issue : getAssignmentContext()
-Issue --> AC : status, currentAssignee,\ncurrentVerifier, fixer, resolver
 
-note over AC, Issue
-UC5 branch summary:
-NEW -> ASSIGNED: assignIssue + ASSIGNMENT_CHANGED + STATUS_CHANGED
-REOPENED -> ASSIGNED: assignIssue + ASSIGNMENT_CHANGED + STATUS_CHANGED
-ASSIGNED -> ASSIGNED: reassignIssue + ASSIGNMENT_CHANGED only
-FIXED -> FIXED: changeVerifier + ASSIGNMENT_CHANGED only
-end note
-
-alt invalid status or permission denied
+alt PL cannot assign this issue
   AC --> PL : assignmentRejected(reason)
-else Issue.status == NEW
-  ref over PL, AC
-  UC8 Recommend Assignment Candidates
-  recommendAssignmentCandidates(issueId, status=NEW)
-  end ref
+else assignment can start
+  AC -> Issue : readAssignmentState()
+  Issue --> AC : status, currentAssignee,\ncurrentVerifier, fixer, resolver
 
-  AC --> PL : assignmentOptions(devList, testerList,\nassigneeCandidates, verifierCandidates)
+  AC -> Issue : determineNeededRoles()
+  Issue --> AC : needed assignee/verifier role
+  AC -> Members : selectActiveMembersByRole(neededRoles)
+  Members --> AC : candidate users
+  AC -> PastHistory : summarizePastAssignments(candidate users)
+  PastHistory --> AC : ranking hints
+  AC -> AC : order candidates by role,\nstatus, and past work
+
+  AC --> PL : assignmentOptions(...)
+end
+
+alt Issue.status == NEW
   PL -> AC : assignIssue(issueId, assigneeId, verifierId)
-  AC -> Issue : assignFromNew(assigneeId, verifierId,\nchangedBy=currentPL, now)
+  AC -> Issue : assignFromNew(assignee, verifier, currentPL, now)
   activate Issue
-  Issue -> Issue : setAssigneeAndVerifier();\nchangeStatus(ASSIGNED)
-
+  Issue -> Issue : set assignee/verifier;\nstatus = ASSIGNED
   create "assignmentHistory:IssueHistory" as NewAH
-  Issue -> NewAH : new(action=ASSIGNMENT_CHANGED,\nnewValue=assigneeId/verifierId,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue --> NewAH : new(ASSIGNMENT_CHANGED)
   create "statusHistory:IssueHistory" as NewSH
-  Issue -> NewSH : new(action=STATUS_CHANGED,\npreviousValue=NEW,\nnewValue=ASSIGNED,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue --> NewSH : new(STATUS_CHANGED, NEW -> ASSIGNED)
   Issue -> Issue : addHistory(assignmentHistory)
   Issue -> Issue : addHistory(statusHistory)
-
-  Issue --> AC : assignmentResult(status=ASSIGNED)
+  Issue --> AC : assigned(status=ASSIGNED)
   deactivate Issue
   AC --> PL : issueAssigned(issueId, status=ASSIGNED)
+
 else Issue.status == REOPENED
-  ref over PL, AC
-  UC8 Recommend Assignment Candidates
-  recommendAssignmentCandidates(issueId, status=REOPENED)
-  end ref
-
-  AC --> PL : assignmentOptions(devList, testerList,\nassigneeCandidates, verifierCandidates)
   PL -> AC : assignIssue(issueId, assigneeId, verifierId)
-  AC -> Issue : assignReopened(assigneeId, verifierId,\nchangedBy=currentPL, now)
+  AC -> Issue : assignReopened(assignee, verifier, currentPL, now)
   activate Issue
-  Issue -> Issue : replaceAssigneeAndVerifier();\npreserveFixerAndResolver();\nchangeStatus(ASSIGNED)
-
+  Issue -> Issue : replace assignee/verifier;\npreserve fixer/resolver;\nstatus = ASSIGNED
   create "assignmentHistory:IssueHistory" as ReopenedAH
-  Issue -> ReopenedAH : new(action=ASSIGNMENT_CHANGED,\nnewValue=assigneeId/verifierId,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue --> ReopenedAH : new(ASSIGNMENT_CHANGED)
   create "statusHistory:IssueHistory" as ReopenedSH
-  Issue -> ReopenedSH : new(action=STATUS_CHANGED,\npreviousValue=REOPENED,\nnewValue=ASSIGNED,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue --> ReopenedSH : new(STATUS_CHANGED, REOPENED -> ASSIGNED)
   Issue -> Issue : addHistory(assignmentHistory)
   Issue -> Issue : addHistory(statusHistory)
-
-  Issue --> AC : assignmentResult(status=ASSIGNED,\nfixer/resolver=retained)
+  Issue --> AC : assigned(status=ASSIGNED)
   deactivate Issue
   AC --> PL : issueAssigned(issueId, status=ASSIGNED)
+
 else Issue.status == ASSIGNED
-  ref over PL, AC
-  UC8 Recommend Assignment Candidates
-  recommendAssignmentCandidates(issueId, status=ASSIGNED)
-  end ref
-
-  AC --> PL : reassignmentOptions(devList,\ncurrentAssignee, assigneeCandidates)
   PL -> AC : reassignIssue(issueId, assigneeId)
-  AC -> Issue : reassignAssignee(assigneeId,\nchangedBy=currentPL, now)
+  AC -> Issue : reassignAssignee(assignee, currentPL, now)
   activate Issue
-  Issue -> Issue : oldAssignee := currentAssignee()
-  Issue -> Issue : replaceAssignee(assigneeId);\nkeepStatus(ASSIGNED);\nkeepVerifierFixerResolver()
-
+  Issue -> Issue : replace assignee;\nkeep status/verifier/fixer/resolver
   create "assignmentHistory:IssueHistory" as ReassignAH
-  Issue -> ReassignAH : new(action=ASSIGNMENT_CHANGED,\npreviousValue=oldAssignee,\nnewValue=assigneeId,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue --> ReassignAH : new(ASSIGNMENT_CHANGED)
   Issue -> Issue : addHistory(assignmentHistory)
-
-  note right of Issue
-  ASSIGNED -> ASSIGNED:
-  status remains ASSIGNED.
-  STATUS_CHANGED is not created.
-  end note
-
-  Issue --> AC : reassignmentResult(status=ASSIGNED)
+  Issue --> AC : reassigned(status=ASSIGNED)
   deactivate Issue
   AC --> PL : issueReassigned(issueId, status=ASSIGNED)
+
 else Issue.status == FIXED
-  ref over PL, AC
-  UC8 Recommend Assignment Candidates
-  recommendAssignmentCandidates(issueId, status=FIXED)
-  end ref
-
-  AC --> PL : verifierChangeOptions(testerList,\ncurrentVerifier, verifierCandidates)
   PL -> AC : changeVerifier(issueId, verifierId)
-  AC -> Issue : changeVerifier(verifierId,\nchangedBy=currentPL, now)
+  AC -> Issue : changeVerifier(verifier, currentPL, now)
   activate Issue
-  Issue -> Issue : oldVerifier := currentVerifier()
-  Issue -> Issue : replaceVerifier(verifierId);\nkeepStatus(FIXED);\nkeepAssigneeFixerResolver()
-
+  Issue -> Issue : replace verifier;\nkeep status/assignee/fixer/resolver
   create "assignmentHistory:IssueHistory" as VerifierAH
-  Issue -> VerifierAH : new(action=ASSIGNMENT_CHANGED,\npreviousValue=oldVerifier,\nnewValue=verifierId,\nchangedBy=currentPL,\nchangedDate=now)
+  Issue --> VerifierAH : new(ASSIGNMENT_CHANGED)
   Issue -> Issue : addHistory(assignmentHistory)
-
-  note right of Issue
-  FIXED -> FIXED:
-  verifier is changed.
-  status remains FIXED.
-  STATUS_CHANGED is not created.
-  end note
-
-  Issue --> AC : verifierChangeResult(status=FIXED)
+  Issue --> AC : verifierChanged(status=FIXED)
   deactivate Issue
   AC --> PL : verifierChanged(issueId, status=FIXED)
 end
 
-opt PL wants to add an optional assignment comment
-  ref over PL, AC
-  UC2 Add Comment
-  addComment(issueId, content)
-  end ref
+opt PL adds an assignment comment
+  PL -> AC : addComment(issueId, content)
+  alt content is blank
+    AC --> PL : commentRejected(reason)
+  else comment is accepted
+    AC -> Issue : addComment(content, currentPL, now)
+    activate Issue
+    create "assignmentComment:Comment" as Comment
+    Issue --> Comment : new(content, writer=currentPL, createdAt=now)
+    create "commentHistory:IssueHistory" as CommentHistory
+    Issue --> CommentHistory : new(COMMENTED, message="comment added")
+    Issue -> Issue : addComment(assignmentComment)
+    Issue -> Issue : addHistory(commentHistory)
+    Issue --> AC : commentAdded(commentId)
+    deactivate Issue
+    AC --> PL : commentAdded(commentId)
+  end
 end
 
 @enduml

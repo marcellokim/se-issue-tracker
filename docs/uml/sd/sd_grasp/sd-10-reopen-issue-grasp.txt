@@ -1,27 +1,20 @@
 SD 10 Reopen Issue - GRASP 적용 설명
 
 관련 산출물:
-- UC6 Change Issue State: PL이 RESOLVED/CLOSED 이슈를 REOPENED로 전이
+- UC6 Change Issue State
 - SSD 10: changeStatus(issueId, targetStatus=REOPENED, comment)
-- OC-09: Comment/COMMENTED history, STATUS_CHANGED history, fixer/resolver 보존, assignee/verifier 자동복원 없음
-- 기본 가정사항: reopen 후 PL이 필요하면 UC5로 assignee/verifier를 다시 결정
+- OC-09: status=REOPENED, assignee/verifier 자동 복원 없음, fixer/resolver 보존
 
 적용 GRASP:
 
-1. Controller
-issueStateController:IssueStateController가 reopen system operation을 수신한다. UC6 상태 전이의 진입점으로서 권한/상태 전이 흐름을 조정한다.
+1. GRASP Controller
+`:IssueTrackingSystem` 객체가 reopen 요청을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 상태 변경 유스케이스를 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-targetIssue:Issue는 현재 status, assignee, verifier, fixer, resolver, comments, history를 알고 있으므로 verifyReopenPreconditions(...)와 reopen(...) 책임을 맡는다. Issue가 status, PL role, comment 필수 여부를 검증하고 reopenAllowed or reason을 Controller에 반환한 뒤, Controller는 그 결과로 alt 분기만 수행한다.
+Issue는 reopen 시 보존할 fixer/resolver와 비워둘 assignee/verifier를 알고 있으므로 reopen 책임을 가진다.
 
 3. Creator
-reopenComment, commentHistory, statusHistory는 targetIssue의 comment/history로 기록되므로 targetIssue가 생성한다.
+reopen comment와 COMMENTED/STATUS_CHANGED history는 대상 Issue의 기록이므로 Issue가 생성한다.
 
-4. Low Coupling / High Cohesion
-Controller가 assignee/verifier/fixer/resolver 필드를 직접 조작하지 않고 reopen 메시지 하나로 의도를 전달한다. Issue는 assignee/verifier 제거와 fixer/resolver 보존 정책을 내부에서 처리한다.
-
-5. Protected Variations
-reopen 정책은 이전 문서에서 충돌이 있었던 변경 가능성이 큰 정책이다. SD는 "assignee/verifier 자동복원 없음, fixer/resolver 보존, 재배정은 UC5"를 note와 ref로 분리해 정책 변화를 명확히 격리한다.
-
-6. Indirection
-재작업 담당자 지정은 reopen SD 안에 섞지 않고 UC5 Assign Issue ref로 연결한다. 이렇게 하면 reopen 책임과 assignment 책임이 분리된다.
+4. Protected Variations
+reopen 이후 재작업 담당자는 자동 복원하지 않고 UC5 배정 흐름으로 분리한다.

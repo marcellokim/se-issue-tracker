@@ -2,19 +2,12 @@ package com.github.marcellokim.issuetracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
-import com.github.marcellokim.issuetracker.repository.UserRepository;
-import com.github.marcellokim.issuetracker.technical.PasswordHasher;
-import com.github.marcellokim.issuetracker.technical.SessionStore;
+import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,24 +16,24 @@ import org.junit.jupiter.api.Test;
 class AuthenticationServiceTest {
 
     private static final String ADMIN_PASSWORD = "DemoLocalAdmin!";
-    private static final PasswordHasher PASSWORD_HASHER = new PasswordHasher();
+    private static final TestPasswordHashing PASSWORDS = new TestPasswordHashing();
 
     @Test
-    @DisplayName("accepts matching seeded admin credentials")
-    void loginAcceptsSeededAdminCredentials() {
-        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
+    @DisplayName("admin logs in")
+    void adminLogsIn() {
+        var service = service(user("admin", ADMIN_PASSWORD, Role.ADMIN, true));
 
         AuthenticationResult result = service.login("admin", ADMIN_PASSWORD);
 
         assertTrue(result.success());
-        assertNotNull(result.user());
+        assertEquals("admin", result.user().loginId());
         assertEquals(Role.ADMIN, result.user().role());
     }
 
     @Test
-    @DisplayName("rejects incorrect password")
-    void loginRejectsIncorrectPassword() {
-        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
+    @DisplayName("wrong password fails login")
+    void wrongPasswordFails() {
+        var service = service(user("admin", ADMIN_PASSWORD, Role.ADMIN, true));
 
         AuthenticationResult result = service.login("admin", "wrong-password");
 
@@ -49,9 +42,9 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("rejects inactive account")
-    void loginRejectsInactiveAccount() {
-        var service = service(List.of(user("dev1", ADMIN_PASSWORD, Role.DEV, false)));
+    @DisplayName("inactive user cannot log in")
+    void inactiveUserIsBlocked() {
+        var service = service(user("dev1", ADMIN_PASSWORD, Role.DEV, false));
 
         AuthenticationResult result = service.login("dev1", ADMIN_PASSWORD);
 
@@ -60,9 +53,9 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("inactive account still requires matching password")
-    void inactiveAccountStillRequiresMatchingPassword() {
-        var service = service(List.of(user("dev1", ADMIN_PASSWORD, Role.DEV, false)));
+    @DisplayName("wrong password is checked first")
+    void passwordCheckedFirst() {
+        var service = service(user("dev1", ADMIN_PASSWORD, Role.DEV, false));
 
         AuthenticationResult result = service.login("dev1", "wrong-password");
 
@@ -71,9 +64,9 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("rejects missing credentials before repository lookup")
-    void loginRejectsMissingCredentials() {
-        var service = service(List.of());
+    @DisplayName("login needs id and password")
+    void loginNeedsIdAndPassword() {
+        var service = service();
 
         assertEquals("ID and password are required.", service.login(null, ADMIN_PASSWORD).message());
         assertEquals("ID and password are required.", service.login(" ", ADMIN_PASSWORD).message());
@@ -82,22 +75,35 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("trims login id and stores authenticated current user")
-    void loginTrimsLoginIdAndStoresCurrentUser() {
-        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
+    @DisplayName("login id can have spaces around it")
+    void loginIdCanHaveSpaces() {
+        var service = service(user("admin", ADMIN_PASSWORD, Role.ADMIN, true));
 
         assertFalse(service.currentUser().isPresent());
         AuthenticationResult result = service.login(" admin ", ADMIN_PASSWORD);
 
         assertTrue(result.success());
-        assertTrue(service.currentUser().isPresent());
         assertEquals("admin", service.currentUser().orElseThrow().getLoginId());
     }
 
     @Test
-    @DisplayName("logout clears authenticated current user")
+    @DisplayName("second login waits for logout")
+    void secondLoginWaitsForLogout() {
+        var service = service(
+                user("admin", ADMIN_PASSWORD, Role.ADMIN, true),
+                user("dev1", "DevPassword1!", Role.DEV, true));
+
+        assertTrue(service.login("admin", ADMIN_PASSWORD).success());
+        AuthenticationResult result = service.login("dev1", "DevPassword1!");
+
+        assertFalse(result.success());
+        assertEquals("Already logged in. Please logout first.", result.message());
+    }
+
+    @Test
+    @DisplayName("logout clears current user")
     void logoutClearsCurrentUser() {
-        var service = service(List.of(user("admin", ADMIN_PASSWORD, Role.ADMIN, true)));
+        var service = service(user("admin", ADMIN_PASSWORD, Role.ADMIN, true));
 
         assertTrue(service.login("admin", ADMIN_PASSWORD).success());
         assertTrue(service.currentUser().isPresent());
@@ -108,9 +114,9 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("rejects unknown account")
-    void loginRejectsUnknownAccount() {
-        var service = service(List.of());
+    @DisplayName("missing user cannot log in")
+    void missingUserCannotLogIn() {
+        var service = service();
 
         AuthenticationResult result = service.login("missing", ADMIN_PASSWORD);
 
@@ -120,53 +126,60 @@ class AuthenticationServiceTest {
 
     private static User user(String loginId, String password, Role role, boolean active) {
         LocalDateTime timestamp = LocalDateTime.of(2026, 5, 18, 0, 0);
-        return User.fromPersistence(loginId, loginId, PASSWORD_HASHER.hash(password), role, active, timestamp,
-                timestamp);
+        return User.fromPersistence(loginId, loginId, PASSWORDS.hash(password), role, active, timestamp, timestamp);
     }
 
-    private static AuthenticationService service(List<User> users) {
-        return new AuthenticationService(new FakeUserRepository(users), PASSWORD_HASHER, new SessionStore());
+    private static AuthenticationService service(User... users) {
+        return new AuthenticationService(
+                new InMemoryUserRepository(users),
+                PASSWORDS,
+                new TestSession());
     }
 
-    private static final class FakeUserRepository implements UserRepository {
+    private static final class TestPasswordHashing implements PasswordHashing {
 
-        private final Map<String, User> usersByLoginId = new LinkedHashMap<>();
-
-        private FakeUserRepository(List<User> users) {
-            for (User user : users) {
-                usersByLoginId.put(user.getLoginId(), user);
-            }
+        @Override
+        public String hash(String password) {
+            return "hash:" + password;
         }
 
         @Override
-        public Optional<User> findByLoginId(String loginId) {
-            return Optional.ofNullable(usersByLoginId.get(loginId));
+        public boolean matches(String password, String storedCredential) {
+            return storedCredential.equals(hash(password));
         }
 
         @Override
-        public List<User> findAll() {
-            return new ArrayList<>(usersByLoginId.values());
+        public boolean isHashed(String storedCredential) {
+            return storedCredential != null && storedCredential.startsWith("hash:");
         }
 
         @Override
-        public List<User> findByRole(long projectId, Role role) {
-            return usersByLoginId.values().stream()
-                    .filter(user -> user.getRole() == role)
-                    .toList();
+        public String saltOf(String storedCredential) {
+            return "";
         }
 
         @Override
-        public boolean existsActiveProjectMember(long projectId, String loginId) {
-            return findByLoginId(loginId)
-                    .filter(User::isActive)
-                    .isPresent();
+        public String hashOf(String storedCredential) {
+            return storedCredential == null ? "" : storedCredential.replaceFirst("^hash:", "");
+        }
+    }
+
+    private static final class TestSession implements CurrentUserSession {
+        private String currentLoginId;
+
+        @Override
+        public void start(String loginId) {
+            currentLoginId = loginId;
         }
 
         @Override
-        public User save(User user) {
-            usersByLoginId.put(user.getLoginId(), user);
-            return user;
+        public Optional<String> currentLoginId() {
+            return Optional.ofNullable(currentLoginId);
         }
 
+        @Override
+        public void clear() {
+            currentLoginId = null;
+        }
     }
 }
