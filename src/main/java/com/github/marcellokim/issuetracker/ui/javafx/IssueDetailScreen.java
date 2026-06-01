@@ -11,6 +11,7 @@ import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
+import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -110,13 +111,13 @@ final class IssueDetailScreen extends VBox {
             commentList.setCellFactory(list -> new CommentCell(editableComments, deletableComments));
             commentList.setPrefHeight(200);
 
-            VBox dependencyBox = new VBox(4);
             Label dependencyTitle = new Label("Dependencies (" + detail.dependencies().size() + ")");
             dependencyTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-            dependencyBox.getChildren().add(dependencyTitle);
+            ListView<String> depListView = new ListView<>();
             for (DependencyResult dep : detail.dependencies()){
-                dependencyBox.getChildren().add(new Label(String.format("  %s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey())));
+                depListView.getItems().add(String.format("%s blocks %s", dep.blockingIssueKey(), dep.blockedIssueKey()));
             }
+            depListView.setPrefHeight(Math.min(100, detail.dependencies().size() * 26 + 4));
 
             Label historyTitle = new Label("History (" + detail.histories().size() + " entries)");
             historyTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
@@ -126,7 +127,7 @@ final class IssueDetailScreen extends VBox {
                     peopleBox, new Separator(),
                     new Label("Available Actions:"), actionButtons, new Separator(),
                     commentsTitle, commentList,
-                    dependencyBox, historyTitle, messageLabel);
+                    dependencyTitle, depListView, historyTitle, messageLabel);
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
             getChildren().add(messageLabel);
@@ -253,24 +254,42 @@ final class IssueDetailScreen extends VBox {
     }
 
     private void handleAddDependency(){
-        Dialog<String> dialog = new Dialog<>();
+        List<IssueSummary> projectIssues;
+        try{
+            projectIssues = issueController.viewRelatedProjectIssues(currentDetail.projectId());
+        } catch (Exception exception){
+            ScreenComponents.showError(messageLabel, exception);
+            return;
+        }
+        List<IssueSummary> candidates = projectIssues.stream()
+                .filter(i -> i.id() != issueId)
+                .toList();
+        if (candidates.isEmpty()){
+            ScreenComponents.showInfo(messageLabel, "No other issues available");
+            return;
+        }
+        Dialog<IssueSummary> dialog = new Dialog<>();
         dialog.setTitle("Add Dependency");
-        dialog.setHeaderText("This issue will be blocked by the specified issue.");
-        TextField blockingIdField = new TextField();
-        blockingIdField.setPromptText("Blocking issue ID (number)");
-        dialog.getDialogPane().setContent(new VBox(8, new Label("Blocking Issue ID:"), blockingIdField));
+        dialog.setHeaderText("This issue will be blocked by the selected issue.");
+        ComboBox<IssueSummary> issueBox = new ComboBox<>();
+        issueBox.getItems().addAll(candidates);
+        issueBox.setConverter(new StringConverter<>(){
+            @Override public String toString(IssueSummary s){
+                return s == null ? "" : String.format("[%s] %s (%s)", s.issueId(), s.title(), s.status());
+            }
+            @Override public IssueSummary fromString(String str){ return null; }
+        });
+        issueBox.setMaxWidth(Double.MAX_VALUE);
+        dialog.getDialogPane().setContent(new VBox(8, new Label("Blocking Issue:"), issueBox));
+        dialog.getDialogPane().setPrefWidth(500);
         Button okButton = setupDialogButtons(dialog);
         okButton.setDisable(true);
-        blockingIdField.textProperty().addListener((obs, old, val) ->
-                okButton.setDisable(val == null || !val.matches("[1-9]\\d*")));
-        dialog.setResultConverter(bt -> bt == ButtonType.OK ? blockingIdField.getText().trim() : null);
-        dialog.showAndWait().ifPresent(blockingIdText -> {
+        issueBox.valueProperty().addListener((obs, old, val) -> okButton.setDisable(val == null));
+        dialog.setResultConverter(bt -> bt == ButtonType.OK ? issueBox.getValue() : null);
+        dialog.showAndWait().ifPresent(blocking -> {
             try{
-                long blockingIssueId = Long.parseLong(blockingIdText);
-                issueController.addDependency(blockingIssueId, issueId);
+                issueController.addDependency(blocking.id(), issueId);
                 reload();
-            } catch (NumberFormatException exception){
-                ScreenComponents.showError(messageLabel, new IllegalArgumentException("Issue ID must be a number."));
             } catch (Exception exception){
                 ScreenComponents.showError(messageLabel, exception);
             }

@@ -50,7 +50,9 @@ final class IssueListScreen extends VBox {
         searchField.setMaxWidth(200);
         statusFilter.setPromptText("Status");
         statusFilter.getItems().add(null);
-        statusFilter.getItems().addAll(IssueStatus.values());
+        for (IssueStatus s : IssueStatus.values()){
+            if (s != IssueStatus.DELETED) statusFilter.getItems().add(s);
+        }
         priorityFilter.setPromptText("Priority");
         priorityFilter.getItems().add(null);
         priorityFilter.getItems().addAll(com.github.marcellokim.issuetracker.domain.Priority.values());
