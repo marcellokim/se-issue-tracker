@@ -179,7 +179,7 @@ final class IssueListScreen extends VBox {
             super.updateItem(issue, empty);
             if (empty || issue == null){ setText(null); setGraphic(null); return; }
             VBox box = new VBox(2);
-            Label title = new Label(String.format("[%s] %s", issue.issueId(), issue.title()));
+            Label title = new Label(String.format("[%s] %s", ScreenComponents.shortIssueId(issue.issueId()), issue.title()));
             title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
             Label info = new Label(String.format("%s | %s | reporter: %s",
                     issue.status(), issue.priority(), issue.reporterId()));

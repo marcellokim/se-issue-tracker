@@ -3,6 +3,7 @@ package com.github.marcellokim.issuetracker.ui.javafx;
 import com.github.marcellokim.issuetracker.config.ApplicationContext;
 import com.github.marcellokim.issuetracker.domain.Role;
 import javafx.application.Application;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
@@ -29,7 +30,7 @@ public final class JavaFXApp extends Application {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Issue Tracker");
         if (initFailure != null){
-            primaryStage.setScene(new Scene(new StackPane(new Label("DB connection failed: " + initFailure.getMessage())), 600, 400));
+            primaryStage.setScene(styledScene(new StackPane(new Label("DB connection failed: " + initFailure.getMessage())), 600, 400));
             primaryStage.show();
             return;
         }
@@ -48,7 +49,7 @@ public final class JavaFXApp extends Application {
                 showProjectList();
             }
         });
-        primaryStage.setScene(new Scene(new StackPane(loginScreen), 1024, 768));
+        primaryStage.setScene(styledScene(new StackPane(loginScreen), 1024, 768));
     }
 
     private void showAdminDashboard(){
@@ -59,26 +60,26 @@ public final class JavaFXApp extends Application {
             context.authenticationController().logout();
             showLogin();
         });
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showAccountManage(){
         AccountManageScreen screen = new AccountManageScreen(context.dashboardController(), context.accountController());
         screen.setOnBack(this::showAdminDashboard);
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showProjectManage(){
         ProjectManageScreen screen = new ProjectManageScreen(context.dashboardController(), context.projectController());
         screen.setOnProjectSelected(project -> showProjectDetail(project.projectId()));
         screen.setOnBack(this::showAdminDashboard);
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showProjectDetail(long projectId){
         ProjectDetailScreen screen = new ProjectDetailScreen(context.projectController(), projectId);
         screen.setOnBack(this::showProjectManage);
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showProjectList(){
@@ -88,7 +89,7 @@ public final class JavaFXApp extends Application {
             context.authenticationController().logout();
             showLogin();
         });
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showIssueList(long projectId){
@@ -99,30 +100,40 @@ public final class JavaFXApp extends Application {
         screen.setOnDeletedIssueManage(() -> showDeletedIssueManage(projectId));
         screen.setOnStatistics(() -> showStatistics(projectId));
         screen.setOnGraph(() -> showIssueGraph(projectId));
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showIssueGraph(long projectId){
         IssueGraphScreen screen = new IssueGraphScreen(context.issueController(), projectId);
         screen.setOnBack(() -> showIssueList(projectId));
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showIssueDetail(long issueId, long projectId){
         IssueDetailScreen screen = new IssueDetailScreen(context.issueController(), context.issueStateController(), context.assignmentController(), context.deletedIssueController(), issueId);
         screen.setOnBack(() -> showIssueList(projectId));
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showDeletedIssueManage(long projectId){
         DeletedIssueScreen screen = new DeletedIssueScreen(context.deletedIssueController(), projectId);
         screen.setOnBack(() -> showIssueList(projectId));
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
     }
 
     private void showStatistics(long projectId){
         StatisticsScreen screen = new StatisticsScreen(context.statisticsController(), projectId);
         screen.setOnBack(() -> showIssueList(projectId));
-        primaryStage.setScene(new Scene(screen, 1024, 768));
+        primaryStage.setScene(styledScene(screen));
+    }
+
+    private static Scene styledScene(Parent root){
+        return styledScene(root, 1024, 768);
+    }
+
+    private static Scene styledScene(Parent root, double width, double height){
+        Scene scene = new Scene(root, width, height);
+        ScreenComponents.applyStylesheet(scene);
+        return scene;
     }
 }

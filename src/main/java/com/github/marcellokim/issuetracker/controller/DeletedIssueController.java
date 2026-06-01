@@ -38,11 +38,6 @@ public final class DeletedIssueController {
         return deletedIssueService.restoreIssue(issueId, comment, user);
     }
 
-    public int purgeOverflow(long projectId) {
-        User user = requireCurrentUser();
-        return deletedIssueService.purgeOverflow(projectId, user);
-    }
-
     public void purgeDeletedIssue(long issueId) {
         User user = requireCurrentUser();
         deletedIssueService.purgeDeletedIssue(issueId, user);

@@ -45,7 +45,6 @@ class DeletedIssueControllerTest {
                 List<IssueSummary> deletedIssues = controller.viewDeletedIssues(PROJECT_ID);
                 IssueSummary softDeleted = controller.deleteIssue(activeIssue.id(), "remove from demo");
                 IssueSummary restored = controller.restoreIssue(deletedIssue.id(), "restore for demo");
-                int purged = controller.purgeOverflow(PROJECT_ID);
                 controller.purgeDeletedIssue(purgeTarget.id());
 
                 assertEquals(List.of(deletedIssue.id(), purgeTarget.id()),
@@ -54,8 +53,6 @@ class DeletedIssueControllerTest {
                 assertEquals(IssueStatus.NEW, restored.status());
                 assertEquals("pl", issues.lastChangedBy);
                 assertEquals("restore for demo", issues.lastRestoreMessage);
-                assertEquals(2, purged);
-                assertEquals(30, issues.lastPurgeLimit);
                 assertEquals(purgeTarget.id(), issues.lastPurgedIssueId);
                 assertTrue(issues.findById(purgeTarget.id()).isEmpty());
         }
