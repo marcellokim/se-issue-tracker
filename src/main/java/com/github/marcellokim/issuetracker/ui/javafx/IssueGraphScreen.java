@@ -11,6 +11,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -33,6 +34,7 @@ final class IssueGraphScreen extends VBox {
     private final IssueController issueController;
     private final long projectId;
     private final Label messageLabel = ScreenComponents.messageLabel();
+    private final ListView<String> issueListView = new ListView<>();
     private List<IssueSummary> cachedIssues;
     private List<DependencyResult> cachedDeps;
     private Canvas canvas;
@@ -52,9 +54,12 @@ final class IssueGraphScreen extends VBox {
         Pane canvasHolder = new Pane();
         VBox.setVgrow(canvasHolder, Priority.ALWAYS);
 
+        issueListView.setPrefHeight(120);
+        issueListView.setFocusTraversable(true);
+
         getChildren().addAll(
                 ScreenComponents.header(backButton, titleLabel),
-                legend, canvasHolder, messageLabel);
+                legend, canvasHolder, new Label("Issue List (keyboard accessible):"), issueListView, messageLabel);
 
         loadData();
         canvasHolder.widthProperty().addListener((obs, old, val) -> renderGraph(canvasHolder));
@@ -67,6 +72,11 @@ final class IssueGraphScreen extends VBox {
         try{
             cachedIssues = issueController.viewRelatedProjectIssues(projectId);
             cachedDeps = issueController.viewProjectDependencies(projectId);
+            issueListView.getItems().clear();
+            for (IssueSummary issue : cachedIssues){
+                issueListView.getItems().add(String.format("[%s] %s | %s | %s",
+                        issue.issueId(), issue.title(), issue.status(), issue.priority()));
+            }
             ScreenComponents.showInfo(messageLabel, cachedIssues.size() + " issues, " + cachedDeps.size() + " dependencies");
         } catch (Exception exception){
             cachedIssues = List.of();
@@ -174,7 +184,8 @@ final class IssueGraphScreen extends VBox {
             gc.setLineWidth(1.5);
             gc.strokeOval(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
 
-            gc.setFill(Color.WHITE);
+            double brightness = color.getRed() * 0.299 + color.getGreen() * 0.587 + color.getBlue() * 0.114;
+            gc.setFill(brightness > 0.6 ? Color.BLACK : Color.WHITE);
             String label = issue.issueId();
             gc.fillText(label, x - label.length() * 3, y + 4);
         }
