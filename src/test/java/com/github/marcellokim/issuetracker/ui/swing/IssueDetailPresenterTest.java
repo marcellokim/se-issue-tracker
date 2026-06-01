@@ -83,7 +83,8 @@ class IssueDetailPresenterTest {
         assertEquals(true, view.commentAction(100L).canUpdate());
         assertEquals(true, view.commentAction(100L).canDelete());
         assertEquals(false, view.commentAction(101L).canUpdate());
-        assertTrue(view.detail().dependencies().isEmpty());
+        assertTrue(view.detail().blockedByDependencies().isEmpty());
+        assertEquals(1, view.detail().blockingDependencies().size());
         assertEquals(1, view.projectDependencies().size());
         assertEquals(issue.id(), view.projectDependencies().getFirst().blockingIssueId());
         assertEquals(related.id(), view.projectDependencies().getFirst().blockedIssueId());

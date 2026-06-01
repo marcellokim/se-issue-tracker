@@ -22,13 +22,15 @@ public record IssueDetailResult(
         LocalDateTime updatedAt,
         List<CommentResult> comments,
         List<HistoryResult> histories,
-        List<DependencyResult> dependencies,
+        List<DependencyResult> blockedByDependencies,
+        List<DependencyResult> blockingDependencies,
         List<String> availableActions) {
 
     public IssueDetailResult {
         comments = List.copyOf(comments);
         histories = List.copyOf(histories);
-        dependencies = List.copyOf(dependencies);
+        blockedByDependencies = List.copyOf(blockedByDependencies);
+        blockingDependencies = List.copyOf(blockingDependencies);
         availableActions = List.copyOf(availableActions);
     }
 
@@ -50,7 +52,8 @@ public record IssueDetailResult(
                 updatedAt,
                 comments,
                 histories,
-                dependencies,
+                blockedByDependencies,
+                blockingDependencies,
                 nextAvailableActions);
     }
 }
