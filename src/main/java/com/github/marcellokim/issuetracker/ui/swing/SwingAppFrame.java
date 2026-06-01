@@ -41,7 +41,10 @@ public final class SwingAppFrame extends JFrame {
 
     private static IssueActionSupport issueActionSupport(ApplicationContext context) {
         ApplicationContext checked = Objects.requireNonNull(context, "context");
-        return IssueActionSupport.dialogs(checked.issueStateController(), checked.assignmentController());
+        return IssueActionSupport.dialogs(
+                checked.issueStateController(),
+                checked.assignmentController(),
+                checked.deletedIssueController());
     }
 
 }

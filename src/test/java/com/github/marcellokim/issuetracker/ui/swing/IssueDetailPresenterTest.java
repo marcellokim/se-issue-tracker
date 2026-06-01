@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
+import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.Comment;
@@ -20,6 +21,7 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.service.AssignmentRecommendationService;
 import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
+import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
@@ -29,6 +31,7 @@ import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
+import com.github.marcellokim.issuetracker.support.FakeDeletedIssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendationRepository;
@@ -228,6 +231,97 @@ class IssueDetailPresenterTest {
     }
 
     @Test
+    @DisplayName("updates issue through issue controller and reloads detail")
+    void updatesIssueAndReloadsDetail() {
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, "Login bug", reporter);
+        IssueDetailControllerFixture fixture = controllerFixture(reporter, new FakeCommentRepository(), issue);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                fixture.issueController(),
+                fixture.issueStateController(),
+                fixture.assignmentController(),
+                fixture.deletedIssueController(),
+                view);
+        presenter.loadIssue(issue.id());
+
+        presenter.updateIssue(
+                issue.id(),
+                IssueEditRequest.update("Edited login bug", "Edited through Swing"));
+
+        assertEquals("Edited login bug", view.detail().title());
+        assertEquals("Edited through Swing", view.detail().description());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("changes priority through issue controller and reloads detail")
+    void changesPriorityAndReloadsDetail() {
+        User pl = user("pl1", Role.PL);
+        Issue issue = issue(7L, "Login bug", pl);
+        IssueDetailControllerFixture fixture = controllerFixture(pl, new FakeCommentRepository(), issue);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                fixture.issueController(),
+                fixture.issueStateController(),
+                fixture.assignmentController(),
+                fixture.deletedIssueController(),
+                view);
+        presenter.loadIssue(issue.id());
+
+        presenter.changePriority(issue.id(), IssueEditRequest.changePriority(Priority.MINOR));
+
+        assertEquals(Priority.MINOR, view.detail().priority());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("deletes issue through deleted issue controller")
+    void deletesIssueThroughDeletedController() {
+        User pl = user("pl1", Role.PL);
+        Issue issue = issue(7L, "Login bug", pl);
+        IssueDetailControllerFixture fixture = controllerFixture(pl, new FakeCommentRepository(), issue);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                fixture.issueController(),
+                fixture.issueStateController(),
+                fixture.assignmentController(),
+                fixture.deletedIssueController(),
+                view);
+        presenter.loadIssue(issue.id());
+
+        boolean deleted = presenter.deleteIssue(issue.id(), IssueEditRequest.softDelete("remove duplicate"));
+
+        assertTrue(deleted);
+        assertEquals(
+                IssueStatus.DELETED,
+                fixture.issueRepository().findById(issue.id()).orElseThrow().status());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
+    @DisplayName("shows delete errors without replacing current detail")
+    void showsDeleteErrorsWithoutReplacingCurrentDetail() {
+        User reporter = user("dev1", Role.DEV);
+        Issue issue = issue(7L, "Login bug", reporter);
+        IssueDetailControllerFixture fixture = controllerFixture(reporter, new FakeCommentRepository(), issue);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                fixture.issueController(),
+                fixture.issueStateController(),
+                fixture.assignmentController(),
+                fixture.deletedIssueController(),
+                view);
+        presenter.loadIssue(issue.id());
+
+        boolean deleted = presenter.deleteIssue(issue.id(), IssueEditRequest.softDelete("remove duplicate"));
+
+        assertEquals(false, deleted);
+        assertEquals("Login bug", view.detail().title());
+        assertEquals("Only PL can manage deleted issues.", view.message());
+    }
+
+    @Test
     @DisplayName("adds a comment through issue controller and reloads detail")
     void addsCommentAndReloadsDetail() {
         User reporter = user("dev1", Role.DEV);
@@ -398,6 +492,7 @@ class IssueDetailPresenterTest {
             }
         }
         InMemoryIssueRepository issueRepository = new InMemoryIssueRepository(issues);
+        FakeDeletedIssueRepository deletedIssues = new FakeDeletedIssueRepository(issueRepository);
         FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
         PermissionPolicy permissionPolicy = new PermissionPolicy();
         AuthenticationService authentication = new AuthenticationService(
@@ -440,10 +535,20 @@ class IssueDetailPresenterTest {
                                 new InMemoryAssignmentRecommendationRepository(extraUsers.toArray(User[]::new)),
                                 new KNNAssignmentRecommendation()),
                         () -> NOW));
+        DeletedIssueController deletedIssueController = new DeletedIssueController(
+                authentication,
+                new DeletedIssueService(
+                        issueRepository,
+                        deletedIssues,
+                        users,
+                        permissionPolicy,
+                        () -> NOW));
         return new IssueDetailControllerFixture(
+                issueRepository,
                 issueController,
                 issueStateController,
                 assignmentController,
+                deletedIssueController,
                 dependencies);
     }
 
@@ -495,9 +600,11 @@ class IssueDetailPresenterTest {
     }
 
     private record IssueDetailControllerFixture(
+            InMemoryIssueRepository issueRepository,
             IssueController issueController,
             IssueStateController issueStateController,
             AssignmentController assignmentController,
+            DeletedIssueController deletedIssueController,
             FakeIssueDependencyRepository dependencyRepository) {
     }
 

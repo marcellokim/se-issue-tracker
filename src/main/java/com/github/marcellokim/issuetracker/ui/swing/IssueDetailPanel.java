@@ -1,5 +1,6 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
+import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
 import com.github.marcellokim.issuetracker.service.HistoryResult;
@@ -99,6 +100,9 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private Set<String> availableActions = Set.of();
     private transient List<IssueCommentActionState> commentActionStates = List.of();
     private transient List<DependencyResult> dependencyActionStates = List.of();
+    private String currentTitle = "Issue";
+    private String currentDescription = " ";
+    private Priority currentPriority = Priority.MAJOR;
 
     IssueDetailPanel(UserResult user, IssueDetailActions actions) {
         Objects.requireNonNull(user, "user");
@@ -134,6 +138,9 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             titleLabel.setText("[" + detail.issueId() + "] " + detail.title());
             stateLabel.setText(detail.status() + " / " + detail.priority());
             descriptionLabel.setText(detail.description());
+            currentTitle = detail.title();
+            currentDescription = detail.description();
+            currentPriority = detail.priority();
             reporterLabel.setText("Reporter: " + formatUser(detail.reporter()));
             assigneeLabel.setText("Assignee: " + formatUser(detail.assignee()));
             verifierLabel.setText("Verifier: " + formatUser(detail.verifier()));
@@ -182,6 +189,10 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             updateCommentButtons();
             updateDependencyButtons();
         });
+    }
+
+    IssueEditContext currentIssueEditContext() {
+        return new IssueEditContext(currentTitle, currentDescription, currentPriority);
     }
 
     private JPanel header() {

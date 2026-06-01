@@ -86,6 +86,11 @@ class IssueDetailPanelTest {
             assertEquals("ISSUE-3", dependencies.getValueAt(0, 2));
             dependencies.setRowSelectionInterval(0, 0);
             assertTrue(SwingComponentTestSupport.find(panel, "removeDependencyButton", JButton.class).isEnabled());
+
+            IssueEditContext editContext = panel.currentIssueEditContext();
+            assertEquals("Login bug", editContext.title());
+            assertEquals("Login fails with valid credentials.", editContext.description());
+            assertEquals(Priority.CRITICAL, editContext.priority());
         });
     }
 

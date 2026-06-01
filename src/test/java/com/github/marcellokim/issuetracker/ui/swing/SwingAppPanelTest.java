@@ -10,6 +10,7 @@ import com.github.marcellokim.issuetracker.controller.AccountController;
 import com.github.marcellokim.issuetracker.controller.AssignmentController;
 import com.github.marcellokim.issuetracker.controller.AuthenticationController;
 import com.github.marcellokim.issuetracker.controller.DashboardController;
+import com.github.marcellokim.issuetracker.controller.DeletedIssueController;
 import com.github.marcellokim.issuetracker.controller.IssueController;
 import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.controller.ProjectController;
@@ -35,6 +36,7 @@ import com.github.marcellokim.issuetracker.service.AssignmentRecommendationServi
 import com.github.marcellokim.issuetracker.service.AssignmentService;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
+import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
@@ -43,6 +45,7 @@ import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.StatisticsService;
+import com.github.marcellokim.issuetracker.support.FakeDeletedIssueRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.FakeStatisticsRepository;
@@ -805,6 +808,111 @@ class SwingAppPanelTest {
     }
 
     @Test
+    @DisplayName("issue detail edit actions update issue and priority")
+    void issueDetailEditActionsUpdateIssueAndPriority() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        Issue issue = issue(7L, 7L, "Login bug", Priority.CRITICAL, pl);
+        AtomicReference<IssueEditMode> promptedMode = new AtomicReference<>();
+        IssueEditPrompt editPrompt = (parent, mode, context) -> {
+            promptedMode.set(mode);
+            return switch (mode) {
+                case UPDATE -> {
+                    assertEquals("Login bug", context.title());
+                    assertEquals(Priority.CRITICAL, context.priority());
+                    yield Optional.of(IssueEditRequest.update("Edited bug", "Edited through Swing"));
+                }
+                case CHANGE_PRIORITY -> {
+                    assertEquals("Edited bug", context.title());
+                    assertEquals(Priority.CRITICAL, context.priority());
+                    yield Optional.of(IssueEditRequest.changePriority(Priority.MINOR));
+                }
+                case SOFT_DELETE -> Optional.empty();
+            };
+        };
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 1)),
+                List.of(issue),
+                List.of(),
+                IssueStatusChangeDialogs::prompt,
+                IssueAssignmentDialogs::prompt,
+                IssueCommentDialogs::prompt,
+                IssueDependencyDialogs::prompt,
+                editPrompt,
+                pl);
+
+        openFirstIssueDetail(panel, "[ISSUE-7] Login bug");
+        awaitButtonEnabled(panel, "issueActionButton_UPDATE_ISSUE");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_UPDATE_ISSUE", JButton.class).doClick());
+        awaitIssueDetailTitle(panel, "[ISSUE-7] Edited bug");
+
+        awaitButtonEnabled(panel, "issueActionButton_CHANGE_PRIORITY");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_CHANGE_PRIORITY", JButton.class).doClick());
+        awaitIssueDetailState(panel, "NEW / MINOR");
+
+        assertEquals(IssueEditMode.CHANGE_PRIORITY, promptedMode.get());
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "[ISSUE-7] Edited bug",
+                    SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
+            assertEquals(
+                    "NEW / MINOR",
+                    SwingComponentTestSupport.find(panel, "issueDetailState", JLabel.class).getText());
+        });
+    }
+
+    @Test
+    @DisplayName("issue detail soft delete cancel stays on detail and confirm returns to issue list")
+    void issueDetailSoftDeleteCancelStaysOnDetailAndConfirmReturnsToIssueList() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        Issue issue = issue(7L, 7L, "Login bug", Priority.CRITICAL, pl);
+        AtomicBoolean deleteConfirmed = new AtomicBoolean(false);
+        IssueEditPrompt editPrompt = (parent, mode, context) -> {
+            if (mode != IssueEditMode.SOFT_DELETE) {
+                return Optional.empty();
+            }
+            return deleteConfirmed.get()
+                    ? Optional.of(IssueEditRequest.softDelete("remove duplicate"))
+                    : Optional.empty();
+        };
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 1)),
+                List.of(issue),
+                List.of(),
+                IssueStatusChangeDialogs::prompt,
+                IssueAssignmentDialogs::prompt,
+                IssueCommentDialogs::prompt,
+                IssueDependencyDialogs::prompt,
+                editPrompt,
+                pl);
+
+        openFirstIssueDetail(panel, "[ISSUE-7] Login bug");
+        awaitButtonEnabled(panel, "issueActionButton_SOFT_DELETE");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_SOFT_DELETE", JButton.class).doClick());
+        SwingComponentTestSupport.onEdt(() -> assertEquals(
+                "[ISSUE-7] Login bug",
+                SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText()));
+
+        deleteConfirmed.set(true);
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "issueActionButton_SOFT_DELETE", JButton.class).doClick());
+        awaitIssueRows(panel, 0);
+        SwingComponentTestSupport.onEdt(() -> assertEquals(
+                "Alpha",
+                SwingComponentTestSupport.find(panel, "issueListTitle", JLabel.class).getText()));
+    }
+
+    @Test
     @DisplayName("project list logout returns to login")
     void projectListLogoutReturnsToLogin() throws Exception {
         var passwordHashing = new RecordingPasswordHashing();
@@ -867,6 +975,30 @@ class SwingAppPanelTest {
                 List.of(),
                 prompts,
                 recommendationRepository,
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
+            IssueStatusChangePrompt statusChangePrompt,
+            IssueAssignmentPrompt assignmentPrompt,
+            IssueCommentPrompt commentPrompt,
+            IssueDependencyPrompt dependencyPrompt,
+            IssueEditPrompt editPrompt,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                comments,
+                new SwingPromptSupport(statusChangePrompt, assignmentPrompt, commentPrompt, dependencyPrompt),
+                new InMemoryAssignmentRecommendationRepository(users),
+                editPrompt,
                 users);
     }
 
@@ -952,6 +1084,7 @@ class SwingAppPanelTest {
                 comments,
                 new SwingPromptSupport(statusChangePrompt, assignmentPrompt, commentPrompt, dependencyPrompt),
                 new InMemoryAssignmentRecommendationRepository(users),
+                IssueEditDialogs::prompt,
                 users);
     }
 
@@ -963,6 +1096,28 @@ class SwingAppPanelTest {
             List<Comment> comments,
             SwingPromptSupport prompts,
             AssignmentRecommendationRepository recommendationRepository,
+            User... users) throws Exception {
+        return loginProjectUser(
+                passwordHashing,
+                titles,
+                projects,
+                issues,
+                comments,
+                prompts,
+                recommendationRepository,
+                IssueEditDialogs::prompt,
+                users);
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            List<Issue> issues,
+            List<Comment> comments,
+            SwingPromptSupport prompts,
+            AssignmentRecommendationRepository recommendationRepository,
+            IssueEditPrompt editPrompt,
             User... users) throws Exception {
         var panelRef = new AtomicReference<SwingAppPanel>();
         var workerDone = new CountDownLatch(1);
@@ -984,7 +1139,9 @@ class SwingAppPanelTest {
                             controllers.assignmentController(),
                             prompts.assignmentPrompt(),
                             prompts.commentPrompt(),
-                            prompts.dependencyPrompt()),
+                            prompts.dependencyPrompt(),
+                            controllers.deletedIssueController(),
+                            editPrompt),
                     titles::update);
             panelRef.set(panel);
             User user = users[0];
@@ -1010,6 +1167,26 @@ class SwingAppPanelTest {
         assertNotNull(panel);
         awaitProjectListRows(panel, projects.size());
         return panel;
+    }
+
+    private static void openFirstIssueDetail(SwingAppPanel panel, String expectedTitle) throws Exception {
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 1);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable issues = SwingComponentTestSupport.find(panel, "issueListTable", JTable.class);
+            issues.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openIssueDetailButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
+        awaitIssueDetailTitle(panel, expectedTitle);
     }
 
     private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
@@ -1281,6 +1458,7 @@ class SwingAppPanelTest {
             }
         });
         var issueRepository = new InMemoryIssueRepository(issues.toArray(Issue[]::new));
+        var deletedIssueRepository = new FakeDeletedIssueRepository(issueRepository);
         var dependencyRepository = new FakeIssueDependencyRepository();
         var commentRepository = new FakeCommentRepository(comments);
         var historyRepository = new FakeIssueHistoryRepository();
@@ -1305,6 +1483,14 @@ class SwingAppPanelTest {
                         new AssignmentRecommendationService(
                                 recommendationRepository,
                                 new KNNAssignmentRecommendation()),
+                        () -> NOW));
+        DeletedIssueController deletedIssueController = new DeletedIssueController(
+                service,
+                new DeletedIssueService(
+                        issueRepository,
+                        deletedIssueRepository,
+                        repository,
+                        permissionPolicy,
                         () -> NOW));
         return new SwingControllerFixture(
                 new AuthenticationController(service),
@@ -1352,7 +1538,8 @@ class SwingAppPanelTest {
                         service,
                         new StatisticsService(permissionPolicy, statisticsRepository, repository)),
                 issueStateController,
-                assignmentController);
+                assignmentController,
+                deletedIssueController);
     }
 
     private static User user(String loginId, Role role) {
@@ -1429,7 +1616,8 @@ class SwingAppPanelTest {
             IssueController issueController,
             StatisticsController statisticsController,
             IssueStateController issueStateController,
-            AssignmentController assignmentController) {
+            AssignmentController assignmentController,
+            DeletedIssueController deletedIssueController) {
 
         SwingControllers swingControllers() {
             return new SwingControllers(
