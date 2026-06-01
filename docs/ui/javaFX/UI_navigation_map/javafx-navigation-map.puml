@@ -259,7 +259,6 @@ state "삭제 이슈 관리" as DeletedIssueScreen <<screen>> {
 }
 
 note right of DeletedIssueScreen
-  purgeOverflow는 softDelete 시 자동 실행.
   UI에 별도 버튼 없음.
 end note
 

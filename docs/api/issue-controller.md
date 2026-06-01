@@ -39,7 +39,7 @@
 
 `viewIssueDetail`은 이슈 기본 정보, reporter/assignee/verifier/fixer/resolver, 댓글, 히스토리, 현재 이슈를 막고 있는 dependency 정보를 반환한다. 컨트롤러가 `IssueWorkflowService`와 함께 생성된 경우에는 `IssueWorkflowActions`를 계산해 `IssueDetailResult.availableActions` 이름 목록으로 포함한다. `IssueWorkflowService`가 없으면 상세 정보만 반환하고 action 목록은 비어 있다.
 
-`viewRelatedProjectIssues`는 특정 프로젝트 내부에서 현재 사용자와 관련된 이슈를 반환한다. PL은 해당 프로젝트의 일반 이슈 목록을 볼 수 있고, DEV/TESTER는 reporter, 현재 assignee, 현재 verifier로 연결된 이슈만 볼 수 있다. fixer와 resolver는 완료 이력으로 보며 현재 관련 이슈 조건에는 포함하지 않는다.
+`viewRelatedProjectIssues`는 특정 프로젝트 내부의 일반 이슈 목록을 반환한다. PL/DEV/TESTER 프로젝트 멤버는 같은 프로젝트의 일반 이슈를 볼 수 있고, reporter, 현재 assignee, 현재 verifier 조건은 `searchIssues` 필터로 좁힌다. fixer와 resolver는 완료 이력으로 보며 기본 이슈 목록 범위를 제한하지 않는다.
 
 `updateIssue`는 이슈 reporter만 수행할 수 있고, 이슈 상태가 `NEW` 또는 `REOPENED`일 때만 허용된다. 같은 프로젝트 내 다른 이슈와 title이 중복되면 실패한다.
 
