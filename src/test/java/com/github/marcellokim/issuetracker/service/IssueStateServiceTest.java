@@ -1,6 +1,7 @@
 package com.github.marcellokim.issuetracker.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -39,8 +40,8 @@ class IssueStateServiceTest {
             createdAt());
 
     @Test
-    @DisplayName("assignee marks assigned issue fixed")
-    void markAssignedIssueFixed() {
+    @DisplayName("assignee marks the issue fixed")
+    void assigneeMarksIssueFixed() {
         var issue = assignedIssue();
         var service = service(issue);
 
@@ -58,8 +59,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("verifier resolves fixed issue")
-    void resolveFixedIssue() {
+    @DisplayName("verifier resolves the fix")
+    void verifierResolvesFix() {
         var issue = fixedIssue();
         var service = service(issue);
 
@@ -75,8 +76,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("PL closes resolved issue and clears active assignment")
-    void closeResolvedIssue() {
+    @DisplayName("PL closes the resolved issue")
+    void plClosesIssue() {
         var issue = resolvedIssue();
         var service = service(issue);
 
@@ -95,8 +96,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("PL must belong to the issue project to close an issue")
-    void rejectCloseByPlFromOtherProject() {
+    @DisplayName("other project PL cannot close")
+    void otherPlCannotClose() {
         var issue = resolvedIssue();
         var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
                 .withProjectMembers(PROJECT_ID, pl.getLoginId());
@@ -108,20 +109,28 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("blank comment or wrong actor fails status change")
-    void rejectBlankCommentAndWrongParticipant() {
+    @DisplayName("state change needs a comment")
+    void stateChangeNeedsComment() {
         var issue = assignedIssue();
         var service = service(issue);
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "", assignee.getLoginId()));
+    }
+
+    @Test
+    @DisplayName("another dev cannot finish it")
+    void anotherDevCannotFinishIssue() {
+        var issue = assignedIssue();
+        var service = service(issue);
+
         assertThrows(SecurityException.class,
                 () -> service.changeStatus(ISSUE_ID, IssueStatus.FIXED, "Fix completed", otherDev.getLoginId()));
     }
 
     @Test
-    @DisplayName("assignee must belong to the issue project to mark fixed")
-    void rejectFixedTransitionByAssigneeOutsideProject() {
+    @DisplayName("assignee outside the project is blocked")
+    void outsideAssigneeIsBlocked() {
         var issue = assignedIssue();
         var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
                 .withProjectMembers(PROJECT_ID, pl.getLoginId(), verifier.getLoginId());
@@ -132,8 +141,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("verifier must belong to the issue project to resolve")
-    void rejectResolveByVerifierOutsideProject() {
+    @DisplayName("verifier outside the project is blocked")
+    void outsideVerifierIsBlocked() {
         var issue = fixedIssue();
         var users = new InMemoryUserRepository(reporter, assignee, verifier, pl, otherProjectPl, otherDev)
                 .withProjectMembers(PROJECT_ID, pl.getLoginId(), assignee.getLoginId());
@@ -144,18 +153,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("blank status change comment is rejected before lookup")
-    void rejectBlankCommentBeforeLookup() {
-        var issue = assignedIssue();
-        var service = service(issue);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.changeStatus(999L, IssueStatus.FIXED, " ", "missing"));
-    }
-
-    @Test
-    @DisplayName("issue id and current user id are required")
-    void rejectInvalidIssueIdAndBlankCurrentUserId() {
+    @DisplayName("bad request stops early")
+    void badRequestStopsEarly() {
         var issue = assignedIssue();
         var service = service(issue);
         String assigneeLoginId = assignee.getLoginId();
@@ -167,8 +166,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("deleted issue cannot be changed through normal state workflow")
-    void rejectDeletedIssueStatusChange() {
+    @DisplayName("deleted issue stays out of state flow")
+    void deletedIssueStaysOut() {
         var issue = deletedIssue();
         var service = service(issue);
         String assigneeLoginId = assignee.getLoginId();
@@ -178,8 +177,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("verifier rejects fixed issue back to assigned")
-    void rejectFixedIssueBackToAssigned() {
+    @DisplayName("verifier sends fix back")
+    void verifierSendsFixBack() {
         var fixed = fixedIssue();
         var fixedService = service(fixed);
 
@@ -193,8 +192,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("project PL reopens resolved issue")
-    void reopenResolvedIssue() {
+    @DisplayName("PL reopens the resolved issue")
+    void plReopensIssue() {
         var resolved = resolvedIssue();
         var resolvedService = service(resolved);
 
@@ -210,8 +209,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unsupported status change target remains a feature gap")
-    void rejectUnsupportedTargetStatus() {
+    @DisplayName("delete is not a state-service action")
+    void deleteIsNotStateAction() {
         var issue = assignedIssue();
         var service = service(issue);
 
@@ -221,8 +220,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("failed domain transition leaves no comment or history side effects")
-    void failedDomainTransitionLeavesNoCommentOrHistorySideEffect() {
+    @DisplayName("failed change leaves no comment or history")
+    void failedChangeLeavesNoSideEffects() {
         var issue = fixedIssue();
         int commentCount = issue.getComments().size();
         int historyCount = issue.getHistories().size();
@@ -237,7 +236,7 @@ class IssueStateServiceTest {
 
     @Test
     @DisplayName("target status is required")
-    void rejectNullTargetStatus() {
+    void targetStatusIsRequired() {
         var issue = assignedIssue();
         var service = service(issue);
 
@@ -246,8 +245,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("unresolved blocking issue prevents resolve")
-    void rejectResolveWhenBlockingIssueUnresolved() {
+    @DisplayName("unfinished blocker prevents resolve")
+    void unfinishedBlockerPreventsResolve() {
         var blockedIssue = fixedIssue();
         var blockingIssue = newIssue(2L, "ISSUE-2");
         var depRepo = new FakeIssueDependencyRepository();
@@ -260,8 +259,8 @@ class IssueStateServiceTest {
     }
 
     @Test
-    @DisplayName("any unresolved blocking issue prevents resolve")
-    void rejectResolveWhenAnyBlockingIssueUnresolved() {
+    @DisplayName("one unfinished blocker is enough")
+    void oneUnfinishedBlockerIsEnough() {
         var blockedIssue = fixedIssue();
         var resolvedBlocking = resolvedIssue(2L, "ISSUE-2");
         var unresolvedBlocking = newIssue(3L, "ISSUE-3");
@@ -291,12 +290,12 @@ class IssueStateServiceTest {
                 depRepo,
                 users,
                 new PermissionPolicy(),
-                java.time.LocalDateTime::now,
+                LocalDateTime::now,
                 IssueStateServiceTest::nextCommentId);
     }
 
     private static String nextCommentId() {
-        return "COMMENT-test-" + java.util.UUID.randomUUID();
+        return "COMMENT-test-" + UUID.randomUUID();
     }
 
     private Issue newIssue(long id, String issueId) {

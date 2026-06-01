@@ -2,11 +2,11 @@ package com.github.marcellokim.issuetracker.domain;
 
 import java.time.LocalDateTime;
 
-final class IssueTestFactory {
+final class IssueFixtures {
 
     private static final long TEST_PROJECT_ID = 1L;
 
-    private IssueTestFactory() {
+    private IssueFixtures() {
     }
 
     static Issue create(

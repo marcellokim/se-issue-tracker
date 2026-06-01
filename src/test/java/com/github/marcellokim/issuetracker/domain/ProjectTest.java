@@ -7,14 +7,14 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Project domain model")
+@DisplayName("Project")
 class ProjectTest {
 
     private final LocalDateTime now = LocalDateTime.of(2026, 5, 20, 10, 0);
 
     @Test
-    @DisplayName("create builds a transient project")
-    void createProjectWithNameAndManager() {
+    @DisplayName("new projects start unsaved")
+    void createsUnsavedProject() {
         Project project = Project.create("ITS", "Issue Tracking System", "admin", now);
 
         assertEquals(0L, project.getId());
@@ -26,38 +26,49 @@ class ProjectTest {
     }
 
     @Test
-    @DisplayName("fromPersistence restores stored id and timestamps")
-    void restoreProjectFromPersistence() {
+    @DisplayName("saved projects keep their stored state")
+    void restoresSavedProject() {
         Project project = Project.fromPersistence(1L, "ITS", "Issue Tracking System", "admin", now, now);
 
         assertEquals(1L, project.getId());
         assertEquals("ITS", project.getName());
+        assertEquals("Issue Tracking System", project.getDescription());
+        assertEquals("admin", project.getManagedByLoginId());
         assertEquals(now, project.getCreatedDate());
         assertEquals(now, project.getUpdatedAt());
     }
 
     @Test
-    @DisplayName("project name is required")
-    void rejectNullName() {
+    @DisplayName("project name and manager are required")
+    void rejectsMissingProjectIdentity() {
         assertThrows(NullPointerException.class, () -> Project.create(null, "desc", "admin", now));
-    }
-
-    @Test
-    @DisplayName("project manager id is required")
-    void rejectNullManagedById() {
         assertThrows(NullPointerException.class, () -> Project.create("ITS", "desc", null, now));
-    }
-
-    @Test
-    @DisplayName("blank name is rejected by requireText")
-    void rejectBlankName() {
-        assertThrows(IllegalArgumentException.class, () -> Project.create("", "desc", "admin", now));
         assertThrows(IllegalArgumentException.class, () -> Project.create(" ", "desc", "admin", now));
+        assertThrows(IllegalArgumentException.class, () -> Project.create("ITS", "desc", " ", now));
     }
 
     @Test
-    @DisplayName("rename updates name and updatedAt")
-    void renameUpdatesNameAndTimestamp() {
+    @DisplayName("saved project ids must be positive")
+    void rejectsInvalidSavedId() {
+        assertThrows(IllegalArgumentException.class,
+                () -> Project.fromPersistence(0L, "ITS", "desc", "admin", now, now));
+        assertThrows(IllegalArgumentException.class,
+                () -> Project.fromPersistence(-1L, "ITS", "desc", "admin", now, now));
+    }
+
+    @Test
+    @DisplayName("project changes require a timestamp")
+    void rejectsMissingChangeTime() {
+        Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now, now);
+
+        assertThrows(NullPointerException.class, () -> Project.create("ITS", "desc", "admin", null));
+        assertThrows(NullPointerException.class, () -> project.rename("ITS v2", null));
+        assertThrows(NullPointerException.class, () -> project.changeDescription("New description", null));
+    }
+
+    @Test
+    @DisplayName("rename changes name and timestamp")
+    void renamesProject() {
         Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now, now);
         LocalDateTime later = now.plusHours(1);
 
@@ -68,16 +79,17 @@ class ProjectTest {
     }
 
     @Test
-    @DisplayName("rename rejects blank name")
-    void renameRejectsBlankName() {
+    @DisplayName("blank project names are rejected")
+    void rejectsBlankRename() {
         Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now, now);
 
         assertThrows(IllegalArgumentException.class, () -> project.rename("", now.plusHours(1)));
+        assertThrows(IllegalArgumentException.class, () -> project.rename(" ", now.plusHours(1)));
     }
 
     @Test
-    @DisplayName("changeDescription updates description and updatedAt")
-    void changeDescriptionUpdatesDescriptionAndTimestamp() {
+    @DisplayName("description edit is saved")
+    void changesDescription() {
         Project project = Project.fromPersistence(1L, "ITS", "desc", "admin", now, now);
         LocalDateTime later = now.plusHours(1);
 

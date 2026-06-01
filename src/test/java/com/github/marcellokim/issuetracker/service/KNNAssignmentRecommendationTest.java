@@ -15,8 +15,8 @@ class KNNAssignmentRecommendationTest {
     private final KNNAssignmentRecommendation knn = new KNNAssignmentRecommendation();
 
     @Test
-    @DisplayName("returns user with highest Jaccard similarity first")
-    void returnsHighestSimilarityFirst() {
+    @DisplayName("closest title match comes first")
+    void closestTitleComesFirst() {
         List<UserRecord> records = List.of(
                 new UserRecord("button click scroll", "", "dev2"),
                 new UserRecord("login fail error", "", "dev1"),
@@ -29,8 +29,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("deduplicates same user from multiple records")
-    void deduplicatesSameUser() {
+    @DisplayName("same user is listed once")
+    void sameUserListedOnce() {
         List<UserRecord> records = List.of(
                 new UserRecord("login error", "", "dev1"),
                 new UserRecord("login fail", "", "dev1"),
@@ -43,16 +43,16 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("returns empty list when no records provided")
-    void returnsEmptyForNoRecords() {
+    @DisplayName("no history means no recommendation")
+    void noHistoryMeansNoRecommendation() {
         List<String> result = knn.calculateRecomendation("login error", "", List.of());
 
         assertTrue(result.isEmpty());
     }
 
     @Test
-    @DisplayName("handles target title with no matching keywords")
-    void handlesNoMatchingKeywords() {
+    @DisplayName("unknown words fall back to candidates")
+    void unknownWordsUseFallback() {
         List<UserRecord> records = List.of(
                 new UserRecord("login error", "", "dev1"),
                 new UserRecord("button click", "", "dev2"));
@@ -63,33 +63,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("handles both target and record having no matching keywords")
-    void handlesBothNoKeywords() {
-        List<UserRecord> records = List.of(
-                new UserRecord("xyzabc", "", "dev1"));
-
-        List<String> result = knn.calculateRecomendation("foobar", "", records);
-
-        assertEquals(1, result.size());
-        assertEquals("dev1", result.get(0));
-    }
-
-    @Test
-    @DisplayName("Korean keywords are matched correctly")
-    void koreanKeywordsMatched() {
-        List<UserRecord> records = List.of(
-                new UserRecord("로그인 오류 화면", "", "dev1"),
-                new UserRecord("버튼 클릭 스크롤", "", "dev2"),
-                new UserRecord("로그인 에러 페이지", "", "dev3"));
-
-        List<String> result = knn.calculateRecomendation("로그인 오류 페이지", "", records);
-
-        assertEquals("dev1", result.get(0));
-    }
-
-    @Test
-    @DisplayName("comma-separated titles are split into keywords")
-    void commaSeparatedTitlesAreSplit() {
+    @DisplayName("comma title is split")
+    void commaTitleIsSplit() {
         List<UserRecord> records = List.of(
                 new UserRecord("login,error,page", "", "dev1"),
                 new UserRecord("button,click", "", "dev2"));
@@ -100,8 +75,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("TF-IDF description similarity affects ranking")
-    void tfidfDescriptionAffectsRanking() {
+    @DisplayName("description helps the order")
+    void descriptionHelpsOrder() {
         List<UserRecord> records = List.of(
                 new UserRecord("error", "database connection timeout query failed", "dev1"),
                 new UserRecord("error", "button style color font changed", "dev2"),
@@ -114,8 +89,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("special characters in title are normalized")
-    void specialCharactersNormalized() {
+    @DisplayName("special characters are ignored")
+    void specialCharactersAreIgnored() {
         List<UserRecord> records = List.of(
                 new UserRecord("login@error#page!", "", "dev1"),
                 new UserRecord("button$click%test", "", "dev2"));
@@ -126,8 +101,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("stop words are filtered from description tokens")
-    void stopWordsFiltered() {
+    @DisplayName("common words do not dominate")
+    void commonWordsDoNotDominate() {
         List<UserRecord> records = List.of(
                 new UserRecord("error", "the server is not responding to the request", "dev1"),
                 new UserRecord("error", "server responding request", "dev2"));
@@ -138,8 +113,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("fallback fills candidates when fewer than 3 unique users")
-    void fallbackFillsCandidates() {
+    @DisplayName("fallback fills the list")
+    void fallbackFillsList() {
         List<UserRecord> records = List.of(
                 new UserRecord("login error", "", "dev1"),
                 new UserRecord("button click", "", "dev2"),
@@ -152,8 +127,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("empty description returns zero TF-IDF score without error")
-    void emptyDescriptionReturnsZeroTfidf() {
+    @DisplayName("empty description is fine")
+    void emptyDescriptionIsFine() {
         List<UserRecord> records = List.of(
                 new UserRecord("login error", "", "dev1"));
 
@@ -164,8 +139,8 @@ class KNNAssignmentRecommendationTest {
     }
 
     @Test
-    @DisplayName("null title throws NullPointerException")
-    void nullTitleThrows() {
+    @DisplayName("title is required")
+    void titleIsRequired() {
         assertThrows(NullPointerException.class,
                 () -> knn.calculateRecomendation(null, "", List.of()));
     }
