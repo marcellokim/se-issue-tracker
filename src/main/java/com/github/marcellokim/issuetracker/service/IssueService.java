@@ -138,20 +138,15 @@ public final class IssueService {
             LocalDateTime reportedTo,
             String currentLoginId) {
 
-        long requiredProjectId = requirePositive(projectId, FIELD_PROJECT_ID);
-        String requiredLoginId = requireText(currentLoginId, FIELD_CURRENT_LOGIN_ID);
-        if (reportedFrom != null && reportedTo != null && reportedFrom.isAfter(reportedTo)) {
-            throw new IllegalArgumentException("reportedFrom must not be after reportedTo.");
-        }
-        findProject(requiredProjectId);
-        User actor = findUser(requiredLoginId);
-        permissionPolicy.assertCanViewIssue(actor);
-        if (status == IssueStatus.DELETED) {
-            throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
-        }
-        requireActiveProjectMember(actor, requiredProjectId, "Only project members can search issues.");
-        return issueRepository.findByCriteria(IssueSearchCriteria.create(
-                requiredProjectId,
+        SearchContext context = searchContext(
+                projectId,
+                status,
+                reportedFrom,
+                reportedTo,
+                currentLoginId,
+                "Only project members can search issues.");
+        return searchIssuesByCriteria(IssueSearchCriteria.create(
+                context.projectId(),
                 status,
                 priority,
                 optionalText(reporterId),
@@ -161,7 +156,36 @@ public final class IssueService {
                 reportedFrom,
                 reportedTo,
                 false)).stream()
-                .filter(issue -> issue.projectId() == requiredProjectId)
+                .map(IssueService::toIssueSummary)
+                .toList();
+    }
+
+    public List<IssueSummary> searchRelatedProjectIssues(
+            long projectId,
+            String keyword,
+            IssueStatus status,
+            Priority priority,
+            String currentLoginId) {
+
+        SearchContext context = searchContext(
+                projectId,
+                status,
+                null,
+                null,
+                currentLoginId,
+                "Only project members can search related project issues.");
+        return searchIssuesByCriteria(IssueSearchCriteria.create(
+                context.projectId(),
+                status,
+                priority,
+                null,
+                null,
+                null,
+                optionalText(keyword),
+                null,
+                null,
+                false)).stream()
+                .filter(issue -> canViewInRelatedList(context.actor(), issue))
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
@@ -184,7 +208,7 @@ public final class IssueService {
                 null,
                 null,
                 false)).stream()
-                .filter(issue -> permissionPolicy.canViewAllProjectIssues(actor) || isRelatedParticipant(issue, actor.getLoginId()))
+                .filter(issue -> canViewInRelatedList(actor, issue))
                 .map(IssueService::toIssueSummary)
                 .toList();
     }
@@ -418,6 +442,38 @@ public final class IssueService {
         return userRepository.existsActiveProjectMember(projectId, actor.getLoginId());
     }
 
+    private SearchContext searchContext(
+            long projectId,
+            IssueStatus status,
+            LocalDateTime reportedFrom,
+            LocalDateTime reportedTo,
+            String currentLoginId,
+            String membershipMessage) {
+        long requiredProjectId = requirePositive(projectId, FIELD_PROJECT_ID);
+        String requiredLoginId = requireText(currentLoginId, FIELD_CURRENT_LOGIN_ID);
+        if (reportedFrom != null && reportedTo != null && reportedFrom.isAfter(reportedTo)) {
+            throw new IllegalArgumentException("reportedFrom must not be after reportedTo.");
+        }
+        findProject(requiredProjectId);
+        User actor = findUser(requiredLoginId);
+        permissionPolicy.assertCanViewIssue(actor);
+        if (status == IssueStatus.DELETED) {
+            throw new SecurityException("Deleted issues must be managed through deleted issue workflow.");
+        }
+        requireActiveProjectMember(actor, requiredProjectId, membershipMessage);
+        return new SearchContext(requiredProjectId, actor);
+    }
+
+    private List<Issue> searchIssuesByCriteria(IssueSearchCriteria criteria) {
+        return issueRepository.findByCriteria(criteria).stream()
+                .filter(issue -> issue.projectId() == criteria.projectId())
+                .toList();
+    }
+
+    private boolean canViewInRelatedList(User actor, Issue issue) {
+        return permissionPolicy.canViewAllProjectIssues(actor) || isRelatedParticipant(issue, actor.getLoginId());
+    }
+
     private static boolean isRelatedParticipant(Issue issue, String loginId) {
         return loginId.equals(issue.reporterId())
                 || loginId.equals(issue.assigneeId())
@@ -506,6 +562,9 @@ public final class IssueService {
 
     private LocalDateTime now() {
         return clock.now();
+    }
+
+    private record SearchContext(long projectId, User actor) {
     }
 
     private static IssueResult toIssueResult(Issue issue) {
