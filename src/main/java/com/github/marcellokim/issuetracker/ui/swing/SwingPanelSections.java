@@ -72,11 +72,13 @@ final class SwingPanelSections {
         JButton backButton = new JButton("Back");
         backButton.setName(labels.backButtonName());
         backButton.addActionListener(event -> navigation.onBack().run());
+        SwingStyles.applySecondaryButton(backButton);
         nav.add(backButton);
 
         JButton logoutButton = new JButton("Logout");
         logoutButton.setName(labels.logoutButtonName());
         logoutButton.addActionListener(event -> navigation.onLogout().run());
+        SwingStyles.applySecondaryButton(logoutButton);
         nav.add(logoutButton);
 
         messageLabel.setName(labels.messageName());
@@ -175,11 +177,11 @@ final class SwingPanelSections {
     static void configureReadOnlyTable(JTable table, String name, Color selectionBackground) {
         table.setName(name);
         table.setFillsViewportHeight(true);
-        table.setRowHeight(26);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setSelectionBackground(selectionBackground);
         table.setSelectionForeground(SwingStyles.BODY_TEXT);
         table.getTableHeader().setReorderingAllowed(false);
+        SwingStyles.applyTableStyle(table);
     }
 
     static JPanel tableSection(String title, JTable table) {
@@ -234,7 +236,10 @@ final class SwingPanelSections {
     private static JPanel buttonRow(List<JButton> buttons) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
-        buttons.forEach(panel::add);
+        buttons.forEach(button -> {
+            SwingStyles.applySecondaryButton(button);
+            panel.add(button);
+        });
         return panel;
     }
 

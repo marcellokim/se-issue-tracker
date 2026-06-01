@@ -7,7 +7,9 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JTable;
 import javax.swing.border.Border;
+import javax.swing.plaf.basic.BasicButtonUI;
 
 final class SwingStyles {
 
@@ -24,10 +26,14 @@ final class SwingStyles {
     static final Color BORDER = new Color(218, 224, 231);
     static final Color PRIMARY = new Color(32, 96, 160);
     static final Color PRIMARY_TEXT = Color.WHITE;
+    static final Color BUTTON_BACKGROUND = new Color(248, 250, 252);
+    static final Color BUTTON_BORDER = new Color(148, 163, 184);
     static final Color DISABLED_BUTTON_BACKGROUND = new Color(229, 234, 240);
     static final Color BODY_TEXT = new Color(36, 43, 51);
     static final Color MUTED_TEXT = new Color(95, 106, 120);
     static final Color ERROR_TEXT = new Color(154, 35, 45);
+    static final Color TABLE_HEADER_BACKGROUND = new Color(241, 245, 249);
+    static final Color TABLE_GRID = new Color(203, 213, 225);
 
     private SwingStyles() {
     }
@@ -53,14 +59,42 @@ final class SwingStyles {
     }
 
     static void applyPrimaryButton(JButton button) {
+        button.setUI(new BasicButtonUI());
         button.setBackground(PRIMARY);
         button.setForeground(PRIMARY_TEXT);
-        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(PRIMARY.darker()),
+                BorderFactory.createEmptyBorder(7, 14, 7, 14)));
+        button.setFocusPainted(true);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
         button.setPreferredSize(new Dimension(LOGIN_PANEL_WIDTH, BUTTON_HEIGHT));
     }
 
     static void applyPrimaryButtonState(JButton button, boolean enabled) {
         button.setBackground(enabled ? PRIMARY : DISABLED_BUTTON_BACKGROUND);
+    }
+
+    static void applySecondaryButton(JButton button) {
+        button.setUI(new BasicButtonUI());
+        button.setBackground(BUTTON_BACKGROUND);
+        button.setForeground(BODY_TEXT);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BUTTON_BORDER),
+                BorderFactory.createEmptyBorder(5, 12, 5, 12)));
+        button.setFocusPainted(true);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+    }
+
+    static void applyTableStyle(JTable table) {
+        table.setRowHeight(28);
+        table.setGridColor(TABLE_GRID);
+        table.setShowGrid(true);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.getTableHeader().setBackground(TABLE_HEADER_BACKGROUND);
+        table.getTableHeader().setForeground(BODY_TEXT);
+        table.getTableHeader().setFont(table.getTableHeader().getFont().deriveFont(Font.BOLD));
     }
 
     static void fixHeight(JComponent component, int height) {

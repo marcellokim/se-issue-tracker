@@ -43,6 +43,9 @@ replay_pid*
 # Windows/WSL downloaded-file metadata
 *:Zone.Identifier
 
+# Local QA screenshots
+docs/qa/artifacts/**/WSL-SW-QA-*.png
+
 # Python cache
 __pycache__/
 *.py[cod]

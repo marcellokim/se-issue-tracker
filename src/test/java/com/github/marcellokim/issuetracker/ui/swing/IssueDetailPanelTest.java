@@ -52,8 +52,11 @@ class IssueDetailPanelTest {
                     List.of(dependency()));
 
             assertEquals(
-                    "[ISSUE-7] Login bug",
+                    "Login bug",
                     SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
+            assertEquals(
+                    "Issue ID: ISSUE-7",
+                    SwingComponentTestSupport.find(panel, "issueDetailIssueId", JLabel.class).getText());
             assertEquals(
                     "NEW / CRITICAL",
                     SwingComponentTestSupport.find(panel, "issueDetailState", JLabel.class).getText());

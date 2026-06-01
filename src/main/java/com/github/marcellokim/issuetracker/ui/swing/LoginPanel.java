@@ -2,6 +2,9 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import java.awt.Component;
 import java.awt.GridBagLayout;
+import java.awt.Window;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Objects;
 import javax.swing.BorderFactory;
@@ -11,6 +14,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.SwingUtilities;
 import javax.swing.JTextField;
 
 final class LoginPanel extends JPanel implements LoginView {
@@ -50,6 +54,7 @@ final class LoginPanel extends JPanel implements LoginView {
         surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
 
         loginIdField.setName("loginIdField");
+        installFocusRequest(loginIdField);
         SwingStyles.fixHeight(loginIdField, SwingStyles.FIELD_HEIGHT);
         loginIdField.setMaximumSize(loginIdField.getPreferredSize());
         loginIdField.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -64,6 +69,7 @@ final class LoginPanel extends JPanel implements LoginView {
         surface.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
 
         passwordField.setName("passwordField");
+        installFocusRequest(passwordField);
         SwingStyles.fixHeight(passwordField, SwingStyles.FIELD_HEIGHT);
         passwordField.setMaximumSize(passwordField.getPreferredSize());
         passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -90,6 +96,10 @@ final class LoginPanel extends JPanel implements LoginView {
     /** Registers an EDT callback; callers must offload blocking authentication work. */
     void onLoginRequested(Runnable action) {
         loginRequested = Objects.requireNonNull(action, "action");
+    }
+
+    void requestInitialFocus() {
+        requestInputFocus(loginIdField);
     }
 
     @Override
@@ -124,5 +134,35 @@ final class LoginPanel extends JPanel implements LoginView {
     @Override
     public void clearPassword() {
         passwordField.setText("");
+    }
+
+    private static void installFocusRequest(Component component) {
+        component.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent event) {
+                requestInputFocus(component);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                requestInputFocus(component);
+            }
+        });
+    }
+
+    private static void requestInputFocus(Component component) {
+        Window window = SwingUtilities.getWindowAncestor(component);
+        if (window != null) {
+            window.toFront();
+            window.requestFocus();
+        }
+        if (!component.requestFocusInWindow()) {
+            component.requestFocus();
+        }
+        SwingUtilities.invokeLater(() -> {
+            if (!component.hasFocus() && !component.requestFocusInWindow()) {
+                component.requestFocus();
+            }
+        });
     }
 }

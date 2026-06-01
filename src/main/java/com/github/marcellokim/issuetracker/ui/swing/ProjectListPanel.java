@@ -111,6 +111,7 @@ final class ProjectListPanel extends JPanel implements ProjectListView {
         JButton logoutButton = new JButton("Logout");
         logoutButton.setName("projectListLogoutButton");
         logoutButton.addActionListener(event -> actions.onLogout().run());
+        SwingStyles.applySecondaryButton(logoutButton);
 
         header.add(titles, BorderLayout.CENTER);
         header.add(logoutButton, BorderLayout.EAST);
@@ -129,6 +130,7 @@ final class ProjectListPanel extends JPanel implements ProjectListView {
         openButton.setName("openProjectIssuesButton");
         openButton.addActionListener(event -> selectedProject()
                 .ifPresent(project -> actions.onOpenIssues().accept(project.projectId())));
+        SwingStyles.applySecondaryButton(openButton);
         panel.add(openButton);
         return panel;
     }

@@ -44,6 +44,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
     private final JPanel adminDashboardCard = new JPanel(new BorderLayout());
     private final JPanel projectListCard = new JPanel(new BorderLayout());
     private transient SwingWorker<Void, Void> loginWorker;
+    private boolean loginVisible = true;
     private final transient AtomicReference<SwingWorker<Void, Void>> dashboardWorker = new AtomicReference<>();
     private final transient AtomicReference<SwingWorker<Void, Void>> accountWorker = new AtomicReference<>();
     private final transient AtomicReference<SwingWorker<Void, Void>> projectWorker = new AtomicReference<>();
@@ -132,7 +133,15 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             loginPanel.clearPassword();
             loginPanel.setLoginEnabled(true);
             cardLayout.show(this, LOGIN_CARD);
+            loginVisible = true;
+            SwingUtilities.invokeLater(loginPanel::requestInitialFocus);
         });
+    }
+
+    void requestLoginFocus() {
+        if (loginVisible) {
+            SwingUtilities.invokeLater(loginPanel::requestInitialFocus);
+        }
     }
 
     @Override
@@ -151,6 +160,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             adminDashboardCard.revalidate();
             adminDashboardCard.repaint();
             cardLayout.show(this, ADMIN_DASHBOARD_CARD);
+            loginVisible = false;
             loadAdminDashboard(panel);
         });
     }
@@ -171,6 +181,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             projectListCard.revalidate();
             projectListCard.repaint();
             cardLayout.show(this, PROJECT_LIST_CARD);
+            loginVisible = false;
             startProjectListTask(panel, ProjectListPresenter::loadProjects);
         });
     }

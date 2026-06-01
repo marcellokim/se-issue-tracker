@@ -1,6 +1,8 @@
 package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.config.ApplicationContext;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Objects;
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
@@ -26,6 +28,27 @@ public final class SwingAppFrame extends JFrame {
         setSize(SwingStyles.WINDOW_SIZE);
         setMinimumSize(SwingStyles.MINIMUM_SIZE);
         setLocationRelativeTo(null);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowOpened(WindowEvent event) {
+                appPanel.requestLoginFocus();
+            }
+
+            @Override
+            public void windowActivated(WindowEvent event) {
+                appPanel.requestLoginFocus();
+            }
+        });
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        super.setVisible(visible);
+        if (visible) {
+            toFront();
+            requestFocus();
+            appPanel.requestLoginFocus();
+        }
     }
 
     private static SwingControllers swingControllers(ApplicationContext context) {

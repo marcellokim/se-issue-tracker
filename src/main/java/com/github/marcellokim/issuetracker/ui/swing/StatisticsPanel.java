@@ -183,6 +183,7 @@ final class StatisticsPanel extends JPanel implements StatisticsView {
         monthlyToField.setColumns(8);
         loadButton.setName("loadStatisticsButton");
         loadButton.addActionListener(event -> publishRangeRequest());
+        SwingStyles.applySecondaryButton(loadButton);
 
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.insets = new Insets(4, 4, 4, 4);

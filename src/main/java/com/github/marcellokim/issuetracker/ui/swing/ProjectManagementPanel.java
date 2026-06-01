@@ -119,17 +119,20 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
         createButton.setName("createProjectButton");
         createButton.addActionListener(event -> dialogs.requestCreate(this)
                 .ifPresent(request -> actions.onCreate().accept(this, request)));
+        SwingStyles.applySecondaryButton(createButton);
         panel.add(createButton);
 
         openButton.setName("openProjectDetailButton");
         openButton.addActionListener(event -> selectedProject()
                 .ifPresent(project -> actions.onOpenDetail().accept(this, project.projectId())));
+        SwingStyles.applySecondaryButton(openButton);
         panel.add(openButton);
 
         renameButton.setName("renameProjectButton");
         renameButton.addActionListener(event -> selectedProject().flatMap(project -> dialogs.requestRename(this, project)
                 .map(name -> new RenameRequest(project.projectId(), name)))
                 .ifPresent(request -> actions.onRename().accept(this, request.projectId(), request.name())));
+        SwingStyles.applySecondaryButton(renameButton);
         panel.add(renameButton);
 
         descriptionButton.setName("changeProjectDescriptionButton");
@@ -140,6 +143,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
                         this,
                         request.projectId(),
                         request.description())));
+        SwingStyles.applySecondaryButton(descriptionButton);
         panel.add(descriptionButton);
 
         deleteButton.setName("deleteProjectButton");
@@ -149,6 +153,7 @@ final class ProjectManagementPanel extends JPanel implements ProjectManagementVi
                         this,
                         project.projectId(),
                         project.projectName())));
+        SwingStyles.applySecondaryButton(deleteButton);
         panel.add(deleteButton);
 
         return panel;

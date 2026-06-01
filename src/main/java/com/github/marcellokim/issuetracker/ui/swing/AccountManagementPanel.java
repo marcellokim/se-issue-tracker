@@ -148,30 +148,35 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
         createButton.setName("createAccountButton");
         createButton.addActionListener(event -> dialogs.requestCreate(this)
                 .ifPresent(request -> onCreate.accept(this, request)));
+        SwingStyles.applySecondaryButton(createButton);
         panel.add(createButton);
 
         renameButton.setName("renameAccountButton");
         renameButton.addActionListener(event -> selectedUser().flatMap(user -> dialogs.requestRename(this, user)
                 .map(name -> new RenameRequest(user.loginId(), name)))
                 .ifPresent(request -> onRename.accept(this, request.loginId(), request.name())));
+        SwingStyles.applySecondaryButton(renameButton);
         panel.add(renameButton);
 
         roleButton.setName("changeRoleButton");
         roleButton.addActionListener(event -> selectedUser().flatMap(user -> dialogs.requestRole(this, user)
                 .map(role -> new RoleChangeRequest(user.loginId(), role)))
                 .ifPresent(request -> onRoleChange.accept(this, request.loginId(), request.role())));
+        SwingStyles.applySecondaryButton(roleButton);
         panel.add(roleButton);
 
         activateButton.setName("activateAccountButton");
         activateButton.addActionListener(event -> selectedUser()
                 .filter(user -> dialogs.confirmActivation(this, user, true))
                 .ifPresent(user -> onActivate.accept(this, user.loginId())));
+        SwingStyles.applySecondaryButton(activateButton);
         panel.add(activateButton);
 
         deactivateButton.setName("deactivateAccountButton");
         deactivateButton.addActionListener(event -> selectedUser()
                 .filter(user -> dialogs.confirmActivation(this, user, false))
                 .ifPresent(user -> onDeactivate.accept(this, user.loginId())));
+        SwingStyles.applySecondaryButton(deactivateButton);
         panel.add(deactivateButton);
 
         return panel;
@@ -181,9 +186,9 @@ final class AccountManagementPanel extends JPanel implements AccountManagementVi
         JTable table = new JTable(userTableModel);
         table.setName("accountUserTable");
         table.setFillsViewportHeight(true);
-        table.setRowHeight(26);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getTableHeader().setReorderingAllowed(false);
+        SwingStyles.applyTableStyle(table);
         table.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
                 updateSelectionActions();
