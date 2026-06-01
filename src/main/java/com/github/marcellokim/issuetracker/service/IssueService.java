@@ -46,6 +46,7 @@ public final class IssueService {
     private final IssueHistoryRepository issueHistoryRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
+    private final IssueIdProvider issueIdProvider;
     private final Clock clock;
 
     public IssueService(
@@ -56,6 +57,7 @@ public final class IssueService {
             IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
+            IssueIdProvider issueIdProvider,
             Clock clock) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
@@ -64,6 +66,7 @@ public final class IssueService {
         this.issueHistoryRepository = Objects.requireNonNull(issueHistoryRepository, "issueHistoryRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
+        this.issueIdProvider = Objects.requireNonNull(issueIdProvider, "issueIdProvider");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -83,6 +86,7 @@ public final class IssueService {
         LocalDateTime now = now();
         Issue issue = Issue.create(
                 Issue.persistedState(project.getId(), requiredTitle, requiredDescription, reporter)
+                        .issueId(issueIdProvider.nextIssueId())
                         .priority(priority != null ? priority : Priority.MAJOR)
                         .reportedDate(now)
                         .updatedAt(now));

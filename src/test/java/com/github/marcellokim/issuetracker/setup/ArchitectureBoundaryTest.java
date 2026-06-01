@@ -11,8 +11,10 @@ import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.CommentIdProvider;
 import com.github.marcellokim.issuetracker.service.CurrentUserSession;
+import com.github.marcellokim.issuetracker.service.IssueIdProvider;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
+import com.github.marcellokim.issuetracker.technical.IssueIdGenerator;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import com.github.marcellokim.issuetracker.technical.SystemClock;
@@ -76,8 +78,25 @@ class ArchitectureBoundaryTest {
     void technicalImplementationsSatisfyServicePorts() {
         assertTrue(Clock.class.isAssignableFrom(SystemClock.class));
         assertTrue(CommentIdProvider.class.isAssignableFrom(CommentIdGenerator.class));
+        assertTrue(IssueIdProvider.class.isAssignableFrom(IssueIdGenerator.class));
         assertTrue(CurrentUserSession.class.isAssignableFrom(SessionStore.class));
         assertTrue(PasswordHashing.class.isAssignableFrom(PasswordHasher.class));
+    }
+
+    @Test
+    @DisplayName("domain and service packages keep runtime sources behind ports")
+    void domainAndServicesKeepRuntimeSourcesBehindPorts() throws IOException {
+        assertNoForbiddenSourceText(
+                Set.of("domain", "service"),
+                Set.of(
+                        "LocalDateTime.now(",
+                        "Instant.now(",
+                        "System.currentTimeMillis(",
+                        "UUID.randomUUID(",
+                        "Math.random(",
+                        "new Random("
+                )
+        );
     }
 
     @Test
@@ -201,6 +220,33 @@ class ArchitectureBoundaryTest {
                     () -> sourcePath + " must not contain " + forbiddenText
             );
         }
+    }
+
+    private static void assertNoForbiddenSourceText(Set<String> packageSegments, Set<String> forbiddenTexts)
+            throws IOException {
+        List<Violation> violations = new ArrayList<>();
+        for (String packageSegment : packageSegments) {
+            for (JavaSource source : productionSources(packageSegment)) {
+                for (int index = 0; index < source.lines().size(); index++) {
+                    String line = source.lines().get(index);
+                    for (String forbiddenText : forbiddenTexts) {
+                        if (line.contains(forbiddenText)) {
+                            violations.add(new Violation(
+                                    source.relativePath(),
+                                    index + 1,
+                                    "uses runtime source",
+                                    forbiddenText
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        assertTrue(
+                violations.isEmpty(),
+                () -> "Forbidden runtime sources found:%n%s".formatted(formatViolations(violations))
+        );
     }
 
     private static boolean isForbidden(String importedType, Set<String> forbiddenPrefixes) {

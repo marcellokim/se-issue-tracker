@@ -34,6 +34,7 @@ import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.support.StatisticsReportTestFactory;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
@@ -81,6 +82,7 @@ final class ControllerTestSupport {
                 new FakeIssueHistoryRepository(),
                 users,
                 policy,
+                new SequentialIssueIdProvider(),
                 () -> NOW);
         IssueWorkflowService workflowService = new IssueWorkflowService(
                 issueRepository,
@@ -107,6 +109,7 @@ final class ControllerTestSupport {
                 new FakeIssueHistoryRepository(),
                 users,
                 policy,
+                new SequentialIssueIdProvider(),
                 () -> NOW);
         IssueWorkflowService workflowService = new IssueWorkflowService(
                 issueRepository,

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 public class Issue {
 
@@ -15,8 +14,6 @@ public class Issue {
     private static final String COMMENT_DELETED_MESSAGE = "comment deleted";
     private static final String CHANGED_BY_REQUIRED = "changedBy must not be null";
     private static final String CHANGED_DATE_REQUIRED = "changedDate must not be null";
-    private static final String ISSUE_ID_PREFIX = "ISSUE-";
-
     private final long id;
     private final long projectId;
     private final String issueId;
@@ -49,7 +46,7 @@ public class Issue {
         Objects.requireNonNull(state, "state must not be null");
         this.id = persisted ? requirePositive(state.id, "id") : requireZero(state.id, "id");
         this.projectId = requirePositive(state.projectId, "projectId");
-        this.issueId = persisted ? requireText(state.issueId, "issueId") : issueIdOrNew(state.issueId);
+        this.issueId = requireText(state.issueId, "issueId");
         this.title = requireText(state.title, "title");
         this.description = requireText(state.description, "description");
         this.reportedDate = Objects.requireNonNull(state.reportedDate, "reportedDate must not be null");
@@ -568,17 +565,6 @@ public class Issue {
             throw new IllegalArgumentException(fieldName + " must be zero before persistence");
         }
         return value;
-    }
-
-    private static String newIssueId() {
-        return ISSUE_ID_PREFIX + UUID.randomUUID().toString();
-    }
-
-    private static String issueIdOrNew(String issueId) {
-        if (issueId == null || issueId.isBlank()) {
-            return newIssueId();
-        }
-        return requireText(issueId, "issueId");
     }
 
     private static String loginIdOrNull(User user) {

@@ -23,6 +23,7 @@ import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.domain.IssueDependency;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -1271,6 +1272,7 @@ class IssueServiceTest {
                                 histories,
                                 users,
                                 new PermissionPolicy(),
+                                new SequentialIssueIdProvider(),
                                 LocalDateTime::now);
         }
 

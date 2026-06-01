@@ -33,6 +33,7 @@ import com.github.marcellokim.issuetracker.service.PermissionPolicy;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.ProjectService;
 import com.github.marcellokim.issuetracker.service.UserResult;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.support.FakeIssueDependencyRepository;
 import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
@@ -163,6 +164,7 @@ class ControllerFlowTest {
                 new FakeIssueHistoryRepository(),
                 users,
                 policy,
+                new SequentialIssueIdProvider(),
                 () -> NOW);
         IssueWorkflowService workflowService = new IssueWorkflowService(
                 issues,

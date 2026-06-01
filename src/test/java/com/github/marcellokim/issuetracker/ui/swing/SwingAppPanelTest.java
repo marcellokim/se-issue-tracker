@@ -55,6 +55,7 @@ import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendat
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -1783,6 +1784,7 @@ class SwingAppPanelTest {
                                 historyRepository,
                                 repository,
                                 permissionPolicy,
+                                new SequentialIssueIdProvider(),
                                 () -> NOW),
                         new IssueWorkflowService(
                                 issueRepository,
