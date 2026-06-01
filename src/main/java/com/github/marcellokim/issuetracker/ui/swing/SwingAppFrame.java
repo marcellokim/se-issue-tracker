@@ -36,7 +36,7 @@ public final class SwingAppFrame extends JFrame {
 
             @Override
             public void windowActivated(WindowEvent event) {
-                appPanel.requestLoginFocus();
+                appPanel.requestLoginFocusIfMissing();
             }
         });
     }

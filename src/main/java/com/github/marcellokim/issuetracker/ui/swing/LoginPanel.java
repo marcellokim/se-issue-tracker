@@ -2,6 +2,7 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import java.awt.Component;
 import java.awt.GridBagLayout;
+import java.awt.KeyboardFocusManager;
 import java.awt.Window;
 import java.util.Arrays;
 import java.util.Objects;
@@ -98,6 +99,12 @@ final class LoginPanel extends JPanel implements LoginView {
         requestInputFocus(loginIdField);
     }
 
+    void requestInitialFocusIfMissing() {
+        if (!hasFocusWithin()) {
+            requestInputFocus(loginIdField);
+        }
+    }
+
     @Override
     public String loginId() {
         return loginIdField.getText();
@@ -145,5 +152,15 @@ final class LoginPanel extends JPanel implements LoginView {
                 component.requestFocus();
             }
         });
+    }
+
+    private boolean hasFocusWithin() {
+        KeyboardFocusManager focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        return ownsFocus(focusManager.getFocusOwner())
+                || ownsFocus(focusManager.getPermanentFocusOwner());
+    }
+
+    private boolean ownsFocus(Component component) {
+        return component != null && SwingUtilities.isDescendingFrom(component, this);
     }
 }

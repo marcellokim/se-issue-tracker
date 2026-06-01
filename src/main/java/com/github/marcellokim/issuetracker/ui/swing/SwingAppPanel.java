@@ -144,6 +144,12 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         }
     }
 
+    void requestLoginFocusIfMissing() {
+        if (loginVisible) {
+            SwingUtilities.invokeLater(loginPanel::requestInitialFocusIfMissing);
+        }
+    }
+
     @Override
     public void showAdminDashboard(UserResult user) {
         Objects.requireNonNull(user, "user");
