@@ -23,7 +23,7 @@ final class CurrentViewGate {
         });
     }
 
-    private boolean isCurrent() {
+    boolean isCurrent() {
         return currentWorker.get() == worker && !worker.isCancelled();
     }
 }

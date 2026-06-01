@@ -54,8 +54,10 @@ final class IssueListPanel extends JPanel implements IssueListView {
     private final transient IssueTableRows issueRows = new IssueTableRows(issueTableModel);
     private final JTable issueTable = table();
     private final JButton searchButton = new JButton("Search");
-    private final JButton registerButton = new JButton("Register issue");
-    private final JButton openButton = new JButton("Open detail");
+    private final JButton registerButton = new JButton("Register");
+    private final JButton openButton = new JButton("Open");
+    private final JButton deletedIssuesButton = new JButton("Deleted");
+    private final JButton statisticsButton = new JButton("Statistics");
     private boolean busy;
     private boolean registerAllowed;
 
@@ -194,7 +196,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         panel.setBorder(SwingStyles.surfaceBorder());
 
         searchField.setName("issueSearchField");
-        searchField.setColumns(18);
+        searchField.setColumns(8);
         panel.add(searchField);
 
         statusFilter.setName("issueStatusFilter");
@@ -216,6 +218,14 @@ final class IssueListPanel extends JPanel implements IssueListView {
         openButton.addActionListener(event -> selectedIssue()
                 .ifPresent(issue -> actions.onOpenIssue().accept(issue.id())));
         panel.add(openButton);
+
+        deletedIssuesButton.setName("deletedIssuesButton");
+        deletedIssuesButton.addActionListener(event -> actions.onDeletedIssues().run());
+        panel.add(deletedIssuesButton);
+
+        statisticsButton.setName("statisticsButton");
+        statisticsButton.addActionListener(event -> actions.onStatistics().run());
+        panel.add(statisticsButton);
         return panel;
     }
 
@@ -287,6 +297,8 @@ final class IssueListPanel extends JPanel implements IssueListView {
         boolean enabled = !busy;
         registerButton.setEnabled(enabled && registerAllowed);
         openButton.setEnabled(enabled && selectedIssue().isPresent());
+        deletedIssuesButton.setEnabled(enabled);
+        statisticsButton.setEnabled(enabled);
     }
 
     private void applyColumnWidths(JTable table) {
@@ -303,6 +315,8 @@ final class IssueListPanel extends JPanel implements IssueListView {
             PanelConsumer<IssueSearchRequest> onSearch,
             PanelConsumer<IssueRegisterRequest> onRegister,
             LongConsumer onOpenIssue,
+            Runnable onDeletedIssues,
+            Runnable onStatistics,
             Runnable onBack,
             Runnable onLogout) {
 
@@ -310,6 +324,8 @@ final class IssueListPanel extends JPanel implements IssueListView {
             Objects.requireNonNull(onSearch, "onSearch");
             Objects.requireNonNull(onRegister, "onRegister");
             Objects.requireNonNull(onOpenIssue, "onOpenIssue");
+            Objects.requireNonNull(onDeletedIssues, "onDeletedIssues");
+            Objects.requireNonNull(onStatistics, "onStatistics");
             Objects.requireNonNull(onBack, "onBack");
             Objects.requireNonNull(onLogout, "onLogout");
         }

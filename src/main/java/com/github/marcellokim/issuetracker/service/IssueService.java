@@ -114,16 +114,20 @@ public final class IssueService {
         List<HistoryResult> histories = issueHistoryRepository.findByIssueId(issue.id()).stream()
                 .map(IssueService::toHistoryResult)
                 .toList();
-        List<IssueDependency> deps = dependencyRepository.findDependenciesBlockingIssue(issue.id());
-        List<Long> blockingIds = deps.stream()
-                .map(IssueDependency::blockingIssueId)
-                .toList();
-        Map<Long, Issue> blockingIssues = issueRepository.findAllById(blockingIds).stream()
+        List<IssueDependency> blockedByDeps = dependencyRepository.findDependenciesBlockingIssue(issue.id());
+        List<IssueDependency> blockingDeps = dependencyRepository.findDependenciesBlockedByIssue(issue.id());
+        Set<Long> relatedIssueIds = new HashSet<>();
+        blockedByDeps.forEach(dep -> relatedIssueIds.add(dep.blockingIssueId()));
+        blockingDeps.forEach(dep -> relatedIssueIds.add(dep.blockedIssueId()));
+        Map<Long, Issue> relatedIssues = issueRepository.findAllById(List.copyOf(relatedIssueIds)).stream()
                 .collect(Collectors.toMap(Issue::id, Function.identity()));
-        List<DependencyResult> dependencies = deps.stream()
-                .map(dep -> toDependencyResult(dep, blockingIssues.get(dep.blockingIssueId()), issue))
+        List<DependencyResult> blockedByResults = blockedByDeps.stream()
+                .map(dep -> toDependencyResult(dep, relatedIssues.get(dep.blockingIssueId()), issue))
                 .toList();
-        return toIssueDetailResult(issue, comments, histories, dependencies);
+        List<DependencyResult> blockingResults = blockingDeps.stream()
+                .map(dep -> toDependencyResult(dep, issue, relatedIssues.get(dep.blockedIssueId())))
+                .toList();
+        return toIssueDetailResult(issue, comments, histories, blockedByResults, blockingResults);
     }
 
     public List<IssueSummary> searchIssues(
@@ -289,7 +293,6 @@ public final class IssueService {
         Issue blockedIssue = findIssue(requiredBlockedIssueId);
         requireNotDeleted(blockingIssue);
         requireNotDeleted(blockedIssue);
-        requireDependencyAddStatus(blockedIssue);
         requireSameProjectDependency(blockingIssue, blockedIssue);
         User actor = findUser(requiredLoginId);
         permissionPolicy.assertCanManageDependency(actor, blockedIssue);
@@ -492,12 +495,6 @@ public final class IssueService {
         }
     }
 
-    private static void requireDependencyAddStatus(Issue blockedIssue) {
-        if (blockedIssue.status() == IssueStatus.RESOLVED || blockedIssue.status() == IssueStatus.CLOSED) {
-            throw new IllegalStateException("Resolved or closed issues cannot be blocked by a new dependency.");
-        }
-    }
-
     private void validateDependency(long blockingIssueId, long blockedIssueId) {
         if (blockingIssueId == blockedIssueId) {
             throw new IllegalArgumentException("Issue cannot depend on itself");
@@ -597,7 +594,8 @@ public final class IssueService {
             Issue issue,
             List<CommentResult> comments,
             List<HistoryResult> histories,
-            List<DependencyResult> dependencies) {
+            List<DependencyResult> blockedByDependencies,
+            List<DependencyResult> blockingDependencies) {
         return new IssueDetailResult(
                 issue.id(),
                 issue.projectId(),
@@ -615,7 +613,8 @@ public final class IssueService {
                 issue.updatedAt(),
                 comments,
                 histories,
-                dependencies,
+                blockedByDependencies,
+                blockingDependencies,
                 List.of());
     }
 
