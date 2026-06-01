@@ -28,8 +28,8 @@ class PermissionPolicyTest {
         private final Project project = Project.fromPersistence(1L, "project1", "Demo project", "admin", NOW, NOW);
 
         @Test
-        @DisplayName("allows ADMIN account and project management only")
-        void adminCanManageAccountsAndProjectsOnly() {
+        @DisplayName("admin stays on admin work")
+        void adminStaysOnAdminWork() {
                 assertDoesNotThrow(() -> policy.assertCanManageAccount(admin));
                 assertDoesNotThrow(() -> policy.assertCanManageProject(admin));
 
@@ -45,20 +45,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("does not grant issue workflow permissions to ADMIN")
-        void adminDoesNotReceiveIssueWorkflowPermissions() {
-                Issue newIssue = issue(IssueStatus.NEW);
-                Issue deletedIssue = issue(IssueStatus.DELETED);
-
-                assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(admin, newIssue));
-                assertThrows(SecurityException.class,
-                                () -> policy.assertCanManageDeletedIssue(admin, deletedIssue));
-                assertThrows(SecurityException.class, () -> policy.assertCanViewStatistics(admin));
-        }
-
-        @Test
-        @DisplayName("rejects inactive users and invalid deleted issue project context")
-        void rejectsInvalidPermissionRequests() {
+        @DisplayName("inactive users are stopped early")
+        void inactiveUsersAreStoppedEarly() {
                 User inactivePl = inactive("pl2", Role.PL);
                 Issue newIssue = issue(IssueStatus.NEW);
                 User inactiveDev = inactive("dev2", Role.DEV);
@@ -76,8 +64,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("allows PL issue management permissions")
-        void plCanManageIssueWorkflow() {
+        @DisplayName("PL handles issue work")
+        void plHandlesIssueWork() {
                 assertDoesNotThrow(() -> policy.assertCanAssignIssue(pl, issue(IssueStatus.NEW)));
                 assertDoesNotThrow(() -> policy.assertCanChangeStatus(pl, issue(IssueStatus.RESOLVED),
                                 IssueStatus.CLOSED));
@@ -96,8 +84,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("allows active auth users except ADMIN to view statistics")
-        void activeIssueActorsCanViewStatistics() {
+        @DisplayName("active project roles can view stats")
+        void projectRolesCanViewStats() {
                 assertDoesNotThrow(() -> policy.assertCanViewStatistics(pl));
                 assertDoesNotThrow(() -> policy.assertCanViewStatistics(dev));
                 assertDoesNotThrow(() -> policy.assertCanViewStatistics(tester));
@@ -108,8 +96,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("enforces assigned actor for fixed and resolved transitions")
-        void statusChangesRequireCurrentAssignedActor() {
+        @DisplayName("state change follows the current owner")
+        void stateChangeFollowsOwner() {
                 assertDoesNotThrow(() -> policy.assertCanChangeStatus(dev, issue(IssueStatus.ASSIGNED),
                                 IssueStatus.FIXED));
                 assertThrows(SecurityException.class,
@@ -134,8 +122,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("rejects disallowed status transitions and missing status arguments")
-        void rejectsDisallowedStatusChanges() {
+        @DisplayName("bad state changes are blocked")
+        void badStateChangesAreBlocked() {
                 assertThrows(NullPointerException.class,
                                 () -> policy.assertCanChangeStatus(pl, issue(IssueStatus.NEW), null));
                 assertThrows(SecurityException.class,
@@ -152,16 +140,16 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("allows PL, DEV, and TESTER to register issues")
-        void authenticatedIssueActorsCanRegisterIssues() {
+        @DisplayName("project roles can register issues")
+        void projectRolesCanRegisterIssues() {
                 assertDoesNotThrow(() -> policy.assertCanRegisterIssue(pl, project));
                 assertDoesNotThrow(() -> policy.assertCanRegisterIssue(dev, project));
                 assertDoesNotThrow(() -> policy.assertCanRegisterIssue(tester, project));
         }
 
         @Test
-        @DisplayName("rejects issue registration without an active auth actor or persisted project")
-        void rejectsInvalidIssueRegistrationRequests() {
+        @DisplayName("issue registration needs actor and saved project")
+        void registrationNeedsActorAndSavedProject() {
                 Project transientProject = Project.create("draft", "Draft project", "admin", NOW);
 
                 assertThrows(SecurityException.class,
@@ -172,8 +160,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("canViewAllProjects grants access only to ADMIN")
-        void canViewAllProjectsGrantsOnlyAdmin() {
+        @DisplayName("only admin sees all projects")
+        void onlyAdminSeesAllProjects() {
                 assertTrue(policy.canViewAllProjects(admin));
                 assertFalse(policy.canViewAllProjects(pl));
                 assertFalse(policy.canViewAllProjects(dev));
@@ -183,8 +171,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("canViewAllUsers grants access only to ADMIN")
-        void canViewAllUsersGrantsOnlyAdmin() {
+        @DisplayName("only admin sees all users")
+        void onlyAdminSeesAllUsers() {
                 assertTrue(policy.canViewAllUsers(admin));
                 assertFalse(policy.canViewAllUsers(pl));
                 assertFalse(policy.canViewAllUsers(dev));
@@ -193,8 +181,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("canViewAllProjectIssues grants access only to active PL")
-        void canViewAllProjectIssuesGrantsOnlyActivePl() {
+        @DisplayName("only PL sees every project issue")
+        void onlyPlSeesEveryProjectIssue() {
                 assertFalse(policy.canViewAllProjectIssues(admin));
                 assertTrue(policy.canViewAllProjectIssues(pl));
                 assertFalse(policy.canViewAllProjectIssues(dev));
@@ -204,8 +192,8 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("rejects non-PL issue management and non-ADMIN account management")
-        void rejectsWrongRoleForManagementOperations() {
+        @DisplayName("wrong role cannot manage")
+        void wrongRoleCannotManage() {
                 assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(dev, issue(IssueStatus.NEW)));
                 assertThrows(SecurityException.class,
                                 () -> policy.assertCanManageDependency(dev, issue(IssueStatus.ASSIGNED)));

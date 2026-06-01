@@ -1,28 +1,20 @@
 SD 08 Reject Fix - GRASP 적용 설명
 
 관련 산출물:
-- UC6 Change Issue State: Tester verifier가 FIXED -> ASSIGNED 전이를 수행하고 거절 사유 comment를 필수 입력
+- UC6 Change Issue State
 - SSD 08: changeStatus(issueId, targetStatus=ASSIGNED, comment)
-- OC-13: Comment 생성, COMMENTED history 생성, STATUS_CHANGED history 생성, status=ASSIGNED, 기존 assignee/verifier/fixer 유지
-- 기본 가정사항: 새 DEV로 교체하려면 PL이 UC5 reassignIssue를 별도로 수행
-- Logical Architecture: IssueStateController.changeStatus()
+- OC-13: status=ASSIGNED, 기존 assignee/verifier/fixer 유지
 
 적용 GRASP:
 
-1. Controller
-issueStateController:IssueStateController가 상태 변경 system operation을 수신한다. Controller는 흐름을 조정하되 Issue의 상태와 association을 직접 변경하지 않는다.
+1. GRASP Controller
+`:IssueTrackingSystem` 객체가 Tester의 reject 요청을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 상태 변경 유스케이스를 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-targetIssue:Issue는 현재 status, verifier, assignee, fixer, comment 목록, history 목록을 알고 있으므로 rejectFix(...)와 precondition 확인 책임을 맡는다.
+Issue는 현재 status, verifier, assignee, fixer를 알고 있으므로 `rejectFix(...)` 책임을 가진다.
 
 3. Creator
-rejectComment, commentHistory, statusHistory는 모두 targetIssue에 소속되어 기록되는 객체다. 따라서 targetIssue가 생성하고 자신의 collection에 추가한다.
+reject comment와 COMMENTED/STATUS_CHANGED history는 해당 Issue의 기록이므로 Issue가 생성한다.
 
 4. Low Coupling / High Cohesion
-Controller는 rejectFix(currentTester, comment, now)라는 의도 중심 메시지를 보낸다. Comment 생성, 이력 기록, 기존 assignee/verifier/fixer 유지, status 변경은 Issue 내부 책임으로 응집된다.
-
-5. Protected Variations
-FIXED -> ASSIGNED 이후 새 DEV 교체 여부는 UC5 reassignIssue 정책에 맡긴다. SD에서는 기존 association 유지와 상태 rollback만 표현해 상태 전이 정책 변경의 영향을 줄인다.
-
-6. Information Expert 보강
-IssueHistory.changedBy=currentTester가 Tester와 history의 changes association을 함께 의미하므로, 별도의 currentTester:User lifeline을 만들지 않고 생성 파라미터로 표현한다.
+rejectFix는 상태를 ASSIGNED로 되돌리고 기존 association을 유지하는 데 집중한다. 다른 DEV로 교체하는 일은 UC5로 분리한다.

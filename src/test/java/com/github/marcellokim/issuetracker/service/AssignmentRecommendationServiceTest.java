@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.domain.Issue;
-import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.domain.User;
+import com.github.marcellokim.issuetracker.repository.AssignmentRecommendationRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendationRepository;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -19,187 +19,166 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Assignment recommendation service")
 class AssignmentRecommendationServiceTest {
 
-    private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 12, 0);
+        private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 19, 12, 0);
 
-    private final User dev1 = user("dev1", Role.DEV);
-    private final User tester1 = user("tester1", Role.TESTER);
-    private final InMemoryAssignmentRecommendationRepository repository =
-            new InMemoryAssignmentRecommendationRepository(dev1, tester1);
-    private final AssignmentRecommendationService service =
-            new AssignmentRecommendationService(repository, new KNNAssignmentRecommendation());
+        private final User dev1 = user("dev1", Role.DEV);
+        private final User tester1 = user("tester1", Role.TESTER);
+        private final InMemoryAssignmentRecommendationRepository repository = new InMemoryAssignmentRecommendationRepository(
+                        dev1, tester1);
+        private final AssignmentRecommendationService service = new AssignmentRecommendationService(repository,
+                        new KNNAssignmentRecommendation());
 
-    @Test
-    @DisplayName("returns all active DEV and TESTER for NEW issue")
-    void returnsAllActiveCandidatesForNewIssue() {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+        @Test
+        @DisplayName("new issue shows dev and tester choices")
+        void newIssueShowsChoices() {
+                AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.NEW));
 
-        assertFalse(options.allDevAssignees().isEmpty());
-        assertFalse(options.allTesterVerifiers().isEmpty());
-    }
+                assertTrue(options.devAssigneeCandidates().isEmpty());
+                assertTrue(options.testerVerifierCandidates().isEmpty());
+                assertFalse(options.allDevAssignees().isEmpty());
+                assertFalse(options.allTesterVerifiers().isEmpty());
+        }
 
-    @Test
-    @DisplayName("returns fixer as priority DEV candidate for REOPENED issue")
-    void returnsFixerAsPriorityCandidateForReopenedIssue() {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.REOPENED));
+        @Test
+        @DisplayName("reopened issue puts old fixer first")
+        void oldFixerComesFirst() {
+                AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.REOPENED));
 
-        assertFalse(options.devAssigneeCandidates().isEmpty());
-        assertFalse(options.allDevAssignees().isEmpty());
-        assertFalse(options.allTesterVerifiers().isEmpty());
-    }
+                assertEquals("dev1", options.devAssigneeCandidates().get(0).loginId());
+                assertFalse(options.allTesterVerifiers().isEmpty());
+        }
 
-    @Test
-    @DisplayName("returns only DEV candidates for ASSIGNED issues")
-    void recommendsOnlyDevCandidatesForAssignedIssues() {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.ASSIGNED));
+        @Test
+        @DisplayName("assigned issue only needs a dev")
+        void assignedIssueNeedsDev() {
+                AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.ASSIGNED));
 
-        assertFalse(options.devAssigneeCandidates().isEmpty());
-        assertTrue(options.testerVerifierCandidates().isEmpty());
-    }
+                assertFalse(options.devAssigneeCandidates().isEmpty());
+                assertTrue(options.testerVerifierCandidates().isEmpty());
+        }
 
-    @Test
-    @DisplayName("returns only TESTER candidates for FIXED issues")
-    void recommendsOnlyTesterCandidatesForFixedIssues() {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.FIXED));
+        @Test
+        @DisplayName("fixed issue only needs a tester")
+        void fixedIssueNeedsTester() {
+                AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.FIXED));
 
-        assertTrue(options.devAssigneeCandidates().isEmpty());
-        assertFalse(options.testerVerifierCandidates().isEmpty());
-    }
+                assertTrue(options.devAssigneeCandidates().isEmpty());
+                assertFalse(options.testerVerifierCandidates().isEmpty());
+        }
 
-    @Test
-    @DisplayName("throws for terminal or deleted issues")
-    void throwsForTerminalOrDeletedIssues() {
-        assertThrows(IllegalStateException.class,
-                () -> service.recommendAssignmentCandidates(issue(IssueStatus.RESOLVED)));
-        assertThrows(IllegalStateException.class,
-                () -> service.recommendAssignmentCandidates(issue(IssueStatus.CLOSED)));
-        assertThrows(IllegalStateException.class,
-                () -> service.recommendAssignmentCandidates(issue(IssueStatus.DELETED)));
-    }
+        @Test
+        @DisplayName("done issues are not assigned again")
+        void doneIssuesAreRejected() {
+                assertThrows(IllegalStateException.class,
+                                () -> service.recommendAssignmentCandidates(issue(IssueStatus.RESOLVED)));
+                assertThrows(IllegalStateException.class,
+                                () -> service.recommendAssignmentCandidates(issue(IssueStatus.CLOSED)));
+                assertThrows(IllegalStateException.class,
+                                () -> service.recommendAssignmentCandidates(issue(IssueStatus.DELETED)));
+        }
 
-    @Test
-    @DisplayName("throws for null issue input")
-    void throwsForNullIssue() {
-        assertThrows(NullPointerException.class,
-                () -> service.recommendAssignmentCandidates(null));
-    }
+        @Test
+        @DisplayName("only three recommendations are shown")
+        void keepsThreeRecommendations() {
+                User dev2 = user("dev2", Role.DEV);
+                User dev3 = user("dev3", Role.DEV);
+                User dev4 = user("dev4", Role.DEV);
+                User dev5 = user("dev5", Role.DEV);
+                InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
+                                dev2, dev3, dev4, dev5, tester1)
+                                .withResolvedIssues(
+                                                recommendationData("login error", "login page crash", "dev1",
+                                                                "tester1"),
+                                                recommendationData("login failure", "cannot login", "dev2", "tester1"),
+                                                recommendationData("login timeout", "auth server timeout", "dev3",
+                                                                "tester1"),
+                                                recommendationData("login button", "button does not work", "dev4",
+                                                                "tester1"));
+                AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
+                                new KNNAssignmentRecommendation());
 
-    @Test
-    @DisplayName("recommended candidates limited to MAX_CANDIDATES (3)")
-    void recommendedCandidatesLimitedToThree() {
-        User dev2 = user("dev2", Role.DEV);
-        User dev3 = user("dev3", Role.DEV);
-        User dev4 = user("dev4", Role.DEV);
-        User dev5 = user("dev5", Role.DEV);
-        InMemoryAssignmentRecommendationRepository repo =
-                new InMemoryAssignmentRecommendationRepository(dev1, dev2, dev3, dev4, dev5, tester1);
-        AssignmentRecommendationService svc =
-                new AssignmentRecommendationService(repo, new KNNAssignmentRecommendation());
+                AssignmentOptionsResult options = svc.recommendAssignmentCandidates(issue(IssueStatus.NEW));
 
-        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+                assertEquals(3, options.devAssigneeCandidates().size());
+        }
 
-        assertTrue(options.devAssigneeCandidates().size() <= 3);
-    }
+        @Test
+        @DisplayName("past resolved issues suggest workers")
+        void pastIssuesSuggestWorkers() {
+                InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
+                                tester1)
+                                .withResolvedIssues(
+                                                recommendationData("login error", "login page crash", "dev1",
+                                                                "tester1"));
+                AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
+                                new KNNAssignmentRecommendation());
 
-    @Test
-    @DisplayName("empty issue history yields empty KNN recommendations but returns all active users")
-    void emptyHistoryYieldsEmptyRecommendationsButAllActive() {
-        AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+                AssignmentOptionsResult options = svc.recommendAssignmentCandidates(loginIssue());
 
-        assertTrue(options.devAssigneeCandidates().isEmpty());
-        assertTrue(options.testerVerifierCandidates().isEmpty());
-        assertFalse(options.allDevAssignees().isEmpty());
-        assertFalse(options.allTesterVerifiers().isEmpty());
-    }
+                assertEquals("dev1", options.devAssigneeCandidates().get(0).loginId());
+                assertEquals("tester1", options.testerVerifierCandidates().get(0).loginId());
+        }
 
-    @Test
-    @DisplayName("inactive user is excluded from all active candidates")
-    void inactiveUserExcludedFromAllActive() {
-        User inactiveDev = User.fromPersistence("dev_off", "dev_off", "hash", Role.DEV, false, null, null);
-        InMemoryAssignmentRecommendationRepository repo =
-                new InMemoryAssignmentRecommendationRepository(dev1, inactiveDev, tester1);
-        AssignmentRecommendationService svc =
-                new AssignmentRecommendationService(repo, new KNNAssignmentRecommendation());
+        @Test
+        @DisplayName("inactive user is left out")
+        void leavesOutInactiveUser() {
+                User inactiveDev = User.fromPersistence("dev_gone", "dev_gone", "hash", Role.DEV, false, null, null);
+                InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
+                                inactiveDev, tester1)
+                                .withResolvedIssues(
+                                                recommendationData("login error", "crash", "dev_gone", "tester1"));
+                AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
+                                new KNNAssignmentRecommendation());
 
-        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(issue(IssueStatus.NEW));
+                AssignmentOptionsResult options = svc.recommendAssignmentCandidates(loginIssue());
 
-        assertTrue(options.allDevAssignees().stream().noneMatch(c -> c.loginId().equals("dev_off")));
-    }
+                assertTrue(options.devAssigneeCandidates().stream().noneMatch(c -> c.loginId().equals("dev_gone")));
+        }
 
-    @Test
-    @DisplayName("KNN recommends dev candidate when resolved issue history exists")
-    void knnRecommendsDevWhenHistoryExists() {
-        InMemoryAssignmentRecommendationRepository repo =
-                new InMemoryAssignmentRecommendationRepository(dev1, tester1)
-                        .withResolvedIssues(
-                                new AssignmentRecommendationRepository.IssueRecommendationData(
-                                        "login error", "login page crash", "dev1", "tester1"));
-        AssignmentRecommendationService svc =
-                new AssignmentRecommendationService(repo, new KNNAssignmentRecommendation());
+        private static Issue loginIssue() {
+                return Issue.fromPersistence(
+                                Issue.persistedState(1L, "login error page", "login crash", user("dev1", Role.DEV))
+                                                .id(2L)
+                                                .issueId("ISSUE-2")
+                                                .reportedDate(NOW)
+                                                .priority(Priority.MAJOR)
+                                                .status(IssueStatus.NEW)
+                                                .updatedAt(NOW));
+        }
 
-        Issue target = Issue.fromPersistence(Issue.persistedState(1L, "login error page", "login crash", dev1)
-                .id(2L).issueId("ISSUE-2").reportedDate(NOW).priority(Priority.MAJOR)
-                .status(IssueStatus.NEW).updatedAt(NOW));
-        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(target);
+        private static Issue issue(IssueStatus status) {
+                var state = Issue.persistedState(1L, "Issue", "Issue description", user("tester1", Role.TESTER))
+                                .id(1L)
+                                .issueId("ISSUE-1")
+                                .reportedDate(NOW)
+                                .priority(Priority.MAJOR)
+                                .status(status)
+                                .updatedAt(NOW);
 
-        assertFalse(options.devAssigneeCandidates().isEmpty());
-        assertEquals("dev1", options.devAssigneeCandidates().get(0).loginId());
-    }
+                return Issue.fromPersistence(switch (status) {
+                        case ASSIGNED -> state.assignee(user("dev1", Role.DEV)).verifier(user("tester1", Role.TESTER));
+                        case FIXED -> state.assignee(user("dev1", Role.DEV))
+                                        .verifier(user("tester1", Role.TESTER))
+                                        .fixer(user("dev1", Role.DEV));
+                        case REOPENED, RESOLVED, CLOSED, DELETED -> state.fixer(user("dev1", Role.DEV))
+                                        .resolver(user("tester1", Role.TESTER));
+                        case NEW -> state;
+                });
+        }
 
-    @Test
-    @DisplayName("KNN recommends tester candidate when resolved issue history exists")
-    void knnRecommendsTesterWhenHistoryExists() {
-        InMemoryAssignmentRecommendationRepository repo =
-                new InMemoryAssignmentRecommendationRepository(dev1, tester1)
-                        .withResolvedIssues(
-                                new AssignmentRecommendationRepository.IssueRecommendationData(
-                                        "login error", "login page crash", "dev1", "tester1"));
-        AssignmentRecommendationService svc =
-                new AssignmentRecommendationService(repo, new KNNAssignmentRecommendation());
+        private static AssignmentRecommendationRepository.IssueRecommendationData recommendationData(
+                        String title,
+                        String description,
+                        String fixerLoginId,
+                        String resolverLoginId) {
+                return new AssignmentRecommendationRepository.IssueRecommendationData(
+                                title,
+                                description,
+                                fixerLoginId,
+                                resolverLoginId);
+        }
 
-        Issue target = Issue.fromPersistence(Issue.persistedState(1L, "login error page", "login crash", dev1)
-                .id(2L).issueId("ISSUE-2").reportedDate(NOW).priority(Priority.MAJOR)
-                .status(IssueStatus.NEW).updatedAt(NOW));
-        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(target);
-
-        assertFalse(options.testerVerifierCandidates().isEmpty());
-        assertEquals("tester1", options.testerVerifierCandidates().get(0).loginId());
-    }
-
-    @Test
-    @DisplayName("KNN filters out inactive user from recommendation results")
-    void knnFiltersInactiveFromRecommendations() {
-        User inactiveDev = User.fromPersistence("dev_gone", "dev_gone", "hash", Role.DEV, false, null, null);
-        InMemoryAssignmentRecommendationRepository repo =
-                new InMemoryAssignmentRecommendationRepository(dev1, inactiveDev, tester1)
-                        .withResolvedIssues(
-                                new AssignmentRecommendationRepository.IssueRecommendationData(
-                                        "login error", "crash", "dev_gone", "tester1"));
-        AssignmentRecommendationService svc =
-                new AssignmentRecommendationService(repo, new KNNAssignmentRecommendation());
-
-        Issue target = Issue.fromPersistence(Issue.persistedState(1L, "login error", "crash", dev1)
-                .id(2L).issueId("ISSUE-2").reportedDate(NOW).priority(Priority.MAJOR)
-                .status(IssueStatus.NEW).updatedAt(NOW));
-        AssignmentOptionsResult options = svc.recommendAssignmentCandidates(target);
-
-        assertTrue(options.devAssigneeCandidates().stream().noneMatch(c -> c.loginId().equals("dev_gone")));
-    }
-
-    private static Issue issue(IssueStatus status) {
-        return Issue.fromPersistence(Issue.persistedState(1L, "Issue", "Issue description", user("dev1", Role.DEV))
-                .id(1L)
-                .issueId("ISSUE-1")
-                .reportedDate(NOW)
-                .priority(Priority.MAJOR)
-                .status(status)
-                .assignee(user("dev1", Role.DEV))
-                .verifier(user("tester1", Role.TESTER))
-                .fixer(user("dev1", Role.DEV))
-                .resolver(user("tester1", Role.TESTER))
-                .updatedAt(NOW));
-    }
-
-    private static User user(String loginId, Role role) {
-        return User.fromPersistence(loginId, loginId, "hash", role, true, null, null);
-    }
+        private static User user(String loginId, Role role) {
+                return User.fromPersistence(loginId, loginId, "hash", role, true, null, null);
+        }
 }

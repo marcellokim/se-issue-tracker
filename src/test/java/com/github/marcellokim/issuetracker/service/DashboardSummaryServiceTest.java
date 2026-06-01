@@ -22,8 +22,8 @@ class DashboardSummaryServiceTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 21, 20, 20);
 
     @Test
-    @DisplayName("builds dashboard read model without exposing repository composition to the service")
-    void buildsDashboardProjectSummaries() {
+    @DisplayName("project card shows counts")
+    void projectCardShowsCounts() {
         User pl = user("pl", Role.PL);
         Map<IssueStatus, Integer> statusCounts = new EnumMap<>(IssueStatus.class);
         statusCounts.put(IssueStatus.NEW, 1);
@@ -46,8 +46,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("admin dashboard includes all projects and users")
-    void adminDashboardIncludesAllProjectsAndUsers() {
+    @DisplayName("admin sees projects and users")
+    void adminSeesDashboard() {
         User admin = user("admin", Role.ADMIN);
         User dev = user("dev", Role.DEV);
         User tester = user("tester", Role.TESTER);
@@ -71,8 +71,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("non-admin dashboard includes only participating projects")
-    void nonAdminDashboardIncludesOnlyParticipatingProjects() {
+    @DisplayName("member sees joined projects only")
+    void memberSeesJoinedProjects() {
         User dev = user("dev", Role.DEV);
         User tester = user("tester", Role.TESTER);
         DashboardProjectSnapshot project1 = snapshot(1L, "project1", Map.of());
@@ -94,8 +94,8 @@ class DashboardSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("inactive users cannot load dashboard summaries")
-    void inactiveUsersCannotLoadDashboardSummaries() {
+    @DisplayName("inactive user is stopped")
+    void inactiveUserIsStopped() {
         User inactiveDev = User.fromPersistence("dev", "dev", "hash", Role.DEV, false, NOW, NOW);
         FakeDashboardSummaryRepository summaries = new FakeDashboardSummaryRepository(List.of(), List.of());
         DashboardSummaryService service = service(summaries, new InMemoryUserRepository(inactiveDev));

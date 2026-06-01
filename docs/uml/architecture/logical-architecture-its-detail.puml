@@ -6,8 +6,8 @@ title Issue Tracking System - Logical Architecture Detail
 top to bottom direction
 
 skinparam componentStyle rectangle
-skinparam nodesep 28
-skinparam ranksep 36
+skinparam nodesep 34
+skinparam ranksep 40
 skinparam linetype ortho
 skinparam rectangle {
   FontSize 12
@@ -15,18 +15,36 @@ skinparam rectangle {
   FontColor #263238
 }
 
-rectangle "Presentation Layer\n--\nJavaFX UI\n  IssueListView, IssueDetailView, AssignmentView\n  ProjectStatisticsSection, LoginView\n\nSwing UI\n  AccountManagementView, ProjectManagementView\n  ProjectStatisticsPanel, DeletedIssueBinView\n\nBoth UI toolkits reuse the same controllers/services." as PRES <<boundary>> #E3F2FD
+rectangle "Presentation Layer\n--\nMain launches JavaFXApp\nJavaFXApp initializes ApplicationContext\n\nUI code should call controllers only;\ncontrollers/services/repositories are reused by any UI toolkit." as PRES <<presentation>> #E3F2FD
 
-rectangle "Application Layer\n--\nUse Case Controllers\n  IssueController\n    registerIssue(), searchIssues(), viewIssueDetail(), updateIssue()\n    addComment(), changePriority(), addDependency(), removeDependency()\n  AssignmentController\n    startAssignment(), assignIssue(), reassignIssue(), changeVerifier()\n  IssueStateController\n    changeStatus()\n  DeletedIssueController\n    deleteIssue(), restoreIssue(), viewDeletedIssues(), purgeDeletedIssue()\n  AccountController\n    createAccount(), renameAccount(), changeAccountRole(), deactivateAccount()\n  ProjectController\n    viewProjectAdminDetail(), createProject(), renameProject()\n    addProjectParticipant(), removeProjectParticipant()\n  StatisticsController\n    viewStatistics()\n\nApplication Policies / Services\n  PermissionPolicy\n    assertCan...()\n  AssignmentRecommendationService\n    recommendAssignmentCandidates()\n  AuthenticationService\n    login(), currentUser()" as APP <<control>> #FFF8E1
+rectangle "Composition Root\n--\nApplicationContext\n  exposes controller set for UI\n\nApplicationBootstrap\n  initializes DB schema/seed\n  creates JDBC repositories\n  creates services, policies, controllers\n\nShared runtime objects\n  PermissionPolicy\n  SystemClock\n  PasswordHasher\n  SessionStore\n  CommentIdGenerator" as BOOT <<bootstrap>> #E8F5E9
 
-rectangle "Use Case / Policy Partitions\n--\nIssue Management\n  UC1, UC2, UC3, UC4, UC7, UC15, UC16\n\nAssignment / Recommendation\n  UC5 four branches + UC8\n  status-based candidates\n  ASSIGNMENT_CHANGED\n\nState Transition\n  UC6 scenarios\n  fixer/resolver set\n  R->C clears assignee/verifier\n  F->R dependency guard\n\nDeleted Issue Management\n  UC9 soft-delete, FIFO 30\n  NEW/CLOSED -> DELETED\n  restore keeps reporter/fixer/resolver\n\nStatistics\n  UC10 viewStatistics(period, filters)\n  filters.scope\n\nPermission\n  UC14 included by protected UCs" as PARTITIONS <<control>> #FFF3E0
+rectangle "Controller Layer\n--\nAuthenticationController\n  login(), logout()\n\nDashboardController\n  viewProjects(), viewUsers()\n\nProjectController\n  viewProjectAdminDetail(), viewProjectNonAdminDetail()\n  viewProjectParticipants()\n  create/rename/changeDescription/delete project\n  add/remove participant\n\nIssueController\n  register/search/view/update issue\n  comments, dependencies, priority\n  available actions for UI\n\nAssignmentController\n  start assignment, assign, reassign, change verifier\n\nIssueStateController\n  changeStatus()\n\nDeletedIssueController\n  view, soft-delete, restore, purge overflow, purge one\n\nAccountController / StatisticsController" as CTRL <<controller>> #FFF8E1
 
-rectangle "Domain Layer\n--\nIssue Aggregate\n  Issue, Comment, IssueHistory, IssueDependency\n\nIssue Role Relations\n  reporter, assignee, verifier, fixer, resolver\n\nIdentity / Project\n  User, Project\n\nRepository Interfaces\n  IssueRepository, UserRepository, ProjectRepository\n\nValue Types\n  Role\n    ADMIN, PL, DEV, TESTER\n  IssueStatus\n    NEW, ASSIGNED, FIXED, RESOLVED\n    CLOSED, REOPENED, DELETED\n  Priority\n    BLOCKER, CRITICAL, MAJOR, MINOR, TRIVIAL\n  ActionType\n    CREATED, TITLE_DESCRIPTION_UPDATED, PRIORITY_CHANGED\n    STATUS_CHANGED, ASSIGNMENT_CHANGED\n    DEPENDENCY_CHANGED, COMMENTED" as DOM <<domain>> #F1F8E9
+rectangle "Service / Policy Layer\n--\nAuthenticationService / AccountService\nDashboardSummaryService\nProjectService\nIssueService\nIssueWorkflowService\nAssignmentService\nAssignmentRecommendationService + KNN engine\nIssueStateService\nDeletedIssueService\nStatisticsService\nPermissionPolicy\n\nServices coordinate permissions, project membership,\nrepository lookups, domain behavior, and result DTOs." as SERVICE <<service>> #FFF3E0
 
-rectangle "Technical Services\n--\nPersistence Implementations\n  JdbcIssueRepository, JdbcUserRepository, JdbcProjectRepository\n  DatabaseConnectionProvider\n\nSecurity Support\n  PasswordHasher, SessionStore" as TECH <<infrastructure>> #F3E5F5
+rectangle "Domain Model\n--\nUser, Project, ProjectMember\nIssue, Comment, IssueHistory, IssueDependency\n\nDomain value categories\nRole, IssueStatus, Priority\nCommentPurpose, ActionType\n\nDomain objects hold issue workflow state,\nassignment history, comments, dependencies,\nand project/user concepts." as DOMAIN <<domain>> #F1F8E9
 
-PRES -down-> APP : user actions
-APP -down-> PARTITIONS : use-case policy selection
-PARTITIONS -down-> DOM : domain coordination / repository abstractions
-TECH -up-> DOM : repository implementations / technical support
+rectangle "Application Ports\n--\nRepository interfaces\n  UserRepository, ProjectRepository, IssueRepository\n  CommentRepository, IssueHistoryRepository\n  IssueDependencyRepository\n  AssignmentRecommendationRepository\n  DeletedIssueRepository\n  DashboardSummaryRepository\n  StatisticsRepository\n\nTechnical ports used by services\n  Clock\n  PasswordHashing\n  CurrentUserSession\n  CommentIdProvider" as PORTS <<port>> #E0F2F1
+
+rectangle "Infrastructure Adapters\n--\nJDBC adapters\n  JdbcUserRepository, JdbcProjectRepository, JdbcIssueRepository\n  JdbcCommentRepository, JdbcIssueHistoryRepository\n  JdbcIssueDependencyRepository\n  JdbcAssignmentRecommendationRepository\n  JdbcDeletedIssueRepository\n  JdbcDashboardSummaryRepository\n  JdbcStatisticsRepository\n  JdbcRepositoryFactory\n\nJDBC helpers\n  JdbcIssueQueries, JdbcIssueRowMapper, JdbcIssueWriteSupport\n\nTechnical adapters\n  PasswordHasher, SessionStore, SystemClock, CommentIdGenerator" as INFRA <<adapter>> #F3E5F5
+
+database "Oracle Database\n--\nusers / projects / project_members\nissues / comments / issue_history\nissue_dependencies / credentials" as DB #ECEFF1
+
+PRES -down-> BOOT : starts and requests context
+BOOT -down-> CTRL : constructs controllers
+BOOT -down-> SERVICE : constructs services
+BOOT -down-> INFRA : constructs adapters
+CTRL -down-> SERVICE : calls use-case services
+SERVICE -down-> DOMAIN : changes domain objects
+SERVICE -down-> PORTS : uses repositories and ports
+INFRA -up-> PORTS : implements repository / technical ports
+INFRA -down-> DB : SQL read/write
+
+legend bottom
+  - This is a logical architecture view, not a complete class diagram.
+  - Repository interfaces and small service ports are treated as application ports.
+  - Infrastructure depends on ports; services do not directly create JDBC/session/hash implementations.
+  - Current main code has a JavaFX entry point. Additional UI toolkits should reuse ApplicationContext and controllers.
+endlegend
 @enduml

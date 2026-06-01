@@ -63,13 +63,13 @@ public final class JavaFXApp extends Application {
     }
 
     private void showAccountManage(){
-        AccountManageScreen screen = new AccountManageScreen(context.dashboardController());
+        AccountManageScreen screen = new AccountManageScreen(context.dashboardController(), context.accountController());
         screen.setOnBack(this::showAdminDashboard);
         primaryStage.setScene(new Scene(screen, 1024, 768));
     }
 
     private void showProjectManage(){
-        ProjectManageScreen screen = new ProjectManageScreen(context.dashboardController());
+        ProjectManageScreen screen = new ProjectManageScreen(context.dashboardController(), context.projectController());
         screen.setOnProjectSelected(project -> showProjectDetail(project.projectId()));
         screen.setOnBack(this::showAdminDashboard);
         primaryStage.setScene(new Scene(screen, 1024, 768));
@@ -98,11 +98,18 @@ public final class JavaFXApp extends Application {
         screen.setOnBack(this::showProjectList);
         screen.setOnDeletedIssueManage(() -> showDeletedIssueManage(projectId));
         screen.setOnStatistics(() -> showStatistics(projectId));
+        screen.setOnGraph(() -> showIssueGraph(projectId));
+        primaryStage.setScene(new Scene(screen, 1024, 768));
+    }
+
+    private void showIssueGraph(long projectId){
+        IssueGraphScreen screen = new IssueGraphScreen(context.issueController(), projectId);
+        screen.setOnBack(() -> showIssueList(projectId));
         primaryStage.setScene(new Scene(screen, 1024, 768));
     }
 
     private void showIssueDetail(long issueId, long projectId){
-        IssueDetailScreen screen = new IssueDetailScreen(context.issueController(), context.issueStateController(), context.assignmentController(), issueId);
+        IssueDetailScreen screen = new IssueDetailScreen(context.issueController(), context.issueStateController(), context.assignmentController(), context.deletedIssueController(), issueId);
         screen.setOnBack(() -> showIssueList(projectId));
         primaryStage.setScene(new Scene(screen, 1024, 768));
     }

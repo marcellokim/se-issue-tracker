@@ -27,7 +27,7 @@ class JdbcIssueWriteSupportTest {
     private static Connection failingCleanupConnection() {
         return (Connection) Proxy.newProxyInstance(
                 JdbcIssueWriteSupportTest.class.getClassLoader(),
-                new Class<?>[] {Connection.class},
+                new Class<?>[] { Connection.class },
                 (proxy, method, args) -> {
                     if ("rollback".equals(method.getName()) || "setAutoCommit".equals(method.getName())) {
                         throw new SQLException("cleanup failed");
@@ -36,7 +36,6 @@ class JdbcIssueWriteSupportTest {
                         return "FailingCleanupConnection";
                     }
                     throw new UnsupportedOperationException("Unexpected Connection call: " + method.getName());
-                }
-        );
+                });
     }
 }

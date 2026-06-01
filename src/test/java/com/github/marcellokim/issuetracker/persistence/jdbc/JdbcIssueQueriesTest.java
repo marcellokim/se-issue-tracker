@@ -122,8 +122,7 @@ class JdbcIssueQueriesTest {
                 new BoundValue(7, "%login%"),
                 new BoundValue(8, "%login%"),
                 new BoundValue(9, reportedFrom),
-                new BoundValue(10, reportedTo)
-        ), recorder.boundValues());
+                new BoundValue(10, reportedTo)), recorder.boundValues());
     }
 
     private record BoundValue(int index, Object value) {
@@ -136,7 +135,7 @@ class JdbcIssueQueriesTest {
         PreparedStatement preparedStatement() {
             return (PreparedStatement) Proxy.newProxyInstance(
                     PreparedStatement.class.getClassLoader(),
-                    new Class<?>[] {PreparedStatement.class},
+                    new Class<?>[] { PreparedStatement.class },
                     (proxy, method, arguments) -> {
                         if ("setLong".equals(method.getName())
                                 || "setString".equals(method.getName())

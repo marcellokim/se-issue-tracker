@@ -5,59 +5,26 @@ title Detailed SD 09 - Close Issue
 hide footbox
 
 actor "PL" as PL
-participant "issueStateController:IssueStateController" as ISC
+participant ":IssueTrackingSystem" as ISC
 participant "targetIssue:Issue" as Issue
 
-PL -> ISC : changeStatus(issueId,\ntargetStatus=CLOSED, comment)
+PL -> ISC : changeStatus(issueId, CLOSED, comment)
 
-ISC -> Issue : verifyClosePreconditions(currentPL, comment)
-Issue -> Issue : verifyStatus(RESOLVED)
-Issue --> ISC : closeAllowed or reason
-
-alt not PL or status is not RESOLVED or comment is empty
+alt PL cannot close this issue or comment is blank
   ISC --> PL : statusChangeRejected(reason)
 else valid RESOLVED -> CLOSED transition
-  note right of ISC
-  UC6 close는 PL 전용 최종 종료 전이이다.
-  UC2 include로 comment가 필수이며,
-  권한 확인은 guard로 축약한다.
-  end note
-
   ISC -> Issue : close(currentPL, comment, now)
   activate Issue
-
   create "closeComment:Comment" as Comment
-  Issue --> Comment : new(content=comment,\nwriter=currentPL,\ncreatedDate=now)
-  Issue -> Issue : addComment(closeComment)
-
+  Issue --> Comment : new(content=comment, writer=currentPL)
   create "commentHistory:IssueHistory" as CommentHistory
-  Issue --> CommentHistory : new(action=COMMENTED,\nmessage=comment,\nchangedBy=currentPL,\nchangedDate=now)
-  Issue -> Issue : addHistory(commentHistory)
-
-  Issue -> Issue : clearAssignee()
-  Issue -> Issue : clearVerifier()
-  Issue -> Issue : preserveFixerAndResolver()
-  Issue -> Issue : changeStatus(CLOSED)
-
+  Issue --> CommentHistory : new(COMMENTED, message=comment)
   create "statusHistory:IssueHistory" as StatusHistory
-  Issue --> StatusHistory : new(action=STATUS_CHANGED,\npreviousValue=RESOLVED,\nnewValue=CLOSED,\nchangedBy=currentPL,\nchangedDate=now)
-  Issue -> Issue : addHistory(statusHistory)
-
-  note right of Issue
-  OC-08 사후조건:
-  - Issue.status = CLOSED
-  - assignee DEV association 제거
-  - verifier TESTER association 제거
-  - fixer/resolver association 보존
-  - Comment와 COMMENTED history 기록
-  - STATUS_CHANGED history 기록
-  - IssueHistory.changedBy=currentPL이
-    PL과 history의 changes association을 의미
-  end note
-
-  Issue --> ISC : updatedIssue(status=CLOSED,\nassignee=null,\nverifier=null,\nfixer=retained,\nresolver=retained)
+  Issue --> StatusHistory : new(STATUS_CHANGED, RESOLVED -> CLOSED)
+  Issue -> Issue : clear assignee/verifier;\npreserve fixer/resolver;\nstatus=CLOSED
+  Issue --> ISC : updated(status=CLOSED)
   deactivate Issue
-  ISC --> PL : updatedIssue(issueId,\nstatus=CLOSED,\nassignee=null,\nverifier=null)
+  ISC --> PL : updatedIssue(issueId, status=CLOSED)
 end
 
 @enduml

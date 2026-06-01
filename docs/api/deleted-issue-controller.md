@@ -24,7 +24,7 @@ All operations require a logged-in actor. `deleteIssue` uses `IssueRepository.so
 
 | API | UC/SSD/OC | DCD/domain evidence |
 | --- | --- | --- |
-| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | `DeletedIssueController`, `Issue.softDelete`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` removal in `docs/uml/dcd/its_dcd_ver2.puml`; implementation `JdbcIssueDeleteOperations.softDelete` |
+| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; implementation `JdbcIssueDeleteOperations.softDelete` |
 | `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)` in DCD; implementation `JdbcIssueDeleteOperations.restore`, `latestPreDeleteStatus` |
 | `viewDeletedIssues`, `purgeOverflow`, `purgeDeletedIssue` | UC9 support APIs | DCD deleted issue workflow; implementation `DeletedIssueService.viewDeletedIssues`, `purgeOverflow`, `purgeDeletedIssue`, `JdbcIssueDeleteOperations.purgeDeletedBeyondLimit`, `purgeDeletedById` |
 
@@ -86,7 +86,7 @@ All operations require a logged-in actor. `deleteIssue` uses `IssueRepository.so
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | `docs/uml/dcd/its_dcd_ver2.puml`의 `DeletedIssueController`, `Issue.softDelete`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 제거; 구현 `JdbcIssueDeleteOperations.softDelete` |
+| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; 구현 `JdbcIssueDeleteOperations.softDelete` |
 | `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | DCD의 `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)`; 구현 `JdbcIssueDeleteOperations.restore`, `latestPreDeleteStatus` |
 | `viewDeletedIssues`, `purgeOverflow`, `purgeDeletedIssue` | UC9 보조 API | 삭제 이슈 관리 흐름; 구현 `DeletedIssueService.viewDeletedIssues`, `purgeOverflow`, `purgeDeletedIssue`, `JdbcIssueDeleteOperations.purgeDeletedBeyondLimit`, `purgeDeletedById` |
 

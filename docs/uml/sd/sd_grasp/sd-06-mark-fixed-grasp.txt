@@ -1,25 +1,20 @@
 SD 06 Mark Issue as Fixed - GRASP 적용 설명
 
 관련 산출물:
-- UC6 Change Issue State: DEV assignee가 ASSIGNED -> FIXED 전이를 수행하고 사유 comment를 필수 입력
+- UC6 Change Issue State
 - SSD 06: changeStatus(issueId, targetStatus=FIXED, comment)
-- OC-06: Comment 생성, COMMENTED history 생성, fixer=current DEV, status=FIXED, STATUS_CHANGED history 생성
-- 기본 가정사항: ASSIGNED -> FIXED에서 fixer가 설정되고 상태 변경 이력과 의미상 일치해야 함
-- Logical Architecture: IssueStateController.changeStatus()
+- OC-06: comment 기록, fixer=current DEV, status=FIXED, STATUS_CHANGED history
 
 적용 GRASP:
 
-1. Controller
-issueStateController:IssueStateController가 상태 변경 system operation을 수신한다. 상태 전이 흐름을 조정하지만 Issue의 필드를 직접 set하지 않는다.
+1. GRASP Controller
+`:IssueTrackingSystem` 객체가 상태 변경 요청을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 상태 변경 유스케이스를 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-targetIssue:Issue가 현재 status, assignee, fixer, comment 목록, history 목록을 알고 있으므로 markFixed(...) 메시지를 통해 상태 변경과 이력 기록을 수행한다.
+Issue는 현재 status, assignee, fixer, comment/history를 알고 있으므로 `markFixed(...)` 책임을 가진다.
 
 3. Creator
-Comment와 IssueHistory는 모두 특정 Issue에 소속된다. 따라서 targetIssue가 fixComment, commentHistory, statusHistory를 생성하고 자신의 collection에 추가한다.
+FIXED 처리에서 생기는 Comment, COMMENTED history, STATUS_CHANGED history는 해당 Issue에 속한 기록이므로 Issue가 생성한다.
 
 4. Low Coupling / High Cohesion
-Controller는 markFixed(currentDev, comment, now)라는 의도 중심 메시지만 보낸다. Comment 생성, fixer 기록, status 변경, history 기록이 Issue 내부 책임으로 모여 cohesion을 유지한다.
-
-5. Information Expert 보강
-currentDev가 fixer라는 사실은 Issue의 상태 전이 규칙과 assignee 관계에 의존한다. Issue가 해당 정보를 검증하고 fixer association을 갱신하는 것이 적절하다.
+GRASP Controller는 fixer와 status를 직접 바꾸지 않고 Issue에게 상태 변경 의도를 전달한다.
