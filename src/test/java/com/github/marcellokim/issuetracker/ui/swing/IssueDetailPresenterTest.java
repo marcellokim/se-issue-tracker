@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.marcellokim.issuetracker.controller.IssueController;
+import com.github.marcellokim.issuetracker.controller.IssueStateController;
 import com.github.marcellokim.issuetracker.domain.Comment;
 import com.github.marcellokim.issuetracker.domain.CommentPurpose;
 import com.github.marcellokim.issuetracker.domain.Issue;
@@ -17,6 +18,7 @@ import com.github.marcellokim.issuetracker.repository.CommentRepository;
 import com.github.marcellokim.issuetracker.service.AuthenticationService;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
@@ -82,6 +84,27 @@ class IssueDetailPresenterTest {
     }
 
     @Test
+    @DisplayName("changes status through state controller and reloads detail")
+    void changesStatusAndReloadsDetail() {
+        User assignee = user("dev1", Role.DEV);
+        User verifier = user("tester1", Role.TESTER);
+        Issue issue = assignedIssue(7L, "Login bug", assignee, verifier);
+        IssueDetailControllerFixture fixture = controllerFixture(assignee, new FakeCommentRepository(), issue);
+        RecordingIssueDetailView view = new RecordingIssueDetailView();
+        IssueDetailPresenter presenter = new IssueDetailPresenter(
+                fixture.issueController(),
+                fixture.issueStateController(),
+                view);
+        presenter.loadIssue(issue.id());
+
+        presenter.changeStatus(issue.id(), IssueStatus.FIXED, "fixed in swing");
+
+        assertEquals(IssueStatus.FIXED, view.detail().status());
+        assertEquals(assignee.getLoginId(), view.detail().fixer().loginId());
+        assertEquals(" ", view.message());
+    }
+
+    @Test
     @DisplayName("shows controller errors without replacing current detail")
     void showsErrorsWithoutReplacingCurrentDetail() {
         User reporter = user("dev1", Role.DEV);
@@ -99,10 +122,24 @@ class IssueDetailPresenterTest {
     }
 
     private static IssueController controller(User currentUser, FakeCommentRepository comments, Issue... issues) {
+        return controllerFixture(currentUser, comments, issues).issueController();
+    }
+
+    private static IssueDetailControllerFixture controllerFixture(
+            User currentUser,
+            FakeCommentRepository comments,
+            Issue... issues) {
         InMemoryUserRepository users = new InMemoryUserRepository(currentUser)
                 .withProjectMembers(PROJECT_ID, currentUser.getLoginId());
         InMemoryProjectRepository projects = new InMemoryProjectRepository(project())
                 .withParticipant(PROJECT_ID, currentUser.getLoginId());
+        for (Issue issue : issues) {
+            if (issue.getVerifier() != null) {
+                users.save(issue.getVerifier());
+                users.withProjectMembers(PROJECT_ID, issue.getVerifier().getLoginId());
+                projects.withParticipant(PROJECT_ID, issue.getVerifier().getLoginId());
+            }
+        }
         InMemoryIssueRepository issueRepository = new InMemoryIssueRepository(issues);
         FakeIssueDependencyRepository dependencies = new FakeIssueDependencyRepository();
         PermissionPolicy permissionPolicy = new PermissionPolicy();
@@ -126,7 +163,17 @@ class IssueDetailPresenterTest {
                 comments,
                 users,
                 permissionPolicy);
-        return new IssueController(authentication, issueService, workflowService);
+        IssueController issueController = new IssueController(authentication, issueService, workflowService);
+        IssueStateController issueStateController = new IssueStateController(
+                authentication,
+                new IssueStateService(
+                        issueRepository,
+                        dependencies,
+                        users,
+                        permissionPolicy,
+                        () -> NOW,
+                        () -> "status-change-comment"));
+        return new IssueDetailControllerFixture(issueController, issueStateController);
     }
 
     private static Project project() {
@@ -143,12 +190,29 @@ class IssueDetailPresenterTest {
                 .updatedAt(NOW));
     }
 
+    private static Issue assignedIssue(long id, String title, User assignee, User verifier) {
+        return Issue.fromPersistence(Issue.persistedState(PROJECT_ID, title, "Issue description", assignee)
+                .id(id)
+                .issueId("ISSUE-" + id)
+                .status(IssueStatus.ASSIGNED)
+                .priority(Priority.CRITICAL)
+                .assignee(assignee)
+                .verifier(verifier)
+                .reportedDate(NOW)
+                .updatedAt(NOW));
+    }
+
     private static Comment comment(long id, long issueId, User writer, CommentPurpose purpose) {
         return Comment.fromPersistence(id, issueId, writer.getLoginId(), "Comment " + id, purpose, NOW, NOW);
     }
 
     private static User user(String loginId, Role role) {
         return User.fromPersistence(loginId, loginId, "stored-password", role, true, NOW, NOW);
+    }
+
+    private record IssueDetailControllerFixture(
+            IssueController issueController,
+            IssueStateController issueStateController) {
     }
 
     private static final class RecordingIssueDetailView implements IssueDetailView {
