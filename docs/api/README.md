@@ -71,7 +71,7 @@
 5. 같은 프로젝트 화면에서 `StatisticsController.viewStatistics(projectId)`
    - 해당 프로젝트 통계를 조회한다.
 6. 이슈 선택 시 `IssueController.viewIssueDetail(issueId)`
-   - 이슈 상세, 댓글, 히스토리, 의존성, 사용 가능한 액션 이름을 조회한다.
+   - 이슈 상세, 댓글, 히스토리, 현재 이슈를 막는 의존성, 현재 이슈가 막고 있는 의존성, 사용 가능한 액션 이름을 조회한다.
 
 ## UC/OC 매핑 요약
 

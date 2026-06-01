@@ -33,6 +33,7 @@ end
 
 note over BlockingIssue, BlockedIssue
 blockingIssue must be resolved or closed before blockedIssue can be resolved.
+Add dependency itself does not reject resolved or closed blockedIssue.
 The dependency itself is not an IssueStatus.
 end note
 

@@ -31,6 +31,10 @@ else basic transition rule is satisfied
     create "statusHistory:IssueHistory" as StatusHistory
     Issue --> StatusHistory : new(STATUS_CHANGED, FIXED -> RESOLVED)
     Issue -> Issue : resolver=currentTester;\nclear assignee/verifier;\nstatus=RESOLVED
+    note right of Issue
+    Dependency rows are kept.
+    They are not auto-removed by resolve.
+    end note
     Issue --> ISC : updated(status=RESOLVED)
     deactivate Issue
     ISC --> Tester : updatedIssue(issueId, status=RESOLVED)

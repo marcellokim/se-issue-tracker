@@ -45,7 +45,7 @@ SD 작성 시 다음 artifact를 근거로 사용한다.
 ## 구현 반영 수준
 
 - 현재 코드의 Service/Repository/JDBC 호출 순서를 그대로 복사하지 않는다.
-- 현재 코드와 정책 방향이 어긋나지 않도록 operation 이름, 상태 전이, 필수 comment, dependency guard, deleted issue 정책은 반영한다.
+- 현재 코드와 정책 방향이 어긋나지 않도록 operation 이름, 상태 전이, 필수 comment, dependency guard, deleted issue 정책은 반영한다. dependency는 resolve 시점의 guard로 표현하며, resolve 성공만으로 자동 제거하지 않는다.
 - 삭제/복구처럼 현재 구현에서 repository port가 많은 일을 처리하더라도, SD 작성 단계에서는 soft delete/restore의 개념적 사후조건을 `Issue`, `IssueHistory`, `IssueDependency` 협력으로 표현할 수 있다.
 - 세부 SQL, transaction helper, repository factory, session store는 SD 대상이 아니다.
 

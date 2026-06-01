@@ -283,6 +283,7 @@ Use Case: UC6 Change Issue State
   - 기존 `fixes` association은 유지되었다.
   - `resolves` association은 현재 `TESTER`를 최신 resolver로 가리키도록 갱신되었다.
   - `assigned to`와 `verifies` association은 없는 상태/null 상태가 되었다.
+  - resolve 성공 이후에도 기존 `IssueDependency` instance는 자동 삭제되지 않았다.
   - `BLOCK` 또는 `BLOCKED` `IssueStatus`는 생성되지 않았다.
 
 ---
@@ -568,7 +569,6 @@ Use Case: UC7 Manage Dependency
 - `blockedIssueId`가 가리키는 `Issue`가 존재한다.
 - blocking issue와 blocked issue는 같은 `Project`에 속한다.
 - blocking issue와 blocked issue는 `DELETED` 상태가 아니다.
-- blocked issue는 `RESOLVED` 또는 `CLOSED` 상태가 아니다.
 - blocking issue와 blocked issue는 서로 다른 이슈이다.
 - 새 dependency는 기존 dependency와 중복되지 않는다.
 - 새 dependency는 순환 dependency를 만들지 않는다.

@@ -4,5 +4,5 @@ title SSD 04 - UC4 이슈 상세 조회
 actor "Auth User" as A
 participant ":Issue Tracking System" as S
 A -> S: viewIssueDetail(issueId)
-S --> A: issueDetails(issue, comments, history, dependencies, availableActions)
+S --> A: issueDetails(issue, comments, history,\nblockedByDependencies, blockingDependencies,\navailableActions)
 @enduml

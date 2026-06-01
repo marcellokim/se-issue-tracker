@@ -203,6 +203,8 @@ note bottom of IssueDependency
 Association class for Issue-to-Issue dependency.
 A blocking issue must be resolved or closed before
 the blocked issue can be resolved.
+Resolved dependencies are kept until explicit removal
+or issue soft delete.
 end note
 
 @enduml

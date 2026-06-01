@@ -200,14 +200,14 @@ extension point: UC2(Add Comment)
 | Primary Actor | Auth User (Tester | Dev | PL) |
 | Stakeholders & Interests | - 사용자: 특정 이슈에 대한 모든 정보를 확인하고 싶다 |
 | Preconditions | - 사용자가 시스템에 로그인한 상태이다<br>- 사용자가 대상 이슈가 속한 프로젝트의 active member이다 |
-| Postconditions | 시스템이 이슈의 기본 정보, 코멘트, 이슈 이력, 의존성 정보, 사용자가 수행 가능한 액션을 화면에 보여준다 |
+| Postconditions | 시스템이 이슈의 기본 정보, 코멘트, 이슈 이력, 현재 이슈를 막는 의존성, 현재 이슈가 막고 있는 의존성, 사용자가 수행 가능한 액션을 화면에 보여준다 |
 | Trigger | 사용자가 이슈 목록 또는 검색 결과에서 특정 이슈를 선택한다 |
 
 ### Main Flow
 1. 사용자가 이슈를 선택한다
 2. 시스템이 이슈를 불러온다
 3. 시스템이 이슈의 기본 정보와 담당자 정보를 보여준다
-4. 시스템이 코멘트, 이슈 이력, 의존성 정보를 보여준다
+4. 시스템이 코멘트, 이슈 이력, 현재 이슈를 막는 의존성과 현재 이슈가 막고 있는 의존성 정보를 보여준다
 5. 시스템이 사용자의 역할과 이슈 상태에 따라 수행 가능한 액션을 보여준다
 6. 사용자가 화면을 확인한다
 extension points: UC2(Add Comment), UC15(Edit Issue)
@@ -307,7 +307,7 @@ extension point: UC2(Add Comment)
 ### 상태 전이 처리 노트
 - ASSIGNED -> FIXED: fixer를 현재 Dev로 기록한다.
 - FIXED -> ASSIGNED: 기존 assignee, verifier, fixer를 유지한다. 이후 다시 FIXED 전이가 발생하면 fixer는 그 시점의 Dev로 갱신될 수 있다.
-- FIXED -> RESOLVED: blocking issue 검사를 통과하면 resolver를 현재 Tester로 기록하고, assignee/verifier를 제거하며 fixer를 보존한다.
+- FIXED -> RESOLVED: blocking issue 검사를 통과하면 resolver를 현재 Tester로 기록하고, assignee/verifier를 제거하며 fixer를 보존한다. 이때 dependency row는 자동 제거하지 않는다.
 - RESOLVED -> CLOSED: fixer와 resolver를 보존한 채 상태를 최종 종료한다.
 - RESOLVED/CLOSED -> REOPENED: fixer와 resolver를 보존한 채 재작업 가능 상태로 설정한다. assignee/verifier는 자동 복원하지 않으며 PL은 필요 시 UC5를 통해 배정한다.
 

@@ -32,7 +32,7 @@
 | 제출 | UC1 이슈 등록 | Register Issue | Auth User | `registerIssue(projectId, title, description, priority)` | `Issue` 생성, reporter 자동 저장, reportedDate 자동 저장, status `NEW`, history 생성, 등록 직후 optional comment 가능 | 제출용으로 확정 |
 | 개발 핵심 | UC2 코멘트 추가 | Add Comment | Auth User | `addComment(issueId, content)` | `Comment` 생성, writer/createdDate 저장, `IssueHistory(COMMENTED)` 기록 | UC1/UC4/UC5에서는 optional extension, UC6에서는 mandatory include |
 | 개발 핵심 | UC3 이슈 검색/브라우즈 | Search Issues | Auth User | `searchIssues(criteria)` | assignee/status/reporter/project 조건 검색, 목록 반환 | 조회 UC라 Operation Contract 우선순위는 낮음 |
-| 개발 핵심 | UC4 이슈 상세 조회 | View Issue Detail | Auth User | `viewIssueDetail(issueId)` | 이슈 필드, comments, history, dependencies, availableActions 반환 | UC5/UC6/UC15는 상세 화면에서 시작될 수 있지만 별도 actor-goal UC |
+| 개발 핵심 | UC4 이슈 상세 조회 | View Issue Detail | Auth User | `viewIssueDetail(issueId)` | 이슈 필드, comments, history, blocked-by/blocking dependencies, availableActions 반환 | UC5/UC6/UC15는 상세 화면에서 시작될 수 있지만 별도 actor-goal UC |
 | 제출 | UC5 이슈 배정/배정 변경 | Assign / Update Issue Assignment | PL | `startAssignment(issueId)`, `assignIssue(...)`, `reassignIssue(...)`, `changeVerifier(...)` | NEW/REOPENED는 assignee+verifier 후보 추천 후 ASSIGNED로 배정, ASSIGNED는 assignee 변경, FIXED는 verifier 변경 | UC8 상태별 후보 추천은 include, top 3 후보와 프로젝트 소속 active 후보 전체를 함께 반환, UC2 배정 코멘트는 optional extend |
 | 제출 | UC6 상태 변경 | Mark Fixed | DEV | `addStatusChangeComment(issueId, comment)`, `changeStatus(issueId, targetStatus=FIXED)` | status `ASSIGNED -> FIXED`, fixer 자동 기록, 필수 comment와 `IssueHistory(STATUS_CHANGED)` 생성 | assignee 본인만 가능, 제출용으로 확정 |
 | 개발 핵심 | UC6 상태 변경 | Resolve Issue | Tester | `changeStatus(issueId, targetStatus=RESOLVED, comment)` | status `FIXED -> RESOLVED`, resolver 자동 기록, 필수 comment/history 생성 | verifier 본인만 가능, blocking Issue가 모두 `RESOLVED` 또는 `CLOSED`여야 함 |
@@ -53,7 +53,7 @@
 | 개발 보조 | UC13 프로젝트 관리 | Remove Project Participant | Admin | `removeProjectParticipant(projectId, userId)` | `ProjectMember` association 제거 | 프로젝트 참여자는 membership으로 관리 |
 | 내부 공통 | UC14 권한 검사 | Verify Permission | Actor/Internal | `assertCanProtectedOperation(actor, resource)` | 권한 있음/없음 alt로 base operation 진행 또는 거부 | 직접 사용자 목표 SSD가 아니라 include되는 공통 권한 검사 reference |
 | 개발 핵심 | UC15 이슈 수정 | Edit Issue | Reporter | `updateIssue(issueId, newTitle, newDescription)` | status `NEW/REOPENED`인 본인 이슈 title/description 수정, history 저장 | priority는 UC16, status는 UC6 |
-| 개발 핵심 | UC7 의존성 관리 | Add Dependency | PL | `addDependency(blockingIssueId, blockedIssueId)` | `IssueDependency` 생성, 순환/자기참조 방지, history 저장 | 별도 dependencyName/type 파라미터 없음, 효과는 UC6 `FIXED -> RESOLVED` guard |
+| 개발 핵심 | UC7 의존성 관리 | Add Dependency | PL | `addDependency(blockingIssueId, blockedIssueId)` | `IssueDependency` 생성, 순환/자기참조 방지, history 저장 | 별도 dependencyName/type 파라미터 없음, resolve 가능 여부는 UC6 `FIXED -> RESOLVED` guard에서 판단 |
 | 개발 보조 | UC7 의존성 관리 | Remove Dependency | PL | `removeDependency(blockingIssueId, blockedIssueId)` | dependency 제거, history 저장, `dependencyRemoved()` 확인 응답 | 응답에 반환 payload 없음 |
 | 개발 핵심 | UC16 우선순위 변경 | Change Priority | PL | `changePriority(issueId, newPriority)` | `Issue.priority` 변경, `IssueHistory(PRIORITY_CHANGED)` 기록 | PL-only |
 

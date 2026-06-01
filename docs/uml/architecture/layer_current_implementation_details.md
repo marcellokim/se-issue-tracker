@@ -171,6 +171,8 @@ deleted 이슈는 일반 이슈 조회/조작 경로와 분리한다.
 - 의존성 조회는 해당 프로젝트 소속 PL/DEV/TESTER가 가능하다.
 - `addDependency`는 blocking issue와 blocked issue가 같은 프로젝트인지 검사한다.
 - `removeDependency`는 blocking issue id와 blocked issue id를 함께 받아 삭제한다.
+- dependency 추가 시 blocked issue의 RESOLVED/CLOSED 여부로 막지 않고, blocked issue의 RESOLVED 전이 시점에서 blocking issue 상태를 검사한다.
+- resolve가 성공해도 dependency row를 자동 제거하지 않는다.
 - deleted 이슈 경로에서는 일반 dependency 조작을 차단한다.
 
 ## Controller-Service 책임 기준

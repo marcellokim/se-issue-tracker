@@ -58,7 +58,7 @@
 - `DELETED` 이슈에 대해 일반 상태 전이를 시도하면 `SecurityException("Deleted issues must be managed through deleted issue workflow.")`을 던진다.
 - `FIXED` 전이는 현재 DEV assignee만 수행할 수 있다.
 - `ASSIGNED`로 되돌리는 reject fix 전이는 현재 TESTER verifier만 수행할 수 있다.
-- `RESOLVED` 전이는 현재 TESTER verifier만 수행할 수 있고, unresolved blocking issue가 있으면 `IllegalStateException`을 던진다.
+- `RESOLVED` 전이는 현재 TESTER verifier만 수행할 수 있고, unresolved blocking issue가 있으면 `IllegalStateException`을 던진다. 조건을 통과해도 dependency row는 자동 제거하지 않는다.
 - `CLOSED`와 `REOPENED` 전이는 해당 프로젝트의 active PL만 수행할 수 있다.
 - actor가 상태별 role 조건을 만족해도 해당 프로젝트의 active member 또는 active PL이 아니면 `SecurityException`을 던진다.
 - 도메인 상태 전제조건이 맞지 않으면 `IllegalStateException`을 던진다.

@@ -32,10 +32,11 @@
 | updatedAt | LocalDateTime | 수정일 |
 | comments | List\<CommentResult\> | 코멘트 목록 |
 | histories | List\<HistoryResult\> | 이력 목록 |
-| dependencies | List\<DependencyResult\> | 의존성 목록 |
+| blockedByDependencies | List\<DependencyResult\> | 현재 이슈를 막고 있는 의존성 목록 |
+| blockingDependencies | List\<DependencyResult\> | 현재 이슈가 다른 이슈를 막고 있는 의존성 목록 |
 | availableActions | List\<String\> | 가능한 액션 목록 |
 
-> `comments`, `histories`, `dependencies`, `availableActions`가 모두 포함되어 있으므로 별도 API 호출 불필요.
+> `comments`, `histories`, `blockedByDependencies`, `blockingDependencies`, `availableActions`가 모두 포함되어 있으므로 이슈 상세 화면의 기본 정보는 별도 API 호출 없이 구성할 수 있다.
 
 ### 2. 가능 액션 부분 새로고침
 

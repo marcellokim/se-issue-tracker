@@ -79,7 +79,7 @@
 - `PasswordHashing`, `CurrentUserSession`, `Clock`, `CommentIdProvider`는 service port이다.
 - `PasswordHasher`, `SessionStore`, `SystemClock`, `CommentIdGenerator`는 technical adapter이다.
 - `JdbcRepositoryFactory`는 `PasswordHashing`을 외부에서 주입받는다.
-- `IssueDetailResult`에는 상세 화면에서 이어질 수 있는 workflow action 이름 목록인 `availableActions`를 포함한다.
+- `IssueDetailResult`에는 상세 화면에서 이어질 수 있는 workflow action 이름 목록인 `availableActions`를 포함하고, dependency는 blocked-by 방향과 blocking 방향으로 나누어 전달한다.
 - 이슈 검색은 프로젝트 내부 검색을 기준으로 한다.
 - deleted 이슈는 일반 이슈 조회/조작 경로에서 차단하고 deleted issue workflow로 관리한다.
 - 단건 deleted issue 물리 삭제는 `DeletedIssueController.purgeDeletedIssue`와 `DeletedIssueService.purgeDeletedIssue` 경로로 분리한다.

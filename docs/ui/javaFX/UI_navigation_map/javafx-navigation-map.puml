@@ -218,6 +218,7 @@ CommentAction --> IssueDetailScreen : 완료
 
 state "의존성 관리" as DependencyAction <<action>> {
   DependencyAction : Actor: PL
+  DependencyAction : 표시: blocked-by / blocking 목록
   DependencyAction : 추가: IssueController.addDependency()
   DependencyAction : 제거: IssueController.removeDependency()
   DependencyAction : 표시: IssueController.viewProjectDependencies()

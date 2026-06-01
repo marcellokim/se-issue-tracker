@@ -220,9 +220,11 @@ Controller에 업무 규칙을 넣으면 JavaFX와 Swing이 같은 규칙을 각
 
 ### 5.1 이슈 상세 조회와 availableActions
 
-이슈 상세 화면에서는 이슈 기본 정보, 댓글, history, dependency, 가능한 액션을 함께 보여준다. `IssueDetailResult`에 `availableActions`를 포함한 이유는 UI가 버튼을 켜고 끌 때 참고할 수 있게 하기 위해서다.
+이슈 상세 화면에서는 이슈 기본 정보, 댓글, history, dependency, 가능한 액션을 함께 보여준다. dependency는 현재 이슈를 막고 있는 목록과 현재 이슈가 막고 있는 목록을 나누어 전달한다. `IssueDetailResult`에 `availableActions`를 포함한 이유는 UI가 버튼을 켜고 끌 때 참고할 수 있게 하기 위해서다.
 
 다만 `availableActions`는 화면 표시를 돕는 정보일 뿐이다. 실제 변경 요청이 들어오면 각 Service에서 다시 권한과 정책을 검사한다. 즉 `IssueWorkflowService`는 UI 안내를 돕고, `IssueService`, `AssignmentService`, `IssueStateService`, `DeletedIssueService`가 최종 실행 정책을 보장한다.
+
+dependency는 `FIXED -> RESOLVED` 전이의 guard로 쓰이며, resolve가 성공했다고 해서 자동으로 제거하지 않는다. 사용자가 직접 dependency를 제거하거나 이슈가 soft delete될 때만 dependency row를 제거한다.
 
 ### 5.2 Deleted issue workflow 분리
 

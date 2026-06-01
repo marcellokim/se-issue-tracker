@@ -100,6 +100,8 @@
 - circular dependency는 금지한다.
 - dependency는 blocking issue와 blocked issue의 관계이다.
 - blocked issue를 resolve하려면 blocking issue가 먼저 resolved 또는 closed 상태여야 한다.
+- blocking issue 상태 검사는 dependency 추가 시점이 아니라 blocked issue를 `FIXED -> RESOLVED`로 전이하는 시점에 수행한다.
+- resolve가 성공해도 dependency row를 자동 제거하지 않는다.
 - dependency 추가/삭제 권한은 blocked issue가 속한 프로젝트 PL 기준으로 판단한다.
 - dependency 변경 이력은 blocked issue의 history에만 기록한다.
 - dependency row 저장/삭제, issue updated_at 변경, issue history 기록은 하나의 transaction으로 처리한다.

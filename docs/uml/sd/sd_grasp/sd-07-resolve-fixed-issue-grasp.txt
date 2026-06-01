@@ -20,4 +20,4 @@ blocking issue가 모두 RESOLVED/CLOSED인지 확인해야 하므로 targetIssu
 resolve comment와 COMMENTED/STATUS_CHANGED history는 대상 Issue의 기록이므로 Issue가 생성한다.
 
 5. Protected Variations
-dependency는 별도 status가 아니라 RESOLVED 전이의 guard로만 표현한다.
+dependency는 별도 status가 아니라 RESOLVED 전이의 guard로만 표현한다. resolve가 성공해도 dependency row를 자동 삭제하지 않고, 수동 제거 또는 soft delete 흐름에서만 제거한다.

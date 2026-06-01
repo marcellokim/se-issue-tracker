@@ -318,11 +318,13 @@ package "Repository Ports" #F8FAFC {
   }
 
   interface IssueDependencyRepository <<repository-port>> {
-    +saveAndRecordIssueChange(dependency, blockedIssue): IssueDependency
+    +findByDependencyId(dependencyId): Optional<IssueDependency>
     +findByProjectId(projectId): List<IssueDependency>
-    +findByBlockedIssueId(issueId): List<IssueDependency>
-    +findByBlockingIssueId(issueId): List<IssueDependency>
-    +deleteAndRecordIssueChange(dependency, blockedIssue): void
+    +findDependenciesBlockingIssue(blockedIssueId): List<IssueDependency>
+    +findDependenciesBlockedByIssue(blockingIssueId): List<IssueDependency>
+    +existsByPair(blockingIssueId, blockedIssueId): boolean
+    +recordDependencyAdded(dependency, blockedIssue): IssueDependency
+    +recordDependencyRemoved(dependencyId, blockedIssue): void
   }
 
   interface StatisticsRepository <<repository-port>>
@@ -618,6 +620,7 @@ end note
 
 note bottom of IssueDetailResult
 availableActions carries workflow action names for the issue detail screen.
+Dependency lists are split into blocked-by and blocking directions.
 IssueController fills it when IssueWorkflowService is configured.
 end note
 
