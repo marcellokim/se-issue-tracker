@@ -100,6 +100,56 @@ class ArchitectureBoundaryTest {
     }
 
     @Test
+    @DisplayName("runtime source scan ignores comments")
+    void runtimeSourceScanIgnoresComments() {
+        JavaSource source = new JavaSource(
+                "domain/Sample.java",
+                List.of(
+                        "package com.github.marcellokim.issuetracker.domain;",
+                        "// UUID.randomUUID( is documentation only.",
+                        "/* LocalDateTime.now( belongs in the example text.",
+                        " * System.currentTimeMillis( is not executable here.",
+                        " */",
+                        "final class Sample {",
+                        "    void method() {",
+                        "        String value = \"safe\";",
+                        "    }",
+                        "}"
+                ),
+                List.of()
+        );
+
+        List<Violation> violations = runtimeSourceViolations(
+                source,
+                Set.of("UUID.randomUUID(", "LocalDateTime.now(", "System.currentTimeMillis(")
+        );
+
+        assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    @DisplayName("runtime source scan reports executable calls")
+    void runtimeSourceScanReportsExecutableCalls() {
+        JavaSource source = new JavaSource(
+                "domain/Sample.java",
+                List.of(
+                        "package com.github.marcellokim.issuetracker.domain;",
+                        "final class Sample {",
+                        "    Object id() {",
+                        "        return UUID.randomUUID();",
+                        "    }",
+                        "}"
+                ),
+                List.of()
+        );
+
+        List<Violation> violations = runtimeSourceViolations(source, Set.of("UUID.randomUUID("));
+
+        assertEquals(1, violations.size());
+        assertEquals(4, violations.get(0).lineNumber());
+    }
+
+    @Test
     @DisplayName("jdbc user repository depends on password hashing port")
     void jdbcUserRepositoryDependsOnPasswordHashingPort() throws NoSuchMethodException {
         Constructor<JdbcUserRepository> repositoryConstructor = JdbcUserRepository.class.getConstructor(
@@ -227,19 +277,7 @@ class ArchitectureBoundaryTest {
         List<Violation> violations = new ArrayList<>();
         for (String packageSegment : packageSegments) {
             for (JavaSource source : productionSources(packageSegment)) {
-                for (int index = 0; index < source.lines().size(); index++) {
-                    String line = source.lines().get(index);
-                    for (String forbiddenText : forbiddenTexts) {
-                        if (line.contains(forbiddenText)) {
-                            violations.add(new Violation(
-                                    source.relativePath(),
-                                    index + 1,
-                                    "uses runtime source",
-                                    forbiddenText
-                            ));
-                        }
-                    }
-                }
+                violations.addAll(runtimeSourceViolations(source, forbiddenTexts));
             }
         }
 
@@ -247,6 +285,58 @@ class ArchitectureBoundaryTest {
                 violations.isEmpty(),
                 () -> "Forbidden runtime sources found:%n%s".formatted(formatViolations(violations))
         );
+    }
+
+    private static List<Violation> runtimeSourceViolations(JavaSource source, Set<String> forbiddenTexts) {
+        List<Violation> violations = new ArrayList<>();
+        boolean inBlockComment = false;
+        for (int index = 0; index < source.lines().size(); index++) {
+            CodeLine codeLine = executablePart(source.lines().get(index), inBlockComment);
+            inBlockComment = codeLine.inBlockComment();
+            for (String forbiddenText : forbiddenTexts) {
+                if (codeLine.text().contains(forbiddenText)) {
+                    violations.add(new Violation(
+                            source.relativePath(),
+                            index + 1,
+                            "uses runtime source",
+                            forbiddenText
+                    ));
+                }
+            }
+        }
+        return violations;
+    }
+
+    private static CodeLine executablePart(String line, boolean startsInBlockComment) {
+        StringBuilder code = new StringBuilder();
+        boolean inBlockComment = startsInBlockComment;
+        int cursor = 0;
+        while (cursor < line.length()) {
+            if (inBlockComment) {
+                int commentEnd = line.indexOf("*/", cursor);
+                if (commentEnd < 0) {
+                    return new CodeLine(code.toString(), true);
+                }
+                cursor = commentEnd + 2;
+                inBlockComment = false;
+                continue;
+            }
+
+            int lineCommentStart = line.indexOf("//", cursor);
+            int blockCommentStart = line.indexOf("/*", cursor);
+            if (lineCommentStart < 0 && blockCommentStart < 0) {
+                code.append(line.substring(cursor));
+                break;
+            }
+            if (lineCommentStart >= 0 && (blockCommentStart < 0 || lineCommentStart < blockCommentStart)) {
+                code.append(line, cursor, lineCommentStart);
+                break;
+            }
+            code.append(line, cursor, blockCommentStart);
+            cursor = blockCommentStart + 2;
+            inBlockComment = true;
+        }
+        return new CodeLine(code.toString(), inBlockComment);
     }
 
     private static boolean isForbidden(String importedType, Set<String> forbiddenPrefixes) {
@@ -351,5 +441,8 @@ class ArchitectureBoundaryTest {
     }
 
     record Violation(String relativePath, int lineNumber, String kind, String reference) {
+    }
+
+    record CodeLine(String text, boolean inBlockComment) {
     }
 }

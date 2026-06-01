@@ -80,20 +80,22 @@ class IssueCreationTest {
         @Test
         @DisplayName("saved issue needs its ids")
         void savedIssueNeedsItsIds() {
-                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(
-                                Issue.persistedState(1L, "Bug", "desc", reporter)
-                                                .id(0L)
-                                                .issueId("ISSUE-1")
-                                                .reportedDate(createdAt)
-                                                .updatedAt(createdAt)));
-                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(Issue.persistedState(
+                Issue.PersistedState missingDatabaseId = Issue.persistedState(1L, "Bug", "desc", reporter)
+                                .id(0L)
+                                .issueId("ISSUE-1")
+                                .reportedDate(createdAt)
+                                .updatedAt(createdAt);
+                Issue.PersistedState missingIssueId = Issue.persistedState(
                                 1L,
                                 "Missing issue id",
                                 "Persisted state must carry DB issue_id.",
                                 reporter)
                                 .id(11L)
                                 .reportedDate(createdAt)
-                                .updatedAt(createdAt)));
+                                .updatedAt(createdAt);
+
+                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(missingDatabaseId));
+                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(missingIssueId));
         }
 
         @Test
