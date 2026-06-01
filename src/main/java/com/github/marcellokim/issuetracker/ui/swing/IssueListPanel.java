@@ -2,7 +2,6 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.domain.Priority;
-import com.github.marcellokim.issuetracker.domain.Role;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import com.github.marcellokim.issuetracker.service.UserResult;
@@ -59,7 +58,6 @@ final class IssueListPanel extends JPanel implements IssueListView {
     private final JButton openButton = new JButton("Open");
     private final JButton deletedIssuesButton = new JButton("Deleted");
     private final JButton statisticsButton = new JButton("Statistics");
-    private final boolean canManageDeletedIssues;
     private boolean busy;
     private boolean registerAllowed;
 
@@ -71,7 +69,6 @@ final class IssueListPanel extends JPanel implements IssueListView {
         this.dialogs = Objects.requireNonNull(dialogs, "dialogs");
         this.actions = Objects.requireNonNull(actions, "actions");
         this.userLabel = new JLabel(user.name() + " (" + user.role() + ")");
-        this.canManageDeletedIssues = user.role() == Role.PL;
 
         setName("issueListPanel");
         setLayout(new BorderLayout(SwingStyles.SECTION_GAP, SwingStyles.SECTION_GAP));
@@ -223,7 +220,6 @@ final class IssueListPanel extends JPanel implements IssueListView {
         panel.add(openButton);
 
         deletedIssuesButton.setName("deletedIssuesButton");
-        deletedIssuesButton.setVisible(canManageDeletedIssues);
         deletedIssuesButton.addActionListener(event -> actions.onDeletedIssues().run());
         panel.add(deletedIssuesButton);
 
@@ -301,7 +297,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         boolean enabled = !busy;
         registerButton.setEnabled(enabled && registerAllowed);
         openButton.setEnabled(enabled && selectedIssue().isPresent());
-        deletedIssuesButton.setEnabled(enabled && canManageDeletedIssues);
+        deletedIssuesButton.setEnabled(enabled);
         statisticsButton.setEnabled(enabled);
     }
 

@@ -226,13 +226,6 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
         });
     }
 
-    private void showPlaceholder(JPanel card, String destination, UserResult user, Runnable onBack) {
-        card.removeAll();
-        card.add(new PlaceholderPanel(destination, user, onBack, this::logout), BorderLayout.CENTER);
-        card.revalidate();
-        card.repaint();
-    }
-
     private void showAccountManagement(UserResult user) {
         SwingUtilities.invokeLater(() -> {
             cancelViewWorkers();
@@ -482,16 +475,7 @@ final class SwingAppPanel extends JPanel implements SwingNavigator {
             showIssueSoftDelete(user, projectId, issueId, panel);
             return;
         }
-        SwingUtilities.invokeLater(() -> {
-            cancelViewWorkers();
-            titleUpdater.accept("Issue action");
-            showPlaceholder(
-                    projectListCard,
-                    "Issue action " + action,
-                    user,
-                    () -> showIssueDetail(user, projectId, issueId));
-            cardLayout.show(this, PROJECT_LIST_CARD);
-        });
+        panel.showMessage("Unsupported issue action: " + action, true);
     }
 
     private void showIssueComment(

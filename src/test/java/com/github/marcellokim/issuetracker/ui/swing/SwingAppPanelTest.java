@@ -40,6 +40,7 @@ import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
+import com.github.marcellokim.issuetracker.service.IssueWorkflowActions;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.KNNAssignmentRecommendation;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
@@ -572,6 +573,86 @@ class SwingAppPanelTest {
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "deletedIssueBackButton", JButton.class).doClick());
         awaitIssueRows(panel, 1);
+    }
+
+    @Test
+    @DisplayName("issue list deleted action surfaces controller failure for non PL")
+    void issueListDeletedActionSurfacesControllerFailureForNonPl() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User dev = user("dev1", Role.DEV);
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 1)),
+                List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, dev)),
+                dev);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitIssueRows(panel, 1);
+        awaitButtonEnabled(panel, "deletedIssuesButton");
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "deletedIssuesButton", JButton.class).doClick());
+
+        awaitLabelText(panel, "deletedIssueMessage", "Only PL can manage deleted issues.");
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Deleted issue management",
+                    SwingComponentTestSupport.find(panel, "deletedIssueTitle", JLabel.class).getText());
+            assertEquals(0, SwingComponentTestSupport.find(panel, "deletedIssueTable", JTable.class).getRowCount());
+        });
+    }
+
+    @Test
+    @DisplayName("unsupported issue action stays on detail and shows an error")
+    void unsupportedIssueActionStaysOnDetailAndShowsError() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        User pl = user("pl1", Role.PL);
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 1)),
+                List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, pl)),
+                pl);
+
+        openFirstIssueDetail(panel, "[ISSUE-7] Login bug");
+        awaitButtonEnabled(panel, "issueActionButton_START_ASSIGNMENT");
+
+        SwingComponentTestSupport.onEdt(() -> {
+            IssueDetailPanel detail = SwingComponentTestSupport.find(panel, "issueDetailPanel", IssueDetailPanel.class);
+            detail.showActions(new IssueWorkflowActions(
+                    false,
+                    false,
+                    true,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false));
+            SwingComponentTestSupport.find(panel, "issueActionButton_START_ASSIGNMENT", JButton.class).doClick();
+
+            assertEquals(
+                    "[ISSUE-7] Login bug",
+                    SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
+            assertEquals(
+                    "Unsupported issue action: START_ASSIGNMENT",
+                    SwingComponentTestSupport.find(panel, "issueDetailMessage", JLabel.class).getText());
+        });
     }
 
     @Test
@@ -1450,6 +1531,40 @@ class SwingAppPanelTest {
                 assertEquals(
                         expectedState,
                         SwingComponentTestSupport.find(panel, "issueDetailState", JLabel.class).getText());
+            }
+        });
+    }
+
+    private static void awaitLabelText(SwingAppPanel panel, String labelName, String expectedText) throws Exception {
+        CountDownLatch labelReady = new CountDownLatch(1);
+        AtomicReference<Timer> timerRef = new AtomicReference<>();
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = new Timer(25, event -> {
+                try {
+                    String actual = SwingComponentTestSupport.find(panel, labelName, JLabel.class).getText();
+                    if (expectedText.equals(actual)) {
+                        ((Timer) event.getSource()).stop();
+                        labelReady.countDown();
+                    }
+                } catch (RuntimeException | AssertionError ignored) {
+                    // The target panel may still be installing or refreshing asynchronously.
+                }
+            });
+            timer.setRepeats(true);
+            timerRef.set(timer);
+            timer.start();
+        });
+
+        boolean ready = labelReady.await(5, TimeUnit.SECONDS);
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = timerRef.get();
+            if (timer != null) {
+                timer.stop();
+            }
+            if (!ready) {
+                assertEquals(
+                        expectedText,
+                        SwingComponentTestSupport.find(panel, labelName, JLabel.class).getText());
             }
         });
     }
