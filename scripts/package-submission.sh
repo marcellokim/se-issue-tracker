@@ -122,6 +122,10 @@ rsync -a \
     --exclude 'dist*/' \
     --exclude 'tmp/' \
     --exclude 'docs/qa/artifacts/' \
+    --exclude '.idea/' \
+    --exclude '.vscode/' \
+    --exclude '.DS_Store' \
+    --exclude '__pycache__/' \
     --exclude 'docs/textbook/' \
     --exclude '*:Zone.Identifier' \
     --exclude 'AGENTS.md' \
