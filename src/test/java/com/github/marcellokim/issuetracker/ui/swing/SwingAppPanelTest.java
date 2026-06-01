@@ -349,6 +349,119 @@ class SwingAppPanelTest {
         });
     }
 
+    @Test
+    @DisplayName("project user login shows project list data")
+    void projectUserLoginShowsProjectListData() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(1L, "Alpha", 3, 7)),
+                user("dev1", Role.DEV));
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Project list",
+                    SwingComponentTestSupport.find(panel, "projectListTitle", JLabel.class).getText());
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            assertEquals("Alpha", projects.getValueAt(0, 1));
+        });
+    }
+
+    @Test
+    @DisplayName("project list opens issue list placeholder with selected project id")
+    void projectListOpensIssueListPlaceholderWithSelectedProjectId() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(7L, "Alpha", 3, 7)),
+                user("tester1", Role.TESTER));
+
+        SwingComponentTestSupport.onEdt(() -> {
+            JTable projects = SwingComponentTestSupport.find(panel, "projectListTable", JTable.class);
+            projects.setRowSelectionInterval(0, 0);
+        });
+        awaitButtonEnabled(panel, "openProjectIssuesButton");
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "openProjectIssuesButton", JButton.class).doClick());
+        awaitPlaceholderTitle(panel, "Issue list #7");
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertEquals(
+                    "Issue list #7",
+                    SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText());
+            SwingComponentTestSupport.find(panel, "backButton", JButton.class).doClick();
+        });
+        awaitProjectListRows(panel, 1);
+    }
+
+    @Test
+    @DisplayName("project list logout returns to login")
+    void projectListLogoutReturnsToLogin() throws Exception {
+        var passwordHashing = new RecordingPasswordHashing();
+        var titles = new RecordingTitleUpdater();
+        SwingAppPanel panel = loginProjectUser(
+                passwordHashing,
+                titles,
+                List.of(projectSnapshot(1L, "Alpha", 3, 7)),
+                user("pl1", Role.PL));
+
+        SwingComponentTestSupport.onEdt(() ->
+                SwingComponentTestSupport.find(panel, "projectListLogoutButton", JButton.class).doClick());
+
+        SwingComponentTestSupport.onEdt(() -> {
+            assertTrue(SwingComponentTestSupport.find(panel, "signInButton", JButton.class).isEnabled());
+            assertEquals("", new String(SwingComponentTestSupport.find(
+                    panel,
+                    "passwordField",
+                    JPasswordField.class).getPassword()));
+        });
+    }
+
+    private static SwingAppPanel loginProjectUser(
+            RecordingPasswordHashing passwordHashing,
+            RecordingTitleUpdater titles,
+            List<DashboardProjectSnapshot> projects,
+            User user) throws Exception {
+        var panelRef = new AtomicReference<SwingAppPanel>();
+        var workerDone = new CountDownLatch(1);
+        SwingControllerFixture controllers = controllers(passwordHashing, projects, user);
+
+        SwingComponentTestSupport.onEdt(() -> {
+            SwingAppPanel panel = new SwingAppPanel(
+                    controllers.authenticationController(),
+                    controllers.dashboardController(),
+                    controllers.accountController(),
+                    controllers.projectController(),
+                    titles::update);
+            panelRef.set(panel);
+            SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class).setText(user.getLoginId());
+            SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class).setText("submitted-password");
+            SwingComponentTestSupport.find(panel, "signInButton", JButton.class).doClick();
+            SwingWorker<?, ?> worker = loginWorker(panel);
+            worker.addPropertyChangeListener(event -> {
+                if ("state".equals(event.getPropertyName())
+                        && SwingWorker.StateValue.DONE == event.getNewValue()) {
+                    workerDone.countDown();
+                }
+            });
+            if (SwingWorker.StateValue.DONE == worker.getState()) {
+                workerDone.countDown();
+            }
+        });
+
+        assertTrue(passwordHashing.awaitMatch());
+        assertTrue(titles.awaitProjectList());
+        assertTrue(workerDone.await(5, TimeUnit.SECONDS));
+        SwingAppPanel panel = panelRef.get();
+        assertNotNull(panel);
+        awaitProjectListRows(panel, projects.size());
+        return panel;
+    }
+
     private static SwingWorker<?, ?> loginWorker(SwingAppPanel panel) throws ReflectiveOperationException {
         Field worker = SwingAppPanel.class.getDeclaredField("loginWorker");
         worker.setAccessible(true);
@@ -365,6 +478,10 @@ class SwingAppPanelTest {
 
     private static void awaitManagedProjectRows(SwingAppPanel panel, int expectedRows) throws Exception {
         awaitRows(panel, "projectManagementTable", expectedRows);
+    }
+
+    private static void awaitProjectListRows(SwingAppPanel panel, int expectedRows) throws Exception {
+        awaitRows(panel, "projectListTable", expectedRows);
     }
 
     private static void awaitProjectDetailName(SwingAppPanel panel, String expectedName) throws Exception {
@@ -398,6 +515,40 @@ class SwingAppPanelTest {
                 assertEquals(
                         expectedName,
                         SwingComponentTestSupport.find(panel, "projectDetailNameValue", JLabel.class).getText());
+            }
+        });
+    }
+
+    private static void awaitPlaceholderTitle(SwingAppPanel panel, String expectedTitle) throws Exception {
+        CountDownLatch placeholderReady = new CountDownLatch(1);
+        AtomicReference<Timer> timerRef = new AtomicReference<>();
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = new Timer(25, event -> {
+                try {
+                    String actual = SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText();
+                    if (expectedTitle.equals(actual)) {
+                        ((Timer) event.getSource()).stop();
+                        placeholderReady.countDown();
+                    }
+                } catch (AssertionError ignored) {
+                    // Placeholder is installed asynchronously after navigation.
+                }
+            });
+            timer.setRepeats(true);
+            timerRef.set(timer);
+            timer.start();
+        });
+
+        boolean ready = placeholderReady.await(5, TimeUnit.SECONDS);
+        SwingComponentTestSupport.onEdt(() -> {
+            Timer timer = timerRef.get();
+            if (timer != null) {
+                timer.stop();
+            }
+            if (!ready) {
+                assertEquals(
+                        expectedTitle,
+                        SwingComponentTestSupport.find(panel, "placeholderTitle", JLabel.class).getText());
             }
         });
     }
@@ -545,7 +696,7 @@ class SwingAppPanelTest {
 
         @Override
         public List<DashboardProjectSnapshot> findProjectSummariesByParticipant(String loginId) {
-            return List.of();
+            return projects;
         }
     }
 
@@ -599,15 +750,23 @@ class SwingAppPanelTest {
     private static final class RecordingTitleUpdater {
 
         private final CountDownLatch adminDashboardShown = new CountDownLatch(1);
+        private final CountDownLatch projectListShown = new CountDownLatch(1);
 
         private void update(String title) {
             if ("Admin dashboard".equals(title)) {
                 adminDashboardShown.countDown();
             }
+            if ("Project list".equals(title)) {
+                projectListShown.countDown();
+            }
         }
 
         private boolean awaitAdminDashboard() throws InterruptedException {
             return adminDashboardShown.await(5, TimeUnit.SECONDS);
+        }
+
+        private boolean awaitProjectList() throws InterruptedException {
+            return projectListShown.await(5, TimeUnit.SECONDS);
         }
     }
 }
