@@ -225,7 +225,6 @@ package "Service Layer\n(application services, policies, ports, DTO/results)" #F
     +assertCanManageProject(user): void
     +canViewAllProjects(user): boolean
     +canViewAllUsers(user): boolean
-    +canViewAllProjectIssues(user): boolean
     +assertCanViewStatistics(user): void
   }
 
