@@ -2,7 +2,7 @@
 
 ## Scope
 
-`DeletedIssueController` exposes deleted issue management APIs for PL users. It covers viewing deleted issues, soft-deleting active issues, restoring deleted issues, and purging overflow beyond the retention limit.
+`DeletedIssueController` exposes deleted issue management APIs for PL users. It covers viewing deleted issues, soft-deleting active issues, restoring deleted issues, enforcing the retention limit during delete, and purging one deleted issue.
 
 ## Public Operations
 
@@ -15,6 +15,7 @@
 
 ## Operation Details
 
+All operations require a logged-in actor. `deleteIssue` uses `DeletedIssueRepository.softDelete` and then purges deleted issues beyond `MAX_DELETED_ISSUES_PER_PROJECT = 30`. `restoreIssue` delegates to `DeletedIssueRepository.restore`. `purgeDeletedIssue` physically deletes one issue that is already in `DELETED` status.
 
 `deleteIssue` and `restoreIssue` require non-blank `comment` values at the JDBC delete/restore operation boundary. Restore succeeds only for an issue currently in `DELETED` status. The restore target status is read from the latest `IssueHistory(STATUS_CHANGED, newValue=DELETED).previousValue`; missing delete history or a pre-delete status other than `NEW` or `CLOSED` fails.
 
@@ -22,8 +23,9 @@
 
 | API | UC/SSD/OC | DCD/domain evidence |
 | --- | --- | --- |
-| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; implementation `JdbcIssueDeleteOperations.softDelete` |
-| `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)` in DCD; implementation `JdbcIssueDeleteOperations.restore`, `latestPreDeleteStatus` |
+| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; implementation `JdbcDeletedIssueRepository.softDelete` |
+| `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)` in DCD; implementation `JdbcDeletedIssueRepository.restore`, `latestPreDeleteStatus` |
+| `viewDeletedIssues`, `purgeDeletedIssue` | UC9 support APIs | DCD deleted issue workflow; implementation `DeletedIssueService.viewDeletedIssues`, `purgeDeletedIssue`, `JdbcDeletedIssueRepository.purgeDeletedBeyondLimit`, `purgeDeletedById` |
 
 ## Implementation And Design Gaps
 
@@ -44,14 +46,16 @@
 
 ## Evidence
 
-- `src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/JdbcIssueDeleteOperations.java`: `JdbcIssueDeleteOperations.softDelete`, `restore`, `latestPreDeleteStatus`, `purgeDeletedBeyondLimit`, `purgeDeletedById`
+- `src/main/java/com/github/marcellokim/issuetracker/controller/DeletedIssueController.java`: `DeletedIssueController.viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue`, `requireCurrentUser`
+- `src/main/java/com/github/marcellokim/issuetracker/service/DeletedIssueService.java`: `DeletedIssueService.viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue`
+- `src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/JdbcDeletedIssueRepository.java`: `JdbcDeletedIssueRepository.softDelete`, `restore`, `latestPreDeleteStatus`, `purgeDeletedBeyondLimit`, `purgeDeletedById`
 - `src/main/java/com/github/marcellokim/issuetracker/service/PermissionPolicy.java`: `PermissionPolicy.assertCanManageDeletedIssue`, `assertCanChangeStatus`
 - `src/main/java/com/github/marcellokim/issuetracker/service/IssueSummary.java`: `IssueSummary`
 # DeletedIssueController API
 
 ## 범위
 
-`DeletedIssueController`는 PL 사용자를 위한 삭제 이슈 관리 API를 제공한다. 삭제된 이슈 조회, 활성 이슈의 soft delete, 삭제 이슈 복구, 보관 개수 초과분 정리, 삭제 이슈 단건 물리 삭제를 다룬다.
+`DeletedIssueController`는 PL 사용자를 위한 삭제 이슈 관리 API를 제공한다. 삭제된 이슈 조회, 활성 이슈의 soft delete, 삭제 이슈 복구, delete 시점의 보관 개수 제한 적용, 삭제 이슈 단건 물리 삭제를 다룬다.
 
 ## 공개 오퍼레이션
 
@@ -68,10 +72,9 @@
 
 `viewDeletedIssues`는 특정 프로젝트의 `DELETED` 상태 이슈 목록을 `IssueSummary` 목록으로 반환한다.
 
-`deleteIssue`는 비어 있지 않은 `comment`를 요구하고, `IssueRepository.softDelete`를 통해 이슈 상태를 `DELETED`로 바꾼다. 삭제 가능한 이슈 상태는 `NEW` 또는 `CLOSED`이다. soft delete 이후 같은 프로젝트에서 삭제 이슈가 `MAX_DELETED_ISSUES_PER_PROJECT = 30`개를 초과하면 FIFO 기준으로 초과분을 물리 삭제한다.
+`deleteIssue`는 비어 있지 않은 `comment`를 요구하고, `DeletedIssueRepository.softDelete`를 통해 이슈 상태를 `DELETED`로 바꾼다. 삭제 가능한 이슈 상태는 `NEW` 또는 `CLOSED`이다. soft delete 이후 같은 프로젝트에서 삭제 이슈가 `MAX_DELETED_ISSUES_PER_PROJECT = 30`개를 초과하면 FIFO 기준으로 초과분을 물리 삭제한다.
 
-`restoreIssue`는 비어 있지 않은 `comment`를 요구하고, `IssueRepository.restore`에 위임한다. 복구 대상은 현재 `DELETED` 상태여야 한다. 복구 상태는 최신 `IssueHistory(STATUS_CHANGED, newValue=DELETED)`의 `previousValue`에서 읽는다. 삭제 이력이 없거나 삭제 전 상태가 `NEW` 또는 `CLOSED`가 아니면 복구에 실패한다.
-
+`restoreIssue`는 비어 있지 않은 `comment`를 요구하고, `DeletedIssueRepository.restore`에 위임한다. 복구 대상은 현재 `DELETED` 상태여야 한다. 복구 상태는 최신 `IssueHistory(STATUS_CHANGED, newValue=DELETED)`의 `previousValue`에서 읽는다. 삭제 이력이 없거나 삭제 전 상태가 `NEW` 또는 `CLOSED`가 아니면 복구에 실패한다.
 
 `purgeDeletedIssue`는 이미 `DELETED` 상태인 이슈 하나를 물리 삭제한다. 대상 이슈가 `DELETED` 상태가 아니면 실패한다.
 
@@ -79,8 +82,9 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; 구현 `JdbcIssueDeleteOperations.softDelete` |
-| `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | DCD의 `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)`; 구현 `JdbcIssueDeleteOperations.restore`, `latestPreDeleteStatus` |
+| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; 구현 `JdbcDeletedIssueRepository.softDelete` |
+| `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | DCD의 `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)`; 구현 `JdbcDeletedIssueRepository.restore`, `latestPreDeleteStatus` |
+| `viewDeletedIssues`, `purgeDeletedIssue` | UC9 보조 API | 삭제 이슈 관리 흐름; 구현 `DeletedIssueService.viewDeletedIssues`, `purgeDeletedIssue`, `JdbcDeletedIssueRepository.purgeDeletedBeyondLimit`, `purgeDeletedById` |
 
 ## 구현 및 설계 차이
 
@@ -105,6 +109,8 @@
 
 ## 근거
 
-- `src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/JdbcIssueDeleteOperations.java`: `JdbcIssueDeleteOperations.softDelete`, `restore`, `latestPreDeleteStatus`, `purgeDeletedBeyondLimit`, `purgeDeletedById`
+- `src/main/java/com/github/marcellokim/issuetracker/controller/DeletedIssueController.java`: `DeletedIssueController.viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue`, `requireCurrentUser`
+- `src/main/java/com/github/marcellokim/issuetracker/service/DeletedIssueService.java`: `DeletedIssueService.viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue`
+- `src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/JdbcDeletedIssueRepository.java`: `JdbcDeletedIssueRepository.softDelete`, `restore`, `latestPreDeleteStatus`, `purgeDeletedBeyondLimit`, `purgeDeletedById`
 - `src/main/java/com/github/marcellokim/issuetracker/service/PermissionPolicy.java`: `PermissionPolicy.assertCanManageDeletedIssue`, `assertCanChangeStatus`
 - `src/main/java/com/github/marcellokim/issuetracker/service/IssueSummary.java`: `IssueSummary`
