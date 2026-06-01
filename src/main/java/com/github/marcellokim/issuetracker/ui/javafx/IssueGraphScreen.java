@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -79,13 +80,8 @@ final class IssueGraphScreen extends VBox {
         try{
             List<IssueSummary> allIssues = issueController.viewRelatedProjectIssues(projectId);
             List<DependencyResult> allDeps = issueController.viewProjectDependencies(projectId);
-            Set<Long> depIssueIds = new HashSet<>();
-            for (DependencyResult dep : allDeps){
-                depIssueIds.add(dep.blockingIssueId());
-                depIssueIds.add(dep.blockedIssueId());
-            }
-            graphIssues = allIssues.stream().filter(i -> depIssueIds.contains(i.id())).toList();
-            graphDeps = allDeps;
+            graphDeps = visibleDependencies(allIssues, allDeps);
+            graphIssues = dependencyIssues(allIssues, graphDeps);
             issueListView.getItems().clear();
             for (IssueSummary issue : graphIssues){
                 issueListView.getItems().add(String.format("[%s] %s | %s | %s",
@@ -101,6 +97,27 @@ final class IssueGraphScreen extends VBox {
             graphDeps = List.of();
             ScreenComponents.showError(messageLabel, exception);
         }
+    }
+
+    static List<DependencyResult> visibleDependencies(List<IssueSummary> issues, List<DependencyResult> deps){
+        Set<Long> visibleIssueIds = issues.stream()
+                .map(IssueSummary::id)
+                .collect(Collectors.toSet());
+        return deps.stream()
+                .filter(dep -> visibleIssueIds.contains(dep.blockingIssueId())
+                        && visibleIssueIds.contains(dep.blockedIssueId()))
+                .toList();
+    }
+
+    static List<IssueSummary> dependencyIssues(List<IssueSummary> issues, List<DependencyResult> deps){
+        Set<Long> depIssueIds = new HashSet<>();
+        for (DependencyResult dep : deps){
+            depIssueIds.add(dep.blockingIssueId());
+            depIssueIds.add(dep.blockedIssueId());
+        }
+        return issues.stream()
+                .filter(issue -> depIssueIds.contains(issue.id()))
+                .toList();
     }
 
     private void renderGraph(Pane holder){
