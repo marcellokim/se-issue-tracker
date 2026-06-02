@@ -11,15 +11,15 @@ participant "relatedDependency:IssueDependency" as Dependency
 
 PL -> DIC : deleteIssue(issueId, comment)
 
-alt status or permission is invalid
+alt 상태 또는 권한 조건이 맞지 않음
   DIC --> PL : deleteRejected(reason)
-else comment is blank
+else 삭제 사유가 비어 있음
   DIC --> PL : deleteRejected(commentRequired)
-else valid soft delete target
+else soft delete 대상 조건을 만족함
   DIC -> Issue : markDeleted(currentPL, comment, now)
   activate Issue
 
-  loop each dependency related to targetIssue
+  loop targetIssue와 관련된 각 dependency
     Issue -> Dependency : removeFromIssueGraph()
     destroy Dependency
   end
@@ -30,7 +30,7 @@ else valid soft delete target
   Issue --> DIC : deleted(status=DELETED)
   deactivate Issue
 
-  opt deleted issue count exceeds retention limit
+  opt deleted issue 보관 한도를 초과함
     DIC -> DIC : purgeOldestDeletedIssue()
   end
 

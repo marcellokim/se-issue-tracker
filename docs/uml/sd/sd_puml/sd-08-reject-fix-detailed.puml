@@ -10,11 +10,11 @@ participant "targetIssue:Issue" as Issue
 
 Tester -> ISC : changeStatus(issueId, ASSIGNED, comment)
 
-alt status or permission is invalid
+alt 상태 또는 권한 조건이 맞지 않음
   ISC --> Tester : statusChangeRejected(reason)
-else comment is blank
+else 상태 변경 사유가 비어 있음
   ISC --> Tester : statusChangeRejected(commentRequired)
-else valid FIXED -> ASSIGNED transition
+else FIXED -> ASSIGNED 전이가 가능함
   ISC -> Issue : rejectFix(currentTester, comment, now)
   activate Issue
   create "rejectComment:Comment" as Comment

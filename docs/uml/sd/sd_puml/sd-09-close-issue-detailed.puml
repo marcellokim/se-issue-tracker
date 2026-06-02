@@ -10,11 +10,11 @@ participant "targetIssue:Issue" as Issue
 
 PL -> ISC : changeStatus(issueId, CLOSED, comment)
 
-alt status or permission is invalid
+alt 상태 또는 권한 조건이 맞지 않음
   ISC --> PL : statusChangeRejected(reason)
-else comment is blank
+else 상태 변경 사유가 비어 있음
   ISC --> PL : statusChangeRejected(commentRequired)
-else valid RESOLVED -> CLOSED transition
+else RESOLVED -> CLOSED 전이가 가능함
   ISC -> Issue : close(currentPL, comment, now)
   activate Issue
   create "closeComment:Comment" as Comment

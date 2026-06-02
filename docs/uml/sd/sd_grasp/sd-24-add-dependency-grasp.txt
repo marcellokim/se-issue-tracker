@@ -17,4 +17,4 @@ blockedIssue는 자신이 어떤 blocking issue 때문에 막히는지와 depend
 IssueDependency와 DEPENDENCY_CHANGED history는 blockedIssue에 연결되는 기록이므로 blockedIssue가 생성한다.
 
 4. Protected Variations
-cycle/duplicate 검사는 구현에서는 repository 조회가 필요하지만, SD에서는 blockedIssue의 dependency rule 검증 책임으로 요약한다. dependency 추가는 Issue status를 직접 바꾸지 않고, 이후 FIXED -> RESOLVED 전이에서 blocking issue 상태를 확인하는 guard로 사용된다.
+cycle/duplicate 검사는 여러 dependency 관계를 확인해야 하는 규칙이지만, SD에서는 blockedIssue의 dependency rule 검증 책임으로 요약한다. dependency 추가는 Issue status를 직접 바꾸지 않고, 이후 FIXED -> RESOLVED 전이에서 blocking issue 상태를 확인하는 guard로 사용된다.

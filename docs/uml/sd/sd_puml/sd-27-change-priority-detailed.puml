@@ -10,9 +10,9 @@ participant "targetIssue:Issue" as Issue
 
 PL -> IC : changePriority(issueId, newPriority)
 
-alt PL cannot change priority or newPriority is invalid
+alt PL 권한이 없거나 priority 값이 올바르지 않음
   IC --> PL : priorityChangeRejected(reason)
-else valid priority change
+else priority 변경 조건을 만족함
   IC -> Issue : changePriority(newPriority, currentPL, now)
   activate Issue
   Issue -> Issue : oldPriority := currentPriority;\npriority = newPriority
@@ -25,7 +25,7 @@ else valid priority change
 end
 
 note right of Issue
-Status and assignment associations remain unchanged.
+상태와 배정 관계는 그대로 유지된다.
 end note
 
 @enduml
