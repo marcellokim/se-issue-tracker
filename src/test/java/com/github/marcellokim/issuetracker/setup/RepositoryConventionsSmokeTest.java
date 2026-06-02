@@ -1,11 +1,16 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +34,7 @@ class RepositoryConventionsSmokeTest {
                 ".pr_agent.toml",
                 ".gemini/config.yaml",
                 ".gemini/styleguide.md",
+                ".sonarcloud.properties",
                 ".github/copilot-instructions.md",
                 ".github/dependabot.yml",
                 "config/github/labels.json",
@@ -152,6 +158,19 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),
+                new ScriptExpectation("scripts/package-submission.sh", "docs/qa/artifacts/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".idea/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".vscode/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".DS_Store"),
+                new ScriptExpectation("scripts/package-submission.sh", "__pycache__/"),
+                new ScriptExpectation("scripts/package-submission.sh", "docs/textbook/"),
+                new ScriptExpectation("scripts/package-submission.sh", "*:Zone.Identifier"),
+                new ScriptExpectation("scripts/package-submission.sh", "AGENTS.md"),
+                new ScriptExpectation("scripts/package-submission.sh", "MEMORY.md"),
+                new ScriptExpectation(".gitignore", "docs/qa/artifacts/"),
+                new ScriptExpectation(".gitignore", "docs/textbook/"),
+                new ScriptExpectation(".gitignore", "AGENTS.md"),
+                new ScriptExpectation(".gitignore", "MEMORY.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
                 new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
                 new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
@@ -248,6 +267,109 @@ class RepositoryConventionsSmokeTest {
                 text.contains("\"프로젝트 상태 정렬\""),
                 "프로젝트 상태 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
         );
+    }
+
+    @Test
+    @DisplayName("SonarCloud 자동 분석은 Gradle coverage 제외 정책을 공유한다")
+    void sonarCloudAutomaticAnalysisUsesTheSameCoverageExclusions() throws IOException {
+        var gradle = Files.readString(Path.of("build.gradle"));
+        var sonarCloud = Files.readString(Path.of(".sonarcloud.properties"));
+        var gradleExclusions = gradleCoverageExclusions(gradle);
+        var sonarExclusions = sonarPropertyValues(sonarCloud, "sonar.coverage.exclusions");
+        var automaticAnalysisExclusions = sonarPropertyValues(sonarCloud, "sonar.exclusions");
+
+        assertFalse(gradleExclusions.isEmpty(), "Gradle coverage 제외 정책을 찾을 수 없습니다.");
+        assertFalse(sonarExclusions.isEmpty(), ".sonarcloud.properties에도 coverage 제외 정책이 있어야 합니다.");
+        assertEquals(gradleExclusions, sonarExclusions, "SonarCloud 자동 분석 coverage 제외 정책이 Gradle과 달라졌습니다.");
+        assertFalse(
+                gradleExclusions.stream().anyMatch(value -> value.startsWith("src/main/java/")),
+                "Coverage 제외 정책은 SonarCloud 파일 키와 안정적으로 맞도록 source-root 고정 경로 대신 glob 패턴을 사용해야 합니다."
+        );
+        assertTrue(
+                automaticAnalysisExclusions.containsAll(sonarExclusions),
+                ".sonarcloud.properties의 자동 분석 source 제외 정책은 coverage 제외 정책을 포함해야 합니다."
+        );
+    }
+
+    @Test
+    @DisplayName("이슈 목록과 검색은 related 전용 API 없이 표준 경로를 사용한다")
+    void issueListAndSearchUseStandardPathWithoutRelatedDuplicateApi() throws IOException {
+        try (Stream<Path> paths = Files.walk(Path.of("src/main/java"))) {
+            var offenders = paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> containsAny(
+                            readUnchecked(path),
+                            "searchRelatedProjectIssues",
+                            "viewRelatedProjectIssues"))
+                    .toList();
+
+            assertTrue(
+                    offenders.isEmpty(),
+                    () -> "삭제 대상 related 이슈 API가 남아 있습니다: " + offenders
+            );
+        }
+    }
+
+    @Test
+    @DisplayName("제출 패키징은 Python 표준 라이브러리로 zip을 생성한다")
+    void packageSubmissionUsesPythonZipArchive() throws IOException {
+        var text = Files.readString(Path.of("scripts/package-submission.sh"));
+
+        assertFalse(text.contains("require_tool zip"), "zip CLI가 없어도 제출 패키지를 만들 수 있어야 합니다.");
+        assertTrue(text.contains("import zipfile"), "Python 표준 zipfile 모듈로 archive를 생성해야 합니다.");
+        assertTrue(text.contains("zipfile.ZIP_DEFLATED"), "제출 zip은 압축된 zip archive여야 합니다.");
+    }
+
+    private static boolean containsAny(String text, String... candidates) {
+        for (String candidate : candidates) {
+            if (text.contains(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String readUnchecked(Path path) {
+        try {
+            return Files.readString(path);
+        } catch (IOException exception) {
+            throw new java.io.UncheckedIOException(exception);
+        }
+    }
+
+    private static Set<String> gradleCoverageExclusions(String gradleText) {
+        var matcher = Pattern.compile("def coverageExcludedSources = \\[(?<body>.*?)\\]\\.join\\(','\\)",
+                Pattern.DOTALL).matcher(gradleText);
+        if (!matcher.find()) {
+            return Set.of();
+        }
+        return quotedValues(matcher.group("body"));
+    }
+
+    private static Set<String> quotedValues(String text) {
+        var matcher = Pattern.compile("'([^']+)'").matcher(text);
+        var values = new LinkedHashSet<String>();
+        while (matcher.find()) {
+            values.add(matcher.group(1));
+        }
+        return values;
+    }
+
+    private static Set<String> sonarPropertyValues(String propertiesText, String key) {
+        return propertiesText.lines()
+                .filter(line -> line.startsWith(key + "="))
+                .findFirst()
+                .map(line -> line.substring(key.length() + 1))
+                .map(RepositoryConventionsSmokeTest::commaSeparatedValues)
+                .orElseGet(Set::of);
+    }
+
+    private static Set<String> commaSeparatedValues(String text) {
+        return Arrays.stream(text.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     }
 
     record ScriptExpectation(String relativePath, String expectedText) {

@@ -95,7 +95,7 @@ package "Controller Layer\n(system operation receivers)" #FFF8E1 {
     +registerIssue(projectId, title, description, priority): IssueResult
     +viewIssueDetail(issueId): IssueDetailResult
     +searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo): List<IssueSummary>
-    +viewRelatedProjectIssues(projectId): List<IssueSummary>
+    +viewProjectIssues(projectId): List<IssueSummary>
     +updateIssue(issueId, title, description): IssueResult
     +changePriority(issueId, priority): IssueResult
     +addComment(issueId, content): CommentResult
@@ -167,7 +167,7 @@ package "Service Layer\n(application services, policies, ports, DTO/results)" #F
     +registerIssue(projectId, title, description, priority, currentLoginId): IssueResult
     +viewIssueDetail(issueId, currentLoginId): IssueDetailResult
     +searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo, currentLoginId): List<IssueSummary>
-    +viewRelatedProjectIssues(projectId, currentLoginId): List<IssueSummary>
+    +viewProjectIssues(projectId, currentLoginId): List<IssueSummary>
     +updateIssue(issueId, title, description, currentLoginId): IssueResult
     +changePriority(issueId, priority, currentLoginId): IssueResult
     +addComment(issueId, content, currentLoginId): CommentResult

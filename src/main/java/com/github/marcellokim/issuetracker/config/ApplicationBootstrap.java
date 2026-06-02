@@ -24,6 +24,7 @@ import com.github.marcellokim.issuetracker.technical.SystemClock;
 import com.github.marcellokim.issuetracker.service.DashboardSummaryService;
 import com.github.marcellokim.issuetracker.service.DeletedIssueService;
 import com.github.marcellokim.issuetracker.service.IssueService;
+import com.github.marcellokim.issuetracker.service.IssueIdProvider;
 import com.github.marcellokim.issuetracker.service.IssueStateService;
 import com.github.marcellokim.issuetracker.service.IssueWorkflowService;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
@@ -34,6 +35,7 @@ import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import com.github.marcellokim.issuetracker.service.CommentIdProvider;
 import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
+import com.github.marcellokim.issuetracker.technical.IssueIdGenerator;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -57,6 +59,7 @@ public final class ApplicationBootstrap {
                 var dashboardSummaries = repositories.dashboardSummaries();
                 PermissionPolicy permissionPolicy = new PermissionPolicy();
                 Clock clock = new SystemClock();
+                IssueIdProvider issueIdProvider = new IssueIdGenerator();
                 CommentIdProvider commentIdProvider = new CommentIdGenerator();
                 AuthenticationService authenticationService = authenticationService(users);
                 AccountService accountService = new AccountService(
@@ -74,6 +77,7 @@ public final class ApplicationBootstrap {
                                 issueHistory,
                                 users,
                                 permissionPolicy,
+                                issueIdProvider,
                                 clock);
                 AssignmentService assignmentService = new AssignmentService(
                                 issues,

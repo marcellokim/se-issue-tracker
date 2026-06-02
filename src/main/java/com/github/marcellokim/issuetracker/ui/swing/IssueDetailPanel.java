@@ -75,6 +75,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
 
     private final transient IssueDetailActions actions;
     private final JLabel titleLabel = new JLabel("Issue");
+    private final JLabel issueIdLabel = new JLabel(" ");
     private final JLabel stateLabel = new JLabel(" ");
     private final JLabel userLabel;
     private final JLabel descriptionLabel = new JLabel(" ");
@@ -135,7 +136,10 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         Objects.requireNonNull(projectDependencies, "projectDependencies");
         Map<String, IssueCommentActionState> commentActionById = commentActionById(commentActions);
         runOnEdt(() -> {
-            titleLabel.setText("[" + detail.issueId() + "] " + detail.title());
+            titleLabel.setText(detail.title());
+            titleLabel.setToolTipText(detail.title());
+            issueIdLabel.setText("Issue ID: " + detail.issueId());
+            issueIdLabel.setToolTipText(detail.issueId());
             stateLabel.setText(detail.status() + " / " + detail.priority());
             descriptionLabel.setText(detail.description());
             currentTitle = detail.title();
@@ -204,11 +208,12 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         logoutButton.setName("issueDetailLogoutButton");
         logoutButton.addActionListener(event -> actions.onLogout().run());
         configureHeaderLabel(titleLabel, "issueDetailTitle", true);
+        configureHeaderLabel(issueIdLabel, "issueDetailIssueId", false);
         configureHeaderLabel(stateLabel, "issueDetailState", false);
         configureHeaderLabel(userLabel, "issueDetailUser", false);
         configureHeaderLabel(messageLabel, "issueDetailMessage", false);
         return SwingPanelSections.navigationHeader(
-                List.of(titleLabel, stateLabel, userLabel, messageLabel),
+                List.of(titleLabel, issueIdLabel, stateLabel, userLabel, messageLabel),
                 List.of(backButton, logoutButton));
     }
 
@@ -265,6 +270,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             JButton button = new JButton(spec.label());
             button.setName("issueActionButton_" + spec.action());
             button.addActionListener(event -> publishAction(spec.action()));
+            SwingStyles.applySecondaryButton(button);
             actionButtons.put(spec.action(), button);
             buttons.add(button);
         }
@@ -288,6 +294,9 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         addCommentButton.setName("addCommentButton");
         editCommentButton.setName("editCommentButton");
         deleteCommentButton.setName("deleteCommentButton");
+        SwingStyles.applySecondaryButton(addCommentButton);
+        SwingStyles.applySecondaryButton(editCommentButton);
+        SwingStyles.applySecondaryButton(deleteCommentButton);
         buttons.add(addCommentButton);
         buttons.add(editCommentButton);
         buttons.add(deleteCommentButton);
@@ -315,6 +324,8 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         buttons.setOpaque(false);
         addDependencyButton.setName("addDependencyButton");
         removeDependencyButton.setName("removeDependencyButton");
+        SwingStyles.applySecondaryButton(addDependencyButton);
+        SwingStyles.applySecondaryButton(removeDependencyButton);
         buttons.add(addDependencyButton);
         buttons.add(removeDependencyButton);
         header.add(buttons, BorderLayout.EAST);

@@ -1,7 +1,6 @@
 package com.github.marcellokim.issuetracker.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -24,11 +23,12 @@ class IssueCreationTest {
                                 "Login fails",
                                 "Cannot log in",
                                 reporter)
+                                .issueId("ISSUE-NEW-1")
                                 .reportedDate(createdAt)
                                 .updatedAt(createdAt));
 
-                assertEquals(0L, issue.id());
-                assertFalse(issue.getIssueId().isBlank());
+        assertEquals(0L, issue.id());
+        assertEquals("ISSUE-NEW-1", issue.getIssueId());
                 assertEquals("Login fails", issue.getTitle());
                 assertEquals("Cannot log in", issue.getDescription());
                 assertSame(reporter, issue.getReporter());
@@ -50,6 +50,7 @@ class IssueCreationTest {
                                 "Crash",
                                 "App crashes",
                                 reporter)
+                                .issueId("ISSUE-NEW-2")
                                 .priority(Priority.CRITICAL)
                                 .reportedDate(createdAt)
                                 .updatedAt(createdAt));
@@ -79,20 +80,22 @@ class IssueCreationTest {
         @Test
         @DisplayName("saved issue needs its ids")
         void savedIssueNeedsItsIds() {
-                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(
-                                Issue.persistedState(1L, "Bug", "desc", reporter)
-                                                .id(0L)
-                                                .issueId("ISSUE-1")
-                                                .reportedDate(createdAt)
-                                                .updatedAt(createdAt)));
-                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(Issue.persistedState(
+                Issue.PersistedState missingDatabaseId = Issue.persistedState(1L, "Bug", "desc", reporter)
+                                .id(0L)
+                                .issueId("ISSUE-1")
+                                .reportedDate(createdAt)
+                                .updatedAt(createdAt);
+                Issue.PersistedState missingIssueId = Issue.persistedState(
                                 1L,
                                 "Missing issue id",
                                 "Persisted state must carry DB issue_id.",
                                 reporter)
                                 .id(11L)
                                 .reportedDate(createdAt)
-                                .updatedAt(createdAt)));
+                                .updatedAt(createdAt);
+
+                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(missingDatabaseId));
+                assertThrows(IllegalArgumentException.class, () -> Issue.fromPersistence(missingIssueId));
         }
 
         @Test
@@ -100,7 +103,17 @@ class IssueCreationTest {
         void newIssueHasNoDatabaseIdYet() {
                 assertThrows(IllegalArgumentException.class, () -> Issue.create(
                                 Issue.persistedState(1L, "Bug", "desc", reporter)
+                                                .issueId("ISSUE-NEW-3")
                                                 .id(5L)
+                                                .reportedDate(createdAt)
+                                                .updatedAt(createdAt)));
+        }
+
+        @Test
+        @DisplayName("new issue needs an issue id")
+        void newIssueNeedsIssueId() {
+                assertThrows(IllegalArgumentException.class, () -> Issue.create(
+                                Issue.persistedState(1L, "Bug", "desc", reporter)
                                                 .reportedDate(createdAt)
                                                 .updatedAt(createdAt)));
         }

@@ -11,6 +11,11 @@ dist/
 
 # Local runtime artifacts
 .[o]mx/
+docs/qa/artifacts/
+docs/textbook/
+AGENTS.md
+MEMORY.md
+memory.md
 
 # OS files
 .DS_Store
@@ -42,6 +47,9 @@ hs_err_pid*
 replay_pid*
 # Windows/WSL downloaded-file metadata
 *:Zone.Identifier
+
+# Local QA screenshots
+docs/qa/artifacts/**/WSL-SW-QA-*.png
 
 # Python cache
 __pycache__/

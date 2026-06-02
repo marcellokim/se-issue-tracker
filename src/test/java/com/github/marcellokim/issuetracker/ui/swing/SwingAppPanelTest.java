@@ -55,6 +55,7 @@ import com.github.marcellokim.issuetracker.support.InMemoryAssignmentRecommendat
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -442,11 +443,11 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitIssueDetailTitle(panel, "Login bug");
 
         SwingComponentTestSupport.onEdt(() -> {
             assertEquals(
-                    "[ISSUE-7] Login bug",
+                    "Login bug",
                     SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
             SwingComponentTestSupport.find(panel, "issueDetailBackButton", JButton.class).doClick();
         });
@@ -623,7 +624,7 @@ class SwingAppPanelTest {
                 List.of(issue(7L, 7L, "Login bug", Priority.CRITICAL, pl)),
                 pl);
 
-        openFirstIssueDetail(panel, "[ISSUE-7] Login bug");
+        openFirstIssueDetail(panel, "Login bug");
         awaitButtonEnabled(panel, "issueActionButton_START_ASSIGNMENT");
 
         SwingComponentTestSupport.onEdt(() -> {
@@ -647,7 +648,7 @@ class SwingAppPanelTest {
             SwingComponentTestSupport.find(panel, "issueActionButton_START_ASSIGNMENT", JButton.class).doClick();
 
             assertEquals(
-                    "[ISSUE-7] Login bug",
+                    "Login bug",
                     SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
             assertEquals(
                     "Unsupported issue action: START_ASSIGNMENT",
@@ -688,7 +689,7 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitIssueDetailTitle(panel, "Login bug");
         awaitButtonEnabled(panel, "issueActionButton_MARK_FIXED");
 
         SwingComponentTestSupport.onEdt(() ->
@@ -744,7 +745,7 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitIssueDetailTitle(panel, "Login bug");
         awaitButtonEnabled(panel, "issueActionButton_START_ASSIGNMENT");
 
         SwingComponentTestSupport.onEdt(() ->
@@ -800,7 +801,7 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitIssueDetailTitle(panel, "Login bug");
         awaitButtonEnabled(panel, "issueActionButton_START_ASSIGNMENT");
 
         SwingComponentTestSupport.onEdt(() ->
@@ -853,7 +854,7 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitIssueDetailTitle(panel, "Login bug");
         awaitRows(panel, "issueCommentTable", 1);
 
         SwingComponentTestSupport.onEdt(() ->
@@ -943,7 +944,7 @@ class SwingAppPanelTest {
         awaitButtonEnabled(panel, "openIssueDetailButton");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "openIssueDetailButton", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Login bug");
+        awaitIssueDetailTitle(panel, "Login bug");
         awaitRows(panel, "issueDependencyTable", 0);
 
         awaitButtonEnabled(panel, "addDependencyButton");
@@ -1010,11 +1011,11 @@ class SwingAppPanelTest {
                 editPrompt,
                 pl);
 
-        openFirstIssueDetail(panel, "[ISSUE-7] Login bug");
+        openFirstIssueDetail(panel, "Login bug");
         awaitButtonEnabled(panel, "issueActionButton_UPDATE_ISSUE");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "issueActionButton_UPDATE_ISSUE", JButton.class).doClick());
-        awaitIssueDetailTitle(panel, "[ISSUE-7] Edited bug");
+        awaitIssueDetailTitle(panel, "Edited bug");
 
         awaitButtonEnabled(panel, "issueActionButton_CHANGE_PRIORITY");
         SwingComponentTestSupport.onEdt(() ->
@@ -1024,7 +1025,7 @@ class SwingAppPanelTest {
         assertEquals(IssueEditMode.CHANGE_PRIORITY, promptedMode.get());
         SwingComponentTestSupport.onEdt(() -> {
             assertEquals(
-                    "[ISSUE-7] Edited bug",
+                    "Edited bug",
                     SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText());
             assertEquals(
                     "NEW / MINOR",
@@ -1061,12 +1062,12 @@ class SwingAppPanelTest {
                 editPrompt,
                 pl);
 
-        openFirstIssueDetail(panel, "[ISSUE-7] Login bug");
+        openFirstIssueDetail(panel, "Login bug");
         awaitButtonEnabled(panel, "issueActionButton_SOFT_DELETE");
         SwingComponentTestSupport.onEdt(() ->
                 SwingComponentTestSupport.find(panel, "issueActionButton_SOFT_DELETE", JButton.class).doClick());
         SwingComponentTestSupport.onEdt(() -> assertEquals(
-                "[ISSUE-7] Login bug",
+                "Login bug",
                 SwingComponentTestSupport.find(panel, "issueDetailTitle", JLabel.class).getText()));
 
         deleteConfirmed.set(true);
@@ -1783,6 +1784,7 @@ class SwingAppPanelTest {
                                 historyRepository,
                                 repository,
                                 permissionPolicy,
+                                new SequentialIssueIdProvider(),
                                 () -> NOW),
                         new IssueWorkflowService(
                                 issueRepository,

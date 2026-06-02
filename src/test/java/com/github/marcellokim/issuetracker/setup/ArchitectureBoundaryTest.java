@@ -11,8 +11,10 @@ import com.github.marcellokim.issuetracker.repository.DashboardSummaryRepository
 import com.github.marcellokim.issuetracker.service.Clock;
 import com.github.marcellokim.issuetracker.service.CommentIdProvider;
 import com.github.marcellokim.issuetracker.service.CurrentUserSession;
+import com.github.marcellokim.issuetracker.service.IssueIdProvider;
 import com.github.marcellokim.issuetracker.service.PasswordHashing;
 import com.github.marcellokim.issuetracker.technical.CommentIdGenerator;
+import com.github.marcellokim.issuetracker.technical.IssueIdGenerator;
 import com.github.marcellokim.issuetracker.technical.PasswordHasher;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import com.github.marcellokim.issuetracker.technical.SystemClock;
@@ -76,8 +78,75 @@ class ArchitectureBoundaryTest {
     void technicalImplementationsSatisfyServicePorts() {
         assertTrue(Clock.class.isAssignableFrom(SystemClock.class));
         assertTrue(CommentIdProvider.class.isAssignableFrom(CommentIdGenerator.class));
+        assertTrue(IssueIdProvider.class.isAssignableFrom(IssueIdGenerator.class));
         assertTrue(CurrentUserSession.class.isAssignableFrom(SessionStore.class));
         assertTrue(PasswordHashing.class.isAssignableFrom(PasswordHasher.class));
+    }
+
+    @Test
+    @DisplayName("domain and service packages keep runtime sources behind ports")
+    void domainAndServicesKeepRuntimeSourcesBehindPorts() throws IOException {
+        assertNoForbiddenSourceText(
+                Set.of("domain", "service"),
+                Set.of(
+                        "LocalDateTime.now(",
+                        "Instant.now(",
+                        "System.currentTimeMillis(",
+                        "UUID.randomUUID(",
+                        "Math.random(",
+                        "new Random("
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("runtime source scan ignores comments")
+    void runtimeSourceScanIgnoresComments() {
+        JavaSource source = new JavaSource(
+                "domain/Sample.java",
+                List.of(
+                        "package com.github.marcellokim.issuetracker.domain;",
+                        "// UUID.randomUUID( is documentation only.",
+                        "/* LocalDateTime.now( belongs in the example text.",
+                        " * System.currentTimeMillis( is not executable here.",
+                        " */",
+                        "final class Sample {",
+                        "    void method() {",
+                        "        String value = \"safe\";",
+                        "    }",
+                        "}"
+                ),
+                List.of()
+        );
+
+        List<Violation> violations = runtimeSourceViolations(
+                source,
+                Set.of("UUID.randomUUID(", "LocalDateTime.now(", "System.currentTimeMillis(")
+        );
+
+        assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    @DisplayName("runtime source scan reports executable calls")
+    void runtimeSourceScanReportsExecutableCalls() {
+        JavaSource source = new JavaSource(
+                "domain/Sample.java",
+                List.of(
+                        "package com.github.marcellokim.issuetracker.domain;",
+                        "final class Sample {",
+                        "    Object id() {",
+                        "        return UUID.randomUUID();",
+                        "    }",
+                        "}"
+                ),
+                List.of()
+        );
+
+        List<Violation> violations = runtimeSourceViolations(source, Set.of("UUID.randomUUID("));
+
+        assertEquals(1, violations.size());
+        assertEquals(4, violations.get(0).lineNumber());
     }
 
     @Test
@@ -203,6 +272,73 @@ class ArchitectureBoundaryTest {
         }
     }
 
+    private static void assertNoForbiddenSourceText(Set<String> packageSegments, Set<String> forbiddenTexts)
+            throws IOException {
+        List<Violation> violations = new ArrayList<>();
+        for (String packageSegment : packageSegments) {
+            for (JavaSource source : productionSources(packageSegment)) {
+                violations.addAll(runtimeSourceViolations(source, forbiddenTexts));
+            }
+        }
+
+        assertTrue(
+                violations.isEmpty(),
+                () -> "Forbidden runtime sources found:%n%s".formatted(formatViolations(violations))
+        );
+    }
+
+    private static List<Violation> runtimeSourceViolations(JavaSource source, Set<String> forbiddenTexts) {
+        List<Violation> violations = new ArrayList<>();
+        boolean inBlockComment = false;
+        for (int index = 0; index < source.lines().size(); index++) {
+            CodeLine codeLine = executablePart(source.lines().get(index), inBlockComment);
+            inBlockComment = codeLine.inBlockComment();
+            for (String forbiddenText : forbiddenTexts) {
+                if (codeLine.text().contains(forbiddenText)) {
+                    violations.add(new Violation(
+                            source.relativePath(),
+                            index + 1,
+                            "uses runtime source",
+                            forbiddenText
+                    ));
+                }
+            }
+        }
+        return violations;
+    }
+
+    private static CodeLine executablePart(String line, boolean startsInBlockComment) {
+        StringBuilder code = new StringBuilder();
+        boolean inBlockComment = startsInBlockComment;
+        int cursor = 0;
+        while (cursor < line.length()) {
+            if (inBlockComment) {
+                int commentEnd = line.indexOf("*/", cursor);
+                if (commentEnd < 0) {
+                    return new CodeLine(code.toString(), true);
+                }
+                cursor = commentEnd + 2;
+                inBlockComment = false;
+                continue;
+            }
+
+            int lineCommentStart = line.indexOf("//", cursor);
+            int blockCommentStart = line.indexOf("/*", cursor);
+            if (lineCommentStart < 0 && blockCommentStart < 0) {
+                code.append(line.substring(cursor));
+                break;
+            }
+            if (lineCommentStart >= 0 && (blockCommentStart < 0 || lineCommentStart < blockCommentStart)) {
+                code.append(line, cursor, lineCommentStart);
+                break;
+            }
+            code.append(line, cursor, blockCommentStart);
+            cursor = blockCommentStart + 2;
+            inBlockComment = true;
+        }
+        return new CodeLine(code.toString(), inBlockComment);
+    }
+
     private static boolean isForbidden(String importedType, Set<String> forbiddenPrefixes) {
         for (String forbiddenPrefix : forbiddenPrefixes) {
             if (importedType.equals(forbiddenPrefix) || importedType.startsWith(forbiddenPrefix + ".")) {
@@ -305,5 +441,8 @@ class ArchitectureBoundaryTest {
     }
 
     record Violation(String relativePath, int lineNumber, String kind, String reference) {
+    }
+
+    record CodeLine(String text, boolean inBlockComment) {
     }
 }

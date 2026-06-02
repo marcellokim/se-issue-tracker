@@ -78,7 +78,7 @@ final class IssueGraphScreen extends VBox {
 
     private void loadData(){
         try{
-            List<IssueSummary> allIssues = issueController.viewRelatedProjectIssues(projectId);
+            List<IssueSummary> allIssues = issueController.viewProjectIssues(projectId);
             List<DependencyResult> allDeps = issueController.viewProjectDependencies(projectId);
             graphDeps = visibleDependencies(allIssues, allDeps);
             graphIssues = dependencyIssues(allIssues, graphDeps);

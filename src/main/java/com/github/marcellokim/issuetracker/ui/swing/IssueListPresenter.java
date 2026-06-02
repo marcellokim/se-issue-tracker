@@ -26,7 +26,7 @@ final class IssueListPresenter {
         try {
             view.showProject(projectController.viewProjectNonAdminDetail(projectId));
             view.setRegisterEnabled(issueController.canRegisterIssue(projectId));
-            showIssues(issueController.viewRelatedProjectIssues(projectId));
+            showIssues(issueController.viewProjectIssues(projectId));
         } catch (RuntimeException exception) {
             view.setRegisterEnabled(false);
             view.showMessage(exception.getMessage(), true);
@@ -36,7 +36,7 @@ final class IssueListPresenter {
     void searchIssues(long projectId, IssueSearchRequest request) {
         Objects.requireNonNull(request, "request");
         try {
-            showIssues(issueController.searchRelatedProjectIssues(
+            showIssues(issueController.searchIssues(
                     projectId,
                     request.keyword(),
                     request.status(),
@@ -54,7 +54,7 @@ final class IssueListPresenter {
                     request.title(),
                     request.description(),
                     request.priority());
-            showIssues(issueController.viewRelatedProjectIssues(projectId));
+            showIssues(issueController.viewProjectIssues(projectId));
             view.setRegisterEnabled(issueController.canRegisterIssue(projectId));
             view.showMessage("Issue registered: " + result.title(), false);
         } catch (RuntimeException exception) {

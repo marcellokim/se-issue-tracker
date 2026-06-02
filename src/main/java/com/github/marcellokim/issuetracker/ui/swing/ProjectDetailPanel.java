@@ -200,17 +200,20 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
         renameButton.addActionListener(event -> currentProject()
                 .flatMap(current -> dialogs.requestRename(this, current))
                 .ifPresent(name -> actions.onRename().accept(this, projectId, name)));
+        SwingStyles.applySecondaryButton(renameButton);
         panel.add(renameButton);
 
         descriptionButton.setName("changeProjectDetailDescriptionButton");
         descriptionButton.addActionListener(event -> currentProject()
                 .flatMap(current -> dialogs.requestDescription(this, current))
                 .ifPresent(description -> actions.onDescriptionChange().accept(this, projectId, description)));
+        SwingStyles.applySecondaryButton(descriptionButton);
         panel.add(descriptionButton);
 
         addParticipantButton.setName("addProjectParticipantButton");
         addParticipantButton.addActionListener(event -> dialogs.requestParticipantLoginId(this)
                 .ifPresent(loginId -> actions.onAddParticipant().accept(this, projectId, loginId)));
+        SwingStyles.applySecondaryButton(addParticipantButton);
         panel.add(addParticipantButton);
 
         removeParticipantButton.setName("removeProjectParticipantButton");
@@ -218,6 +221,7 @@ final class ProjectDetailPanel extends JPanel implements ProjectDetailView {
                 .filter(participant -> dialogs.confirmRemove(this, participant))
                 .ifPresent(participant ->
                         actions.onRemoveParticipant().accept(this, projectId, participant.userId())));
+        SwingStyles.applySecondaryButton(removeParticipantButton);
         panel.add(removeParticipantButton);
         return panel;
     }

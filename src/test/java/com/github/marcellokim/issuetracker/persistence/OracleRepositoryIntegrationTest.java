@@ -386,6 +386,7 @@ class OracleRepositoryIntegrationTest {
                                 "Temporary deleted issue for repository policy test",
                                 "Deleted issues should stay out of normal browse and statistics.",
                                 admin)
+                                .issueId(uniqueId("ISSUE_deleted_policy"))
                                 .reportedDate(reportedAt)
                                 .priority(Priority.TRIVIAL)
                                 .status(IssueStatus.DELETED)
@@ -700,6 +701,7 @@ class OracleRepositoryIntegrationTest {
                                         uniqueId("crud_project_composition_issue"),
                                         "Issue should be removed when its owning project is deleted.",
                                         user("dev1"))
+                                        .issueId(uniqueId("ISSUE_project_composition"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MINOR)
                                         .status(IssueStatus.NEW)
@@ -740,6 +742,7 @@ class OracleRepositoryIntegrationTest {
                                         title,
                                         "Issue repository CRUD test.",
                                         user("dev1"))
+                                        .issueId(uniqueId("ISSUE_crud_issue"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MINOR)
                                         .status(IssueStatus.NEW)
@@ -838,6 +841,7 @@ class OracleRepositoryIntegrationTest {
                                         title,
                                         "Aggregate root save should persist audit children.",
                                         user("dev1"))
+                                        .issueId(uniqueId("ISSUE_aggregate_audit"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MAJOR)
                                         .status(IssueStatus.NEW)
@@ -1146,6 +1150,7 @@ class OracleRepositoryIntegrationTest {
                                         uniqueId("crud_stats_issue"),
                                         "Resolved issue for statistics and recommendation CRUD test.",
                                         user("tester4"))
+                                        .issueId(uniqueId("ISSUE_stats"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.CRITICAL)
                                         .status(IssueStatus.RESOLVED)
@@ -1228,6 +1233,7 @@ class OracleRepositoryIntegrationTest {
                                         uniqueId("participant_guard_issue"),
                                         "Assigned issue for participant removal guard.",
                                         user("tester1"))
+                                        .issueId(uniqueId("ISSUE_participant_guard"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MAJOR)
                                         .status(IssueStatus.ASSIGNED)
@@ -1503,6 +1509,7 @@ class OracleRepositoryIntegrationTest {
                                 repositories.issueHistory(),
                                 repositories.users(),
                                 permissionPolicy(),
+                                OracleRepositoryIntegrationTest::nextIssueId,
                                 LocalDateTime::now);
         }
 
@@ -1528,6 +1535,10 @@ class OracleRepositoryIntegrationTest {
 
         private static String nextCommentId() {
                 return "COMMENT-test-" + UUID.randomUUID();
+        }
+
+        private static String nextIssueId() {
+                return "ISSUE-test-" + UUID.randomUUID();
         }
 
         private static DeletedIssueService deletedIssueService() {
@@ -1610,6 +1621,7 @@ class OracleRepositoryIntegrationTest {
                                 title,
                                 "Repository CRUD support issue.",
                                 user("dev1"))
+                                .issueId(uniqueId("ISSUE_support"))
                                 .reportedDate(LocalDateTime.now())
                                 .priority(Priority.MINOR)
                                 .status(status)

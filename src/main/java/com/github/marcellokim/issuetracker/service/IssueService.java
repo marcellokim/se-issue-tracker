@@ -46,6 +46,7 @@ public final class IssueService {
     private final IssueHistoryRepository issueHistoryRepository;
     private final UserRepository userRepository;
     private final PermissionPolicy permissionPolicy;
+    private final IssueIdProvider issueIdProvider;
     private final Clock clock;
 
     public IssueService(
@@ -56,6 +57,7 @@ public final class IssueService {
             IssueHistoryRepository issueHistoryRepository,
             UserRepository userRepository,
             PermissionPolicy permissionPolicy,
+            IssueIdProvider issueIdProvider,
             Clock clock) {
         this.projectRepository = Objects.requireNonNull(projectRepository, "projectRepository");
         this.issueRepository = Objects.requireNonNull(issueRepository, "issueRepository");
@@ -64,6 +66,7 @@ public final class IssueService {
         this.issueHistoryRepository = Objects.requireNonNull(issueHistoryRepository, "issueHistoryRepository");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository");
         this.permissionPolicy = Objects.requireNonNull(permissionPolicy, "permissionPolicy");
+        this.issueIdProvider = Objects.requireNonNull(issueIdProvider, "issueIdProvider");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -83,6 +86,7 @@ public final class IssueService {
         LocalDateTime now = now();
         Issue issue = Issue.create(
                 Issue.persistedState(project.getId(), requiredTitle, requiredDescription, reporter)
+                        .issueId(issueIdProvider.nextIssueId())
                         .priority(priority != null ? priority : Priority.MAJOR)
                         .reportedDate(now)
                         .updatedAt(now));
@@ -164,36 +168,7 @@ public final class IssueService {
                 .toList();
     }
 
-    public List<IssueSummary> searchRelatedProjectIssues(
-            long projectId,
-            String keyword,
-            IssueStatus status,
-            Priority priority,
-            String currentLoginId) {
-
-        SearchContext context = searchContext(
-                projectId,
-                status,
-                null,
-                null,
-                currentLoginId,
-                "Only project members can search related project issues.");
-        return searchIssuesByCriteria(IssueSearchCriteria.create(
-                context.projectId(),
-                status,
-                priority,
-                null,
-                null,
-                null,
-                optionalText(keyword),
-                null,
-                null,
-                false)).stream()
-                .map(IssueService::toIssueSummary)
-                .toList();
-    }
-
-    public List<IssueSummary> viewRelatedProjectIssues(long projectId, String currentLoginId) {
+    public List<IssueSummary> viewProjectIssues(long projectId, String currentLoginId) {
         long requiredProjectId = requirePositive(projectId, FIELD_PROJECT_ID);
         String requiredLoginId = requireText(currentLoginId, FIELD_CURRENT_LOGIN_ID);
         findProject(requiredProjectId);

@@ -27,7 +27,7 @@
 | 5 | 삭제 이슈 관리 | PL | 이슈 목록에서 진입 |
 | 6 | 통계 | PL, Dev, Tester | 이슈 목록에서 진입 |
 
-Non-admin 사용자가 프로젝트를 선택하면 이슈 목록 화면은 프로젝트 내부 화면 역할을 한다. 따라서 화면 진입 시 `ProjectController.viewProjectNonAdminDetail(projectId)`로 프로젝트 기본 정보를 조회하고, `IssueController.viewRelatedProjectIssues(projectId)`로 프로젝트 일반 이슈 목록을 조회한다.
+Non-admin 사용자가 프로젝트를 선택하면 이슈 목록 화면은 프로젝트 내부 화면 역할을 한다. 따라서 화면 진입 시 `ProjectController.viewProjectNonAdminDetail(projectId)`로 프로젝트 기본 정보를 조회하고, `IssueController.viewProjectIssues(projectId)`로 프로젝트 일반 이슈 목록을 조회한다.
 
 ## 이슈 상세 화면 — 버튼 활성화 제어
 

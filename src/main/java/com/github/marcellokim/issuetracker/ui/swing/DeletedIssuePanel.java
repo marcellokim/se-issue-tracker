@@ -136,11 +136,13 @@ final class DeletedIssuePanel extends JPanel implements DeletedIssueView {
         restoreButton.setName("restoreDeletedIssueButton");
         restoreButton.addActionListener(event -> selectedIssue()
                 .ifPresent(issue -> actions.onRestore().accept(this, issue)));
+        SwingStyles.applySecondaryButton(restoreButton);
         panel.add(restoreButton);
 
         purgeButton.setName("purgeDeletedIssueButton");
         purgeButton.addActionListener(event -> selectedIssue()
                 .ifPresent(issue -> actions.onPurge().accept(this, issue)));
+        SwingStyles.applySecondaryButton(purgeButton);
         panel.add(purgeButton);
         return panel;
     }

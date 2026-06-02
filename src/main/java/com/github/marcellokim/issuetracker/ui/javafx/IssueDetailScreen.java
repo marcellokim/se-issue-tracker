@@ -270,7 +270,7 @@ final class IssueDetailScreen extends VBox {
     private void handleAddDependency(){
         List<IssueSummary> projectIssues;
         try{
-            projectIssues = issueController.viewRelatedProjectIssues(currentDetail.projectId());
+            projectIssues = issueController.viewProjectIssues(currentDetail.projectId());
         } catch (Exception exception){
             ScreenComponents.showError(messageLabel, exception);
             return;

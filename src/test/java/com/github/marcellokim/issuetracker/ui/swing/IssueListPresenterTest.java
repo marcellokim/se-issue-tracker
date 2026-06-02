@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,8 +40,8 @@ class IssueListPresenterTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 31, 0, 0);
 
     @Test
-    @DisplayName("loads project info, related issues, and register permission through controllers")
-    void loadsProjectAndRelatedIssues() {
+    @DisplayName("loads project info, project issues, and register permission through controllers")
+    void loadsProjectAndProjectIssues() {
         User dev = user("dev1", Role.DEV);
         ControllerFixture fixture = controllers(
                 dev,
@@ -168,6 +169,7 @@ class IssueListPresenterTest {
                         new FakeIssueHistoryRepository(),
                         users,
                         permissionPolicy,
+                        new SequentialIssueIdProvider(),
                         () -> NOW));
         return new ControllerFixture(projectController, issueController);
     }
