@@ -23,15 +23,15 @@
 | 6. 상세 설계 | DCD, 대표 SD와 GRASP 책임 설명, 주요 설계 선택 | 7 |
 | 7. 구현 결과 | JavaFX 전체 UI, Swing 전체 UI, DB persistence, 핵심 workflow 화면 | 8 |
 | 8. 테스트와 검증 | JUnit 범위, CI, Oracle 통합 테스트, Swing/JavaFX QA 증빙 | 6 |
-| 9. 협업 및 프로젝트 관리 | GitHub Project, issue/PR/review 흐름, 마일스톤 진행 근거 | 3 |
+| 9. 협업 및 프로젝트 관리 | GitHub Project, issue/PR/review 흐름, 마일스톤 진행 근거 | 2 |
 | 10. 결론과 한계 | 완료 범위, 남은 리스크, 발표/데모 연결 | 2 |
 | 부록 여유 | 표/스크린샷 조정, 캡션, 참고 링크 | 2 |
-| 합계 |  | 57 |
+| 합계 |  | 56 |
 
 페이지가 초과되면 다음 순서로 줄인다.
 
 1. 개발 reference SSD/SD 전체 목록은 본문에서 제외하고 링크로 대체한다.
-2. 협업 및 프로젝트 관리는 대표 Project 캡처, milestone, PR 흐름 1-2개만 본문에 두고 나머지는 링크와 부록으로 넘긴다.
+2. 협업 및 프로젝트 관리는 본문 2쪽 이내로 두고, 대표 Project 캡처, milestone, PR 흐름 1-2개만 남긴 뒤 나머지는 링크와 부록으로 넘긴다.
 3. UI 스크린샷은 역할별 전체 나열보다 같은 기능을 JavaFX/Swing에서 비교하는 묶음으로 배치한다.
 4. Operation Contract는 대표 command 중심으로 표만 남기고 상세 사후조건은 문서 링크로 넘긴다.
 
@@ -124,5 +124,5 @@
 - [ ] `./gradlew check`와 제출 직전 CI 결과가 본문에 반영되어 있다.
 - [ ] Oracle local 실행 또는 integration test 근거가 들어 있다.
 - [ ] GitHub Project/issue/PR evidence 캡처가 최신이다.
-- [ ] PDF가 57페이지 예산 안에 들어가며, 최종 제출 제한 60페이지 미만을 유지한다.
+- [ ] PDF가 56페이지 예산 안에 들어가며, 최종 제출 제한 60페이지 미만을 유지한다.
 - [ ] README.txt, slides, demo video, 제출 zip과 문서 내용이 서로 충돌하지 않는다.
