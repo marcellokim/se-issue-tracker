@@ -280,6 +280,10 @@ class RepositoryConventionsSmokeTest {
         assertFalse(gradleExclusions.isEmpty(), "Gradle coverage 제외 정책을 찾을 수 없습니다.");
         assertFalse(sonarExclusions.isEmpty(), ".sonarcloud.properties에도 coverage 제외 정책이 있어야 합니다.");
         assertEquals(gradleExclusions, sonarExclusions, "SonarCloud 자동 분석 coverage 제외 정책이 Gradle과 달라졌습니다.");
+        assertFalse(
+                gradleExclusions.stream().anyMatch(value -> value.startsWith("src/main/java/")),
+                "Coverage 제외 정책은 SonarCloud 파일 키와 안정적으로 맞도록 source-root 고정 경로 대신 glob 패턴을 사용해야 합니다."
+        );
     }
 
     @Test
