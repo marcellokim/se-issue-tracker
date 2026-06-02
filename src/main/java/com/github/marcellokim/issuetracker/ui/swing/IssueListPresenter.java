@@ -40,7 +40,12 @@ final class IssueListPresenter {
                     projectId,
                     request.keyword(),
                     request.status(),
-                    request.priority()));
+                    request.priority(),
+                    request.reporterId(),
+                    request.assigneeId(),
+                    request.verifierId(),
+                    request.reportedFrom(),
+                    request.reportedTo()));
         } catch (RuntimeException exception) {
             view.showMessage(exception.getMessage(), true);
         }
