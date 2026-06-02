@@ -212,7 +212,7 @@ class ProjectMaintenanceScriptTest {
                         }
                     if args[:2] == ["project", "item-list"]:
                         limit = int(args[args.index("--limit") + 1])
-                        assert limit >= 1000, args
+                        assert limit == int(project_maintenance.PROJECT_ITEM_LIST_LIMIT), args
                         return {
                             "items": [{
                                 "id": "PVTI_recent",
