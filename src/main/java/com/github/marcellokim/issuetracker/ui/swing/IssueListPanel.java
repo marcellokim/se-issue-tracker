@@ -274,9 +274,9 @@ final class IssueListPanel extends JPanel implements IssueListView {
         verifierField.setName("issueVerifierFilter");
         verifierField.setColumns(8);
         fromField.setName("issueReportedFromFilter");
-        fromField.setColumns(8);
+        fromField.setColumns(10);
         toField.setName("issueReportedToFilter");
-        toField.setColumns(8);
+        toField.setColumns(10);
         advancedPanel.add(new JLabel("Reporter:"));
         advancedPanel.add(reporterField);
         advancedPanel.add(new JLabel("Assignee:"));
@@ -293,7 +293,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
     private void triggerSearch() {
         try {
             actions.onSearch().accept(this, currentSearchRequest());
-        } catch (RuntimeException exception) {
+        } catch (java.time.format.DateTimeParseException exception) {
             showMessage("Invalid date. Use yyyy-MM-dd.", true);
         }
     }

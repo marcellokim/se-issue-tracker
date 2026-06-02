@@ -265,12 +265,22 @@ final class StatisticsScreen extends VBox {
 
     private void applyFilter(){
         try {
+            LocalDate dailyFrom = dailyFromPicker.getValue();
+            LocalDate dailyTo = dailyToPicker.getValue();
+            if (dailyFrom != null && dailyTo != null && dailyFrom.isAfter(dailyTo)){
+                throw new IllegalArgumentException("Daily 'from' must not be after 'to'.");
+            }
             YearMonth monthlyFrom = parseYearMonth(monthlyFromField.getText());
             YearMonth monthlyTo = parseYearMonth(monthlyToField.getText());
-            loadOverview(dailyFromPicker.getValue(), dailyToPicker.getValue(), monthlyFrom, monthlyTo);
-        } catch (RuntimeException ex){
+            if (monthlyFrom != null && monthlyTo != null && monthlyFrom.isAfter(monthlyTo)){
+                throw new IllegalArgumentException("Monthly 'from' must not be after 'to'.");
+            }
+            loadOverview(dailyFrom, dailyTo, monthlyFrom, monthlyTo);
+        } catch (java.time.format.DateTimeParseException ex){
             ScreenComponents.showError(messageLabel,
                     new RuntimeException("Invalid month format. Use yyyy-MM."));
+        } catch (IllegalArgumentException ex){
+            ScreenComponents.showError(messageLabel, ex);
         }
     }
 
