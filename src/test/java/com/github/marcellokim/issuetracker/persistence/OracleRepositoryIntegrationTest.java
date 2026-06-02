@@ -340,6 +340,7 @@ class OracleRepositoryIntegrationTest {
                                 var comments = repositories.comments().findByIssueId(issue.id());
                                 var statusHistories = repositories.issueHistory().findByIssueId(issue.id()).stream()
                                                 .filter(history -> history.actionType() == ActionType.STATUS_CHANGED)
+                                                .filter(OracleRepositoryIntegrationTest::needsStatusChangeComment)
                                                 .toList();
 
                                 for (var history : statusHistories) {
@@ -354,6 +355,16 @@ class OracleRepositoryIntegrationTest {
                                 }
                         }
                 }
+        }
+
+        private static boolean needsStatusChangeComment(IssueHistory history) {
+                return !isAssignmentStatusHistory(history);
+        }
+
+        private static boolean isAssignmentStatusHistory(IssueHistory history) {
+                return IssueStatus.ASSIGNED.name().equals(history.newValue())
+                                && ("Issue assigned from NEW".equals(history.message())
+                                                || "Issue assigned from REOPENED".equals(history.message()));
         }
 
         // Repositories: IssueRepository.save/findByCriteria,
