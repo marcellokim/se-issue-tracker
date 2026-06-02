@@ -504,7 +504,7 @@ final class IssueDetailScreen extends VBox {
             setText(null);
             String commentDate = comment.createdDate().equals(comment.updatedDate())
                     ? DATE_TIME_FORMATTER.format(comment.createdDate())
-                    : DATE_TIME_FORMATTER.format(comment.updatedDate()) + " (수정됨)";
+                    : DATE_TIME_FORMATTER.format(comment.updatedDate()) + " (Edited)";
             Label text = new Label(String.format("[%s] %s (%s): %s", comment.purpose(), comment.writerLoginId(), commentDate, comment.content()));
             text.setWrapText(true);
             FlowPane buttons = new FlowPane(4, 0);

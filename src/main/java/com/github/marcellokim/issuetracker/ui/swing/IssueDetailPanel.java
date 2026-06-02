@@ -502,7 +502,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
                             comment.content(),
                             comment.createdDate().equals(comment.updatedDate())
                                     ? DATE_TIME_FORMATTER.format(comment.createdDate())
-                                    : DATE_TIME_FORMATTER.format(comment.updatedDate()) + " (수정됨)",
+                                    : DATE_TIME_FORMATTER.format(comment.updatedDate()) + " (Edited)",
                             yesNo(state != null && state.canUpdate()),
                             yesNo(state != null && state.canDelete())
                     };
