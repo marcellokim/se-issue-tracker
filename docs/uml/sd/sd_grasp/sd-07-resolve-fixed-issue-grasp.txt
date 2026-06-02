@@ -11,13 +11,13 @@ SD 07 Resolve Fixed Issue - GRASP 적용 설명
 `:IssueTrackingSystem` 객체가 resolve 요청을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 상태 변경 유스케이스를 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-Issue는 status, verifier, resolver, assignment 관계, dependency 관계를 알고 있어 resolve 가능 여부와 상태 변경 책임을 가진다.
+Issue는 status, verifier, resolver, active assignment를 알고 있어 실제 resolve 상태 변경 책임을 가진다.
 
-3. Information Expert - dependency guard
-blocking issue가 모두 RESOLVED/CLOSED인지 확인해야 하므로 targetIssue가 관련 blocking issue의 상태를 확인하는 것으로 표현한다.
+3. Protected Variations - dependency guard
+blocking issue가 모두 RESOLVED/CLOSED인지 확인하는 흐름은 dependency 관계를 통해 수행한다. SD에서는 `IssueDependency`가 현재 이슈를 막는 blocking issue들을 알려주고, GRASP Controller가 그 상태를 확인한 뒤 targetIssue에 resolve 의도를 전달하는 것으로 표현한다.
 
 4. Creator
-resolve comment와 COMMENTED/STATUS_CHANGED history는 대상 Issue의 기록이므로 Issue가 생성한다.
+resolve 사유 Comment와 COMMENTED/STATUS_CHANGED history는 대상 Issue의 기록이므로 Issue가 생성한다.
 
-5. Protected Variations
-dependency는 별도 status가 아니라 RESOLVED 전이의 guard로만 표현한다.
+5. 설계 정책
+dependency는 별도 status가 아니라 RESOLVED 전이의 guard로만 표현한다. resolve가 성공해도 dependency row를 자동 삭제하지 않고, 수동 제거 또는 soft delete 흐름에서만 제거한다.

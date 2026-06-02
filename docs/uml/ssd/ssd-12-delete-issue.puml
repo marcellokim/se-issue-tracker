@@ -4,18 +4,14 @@ title SSD 12 - UC9 Delete Closed/New Issue
 actor "PL" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건: PL 로그인, Issue 존재, Issue.status가 NEW 또는 CLOSED, 삭제 사유 존재, UC14 권한 검사
-end note
 
 A -> S: deleteIssue(issueId, comment)
-S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+alt 상태 또는 권한이 맞지 않음
+  S --> A: deleteRejected(reason)
+else comment가 비어 있음
+  S --> A: deleteRejected(commentRequired)
+else PL이 NEW/CLOSED 이슈를 soft delete
+  S --> A: issueDeleted(issueId, status=DELETED, retentionResult)
+end
 
-note over S
-결과: status가 NEW/CLOSED에서 DELETED로 변경됨
-IssueHistory(STATUS_CHANGED, previousValue=NEW 또는 CLOSED, newValue=DELETED) 기록
-삭제 시 해당 Issue와 연결된 IssueDependency association을 제거한다.
-제거된 dependency는 restore 시 자동 복원하지 않는다.
-DELETED Issue가 30개를 초과하면 시스템이 오래된 DELETED Issue부터 FIFO로 자동 물리 삭제한다.
-end note
 @enduml

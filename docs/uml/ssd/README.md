@@ -9,7 +9,7 @@
 - 제출 대표 SSD: `ssd-01-register-issue`, `ssd-05-assign-issue`, `ssd-06-mark-fixed`
 - 개발 reference SSD: `02`-`04`, `07`-`27`
 - 내부 정책 reference: `ssd-13-purge-deleted-issues`
-- UC14 권한 검사는 각 protected SSD의 precondition/note로 표현하고, `ssd-22-verify-permission`은 개발 참고용으로만 둔다.
+- UC14 권한 검사는 UC 명세와 Operation Contract에서 다루며, SSD에서는 필요한 경우 system 내부 처리나 짧은 note로만 표현한다. `ssd-22-verify-permission`은 개발 참고용으로만 둔다.
 - PNG/SVG는 필요할 때 PlantUML로 다시 생성한다.
 
 ## 렌더 검증

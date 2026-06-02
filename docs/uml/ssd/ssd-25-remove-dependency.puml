@@ -5,31 +5,9 @@ title SSD 25 - UC7 Remove Dependency
 actor "PL" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건:
-- PL이 로그인되어 있다.
-- blocking Issue와 blocked Issue가 존재한다.
-- 두 Issue는 같은 Project에 속한다.
-- 두 Issue는 DELETED 상태가 아니다.
-- 두 Issue 사이의 dependency가 존재한다.
-- PL은 대상 Project의 active PL이다.
-- UC14 권한 검사는 시스템 내부에서 수행된다.
-end note
 
 A -> S: removeDependency(blockingIssueId, blockedIssueId)
 S --> A: dependencyRemoved(blockingIssueId, blockedIssueId, confirmation)
 
-note over S
-결과:
-- blocking Issue와 blocked Issue 사이의 IssueDependency가 제거된다.
-- dependency association이 제거된다.
-- dependency 제거 내역은 blocked Issue의 IssueHistory(DEPENDENCY_CHANGED)에 기록된다.
-- 응답은 확인 메시지 중심이며, 별도 domain 객체 반환은 필수로 보지 않는다.
-
-정책:
-- dependency는 comment가 아니라 구조화된 관계 데이터로 관리한다.
-- 존재하지 않는 dependency 제거 요청은 거부된다.
-- 다른 Project에 속한 Issue 간 dependency 제거 요청은 거부된다.
-end note
 
 @enduml

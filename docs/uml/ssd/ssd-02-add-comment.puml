@@ -3,12 +3,6 @@
 title SSD 02 - UC2 코멘트 추가
 actor "Auth User" as A
 participant ":Issue Tracking System" as S
-note over A, S
-사전조건: Auth User 로그인, Issue 존재, content가 비어 있지 않음
-end note
 A -> S: addComment(issueId, content)
 S --> A: commentRegistered(commentId, createdDate, confirmation)
-note over S
-결과: Comment 생성, writer=current Auth User, createdDate 저장, IssueHistory(COMMENTED) 기록
-end note
 @enduml

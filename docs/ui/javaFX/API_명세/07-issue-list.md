@@ -44,7 +44,7 @@
 | reportedDate | LocalDateTime | 등록일 |
 | updatedAt | LocalDateTime | 수정일 |
 
-> 프로젝트 멤버(PL/Dev/Tester)는 프로젝트 전체 일반 이슈를 볼 수 있고, 담당자 조건은 검색 필터로 좁힌다.
+> PL/Dev/Tester는 자신이 active member로 참여한 프로젝트의 삭제되지 않은 이슈 전체를 볼 수 있다. 필요한 이슈는 검색/필터 조건으로 좁혀 본다.
 
 ### 3. 이슈 검색
 
@@ -61,6 +61,7 @@
 
 - **반환**: `List<IssueSummary>`
 - **확장 검색**: `searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo)`
+  - 담당 이슈만 보고 싶으면 `assigneeId`에 현재 사용자 loginId를 넣어 검색한다.
 
 ### 4. 이슈 등록 가능 여부 확인
 

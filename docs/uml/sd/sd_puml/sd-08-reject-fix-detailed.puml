@@ -10,13 +10,15 @@ participant "targetIssue:Issue" as Issue
 
 Tester -> ISC : changeStatus(issueId, ASSIGNED, comment)
 
-alt Tester cannot reject this fix or comment is blank
+alt 상태 또는 권한 조건이 맞지 않음
   ISC --> Tester : statusChangeRejected(reason)
-else valid FIXED -> ASSIGNED transition
+else 상태 변경 사유가 비어 있음
+  ISC --> Tester : statusChangeRejected(commentRequired)
+else FIXED -> ASSIGNED 전이가 가능함
   ISC -> Issue : rejectFix(currentTester, comment, now)
   activate Issue
   create "rejectComment:Comment" as Comment
-  Issue --> Comment : new(content=comment, writer=currentTester)
+  Issue --> Comment : new(content=comment,\nwriter=currentTester,\npurpose=STATUS_CHANGE)
   create "commentHistory:IssueHistory" as CommentHistory
   Issue --> CommentHistory : new(COMMENTED, message=comment)
   create "statusHistory:IssueHistory" as StatusHistory
