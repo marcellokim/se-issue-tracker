@@ -75,7 +75,7 @@
 | --- | --- |
 | `matches` | 이슈 등록, 댓글 추가, 의존성 추가, priority 변경은 컨트롤러에 연결되어 있고 서비스에서 권한과 정책을 검사한다. |
 | `signature-drift` | OC-15는 `removeDependency(dependencyId)`를 문서화하지만, 현재 구현은 `removeDependency(blockingIssueId, blockedIssueId)`를 노출한다. |
-| `implementation-extra` | 검색, 상세 조회, action 조회, 댓글 수정/삭제, 프로젝트 관련 이슈 조회 API는 필수 OC 목록 밖에 추가로 구현되어 있다. |
+| `implementation-extra` | 검색, 상세 조회, action 조회, 댓글 수정/삭제, 프로젝트 이슈 조회 API는 필수 OC 목록 밖에 추가로 구현되어 있다. |
 
 ## 권한 및 실패 요약
 
