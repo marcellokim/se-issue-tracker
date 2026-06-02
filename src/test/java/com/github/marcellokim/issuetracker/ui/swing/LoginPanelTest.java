@@ -70,4 +70,24 @@ class LoginPanelTest {
             assertEquals("", panel.password());
         });
     }
+
+    @Test
+    @DisplayName("keeps login fields ready for focus based input")
+    void keepsLoginFieldsReadyForFocusInput() throws Exception {
+        SwingComponentTestSupport.onEdt(() -> {
+            var panel = new LoginPanel();
+            JTextField loginId = SwingComponentTestSupport.find(panel, "loginIdField", JTextField.class);
+            JPasswordField password = SwingComponentTestSupport.find(panel, "passwordField", JPasswordField.class);
+
+            assertTrue(loginId.isFocusable());
+            assertTrue(password.isFocusable());
+
+            panel.setLoginEnabled(false);
+            panel.setLoginEnabled(true);
+            panel.requestInitialFocus();
+
+            assertTrue(loginId.isEnabled());
+            assertTrue(password.isEnabled());
+        });
+    }
 }

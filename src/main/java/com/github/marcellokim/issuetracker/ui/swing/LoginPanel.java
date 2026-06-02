@@ -2,6 +2,8 @@ package com.github.marcellokim.issuetracker.ui.swing;
 
 import java.awt.Component;
 import java.awt.GridBagLayout;
+import java.awt.KeyboardFocusManager;
+import java.awt.Window;
 import java.util.Arrays;
 import java.util.Objects;
 import javax.swing.BorderFactory;
@@ -11,6 +13,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.SwingUtilities;
 import javax.swing.JTextField;
 
 final class LoginPanel extends JPanel implements LoginView {
@@ -92,6 +95,16 @@ final class LoginPanel extends JPanel implements LoginView {
         loginRequested = Objects.requireNonNull(action, "action");
     }
 
+    void requestInitialFocus() {
+        requestInputFocus(loginIdField);
+    }
+
+    void requestInitialFocusIfMissing() {
+        if (!hasFocusWithin()) {
+            requestInputFocus(loginIdField);
+        }
+    }
+
     @Override
     public String loginId() {
         return loginIdField.getText();
@@ -124,5 +137,30 @@ final class LoginPanel extends JPanel implements LoginView {
     @Override
     public void clearPassword() {
         passwordField.setText("");
+    }
+
+    private static void requestInputFocus(Component component) {
+        Window window = SwingUtilities.getWindowAncestor(component);
+        if (window != null) {
+            window.toFront();
+        }
+        if (!component.requestFocusInWindow()) {
+            component.requestFocus();
+        }
+        SwingUtilities.invokeLater(() -> {
+            if (!component.hasFocus() && !component.requestFocusInWindow()) {
+                component.requestFocus();
+            }
+        });
+    }
+
+    private boolean hasFocusWithin() {
+        KeyboardFocusManager focusManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        return ownsFocus(focusManager.getFocusOwner())
+                || ownsFocus(focusManager.getPermanentFocusOwner());
+    }
+
+    private boolean ownsFocus(Component component) {
+        return component != null && SwingUtilities.isDescendingFrom(component, this);
     }
 }

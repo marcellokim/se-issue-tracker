@@ -174,11 +174,13 @@ final class IssueListPanel extends JPanel implements IssueListView {
         JButton backButton = new JButton("Back");
         backButton.setName("issueListBackButton");
         backButton.addActionListener(event -> actions.onBack().run());
+        SwingStyles.applySecondaryButton(backButton);
         nav.add(backButton);
 
         JButton logoutButton = new JButton("Logout");
         logoutButton.setName("issueListLogoutButton");
         logoutButton.addActionListener(event -> actions.onLogout().run());
+        SwingStyles.applySecondaryButton(logoutButton);
         nav.add(logoutButton);
 
         header.add(titles, BorderLayout.CENTER);
@@ -207,24 +209,29 @@ final class IssueListPanel extends JPanel implements IssueListView {
 
         searchButton.setName("searchIssuesButton");
         searchButton.addActionListener(event -> actions.onSearch().accept(this, currentSearchRequest()));
+        SwingStyles.applySecondaryButton(searchButton);
         panel.add(searchButton);
 
         registerButton.setName("registerIssueButton");
         registerButton.addActionListener(event -> dialogs.requestRegister(this)
                 .ifPresent(request -> actions.onRegister().accept(this, request)));
+        SwingStyles.applySecondaryButton(registerButton);
         panel.add(registerButton);
 
         openButton.setName("openIssueDetailButton");
         openButton.addActionListener(event -> selectedIssue()
                 .ifPresent(issue -> actions.onOpenIssue().accept(issue.id())));
+        SwingStyles.applySecondaryButton(openButton);
         panel.add(openButton);
 
         deletedIssuesButton.setName("deletedIssuesButton");
         deletedIssuesButton.addActionListener(event -> actions.onDeletedIssues().run());
+        SwingStyles.applySecondaryButton(deletedIssuesButton);
         panel.add(deletedIssuesButton);
 
         statisticsButton.setName("statisticsButton");
         statisticsButton.addActionListener(event -> actions.onStatistics().run());
+        SwingStyles.applySecondaryButton(statisticsButton);
         panel.add(statisticsButton);
         return panel;
     }

@@ -114,16 +114,19 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
         JButton accountButton = new JButton("Account management");
         accountButton.setName("accountManagementButton");
         accountButton.addActionListener(event -> onAccountManagement.run());
+        SwingStyles.applySecondaryButton(accountButton);
         actions.add(accountButton);
 
         JButton projectButton = new JButton("Project management");
         projectButton.setName("projectManagementButton");
         projectButton.addActionListener(event -> onProjectManagement.run());
+        SwingStyles.applySecondaryButton(projectButton);
         actions.add(projectButton);
 
         JButton logoutButton = new JButton("Logout");
         logoutButton.setName("adminLogoutButton");
         logoutButton.addActionListener(event -> onLogout.run());
+        SwingStyles.applySecondaryButton(logoutButton);
         actions.add(logoutButton);
 
         header.add(titles);
@@ -158,9 +161,9 @@ final class AdminDashboardPanel extends JPanel implements AdminDashboardView {
         JTable table = new JTable(model);
         table.setName(name);
         table.setFillsViewportHeight(true);
-        table.setRowHeight(26);
-        table.getTableHeader().setReorderingAllowed(false);
+        SwingStyles.disableHeaderReordering(table);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        SwingStyles.applyTableStyle(table);
         applyColumnWidths(table, columnWidths);
         return table;
     }
