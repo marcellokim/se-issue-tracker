@@ -15,11 +15,11 @@ skinparam rectangle {
   FontColor #263238
 }
 
-rectangle "Presentation Layer\n--\nMain launches JavaFXApp\nJavaFXApp initializes ApplicationContext\n\nUI code should call controllers only;\ncontrollers/services/repositories are reused by any UI toolkit." as PRES <<presentation>> #E3F2FD
+rectangle "Presentation Layer\n--\nMain launches JavaFXApp by default\nMain launches SwingApp with the Swing run mode\nBoth UIs request the shared ApplicationContext\n\nUI code should call controllers only;\ncontrollers/services/repositories are reused by both UI toolkits." as PRES <<presentation>> #E3F2FD
 
 rectangle "Composition Root\n--\nApplicationContext\n  exposes controller set for UI\n\nApplicationBootstrap\n  initializes DB schema/seed\n  creates JDBC repositories\n  creates services, policies, controllers\n\nShared runtime objects\n  PermissionPolicy\n  SystemClock\n  PasswordHasher\n  SessionStore\n  CommentIdGenerator" as BOOT <<bootstrap>> #E8F5E9
 
-rectangle "Controller Layer\n--\nAuthenticationController\n  login(), logout()\n\nDashboardController\n  viewProjects(), viewUsers()\n\nProjectController\n  viewProjectAdminDetail(), viewProjectNonAdminDetail()\n  viewProjectParticipants()\n  create/rename/changeDescription/delete project\n  add/remove participant\n\nIssueController\n  register/search/view/update issue\n  comments, dependencies, priority\n  available actions for UI\n\nAssignmentController\n  start assignment, assign, reassign, change verifier\n\nIssueStateController\n  changeStatus()\n\nDeletedIssueController\n  view, soft-delete, restore, purge overflow, purge one\n\nAccountController / StatisticsController" as CTRL <<controller>> #FFF8E1
+rectangle "Controller Layer\n--\nAuthenticationController\n  login(), logout()\n\nDashboardController\n  viewProjects(), viewUsers()\n\nProjectController\n  viewProjectAdminDetail(), viewProjectNonAdminDetail()\n  viewProjectParticipants()\n  create/rename/changeDescription/delete project\n  add/remove participant\n\nIssueController\n  register/search/view/update issue\n  comments, dependencies, priority\n  available actions for UI\n\nAssignmentController\n  start assignment, assign, reassign, change verifier\n\nIssueStateController\n  changeStatus()\n\nDeletedIssueController\n  view, soft-delete, restore, purge one\n\nAccountController / StatisticsController" as CTRL <<controller>> #FFF8E1
 
 rectangle "Service / Policy Layer\n--\nAuthenticationService / AccountService\nDashboardSummaryService\nProjectService\nIssueService\nIssueWorkflowService\nAssignmentService\nAssignmentRecommendationService + KNN engine\nIssueStateService\nDeletedIssueService\nStatisticsService\nPermissionPolicy\n\nServices coordinate permissions, project membership,\nrepository lookups, domain behavior, and result DTOs." as SERVICE <<service>> #FFF3E0
 
@@ -45,6 +45,6 @@ legend bottom
   - This is a logical architecture view, not a complete class diagram.
   - Repository interfaces and small service ports are treated as application ports.
   - Infrastructure depends on ports; services do not directly create JDBC/session/hash implementations.
-  - Current main code has a JavaFX entry point. Additional UI toolkits should reuse ApplicationContext and controllers.
+  - Current main code can launch JavaFXApp or SwingApp. Both UI toolkits reuse ApplicationContext and controllers.
 endlegend
 @enduml

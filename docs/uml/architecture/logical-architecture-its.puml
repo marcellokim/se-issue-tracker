@@ -15,7 +15,7 @@ skinparam rectangle {
   FontColor #263238
 }
 
-rectangle "Presentation Layer\n--\nJavaFX UI entry point\nFuture UI toolkits reuse the same application boundary" as PRES <<presentation>> #E3F2FD
+rectangle "Presentation Layer\n--\nJavaFXApp and SwingApp entry points\nBoth UI toolkits reuse the same application boundary" as PRES <<presentation>> #E3F2FD
 
 rectangle "Application Bootstrap\n--\nMain\nApplicationContext\nApplicationBootstrap" as BOOT <<bootstrap>> #E8F5E9
 

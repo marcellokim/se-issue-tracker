@@ -17,20 +17,20 @@
 | --- | --- | --- |
 | UC3 이슈 검색 | 프로젝트 멤버가 역할 구분 없이 프로젝트 일반 이슈를 조회하고 reporter/assignee/verifier/status/priority/date 검색 필터를 사용할 수 있음 | PR #266, `IssueController.searchIssues`, `IssueListPresenterTest` |
 | UC9 삭제 이슈 | DELETED 이슈는 일반 목록/검색에서 제외되고 PL 전용 삭제 이슈 화면에서만 조회됨 | `DeletedIssueController`, `DeletedIssueServiceTest`, Swing deleted issue QA |
-| 두 UI Toolkit | JavaFX 전체 UI와 Swing 전체 UI가 같은 controller/service 계층을 사용함 | `./gradlew run`, `./gradlew runSwing`, UI navigation map, Swing QA report |
+| 두 UI Toolkit | JavaFX 전체 UI와 Swing 전체 UI가 같은 controller/service 계층을 사용함 | `./gradlew run`, `./gradlew runSwing`, UI navigation map, Swing QA report, `docs/screenshots/report-ui-2026-06-02/README.md` |
 | 테스트 요구사항 | 모델, 서비스, 영속 저장소, controller, UI 단위 테스트가 CI에서 실행됨 | #25, `docs/test-gates/issue-25-model-service-persistence-gate-2026-06-02.md` |
 
 ## 최종 보고서 섹션별 증빙 인덱스
 
 | 보고서 섹션 | 최종 원천 문서 | 필요한 캡처/로그 | 현재 상태 | 담당 gate |
 | --- | --- | --- | --- | --- |
-| 1. 프로젝트 개요 | `README.md`, `docs/requirements-traceability.md` | 저장소/Project 링크, 실행 환경 | 문서 준비됨 | #26 |
+| 1. 프로젝트 개요 | `README.md`, `docs/requirements-traceability.md`, `docs/final-report-draft.md` | 저장소/Project 링크, 실행 환경 | 문서 준비됨 | #26 |
 | 2. 요구사항 분석 | `docs/use-cases/use_case_specifications.md`, `docs/requirements-traceability.md` | UCD, UC coverage 표 | 문서 준비됨 | #26 |
 | 3-6. 분석/설계 | `docs/uml/`, `docs/ooad-grasp-mvc.md` | domain model, SSD, OC, architecture, DCD/SD | 문서 준비됨 | #26 |
-| 7. 구현 결과 | `docs/demo-scenario.md`, JavaFX/Swing 실행 화면 | 같은 기능의 JavaFX/Swing 캡처 | 최종 캡처 필요 | #26, #246 |
+| 7. 구현 결과 | `docs/demo-scenario.md`, `docs/screenshots/report-ui-2026-06-02/README.md` | 같은 기능의 JavaFX/Swing 캡처 | UI 캡처 준비됨 | #26, #246 |
 | 8. 테스트와 검증 | `docs/test-gates/`, CI 결과 | `check`, Oracle, SonarCloud, CodeQL 결과 | PR/CI 근거 준비됨 | #25 |
 | 9. 협업 및 프로젝트 관리 | GitHub Project, issue, PR, milestone | Project board, M4 gate, 대표 PR | 최종 캡처 필요 | #27 |
-| 10. 결론과 한계 | `docs/demo-scenario.md`, 최종 QA 결과 | 완료 범위와 남은 제출 범위 밖 항목 | 최종 문장 정리 필요 | #26 |
+| 10. 결론과 한계 | `docs/final-report-draft.md`, `docs/demo-scenario.md`, 최종 QA 결과 | 완료 범위와 남은 제출 범위 밖 항목 | 본문 초안 준비됨 | #26 |
 
 ## GitHub 진행 이력 캡처
 
