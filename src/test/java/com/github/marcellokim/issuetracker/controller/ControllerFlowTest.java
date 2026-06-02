@@ -74,7 +74,7 @@ class ControllerFlowTest {
     }
 
     @Test
-    @DisplayName("dev opens a project and sees related issues")
+    @DisplayName("dev opens a project and sees project issues")
     void devProjectFlow() {
         PasswordHasher hasher = new PasswordHasher();
         User dev = storedUser("dev1", Role.DEV, hasher);
@@ -93,10 +93,10 @@ class ControllerFlowTest {
         IssueController issueController = issueController(auth, projects, issues, users, policy);
 
         ProjectResult detail = projectController.viewProjectNonAdminDetail(PROJECT_ID);
-        List<IssueSummary> relatedIssues = issueController.viewRelatedProjectIssues(PROJECT_ID);
+        List<IssueSummary> projectIssues = issueController.viewProjectIssues(PROJECT_ID);
 
         assertEquals("project-" + PROJECT_ID, detail.name());
-        assertEquals(List.of(issue.id()), relatedIssues.stream().map(IssueSummary::id).toList());
+        assertEquals(List.of(issue.id()), projectIssues.stream().map(IssueSummary::id).toList());
     }
 
     @Test

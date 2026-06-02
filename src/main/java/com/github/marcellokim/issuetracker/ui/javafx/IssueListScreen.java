@@ -149,7 +149,7 @@ final class IssueListScreen extends VBox {
 
     private void loadIssues(){
         try{
-            List<IssueSummary> issues = issueController.viewRelatedProjectIssues(projectId);
+            List<IssueSummary> issues = issueController.viewProjectIssues(projectId);
             issueList.getItems().setAll(issues);
             ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){

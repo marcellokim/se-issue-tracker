@@ -27,7 +27,7 @@
 ### 2. 이슈 목록 조회
 
 - **호출 시점**: 화면 진입 시
-- **메서드**: `IssueController.viewRelatedProjectIssues(projectId)`
+- **메서드**: `IssueController.viewProjectIssues(projectId)`
 - **반환**: `List<IssueSummary>`
 
 | 필드 | 타입 | 설명 |

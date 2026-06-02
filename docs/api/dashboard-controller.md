@@ -2,7 +2,7 @@
 
 ## 범위
 
-`DashboardController`는 로그인 후 첫 화면과 화면 이동에 필요한 읽기 전용 API를 제공한다. 프로젝트와 사용자 요약 데이터는 `DashboardSummaryService`를 통해 조회한다. 현재 사용자와 관련된 이슈 조회는 대시보드 컨트롤러가 아니라 `IssueController.viewRelatedProjectIssues`에서 처리한다.
+`DashboardController`는 로그인 후 첫 화면과 화면 이동에 필요한 읽기 전용 API를 제공한다. 프로젝트와 사용자 요약 데이터는 `DashboardSummaryService`를 통해 조회한다. 프로젝트 이슈 조회는 대시보드 컨트롤러가 아니라 `IssueController.viewProjectIssues`에서 처리한다.
 
 ## 공개 오퍼레이션
 

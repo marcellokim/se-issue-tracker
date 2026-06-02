@@ -382,9 +382,9 @@ class IssueServiceTest {
                                 new FakeCommentRepository(),
                                 users);
 
-                List<IssueSummary> devResults = service.viewRelatedProjectIssues(PROJECT_ID, dev.getLoginId());
-                List<IssueSummary> testerResults = service.viewRelatedProjectIssues(PROJECT_ID, tester.getLoginId());
-                List<IssueSummary> plResults = service.viewRelatedProjectIssues(PROJECT_ID, pl.getLoginId());
+                List<IssueSummary> devResults = service.viewProjectIssues(PROJECT_ID, dev.getLoginId());
+                List<IssueSummary> testerResults = service.viewProjectIssues(PROJECT_ID, tester.getLoginId());
+                List<IssueSummary> plResults = service.viewProjectIssues(PROJECT_ID, pl.getLoginId());
                 String adminLoginId = admin.getLoginId();
 
                 List<Long> allProjectIssueIds = List.of(reporterOnlyIssue.id(), assignedDevIssue.id(), completedHistoryOnlyIssue.id());
@@ -392,7 +392,7 @@ class IssueServiceTest {
                 assertEquals(allProjectIssueIds, testerResults.stream().map(IssueSummary::id).toList());
                 assertEquals(allProjectIssueIds, plResults.stream().map(IssueSummary::id).toList());
                 assertThrows(SecurityException.class,
-                                () -> service.viewRelatedProjectIssues(PROJECT_ID, adminLoginId));
+                                () -> service.viewProjectIssues(PROJECT_ID, adminLoginId));
         }
 
         @Test
@@ -409,7 +409,7 @@ class IssueServiceTest {
                 String devLoginId = dev.getLoginId();
 
                 assertThrows(SecurityException.class,
-                                () -> service.viewRelatedProjectIssues(PROJECT_ID, devLoginId));
+                                () -> service.viewProjectIssues(PROJECT_ID, devLoginId));
         }
 
         @Test
