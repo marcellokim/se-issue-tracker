@@ -68,28 +68,20 @@
 
 | 이슈 | 닫는 범위 | 연결 UC/산출물 | 현재 판단 |
 | --- | --- | --- | --- |
-| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 전체 UI 데모 흐름 parent | Swing sub-issue와 데모 가능한 전체 UI 관리 | UC1~UC16 Swing presentation | sub-issue 구현은 `dev`에 병합됨. PR 253 QA 병합 후 parent 종료 판단 |
-| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | `./gradlew check`, CI, test report 근거가 필요함 |
-| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, PDF, slide, video, zip, 실행/검증 절차 | 최종 제출 산출물 | PR 254 병합 후 package exclude 정책은 반영되지만 최종 zip/PDF/video 생성 전까지 유지 |
-| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | metadata failure는 보류 가능하나 최종 캡처 목록과 보드 필드 확인은 필요 |
-| [#100](https://github.com/marcellokim/se-issue-tracker/issues/100) PDF 목차/페이지 예산 | 60p 이내 최종 문서 구조 | 최종 PDF | #107 traceability 표와 UI/test 증빙을 받아야 함 |
-| [#101](https://github.com/marcellokim/se-issue-tracker/issues/101) 발표/데모 시나리오 | 발표 흐름, demo script, fallback path | 발표 slides/video | JavaFX/Swing 실행 evidence와 seed 계정/명령 정리가 필요 |
-| [#107](https://github.com/marcellokim/se-issue-tracker/issues/107) traceability matrix | UC별 구현/테스트/문서 매핑 | 최종 PDF traceability section | 이 문서의 UC별 표를 원천 자료로 사용 |
-| [#168](https://github.com/marcellokim/se-issue-tracker/issues/168) rule ownership 정리 | domain/service/policy 책임 위치 점검 | OOAD/GRASP/SOLID 설명 | 제출 전 문서 방어용으로 표 정리 또는 불필요 시 종료 판단 |
-| [#171](https://github.com/marcellokim/se-issue-tracker/issues/171) architecture/testability guard | 계층 경계와 외부 의존성 테스트 가능성 검증 | architecture boundary evidence | `ArchitectureBoundaryTest`와 `RepositoryConventionsSmokeTest` 근거 확인 필요 |
-| [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, screenshot/evidence 경로 | Swing demo evidence | PR 253 QA 리포트가 상당 부분 흡수함. PR 253 병합 후 남은 target desktop retest만 확인 |
-| [#248](https://github.com/marcellokim/se-issue-tracker/issues/248) Swing QA | role별 QA, validation, visual QA, regression | Swing QA evidence | PR 253이 `Closes #248`로 대기 중 |
-| [PR 253](https://github.com/marcellokim/se-issue-tracker/pull/253) Swing QA PR | QA 리포트와 Swing visual/focus 보강 | [#248](https://github.com/marcellokim/se-issue-tracker/issues/248), [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) 일부 | checks 통과, 외부 승인 대기 |
-| [PR 254](https://github.com/marcellokim/se-issue-tracker/pull/254) 제출 패키지 제외 PR | 로컬 QA artifact와 개인 환경 파일 zip 제외 | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) package gate 일부 | checks 통과, 외부 승인 대기 |
+| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 전체 UI 데모 흐름 parent | Swing sub-issue와 데모 가능한 전체 UI 관리 | UC1~UC16 Swing presentation | 구현 sub-issue와 QA PR은 `dev`에 병합됨. #246의 발표 장비 수동 재확인만 남음 |
+| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최신 `dev`에서 `./gradlew check verifySubmissionMetadata`와 CI Oracle 통과. Sonar coverage gate 판단만 남음 |
+| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, PDF, slide, video, zip, 실행/검증 절차 | 최종 제출 산출물 | package exclude 정책은 반영됨. 최종 README.txt/PDF/slide/video/zip freeze 전까지 유지 |
+| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | GraphQL limit 중에도 REST/local evidence는 확보함. 최종 캡처 목록과 보드 필드 확인 필요 |
+| [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, screenshot/evidence 경로 | Swing demo evidence | `docs/qa/swing-full-qa-2026-06-01.md`에 기능 QA 반영. 발표 장비의 마우스 포커스/시각 점검만 수동 확인 필요 |
 
 ## 제출 전 남은 gate
 
 | Gate | 완료 조건 | 현재 필요한 다음 행동 |
 | --- | --- | --- |
-| Swing QA 병합 | PR 253 승인 및 병합, [#248](https://github.com/marcellokim/se-issue-tracker/issues/248) 종료 | 승인 후 squash merge, [#24](https://github.com/marcellokim/se-issue-tracker/issues/24)/[#246](https://github.com/marcellokim/se-issue-tracker/issues/246) 남은 항목 재판단 |
-| 제출 패키지 제외 정책 | PR 254 승인 및 병합 | 승인 후 squash merge, [#26](https://github.com/marcellokim/se-issue-tracker/issues/26)에는 최종 package 생성 전까지 남은 gate 유지 |
-| Traceability freeze | UC별 구현/API/test/UI evidence가 한 문서에서 추적됨 | 이 문서 PR 병합 후 #107 종료 판단 |
-| Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최종 `dev` 기준 재실행 후 #25 증빙 연결 |
+| Swing 발표 장비 재확인 | 로그인 마우스 포커스와 800x600 주요 화면 육안 확인 | #246에 남은 target desktop retest 결과를 기록 |
+| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 강의 원문, agent 메모리가 zip에서 제외됨 | 최종 `package-submission.sh` 실행으로 산출물 이름과 README.txt 확인 |
+| Traceability freeze | UC별 구현/API/test/UI evidence가 한 문서에서 추적됨 | #107은 병합 완료. 최종 PDF로 옮길 때 표 길이만 조정 |
+| Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최신 `dev` 로컬 검증과 CI Oracle은 통과. Sonar coverage gate를 확인 |
 | Final package | README.txt, PDF, slides, demo video, source/executable/test/data zip | #100/#101/#26에서 PDF/slide/video/package 생성 |
 
 ## 문서/제출 요구사항 추적

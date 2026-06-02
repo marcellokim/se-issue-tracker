@@ -6,7 +6,7 @@
 
 ## Scope
 
-- 기준 commit: `d2ec80b` (`fix: GitHub Project 항목 로딩 한계 보정 (#263)`)
+- 기준 commit: `33cc9db` (`docs: 발표 슬라이드와 데모 시나리오 준비 (#258)`)
 - 기준 branch: `origin/dev`
 - 대상: domain, service, persistence, controller 경계 테스트와 repository/setup guard
 - 제외: Swing/JavaFX 화면 QA 증빙, 최종 PDF 본문, 제출 zip 생성
@@ -46,7 +46,7 @@
 
 ## Local Verification
 
-### `./gradlew clean check --console=plain`
+### `./gradlew check verifySubmissionMetadata --console=plain`
 
 Result: passed.
 
@@ -54,41 +54,30 @@ Relevant output:
 
 ```text
 > Task :auditAutomation
-> Task :test FROM-CACHE
+> Task :test
 > Task :oracleIntegrationTest SKIPPED
 > Task :verifyRepositorySetup
 저장소 기본 구성을 확인했습니다 (41개 필수 경로 확인).
 > Task :check
+> Task :verifySubmissionMetadata
+README 제출 메타데이터를 확인했습니다.
 
-BUILD SUCCESSFUL in 4s
-7 actionable tasks: 3 executed, 3 from cache, 1 up-to-date
+BUILD SUCCESSFUL in 23s
+7 actionable tasks: 6 executed, 1 up-to-date
 ```
 
 JUnit XML summary from `build/test-results/test`:
 
 ```text
-test_classes=83
-tests=688
+test_classes=85
+tests=711
 failures_or_errors=0
 skipped=34
 ```
 
-### `./gradlew verifySubmissionMetadata --console=plain`
-
-Result: passed.
-
-Relevant output:
-
-```text
-> Task :verifySubmissionMetadata
-README 제출 메타데이터를 확인했습니다.
-
-BUILD SUCCESSFUL
-```
-
 ## Oracle Evidence
 
-Local `check` does not require Oracle and skipped `oracleIntegrationTest` because no Oracle test DB environment was configured. Oracle 검증은 두 경로 중 하나로 최종 제출 전에 다시 확보한다.
+Local `check` does not require Oracle and skipped `oracleIntegrationTest` because no Oracle test DB environment was configured. 최신 `dev`의 GitHub Actions에서는 `Oracle 통합 테스트` job이 성공했으므로, 최종 보고서/제출 패키지에는 해당 workflow run과 artifact를 연결한다.
 
 | 경로 | 명령 또는 증거 |
 |---|---|
@@ -97,10 +86,23 @@ Local `check` does not require Oracle and skipped `oracleIntegrationTest` becaus
 
 `.github/workflows/gradle.yml`은 일반 test report와 Oracle integration report를 각각 artifact로 업로드한다.
 
+## CI Snapshot
+
+`33cc9db` 기준 GitHub Actions/Checks 상태는 다음과 같이 확인했다.
+
+| Check | 상태 | 판단 |
+|---|---|---|
+| 빌드와 테스트 | success | 필수 체크 통과 |
+| 워크플로우 정책 검사 | success | 필수 체크 통과 |
+| 보안 코드 분석 | success | Java/Kotlin, Python, GitHub Actions 분석 통과 |
+| SonarCloud 분석 | success | workflow 실행 통과 |
+| SonarCloud Code Analysis | failure | New Code coverage 70.4%, 기준 80% 미달 |
+| Oracle 통합 테스트 | success | CI Oracle 검증 통과 |
+
 ## Final Rerun Checklist
 
-- [ ] #253, #254, #256, #257, #258, #261, #262, #265 병합 후 최신 `origin/dev`를 fetch한다.
-- [ ] `./gradlew clean check --console=plain`을 다시 실행한다.
-- [ ] `./gradlew verifySubmissionMetadata --console=plain`을 다시 실행한다.
-- [ ] Oracle local 또는 CI `Oracle 통합 테스트` 통과 증거를 최종 보고서/제출 패키지에 연결한다.
+- [x] #253, #254, #256, #257, #258, #261, #262, #266 병합 후 최신 `origin/dev`를 fetch한다.
+- [x] `./gradlew check verifySubmissionMetadata --console=plain`을 다시 실행한다.
+- [x] Oracle local 또는 CI `Oracle 통합 테스트` 통과 증거를 최종 보고서/제출 패키지에 연결한다.
+- [ ] SonarCloud coverage gate가 최종 제출 판단에 필요한지 확인하고, 필요하면 신규 코드 coverage를 보강한다.
 - [ ] 실패가 있으면 #25를 닫지 않고 실패 test class와 원인을 별도 fix/test 이슈로 분리한다.
