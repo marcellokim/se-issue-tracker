@@ -568,12 +568,12 @@ Use Case: UC7 Manage Dependency
 - `blockedIssueId`가 가리키는 `Issue`가 존재한다.
 - blocking issue와 blocked issue는 같은 `Project`에 속한다.
 - blocking issue와 blocked issue는 `DELETED` 상태가 아니다.
-- blocked issue는 `RESOLVED` 또는 `CLOSED` 상태가 아니다.
 - blocking issue와 blocked issue는 서로 다른 이슈이다.
 - 새 dependency는 기존 dependency와 중복되지 않는다.
 - 새 dependency는 순환 dependency를 만들지 않는다.
 - 현재 사용자는 blocked issue가 속한 `Project`의 active PL이다.
 - 현재 사용자는 dependency를 추가할 권한을 가진다.
+- blocked issue가 이미 `RESOLVED` 또는 `CLOSED` 상태여도 dependency 추가 자체는 허용된다. unresolved blocking issue 검사는 UC6 `FIXED -> RESOLVED` 전이에서 수행한다.
 
 ### 4. Postconditions
 
