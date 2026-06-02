@@ -372,7 +372,7 @@ tasks.register('submissionChecklist') {
         println '제출 전 권장 점검 순서:'
         println '  1) ./gradlew clean check'
         println '  2) ./gradlew verifySubmissionMetadata'
-        println '  3) ./scripts/package-submission.sh --team-number <n> --member <name1> --member <name2> [...] --final-report <pdf> --slides <slides> (--demo <file> | --demo-link <url>) --project-url https://github.com/users/marcellokim/projects/1'
+        println '  3) ./scripts/package-submission.sh --team-number <n> --member <name1> --member <name2> [...] --project-url https://github.com/users/marcellokim/projects/1'
     }
 }
 

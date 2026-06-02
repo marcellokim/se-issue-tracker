@@ -447,11 +447,14 @@ def print_results(results: list[CheckResult], quiet: bool) -> int:
 
 
 def audit(args: argparse.Namespace) -> int:
+    if args.local_only:
+        results = local_checks(True)
+        return print_results(results, args.quiet)
+
     repo = args.repo or detect_repo()
     owner = args.owner or repo.split("/", 1)[0]
-    results = local_checks(args.skip_git_branches or args.local_only)
-    if not args.local_only:
-        results.extend(github_checks(repo, owner, args.project_number, args.project_title))
+    results = local_checks(args.skip_git_branches)
+    results.extend(github_checks(repo, owner, args.project_number, args.project_title))
     return print_results(results, args.quiet)
 
 

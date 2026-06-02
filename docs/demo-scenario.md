@@ -108,13 +108,10 @@ export ITS_DB_PASSWORD="ItsLocalDev2026!"
   --member "MEMBER_1" \
   --member "MEMBER_2" \
   --member "MEMBER_3" \
-  --final-report "<보고서 PDF 경로>" \
-  --slides "<발표자료 경로>" \
-  --demo-link "<시연 영상 URL>" \
   --project-url "https://github.com/users/marcellokim/projects/1"
 ```
 
-패키징 명령의 팀원 이름, 최종 산출물 경로, 프로젝트 URL은 제출 직전 최종 값으로 채운다. 소스와 README만 리허설로 묶을 때는 `--source-only`를 사용한다. Oracle local 실행이 어려운 환경에서는 CI의 `Oracle 통합 테스트` job과 `oracle-통합-테스트-리포트` artifact를 최종 검증 증거로 연결한다.
+패키징 명령의 팀원 이름과 프로젝트 URL은 제출 직전 최종 값으로 채운다. 최종 보고서 PDF, 발표자료, 시연 영상은 저장소 패키지와 별도 산출물로 준비한다. Oracle local 실행이 어려운 환경에서는 CI의 `Oracle 통합 테스트` job과 `oracle-통합-테스트-리포트` artifact를 최종 검증 증거로 연결한다.
 
 ## Seed Accounts
 

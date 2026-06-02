@@ -174,7 +174,7 @@ PR 제목은 브랜치 타입을 기준으로 `type: 한국어 요약` 형식을
 - **자동화 헬스체크**: `audit-project.sh`와 Gradle `auditAutomation`으로 문서/스크립트/프로젝트 정합성 점검
 - **커밋 메시지 템플릿**: Lore commit protocol 형식 자동 적용
 - **라벨 동기화 / GitHub 초기 설정 스크립트**
-- **제출 zip 스크립트**: 제출 형식 zip + `README.txt` 자동 생성
+- **제출 zip 스크립트**: 소스 zip + `README.txt` 자동 생성
 
 ## 7. 주요 문서
 - [사용 설명서 / 팀 운영 가이드](docs/team-setup-manual.md)
@@ -204,23 +204,16 @@ PR 제목은 브랜치 타입을 기준으로 `type: 한국어 요약` 형식을
 ```
 
 ## 9. 제출물 체크리스트
-최종 zip에는 과제문 기준으로 다음이 포함되어야 합니다.
-- README.txt
-- 발표 슬라이드
-- 프로젝트 문서 PDF (60p 이내)
-- 소스코드 / 실행파일 / JUnit 테스트 / 데이터
-- 프로젝트 소개 동영상
+저장소와 소스 패키지는 구현 소스, 실행/검증 절차, 테스트, 설계/QA 문서 중심으로 관리합니다.
+발표 슬라이드, 프로젝트 문서 PDF, 프로젝트 소개 동영상은 제출 직전 별도 산출물로 준비합니다.
 
-제출 패키징 예시:
+소스 패키징 예시:
 ```bash
 ./scripts/package-submission.sh \
   --team-number 03 \
   --member 홍길동 \
   --member 김철수 \
   --member 이영희 \
-  --final-report "<보고서 PDF 경로>" \
-  --slides "<발표자료 경로>" \
-  --demo-link "<시연 영상 URL>" \
   --project-url https://github.com/users/marcellokim/projects/1  # 생략 시 PROJECT_URL variable 사용
 ```
 

@@ -162,11 +162,6 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("scripts/package-submission.sh", "*:Zone.Identifier"),
                 new ScriptExpectation("scripts/package-submission.sh", "AGENTS.md"),
                 new ScriptExpectation("scripts/package-submission.sh", "MEMORY.md"),
-                new ScriptExpectation("scripts/package-submission.sh", "--final-report"),
-                new ScriptExpectation("scripts/package-submission.sh", "--slides"),
-                new ScriptExpectation("scripts/package-submission.sh", "--demo-link"),
-                new ScriptExpectation("scripts/package-submission.sh", "--source-only"),
-                new ScriptExpectation("scripts/package-submission.sh", "final-artifacts"),
                 new ScriptExpectation(".gitignore", "docs/qa/artifacts/"),
                 new ScriptExpectation(".gitignore", "docs/textbook/"),
                 new ScriptExpectation(".gitignore", "AGENTS.md"),
@@ -254,6 +249,24 @@ class RepositoryConventionsSmokeTest {
         assertFalse(
                 text.contains("\"프로젝트 상태 정렬\""),
                 "프로젝트 상태 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
+        );
+    }
+
+    @Test
+    @DisplayName("로컬 전용 audit는 제출 zip처럼 git metadata가 없어도 repo 감지를 요구하지 않는다")
+    void localOnlyAuditSkipsRepositoryDetection() throws IOException {
+        var text = Files.readString(Path.of("scripts/lib/project_maintenance.py"));
+
+        var auditStart = text.indexOf("def audit(args: argparse.Namespace) -> int:");
+        var localOnlyBranch = text.indexOf("if args.local_only:", auditStart);
+        var repoDetection = text.indexOf("repo = args.repo or detect_repo()", auditStart);
+
+        assertTrue(auditStart >= 0, "audit 함수가 없습니다.");
+        assertTrue(localOnlyBranch > auditStart, "local-only audit 분기점이 없습니다.");
+        assertTrue(repoDetection > auditStart, "repo 감지 코드가 없습니다.");
+        assertTrue(
+                localOnlyBranch < repoDetection,
+                "local-only audit는 .git 없는 제출 zip 내부에서도 동작하도록 repo 감지보다 먼저 처리되어야 합니다."
         );
     }
 

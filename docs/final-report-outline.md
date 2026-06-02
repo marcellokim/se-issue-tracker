@@ -39,7 +39,6 @@
 
 | 섹션 | 원천 자료 | 삽입 기준 |
 | --- | --- | --- |
-| 본문 재료 | `docs/final-report-content.md` | 팀원이 최종 PDF로 옮길 때 내용 중심 초안으로 사용 |
 | 요구사항 분석 | `docs/use-cases/use_case_specifications.md`, `docs/requirements-traceability.md`, `docs/uml/ucd/ucd-issue-tracking-system.puml` | UC1~UC6은 핵심으로 설명하고, UC7~UC16은 coverage 표로 압축 |
 | 도메인 분석 | `docs/uml/domain/domain-model-issue-tracking-system.puml`, `docs/assumptions.md` | 상태, 역할, deleted issue, dependency 정책을 현재 구현 기준으로 설명 |
 | SSD | `docs/uml/ssd-candidate-catalog.md`, `docs/uml/ssd/ssd-01-register-issue.puml`, `docs/uml/ssd/ssd-05-assign-issue.puml`, `docs/uml/ssd/ssd-06-mark-fixed.puml` | 제출 대표 SSD 3개만 본문 삽입 |

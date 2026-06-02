@@ -70,7 +70,7 @@
 | --- | --- | --- | --- |
 | [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 전체 UI 데모 흐름 parent | Swing sub-issue와 데모 가능한 전체 UI 관리 | UC1~UC16 Swing presentation | 구현 sub-issue와 QA PR은 `dev`에 병합됨. #246의 발표 장비 수동 재확인만 남음 |
 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최신 `dev`에서 `./gradlew check verifySubmissionMetadata`와 CI Oracle/SonarCloud workflow 통과. 별도 SonarCloud App coverage check는 branch protection 필수 항목이 아님 |
-| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, PDF, slide, video, zip, 실행/검증 절차 | 최종 제출 산출물 | package exclude 정책과 README.txt 템플릿은 반영됨. 최종 PDF/slide/video/zip freeze 전까지 유지 |
+| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, source zip, 실행/검증 절차 | 소스 제출 산출물 | package exclude 정책과 README.txt 템플릿은 반영됨. 최종 PDF/slide/video는 별도 제출물로 관리 |
 | [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | REST/local evidence 기준으로 최종 캡처 목록을 관리함. 제출 직전 보드, milestone, issue, PR, CI 화면을 다시 캡처 |
 | [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, screenshot/evidence 경로 | Swing demo evidence | `docs/qa/swing-full-qa-2026-06-01.md`에 기능 QA 반영. 발표 장비의 마우스 포커스/시각 점검만 수동 확인 필요 |
 
@@ -100,4 +100,4 @@
 | OOAD/GRASP/설계 원칙 설명 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15), [#39](https://github.com/marcellokim/se-issue-tracker/issues/39) | 설계 결정 기록, 클래스 책임 설명 |
 | 구현 결과 및 스크린샷 | [#23](https://github.com/marcellokim/se-issue-tracker/issues/23), [#24](https://github.com/marcellokim/se-issue-tracker/issues/24), [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 화면 캡처, 데모 순서 |
 | 테스트 수행 내역 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25), [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 테스트 코드, 테스트 목적 설명 |
-| 최종 README.txt, 발표 슬라이드, 문서 PDF, 영상, zip | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 제출 zip, README.txt, 슬라이드, 영상 |
+| 최종 README.txt와 소스 zip | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) | 소스 zip, README.txt |

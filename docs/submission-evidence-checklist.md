@@ -68,13 +68,10 @@
   --member "<팀원1>" \
   --member "<팀원2>" \
   --member "<팀원3>" \
-  --final-report "<보고서 PDF 경로>" \
-  --slides "<발표자료 경로>" \
-  --demo-link "<시연 영상 URL>" \
   --project-url "https://github.com/users/marcellokim/projects/1"
 ```
 
-소스/README 패키징 리허설만 확인할 때는 최종 산출물 옵션 대신 `--source-only`를 붙인다. 최종 제출용 zip은 `--source-only` 없이 생성한다.
+최종 보고서 PDF, 발표자료, 시연 영상은 이 소스 패키지에 넣지 않고 별도 제출물로 준비한다.
 
 생성 후 아래 항목을 확인한다.
 
@@ -82,11 +79,9 @@
 | --- | --- |
 | `dist/` 아래 제출 zip 생성 | [ ] |
 | zip 내부 `README.txt` 생성 및 실행 명령 확인 | [ ] |
-| 최종 PDF 포함 | [ ] |
-| 발표 슬라이드 포함 | [ ] |
-| 시연 영상 파일 또는 링크 문서 포함 | [ ] |
 | `.git`, `.gradle`, `build`, `dist`, `docs/qa/artifacts`, IDE 설정 제외 | [ ] |
 | 강의 원문 PDF, 기존 zip, 개인 지침/메모 파일, 리뷰 앱/보조 도구 설정 제외 | [ ] |
+| 최종 보고서 PDF, 발표자료, 시연 영상은 별도 제출물로 분리 | [ ] |
 
 ## 최종 검증 명령
 

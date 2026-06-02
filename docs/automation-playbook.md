@@ -51,7 +51,7 @@
 | `scripts/open-pr.sh` | 구현 | 검증, push, PR 생성, 이슈 review 라벨 이동, 프로젝트 정렬을 한 번에 처리 | `./scripts/open-pr.sh` |
 | `scripts/audit-project.sh` | 구현 | main/dev, 문서, DB 표준, GitHub 이슈/프로젝트 정합성 점검 | `./scripts/audit-project.sh` |
 | `scripts/sync-project-board.sh` | 구현 | 이슈/PR 상태 라벨을 GitHub 프로젝트 상태로 반영 | `./scripts/sync-project-board.sh --apply` |
-| `scripts/package-submission.sh` | 구현 | 제출용 zip + `README.txt` + 최종 산출물 묶음 생성 | `./scripts/package-submission.sh --team-number ... --final-report ... --slides ... --demo-link ...` |
+| `scripts/package-submission.sh` | 구현 | 소스 zip + `README.txt` 생성 | `./scripts/package-submission.sh --team-number ... --member ... --project-url ...` |
 | `scripts/validate-workflow-guard.sh` | 구현 | 정해진 PR/브랜치 흐름과 관리자 우회 정책 검증 | GitHub Actions에서 자동 실행 |
 | `scripts/validate-public-attribution.sh` | 구현 | commit message와 tracked file의 공개 이력 표기 정책 검증 | commit hook / audit에서 자동 실행 |
 
