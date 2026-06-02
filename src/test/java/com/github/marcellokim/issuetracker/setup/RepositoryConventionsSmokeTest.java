@@ -23,7 +23,6 @@ class RepositoryConventionsSmokeTest {
     static Stream<String> requiredPaths() {
         return Stream.of(
                 "README.md",
-                "SE_Term_Project_2026-1.pdf",
                 ".github/workflows/gradle.yml",
                 ".github/workflows/workflow-guard.yml",
                 ".github/workflows/pr-labeler.yml",
@@ -31,11 +30,7 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/pr-metadata.yml",
                 ".github/workflows/codeql.yml",
                 ".github/workflows/project-maintenance.yml",
-                ".pr_agent.toml",
-                ".gemini/config.yaml",
-                ".gemini/styleguide.md",
                 ".sonarcloud.properties",
-                ".github/copilot-instructions.md",
                 ".github/dependabot.yml",
                 "config/github/labels.json",
                 "config/github/milestones.json",
@@ -164,30 +159,22 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation("scripts/package-submission.sh", ".DS_Store"),
                 new ScriptExpectation("scripts/package-submission.sh", "__pycache__/"),
                 new ScriptExpectation("scripts/package-submission.sh", "docs/textbook/"),
+                new ScriptExpectation("scripts/package-submission.sh", "SE_Term_Project_2026-1.pdf"),
                 new ScriptExpectation("scripts/package-submission.sh", "*:Zone.Identifier"),
                 new ScriptExpectation("scripts/package-submission.sh", "AGENTS.md"),
                 new ScriptExpectation("scripts/package-submission.sh", "MEMORY.md"),
+                new ScriptExpectation("scripts/package-submission.sh", "memory.md"),
                 new ScriptExpectation(".gitignore", "docs/qa/artifacts/"),
                 new ScriptExpectation(".gitignore", "docs/textbook/"),
+                new ScriptExpectation(".gitignore", "SE_Term_Project_2026-1.pdf"),
                 new ScriptExpectation(".gitignore", "AGENTS.md"),
                 new ScriptExpectation(".gitignore", "MEMORY.md"),
+                new ScriptExpectation(".gitignore", "memory.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
                 new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
-                new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
-                new ScriptExpectation(".pr_agent.toml", "use_repo_settings_file = true"),
-                new ScriptExpectation(".pr_agent.toml", "pr_commands = []"),
-                new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = false"),
-                new ScriptExpectation(".pr_agent.toml", "push_commands = []"),
-                new ScriptExpectation(".pr_agent.toml", "enable_auto_checks_feedback = false"),
-                new ScriptExpectation(".pr_agent.toml", "persistent_comment = false"),
-                new ScriptExpectation(".pr_agent.toml", "final_update_message = false"),
-                new ScriptExpectation(".pr_agent.toml", "[checks]"),
-                new ScriptExpectation(".gemini/config.yaml", "comment_severity_threshold: MEDIUM"),
-                new ScriptExpectation(".gemini/config.yaml", "max_review_comments: 10"),
-                new ScriptExpectation(".gemini/config.yaml", "include_drafts: false"),
-                new ScriptExpectation(".gemini/styleguide.md", "Write review comments in Korean"),
-                new ScriptExpectation(".gemini/styleguide.md", "Normal pull requests target `dev`"),
-                new ScriptExpectation(".github/copilot-instructions.md", "자동 리뷰, 요약, 제안, 체크 실패 분석, 채팅 응답은 가능한 한 한국어")
+                new ScriptExpectation("scripts/package-submission.sh", ".gemini/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".github/copilot-instructions.md"),
+                new ScriptExpectation("scripts/package-submission.sh", ".pr_agent.toml")
         );
     }
 
@@ -266,6 +253,24 @@ class RepositoryConventionsSmokeTest {
         assertFalse(
                 text.contains("\"프로젝트 상태 정렬\""),
                 "프로젝트 상태 정렬은 GraphQL rate-limit 영향을 받으므로 필수 체크가 아니어야 합니다."
+        );
+    }
+
+    @Test
+    @DisplayName("로컬 전용 audit는 제출 zip처럼 git metadata가 없어도 repo 감지를 요구하지 않는다")
+    void localOnlyAuditSkipsRepositoryDetection() throws IOException {
+        var text = Files.readString(Path.of("scripts/lib/project_maintenance.py"));
+
+        var auditStart = text.indexOf("def audit(args: argparse.Namespace) -> int:");
+        var localOnlyBranch = text.indexOf("if args.local_only:", auditStart);
+        var repoDetection = text.indexOf("repo = args.repo or detect_repo()", auditStart);
+
+        assertTrue(auditStart >= 0, "audit 함수가 없습니다.");
+        assertTrue(localOnlyBranch > auditStart, "local-only audit 분기점이 없습니다.");
+        assertTrue(repoDetection > auditStart, "repo 감지 코드가 없습니다.");
+        assertTrue(
+                localOnlyBranch < repoDetection,
+                "local-only audit는 .git 없는 제출 zip 내부에서도 동작하도록 repo 감지보다 먼저 처리되어야 합니다."
         );
     }
 

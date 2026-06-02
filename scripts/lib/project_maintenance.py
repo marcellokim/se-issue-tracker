@@ -26,13 +26,8 @@ STATUS_BY_LABEL = {
 STATUS_LABELS = set(STATUS_BY_LABEL)
 
 REQUIRED_FILES = [
-    "SE_Term_Project_2026-1.pdf",
     "README.md",
-    ".pr_agent.toml",
-    ".gemini/config.yaml",
-    ".gemini/styleguide.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
-    ".github/copilot-instructions.md",
     ".github/workflows/add-to-project.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/gradle.yml",
@@ -347,10 +342,10 @@ def project_readme_checks(repo: str, owner: str, project_number: int | None, pro
     results: list[CheckResult] = []
     results.append(pass_(f"GitHub 프로젝트 확인: {owner}/{context.project_number} ({context.project_id})"))
 
-    if "SE_Term_Project_2026-1.pdf" in readme and "DB 기반 persistence" in readme:
-        results.append(pass_("프로젝트 설명의 PDF 원문/DB 표준 문구 확인"))
+    if "과제 요구사항" in readme and "DB 기반 persistence" in readme:
+        results.append(pass_("프로젝트 설명의 요구사항/DB 표준 문구 확인"))
     else:
-        results.append(fail("프로젝트 설명에 PDF 원문 또는 DB 표준 문구가 부족합니다"))
+        results.append(fail("프로젝트 설명에 요구사항 또는 DB 표준 문구가 부족합니다"))
     return context, results
 
 
@@ -452,11 +447,14 @@ def print_results(results: list[CheckResult], quiet: bool) -> int:
 
 
 def audit(args: argparse.Namespace) -> int:
+    if args.local_only:
+        results = local_checks(True)
+        return print_results(results, args.quiet)
+
     repo = args.repo or detect_repo()
     owner = args.owner or repo.split("/", 1)[0]
-    results = local_checks(args.skip_git_branches or args.local_only)
-    if not args.local_only:
-        results.extend(github_checks(repo, owner, args.project_number, args.project_title))
+    results = local_checks(args.skip_git_branches)
+    results.extend(github_checks(repo, owner, args.project_number, args.project_title))
     return print_results(results, args.quiet)
 
 
