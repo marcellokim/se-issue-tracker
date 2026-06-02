@@ -152,6 +152,19 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".githooks/pre-commit", "[0-9]+-[A-Za-z0-9._-]+"),
                 new ScriptExpectation("scripts/audit-project.sh", "project_maintenance.py audit"),
                 new ScriptExpectation("scripts/sync-project-board.sh", "project_maintenance.py sync-project"),
+                new ScriptExpectation("scripts/package-submission.sh", "docs/qa/artifacts/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".idea/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".vscode/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".DS_Store"),
+                new ScriptExpectation("scripts/package-submission.sh", "__pycache__/"),
+                new ScriptExpectation("scripts/package-submission.sh", "docs/textbook/"),
+                new ScriptExpectation("scripts/package-submission.sh", "*:Zone.Identifier"),
+                new ScriptExpectation("scripts/package-submission.sh", "AGENTS.md"),
+                new ScriptExpectation("scripts/package-submission.sh", "MEMORY.md"),
+                new ScriptExpectation(".gitignore", "docs/qa/artifacts/"),
+                new ScriptExpectation(".gitignore", "docs/textbook/"),
+                new ScriptExpectation(".gitignore", "AGENTS.md"),
+                new ScriptExpectation(".gitignore", "MEMORY.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
                 new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
                 new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
@@ -268,6 +281,16 @@ class RepositoryConventionsSmokeTest {
                     () -> "삭제 대상 related 이슈 API가 남아 있습니다: " + offenders
             );
         }
+    }
+
+    @Test
+    @DisplayName("제출 패키징은 Python 표준 라이브러리로 zip을 생성한다")
+    void packageSubmissionUsesPythonZipArchive() throws IOException {
+        var text = Files.readString(Path.of("scripts/package-submission.sh"));
+
+        assertFalse(text.contains("require_tool zip"), "zip CLI가 없어도 제출 패키지를 만들 수 있어야 합니다.");
+        assertTrue(text.contains("import zipfile"), "Python 표준 zipfile 모듈로 archive를 생성해야 합니다.");
+        assertTrue(text.contains("zipfile.ZIP_DEFLATED"), "제출 zip은 압축된 zip archive여야 합니다.");
     }
 
     private static boolean containsAny(String text, String... candidates) {

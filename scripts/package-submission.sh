@@ -75,7 +75,6 @@ if [[ -z "$team_number" || ${#members[@]} -lt 2 ]]; then
 fi
 
 require_tool rsync
-require_tool zip
 python_executable="$(resolve_python_executable)"
 
 if [[ -z "$project_url" ]] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
@@ -121,6 +120,16 @@ rsync -a \
     --exclude 'dist/' \
     --exclude 'dist*/' \
     --exclude 'tmp/' \
+    --exclude 'docs/qa/artifacts/' \
+    --exclude '.idea/' \
+    --exclude '.vscode/' \
+    --exclude '.DS_Store' \
+    --exclude '__pycache__/' \
+    --exclude 'docs/textbook/' \
+    --exclude '*:Zone.Identifier' \
+    --exclude 'AGENTS.md' \
+    --exclude 'MEMORY.md' \
+    --exclude 'memory.md' \
     --exclude "$output_dir_name/" \
     --exclude 'SE_Term_Project_2026-1.pdf' \
     --exclude '*.zip' \
@@ -144,9 +153,20 @@ text = text.replace('{{MEMBERS}}', members)
 out_path.write_text(text, encoding='utf-8')
 PY2
 
-(
-    cd "$repo_root/build/submission"
-    zip -qr "$output_dir/${archive_name}.zip" "$archive_name"
-)
+"$python_executable" - <<'PY3' "$repo_root/build/submission" "$archive_name" "$output_dir/${archive_name}.zip"
+from pathlib import Path
+import sys
+import zipfile
+
+base_dir = Path(sys.argv[1])
+archive_name = sys.argv[2]
+output_path = Path(sys.argv[3])
+source_root = base_dir / archive_name
+
+with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    for path in sorted(source_root.rglob("*")):
+        if path.is_file():
+            archive.write(path, path.relative_to(base_dir))
+PY3
 
 echo "[확인] 생성 완료: $output_dir/${archive_name}.zip"
