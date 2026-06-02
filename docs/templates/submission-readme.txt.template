@@ -17,7 +17,7 @@ SE 2026-1 텀프로젝트 제출물 요약
 - docs/ 아래 요구사항, 설계, API, QA 리포트, 데모 문서
 - .github/ 아래 GitHub Actions workflow와 PR/이슈 템플릿
 - src/test/ 아래 JUnit 테스트 코드
-- 최종 산출물로 추가한 보고서 PDF, 발표 슬라이드, 시연 영상 파일 또는 영상 링크 문서
+- final-artifacts/ 아래 최종 보고서 PDF, 발표 슬라이드, 시연 영상 파일 또는 영상 링크 문서
 
 6. 사전 준비
 - JDK 21

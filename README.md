@@ -218,6 +218,9 @@ PR 제목은 브랜치 타입을 기준으로 `type: 한국어 요약` 형식을
   --member 홍길동 \
   --member 김철수 \
   --member 이영희 \
+  --final-report "<보고서 PDF 경로>" \
+  --slides "<발표자료 경로>" \
+  --demo-link "<시연 영상 URL>" \
   --project-url https://github.com/users/marcellokim/projects/1  # 생략 시 PROJECT_URL variable 사용
 ```
 

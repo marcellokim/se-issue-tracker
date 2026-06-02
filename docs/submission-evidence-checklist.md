@@ -68,8 +68,13 @@
   --member "<팀원1>" \
   --member "<팀원2>" \
   --member "<팀원3>" \
+  --final-report "<보고서 PDF 경로>" \
+  --slides "<발표자료 경로>" \
+  --demo-link "<시연 영상 URL>" \
   --project-url "https://github.com/users/marcellokim/projects/1"
 ```
+
+소스/README 패키징 리허설만 확인할 때는 최종 산출물 옵션 대신 `--source-only`를 붙인다. 최종 제출용 zip은 `--source-only` 없이 생성한다.
 
 생성 후 아래 항목을 확인한다.
 

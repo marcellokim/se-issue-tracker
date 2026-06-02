@@ -10,6 +10,11 @@ output_dir="$repo_root/dist"
 github_url="$(git remote get-url origin 2>/dev/null || echo 'REPO_URL_UPDATE_REQUIRED')"
 project_url="${PROJECT_URL:-}"
 skip_check=false
+source_only=false
+final_report=""
+slides=""
+demo_artifact=""
+demo_link=""
 members=()
 
 java_runtime_ready() {
@@ -34,6 +39,21 @@ require_tool() {
         echo "필수 도구를 찾을 수 없습니다: $1" >&2
         exit 1
     fi
+}
+
+usage() {
+    cat <<'EOF'
+사용법:
+  ./scripts/package-submission.sh \
+    --team-number <번호> \
+    --member <팀원1> --member <팀원2> [--member <팀원3> ...] \
+    --final-report <보고서 PDF> \
+    --slides <발표자료> \
+    (--demo <시연 영상/링크 문서> | --demo-link <시연 영상 URL>) \
+    [--project-url <url>] [--skip-check]
+
+리허설용으로 소스/README 패키지만 만들 때는 최종 산출물 옵션 대신 --source-only를 사용합니다.
+EOF
 }
 
 while [[ $# -gt 0 ]]; do
@@ -62,16 +82,54 @@ while [[ $# -gt 0 ]]; do
             skip_check=true
             shift
             ;;
+        --source-only)
+            source_only=true
+            shift
+            ;;
+        --final-report)
+            final_report="$2"
+            shift 2
+            ;;
+        --slides)
+            slides="$2"
+            shift 2
+            ;;
+        --demo)
+            demo_artifact="$2"
+            shift 2
+            ;;
+        --demo-link)
+            demo_link="$2"
+            shift 2
+            ;;
         *)
             echo "알 수 없는 옵션: $1"
+            usage
             exit 1
             ;;
     esac
 done
 
 if [[ -z "$team_number" || ${#members[@]} -lt 2 ]]; then
-    echo "사용법: $0 --team-number <번호> --member <팀원1> --member <팀원2> [--member <팀원3> ...] [--project-url <url>] [--skip-check]"
+    usage
     exit 1
+fi
+
+if [[ -n "$demo_artifact" && -n "$demo_link" ]]; then
+    echo "--demo와 --demo-link는 둘 중 하나만 지정하세요." >&2
+    exit 1
+fi
+
+if [[ "$source_only" == false ]]; then
+    missing=()
+    [[ -z "$final_report" ]] && missing+=("--final-report")
+    [[ -z "$slides" ]] && missing+=("--slides")
+    [[ -z "$demo_artifact" && -z "$demo_link" ]] && missing+=("--demo 또는 --demo-link")
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "최종 제출 패키지는 다음 산출물 옵션이 필요합니다: ${missing[*]}" >&2
+        usage
+        exit 1
+    fi
 fi
 
 require_tool rsync
@@ -111,6 +169,27 @@ archive_name="${team_number}_$(IFS=_; echo "${safe_members[*]}")"
 stage_root="$repo_root/build/submission/$archive_name"
 rm -rf "$stage_root"
 mkdir -p "$stage_root" "$output_dir"
+
+resolve_artifact_path() {
+    local path="$1"
+    if [[ "$path" != /* ]]; then
+        path="$repo_root/$path"
+    fi
+    if [[ ! -f "$path" ]]; then
+        echo "최종 산출물 파일을 찾을 수 없습니다: $path" >&2
+        exit 1
+    fi
+    printf '%s\n' "$path"
+}
+
+copy_artifact() {
+    local source_path="$1"
+    local target_dir="$2"
+    local resolved_path
+    resolved_path="$(resolve_artifact_path "$source_path")"
+    mkdir -p "$stage_root/final-artifacts/$target_dir"
+    cp "$resolved_path" "$stage_root/final-artifacts/$target_dir/"
+}
 
 rsync -a \
     --exclude '.git/' \
@@ -155,6 +234,23 @@ text = text.replace('{{PROJECT_URL}}', project_url)
 text = text.replace('{{MEMBERS}}', members)
 out_path.write_text(text, encoding='utf-8')
 PY2
+
+if [[ -n "$final_report" ]]; then
+    copy_artifact "$final_report" "report"
+fi
+
+if [[ -n "$slides" ]]; then
+    copy_artifact "$slides" "slides"
+fi
+
+if [[ -n "$demo_artifact" ]]; then
+    copy_artifact "$demo_artifact" "demo"
+fi
+
+if [[ -n "$demo_link" ]]; then
+    mkdir -p "$stage_root/final-artifacts/demo"
+    printf '%s\n' "$demo_link" > "$stage_root/final-artifacts/demo/demo-video-link.txt"
+fi
 
 "$python_executable" - <<'PY3' "$repo_root/build/submission" "$archive_name" "$output_dir/${archive_name}.zip"
 from pathlib import Path
