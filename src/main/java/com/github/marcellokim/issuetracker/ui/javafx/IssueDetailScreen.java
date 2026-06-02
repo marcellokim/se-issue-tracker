@@ -10,9 +10,11 @@ import com.github.marcellokim.issuetracker.service.AssignmentCandidateResult;
 import com.github.marcellokim.issuetracker.service.AssignmentOptionsResult;
 import com.github.marcellokim.issuetracker.service.CommentResult;
 import com.github.marcellokim.issuetracker.service.DependencyResult;
+import com.github.marcellokim.issuetracker.service.HistoryResult;
 import com.github.marcellokim.issuetracker.service.IssueDetailResult;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.UserResult;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -37,6 +39,7 @@ import javafx.util.StringConverter;
 
 final class IssueDetailScreen extends VBox {
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final IssueController issueController;
     private final IssueStateController issueStateController;
     private final AssignmentController assignmentController;
@@ -77,6 +80,9 @@ final class IssueDetailScreen extends VBox {
 
             Label statusLabel = new Label(String.format("Status: %s | Priority: %s", detail.status(), detail.priority()));
             statusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #444;");
+
+            Label reportedLabel = new Label("Reported: " + DATE_TIME_FORMATTER.format(detail.reportedDate()));
+            reportedLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #444;");
 
             Label descriptionLabel = new Label(detail.description());
             descriptionLabel.setWrapText(true);
@@ -129,15 +135,22 @@ final class IssueDetailScreen extends VBox {
 
             Label historyTitle = new Label("History (" + detail.histories().size() + " entries)");
             historyTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #888;");
+            ListView<String> historyListView = new ListView<>();
+            for (HistoryResult h : detail.histories()){
+                String entry = String.format("%s | %s | by %s", DATE_TIME_FORMATTER.format(h.changedDate()), h.actionType(), h.changedById());
+                if (h.previousValue() != null && h.newValue() != null) entry += String.format(" (%s → %s)", h.previousValue(), h.newValue());
+                historyListView.getItems().add(entry);
+            }
+            historyListView.setPrefHeight(Math.min(120, detail.histories().size() * 26 + 4));
 
-            VBox content = new VBox(8, titleLabel, statusLabel, new Separator(),
+            VBox content = new VBox(8, titleLabel, statusLabel, reportedLabel, new Separator(),
                     descriptionLabel, new Separator(),
                     peopleBox, new Separator(),
                     new Label("Available Actions:"), actionButtons, new Separator(),
                     commentsTitle, commentList,
                     blockedByTitle, blockedByListView,
                     blockingTitle, blockingListView,
-                    historyTitle, messageLabel);
+                    historyTitle, historyListView, messageLabel);
             javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(content);
             scrollPane.setFitToWidth(true);
             VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
@@ -489,7 +502,10 @@ final class IssueDetailScreen extends VBox {
             super.updateItem(comment, empty);
             if (empty || comment == null){ setText(null); setGraphic(null); return; }
             setText(null);
-            Label text = new Label(String.format("[%s] %s: %s", comment.purpose(), comment.writerLoginId(), comment.content()));
+            String commentDate = comment.createdDate().equals(comment.updatedDate())
+                    ? DATE_TIME_FORMATTER.format(comment.createdDate())
+                    : DATE_TIME_FORMATTER.format(comment.updatedDate()) + " (Edited)";
+            Label text = new Label(String.format("[%s] %s (%s): %s", comment.purpose(), comment.writerLoginId(), commentDate, comment.content()));
             text.setWrapText(true);
             FlowPane buttons = new FlowPane(4, 0);
             if (editable.contains(comment.commentId())){

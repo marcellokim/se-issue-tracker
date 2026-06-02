@@ -33,7 +33,7 @@ final class IssueTableRows {
                 issue.reporterId(),
                 valueOrDash(issue.assigneeId()),
                 valueOrDash(issue.verifierId()),
-                DATE_TIME_FORMATTER.format(issue.updatedAt())
+                DATE_TIME_FORMATTER.format(issue.reportedDate())
         }));
         selectedIssueId.ifPresent(issueId -> restoreSelection(table, issueId));
     }
