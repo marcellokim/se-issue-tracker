@@ -25,6 +25,7 @@ import com.github.marcellokim.issuetracker.support.FakeIssueHistoryRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryIssueRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryProjectRepository;
 import com.github.marcellokim.issuetracker.support.InMemoryUserRepository;
+import com.github.marcellokim.issuetracker.support.SequentialIssueIdProvider;
 import com.github.marcellokim.issuetracker.technical.SessionStore;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -168,6 +169,7 @@ class IssueListPresenterTest {
                         new FakeIssueHistoryRepository(),
                         users,
                         permissionPolicy,
+                        new SequentialIssueIdProvider(),
                         () -> NOW));
         return new ControllerFixture(projectController, issueController);
     }
