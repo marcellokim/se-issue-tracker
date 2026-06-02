@@ -1,6 +1,6 @@
 # 요구사항 추적표
 
-이 문서는 루트의 `SE_Term_Project_2026-1.pdf`를 기준으로, 과제 요구사항을 GitHub 이슈와 산출물로 연결하기 위한 작업용 추적표입니다. PDF 원문과 이 문서가 충돌하면 PDF 원문을 우선합니다.
+이 문서는 팀이 보유한 과제 요구사항을 기준으로, GitHub 이슈와 산출물을 연결하기 위한 작업용 추적표입니다. 과제 원문과 이 문서가 충돌하면 과제 원문을 우선합니다. 원문 PDF는 현재 소스 트리와 제출용 source zip에 포함하지 않고 이후 커밋에서도 재추가하지 않습니다.
 
 최종 보고서 문장을 대신하는 문서가 아니라, 팀이 구현 중 누락을 확인하고 PR/테스트/문서 위치를 이어 붙이기 위한 관리 문서입니다. 구현이 진행되면 관련 PR, 테스트 클래스, 스크린샷 위치를 계속 갱신합니다.
 
@@ -79,7 +79,7 @@
 | Gate | 완료 조건 | 현재 필요한 다음 행동 |
 | --- | --- | --- |
 | Swing 발표 장비 재확인 | 로그인 마우스 포커스와 800x600 주요 화면 육안 확인 | #246에 남은 target desktop retest 결과를 기록 |
-| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 강의 원문, 개인 작업 메모 파일이 zip에서 제외됨 | 최종 `package-submission.sh` 실행으로 산출물 이름과 README.txt 확인 |
+| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 과제/강의 원문, 개인 작업 메모 파일이 zip에서 제외됨 | 최종 `package-submission.sh` 실행으로 산출물 이름과 README.txt 확인 |
 | Traceability freeze | UC별 구현/API/test/UI evidence가 한 문서에서 추적됨 | #107은 병합 완료. 최종 PDF로 옮길 때 표 길이만 조정 |
 | Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최신 `dev` 로컬 검증과 CI Oracle/SonarCloud workflow는 통과. 별도 SonarCloud App coverage check는 참고 항목으로 기록 |
 | Final package | README.txt, PDF, slides, demo video, source/executable/test/data zip | #100/#101/#26에서 PDF/slide/video/package 생성 |

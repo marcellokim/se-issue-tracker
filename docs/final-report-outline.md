@@ -4,7 +4,7 @@
 
 ## 작성 원칙
 
-- 루트의 `SE_Term_Project_2026-1.pdf`가 최상위 요구사항이다.
+- 팀이 보유한 과제 요구사항 원문을 최상위 기준으로 삼는다. 원문 PDF는 현재 소스 트리와 제출용 source zip에 포함하지 않고 이후 커밋에서도 재추가하지 않는다.
 - 보고서는 모든 개발 reference를 나열하지 않고 대표 산출물 중심으로 선별한다.
 - JavaFX와 Swing은 기능을 나눈 UI가 아니라, 같은 controller/service/domain/persistence 계층을 재사용하는 두 개의 완전한 UI로 설명한다.
 - CLI, 오래된 dashboard 이슈 목록, 삭제 이슈 count 노출처럼 현재 구현과 맞지 않는 과거 설명은 넣지 않는다.

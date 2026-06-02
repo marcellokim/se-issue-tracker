@@ -342,10 +342,10 @@ def project_readme_checks(repo: str, owner: str, project_number: int | None, pro
     results: list[CheckResult] = []
     results.append(pass_(f"GitHub 프로젝트 확인: {owner}/{context.project_number} ({context.project_id})"))
 
-    if "SE_Term_Project_2026-1.pdf" in readme and "DB 기반 persistence" in readme:
-        results.append(pass_("프로젝트 설명의 PDF 원문/DB 표준 문구 확인"))
+    if "과제 요구사항" in readme and "DB 기반 persistence" in readme:
+        results.append(pass_("프로젝트 설명의 요구사항/DB 표준 문구 확인"))
     else:
-        results.append(fail("프로젝트 설명에 PDF 원문 또는 DB 표준 문구가 부족합니다"))
+        results.append(fail("프로젝트 설명에 요구사항 또는 DB 표준 문구가 부족합니다"))
     return context, results
 
 
