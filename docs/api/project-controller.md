@@ -2,7 +2,7 @@
 
 ## 범위
 
-`ProjectController`는 프로젝트 상세 조회와 ADMIN 프로젝트 관리 API를 제공한다. ADMIN은 프로젝트 기본 정보와 참여자 정보를 조회하고 프로젝트를 관리한다. non-ADMIN 사용자는 자신이 참여한 프로젝트의 기본 정보만 조회하며, 해당 프로젝트의 일반 이슈 목록은 `IssueController.viewProjectIssues`에서 조회한다.
+`ProjectController`는 프로젝트 상세 조회와 ADMIN 프로젝트 관리 API를 제공한다. ADMIN은 프로젝트 기본 정보와 참여자 정보를 조회하고 프로젝트를 관리한다. non-ADMIN 사용자는 자신이 참여한 프로젝트의 기본 정보만 조회하며, 해당 프로젝트의 일반 이슈 목록은 `IssueController.viewRelatedProjectIssues`에서 조회한다.
 
 ## 공개 오퍼레이션
 
@@ -53,7 +53,7 @@
 | 분류 | 내용 |
 | --- | --- |
 | `implementation-extra` | 프로젝트 관리는 구현되어 있지만 `required_operation_contracts.md`에는 나열되어 있지 않다. |
-| `ui-scope` | ADMIN 프로젝트 상세는 이슈 목록을 포함하지 않는다. non-ADMIN 프로젝트 화면의 일반 이슈 목록은 `IssueController.viewProjectIssues`에서 별도로 조회한다. |
+| `ui-scope` | ADMIN 프로젝트 상세는 이슈 목록을 포함하지 않는다. non-ADMIN 프로젝트 화면의 일반 이슈 목록은 `IssueController.viewRelatedProjectIssues`에서 별도로 조회한다. |
 
 ## 권한 및 실패 요약
 

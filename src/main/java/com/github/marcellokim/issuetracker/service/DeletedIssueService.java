@@ -65,11 +65,6 @@ public final class DeletedIssueService {
         return toIssueSummary(deletedIssueRepository.restore(issue, actor.getLoginId(), comment, clock.now()));
     }
 
-    public int purgeOverflow(long projectId, User actor) {
-        requireDeletedIssuePermission(actor, projectId);
-        return deletedIssueRepository.purgeDeletedBeyondLimit(projectId, MAX_DELETED_ISSUES_PER_PROJECT);
-    }
-
     public void purgeDeletedIssue(long issueId, User actor) {
         requireIssueId(issueId);
         Issue issue = findIssue(issueId);

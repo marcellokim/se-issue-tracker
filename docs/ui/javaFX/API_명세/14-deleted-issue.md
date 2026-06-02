@@ -51,16 +51,6 @@
 
 - **후속**: 삭제 이슈 목록 새로고침
 
-> `purgeOverflow`는 softDelete 시 자동 실행되므로 이 화면에 별도 버튼 없음.
-
-## UI 미노출 API
-
-### purgeOverflow
-
-- **메서드**: `DeletedIssueController.purgeOverflow(projectId)`
-- **반환**: `int` (삭제된 건수)
-- **호출 주체**: `deleteIssue` 실행 시 서비스 내부에서 자동 호출
-- **UI 노출**: 없음 — 별도 버튼 불필요
 
 ## 화면 전이
 

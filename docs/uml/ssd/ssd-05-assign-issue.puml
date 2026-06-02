@@ -10,28 +10,26 @@ A -> S: startAssignment(issueId)
 S --> A: assignmentOptions(devAssigneeCandidates, testerVerifierCandidates, allDevAssignees, allTesterVerifiers)
 
 alt Issue.status == NEW or REOPENED
-  opt UC2 Add Comment 선택
-    A -> S: addComment(issueId, content)
-    S --> A: commentRegistered(commentId, createdDate, confirmation)
-  end
   A -> S: assignIssue(issueId, assigneeId, verifierId)
   S --> A: issueAssigned(issueId, status=ASSIGNED, confirmation)
-
-else Issue.status == ASSIGNED
   opt UC2 Add Comment 선택
     A -> S: addComment(issueId, content)
     S --> A: commentRegistered(commentId, createdDate, confirmation)
-  end
+  end  
+else Issue.status == ASSIGNED
   A -> S: reassignIssue(issueId, assigneeId)
   S --> A: issueReassigned(issueId, status=ASSIGNED, confirmation)
-
-else Issue.status == FIXED
   opt UC2 Add Comment 선택
     A -> S: addComment(issueId, content)
     S --> A: commentRegistered(commentId, createdDate, confirmation)
   end
+else Issue.status == FIXED
   A -> S: changeVerifier(issueId, verifierId)
   S --> A: verifierChanged(issueId, status=FIXED, confirmation)
+  opt UC2 Add Comment 선택
+    A -> S: addComment(issueId, content)
+    S --> A: commentRegistered(commentId, createdDate, confirmation)
+  end
 end
 
 

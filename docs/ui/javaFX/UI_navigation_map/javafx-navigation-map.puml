@@ -146,7 +146,7 @@ state "이슈 목록" as IssueListScreen <<screen>> {
   IssueListScreen : 표시: 프로젝트 기본 정보 + 이슈 목록 (status, priority, title)
   IssueListScreen : 기능: 검색, 필터, 정렬
   IssueListScreen : 호출: ProjectController.viewProjectNonAdminDetail(projectId)
-  IssueListScreen : 호출: IssueController.viewProjectIssues()
+  IssueListScreen : 호출: IssueController.viewRelatedProjectIssues()
   IssueListScreen : 호출: IssueController.searchIssues()
   IssueListScreen : 등록 가능 확인: IssueController.canRegisterIssue()
 }
@@ -260,7 +260,6 @@ state "삭제 이슈 관리" as DeletedIssueScreen <<screen>> {
 }
 
 note right of DeletedIssueScreen
-  purgeOverflow는 softDelete 시 자동 실행.
   UI에 별도 버튼 없음.
 end note
 

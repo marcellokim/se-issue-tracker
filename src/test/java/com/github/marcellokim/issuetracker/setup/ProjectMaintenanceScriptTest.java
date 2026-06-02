@@ -187,6 +187,57 @@ class ProjectMaintenanceScriptTest {
         assertTrue(result.output().contains("rate limit exceeded"), result.output());
     }
 
+    @Test
+    @DisplayName("프로젝트 항목 context는 200개를 넘는 보드에서도 기존 항목을 인식한다")
+    void projectContextLoadsMoreThanTwoHundredItems() throws IOException, InterruptedException {
+        String script = """
+                import importlib.util
+                import sys
+
+                spec = importlib.util.spec_from_file_location("project_maintenance", "scripts/lib/project_maintenance.py")
+                project_maintenance = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = project_maintenance
+                spec.loader.exec_module(project_maintenance)
+
+                def fake_gh_json(args):
+                    if args[:2] == ["project", "view"]:
+                        return {"id": "PVT_project", "readme": ""}
+                    if args[:2] == ["project", "field-list"]:
+                        return {
+                            "fields": [{
+                                "id": "PVTSSF_status",
+                                "name": "Status",
+                                "options": [{"id": "option_review", "name": "리뷰 중"}]
+                            }]
+                        }
+                    if args[:2] == ["project", "item-list"]:
+                        limit = int(args[args.index("--limit") + 1])
+                        assert limit == int(project_maintenance.PROJECT_ITEM_LIST_LIMIT), args
+                        return {
+                            "items": [{
+                                "id": "PVTI_recent",
+                                "content": {"url": "https://github.com/marcellokim/se-issue-tracker/pull/262"}
+                            }]
+                        }
+                    raise AssertionError(args)
+
+                project_maintenance.gh_json = fake_gh_json
+
+                context, _ = project_maintenance.load_project_context(
+                    "marcellokim/se-issue-tracker",
+                    "@me",
+                    1,
+                    "SE 2026-1 텀프로젝트"
+                )
+
+                assert "https://github.com/marcellokim/se-issue-tracker/pull/262" in context.item_by_url
+                """;
+
+        ScriptResult result = runPython(script);
+
+        assertEquals(0, result.exitCode(), result.output());
+    }
+
     private ScriptResult runPython(String script) throws IOException, InterruptedException {
         Path scriptFile = Files.createTempFile("project-maintenance-test-", ".py");
         Files.writeString(scriptFile, script, StandardCharsets.UTF_8);

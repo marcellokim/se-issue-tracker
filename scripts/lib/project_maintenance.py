@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT_TITLE = "SE 2026-1 텀프로젝트"
 STATUS_FIELD = "Status"
+PROJECT_ITEM_LIST_LIMIT = "1000"
 
 STATUS_BY_LABEL = {
     "status:backlog": "대기",
@@ -208,7 +209,19 @@ def load_project_context(repo: str, owner: str, project_number: int | None, proj
     if not status_field:
         raise SystemExit("프로젝트 Status 필드를 찾을 수 없습니다.")
 
-    project_items = gh_json(["project", "item-list", str(resolved_number), "--owner", owner, "--format", "json", "--limit", "200"])
+    project_items = gh_json(
+        [
+            "project",
+            "item-list",
+            str(resolved_number),
+            "--owner",
+            owner,
+            "--format",
+            "json",
+            "--limit",
+            PROJECT_ITEM_LIST_LIMIT,
+        ]
+    )
     item_by_url = {
         item["content"]["url"]: item
         for item in project_items.get("items", [])

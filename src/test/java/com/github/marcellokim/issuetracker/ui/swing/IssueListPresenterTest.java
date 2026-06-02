@@ -55,9 +55,9 @@ class IssueListPresenterTest {
         presenter.loadProjectAndIssues(PROJECT_ID);
 
         assertEquals("Alpha", view.projectName());
-        assertEquals(List.of("Login bug"), view.issueTitles());
+        assertEquals(List.of("Login bug", "Tester-only issue"), view.issueTitles());
         assertEquals(true, view.registerEnabled());
-        assertEquals("1 issues", view.message());
+        assertEquals("2 issues", view.message());
     }
 
     @Test
@@ -81,8 +81,8 @@ class IssueListPresenterTest {
     }
 
     @Test
-    @DisplayName("search stays inside related issue scope")
-    void searchStaysInsideRelatedIssueScope() {
+    @DisplayName("search returns all project issues matching criteria regardless of role")
+    void searchReturnsAllMatchingIssues() {
         User dev = user("dev1", Role.DEV);
         ControllerFixture fixture = controllers(
                 dev,
@@ -96,8 +96,8 @@ class IssueListPresenterTest {
 
         presenter.searchIssues(PROJECT_ID, new IssueSearchRequest("login", null, null));
 
-        assertEquals(List.of("Login bug"), view.issueTitles());
-        assertEquals("1 issues", view.message());
+        assertEquals(List.of("Login bug", "Login hidden"), view.issueTitles());
+        assertEquals("2 issues", view.message());
     }
 
     @Test

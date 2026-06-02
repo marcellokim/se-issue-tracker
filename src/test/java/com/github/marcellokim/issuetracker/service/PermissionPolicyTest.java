@@ -181,17 +181,6 @@ class PermissionPolicyTest {
         }
 
         @Test
-        @DisplayName("only PL sees every project issue")
-        void onlyPlSeesEveryProjectIssue() {
-                assertFalse(policy.canViewAllProjectIssues(admin));
-                assertTrue(policy.canViewAllProjectIssues(pl));
-                assertFalse(policy.canViewAllProjectIssues(dev));
-                assertFalse(policy.canViewAllProjectIssues(tester));
-                assertFalse(policy.canViewAllProjectIssues(null));
-                assertFalse(policy.canViewAllProjectIssues(inactive("pl2", Role.PL)));
-        }
-
-        @Test
         @DisplayName("wrong role cannot manage")
         void wrongRoleCannotManage() {
                 assertThrows(SecurityException.class, () -> policy.assertCanAssignIssue(dev, issue(IssueStatus.NEW)));

@@ -12,7 +12,7 @@
 - UC/OC/DCD 추적성
 - 구현과 설계 문서 사이의 차이 또는 보강 사항
 
-통계는 전체 시스템이나 이슈 상세가 아니라 선택된 프로젝트 화면에서 조회한다. non-ADMIN 사용자의 프로젝트 이슈 목록은 대시보드가 아니라 프로젝트 진입 후 `IssueController.viewProjectIssues(projectId)`로 조회한다.
+통계는 전체 시스템이나 이슈 상세가 아니라 선택된 프로젝트 화면에서 조회한다. non-ADMIN 사용자의 프로젝트 이슈 목록은 대시보드가 아니라 프로젝트 진입 후 `IssueController.viewRelatedProjectIssues(projectId)`로 조회한다.
 
 ## 컨트롤러 문서
 
@@ -36,8 +36,8 @@
 | `AssignmentController` | `startAssignment`, `assignIssue`, `reassignIssue`, `changeVerifier` |
 | `AuthenticationController` | `login`, `logout` |
 | `DashboardController` | `viewProjects`, `viewUsers` |
-| `DeletedIssueController` | `viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeOverflow`, `purgeDeletedIssue` |
-| `IssueController` | `registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`, `viewAvailableActions`, `canUpdateComment`, `canDeleteComment` |
+| `DeletedIssueController` | `viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue` |
+| `IssueController` | `registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewRelatedProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`, `viewAvailableActions`, `canUpdateComment`, `canDeleteComment` |
 | `IssueStateController` | `changeStatus` |
 | `ProjectController` | `viewProjectNonAdminDetail`, `viewProjectAdminDetail`, `viewProjectParticipants`, `createProject`, `renameProject`, `changeProjectDescription`, `deleteProject`, `addProjectParticipant`, `removeProjectParticipant` |
 | `StatisticsController` | `viewStatistics` |
@@ -64,7 +64,7 @@
    - 자신이 참여한 프로젝트 요약만 조회한다.
 3. 프로젝트 선택 시 `ProjectController.viewProjectNonAdminDetail(projectId)`
    - 프로젝트 기본 정보를 조회한다.
-4. 같은 프로젝트 화면에서 `IssueController.viewProjectIssues(projectId)`
+4. 같은 프로젝트 화면에서 `IssueController.viewRelatedProjectIssues(projectId)`
    - PL/DEV/TESTER는 자신이 active member로 참여한 프로젝트의 DELETED가 아닌 일반 이슈 목록을 조회한다.
    - 사용자는 같은 화면의 검색 조건으로 keyword, status, priority, reporter, assignee, verifier, 날짜 범위를 좁혀 본다.
 5. 같은 프로젝트 화면에서 `StatisticsController.viewStatistics(projectId)`
@@ -78,7 +78,7 @@
 | --- | --- |
 | UC1 / OC-01 Register Issue | `IssueController.registerIssue` |
 | UC2 / OC-02 Add Comment | `IssueController.addComment` |
-| UC3 Browse/Search Issues | `IssueController.searchIssues`, `viewProjectIssues` |
+| UC3 Browse/Search Issues | `IssueController.searchIssues`, `viewRelatedProjectIssues` |
 | UC4 View Issue Detail | `IssueController.viewIssueDetail` |
 | UC5 / OC-03, OC-04, OC-05, OC-12 Assignment | `AssignmentController.assignIssue`, `reassignIssue`, `changeVerifier` |
 | UC6 / OC-06, OC-07, OC-08, OC-09, OC-13 State change | `IssueStateController.changeStatus` |

@@ -5,12 +5,14 @@ import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -29,6 +31,12 @@ final class IssueListScreen extends VBox {
     private final TextField searchField = new TextField();
     private final ComboBox<IssueStatus> statusFilter = new ComboBox<>();
     private final ComboBox<com.github.marcellokim.issuetracker.domain.Priority> priorityFilter = new ComboBox<>();
+    private final TextField reporterField = new TextField();
+    private final TextField assigneeField = new TextField();
+    private final TextField verifierField = new TextField();
+    private final DatePicker fromDate = new DatePicker();
+    private final DatePicker toDate = new DatePicker();
+    private final HBox advancedPanel = new HBox(10);
     private final Label messageLabel = ScreenComponents.messageLabel();
     private final Label projectInfoLabel = new Label();
     private Consumer<IssueSummary> onIssueSelected;
@@ -85,13 +93,41 @@ final class IssueListScreen extends VBox {
         graphButton.setOnAction(event -> { if (onGraph != null) onGraph.run(); });
         toolbar.getChildren().add(graphButton);
 
+        Button advancedToggle = new Button("Advanced");
+        advancedToggle.setOnAction(event -> {
+            boolean visible = !advancedPanel.isVisible();
+            advancedPanel.setVisible(visible);
+            advancedPanel.setManaged(visible);
+            advancedToggle.setText(visible ? "Simple" : "Advanced");
+        });
+        toolbar.getChildren().add(advancedToggle);
+
+        reporterField.setPromptText("Reporter ID");
+        reporterField.setMaxWidth(120);
+        assigneeField.setPromptText("Assignee ID");
+        assigneeField.setMaxWidth(120);
+        verifierField.setPromptText("Verifier ID");
+        verifierField.setMaxWidth(120);
+        fromDate.setPromptText("From");
+        fromDate.setPrefWidth(130);
+        toDate.setPromptText("To");
+        toDate.setPrefWidth(130);
+        advancedPanel.getChildren().addAll(
+                new Label("Reporter:"), reporterField,
+                new Label("Assignee:"), assigneeField,
+                new Label("Verifier:"), verifierField,
+                new Label("From:"), fromDate,
+                new Label("To:"), toDate);
+        advancedPanel.setVisible(false);
+        advancedPanel.setManaged(false);
+
         issueList.setCellFactory(list -> new IssueCell());
         ScreenComponents.setupListDoubleClick(issueList, i -> { if (onIssueSelected != null) onIssueSelected.accept(i); });
         VBox.setVgrow(issueList, Priority.ALWAYS);
 
         getChildren().addAll(
                 ScreenComponents.header(backButton, projectInfoLabel),
-                toolbar, issueList, messageLabel);
+                toolbar, advancedPanel, issueList, messageLabel);
         loadIssues();
     }
 
@@ -165,7 +201,17 @@ final class IssueListScreen extends VBox {
             String keyword = searchField.getText().isBlank() ? null : searchField.getText();
             IssueStatus status = statusFilter.getValue();
             com.github.marcellokim.issuetracker.domain.Priority priority = priorityFilter.getValue();
-            List<IssueSummary> issues = issueController.searchIssues(projectId, keyword, status, priority);
+            List<IssueSummary> issues;
+            if (advancedPanel.isVisible()){
+                String reporter = reporterField.getText().isBlank() ? null : reporterField.getText().trim();
+                String assignee = assigneeField.getText().isBlank() ? null : assigneeField.getText().trim();
+                String verifier = verifierField.getText().isBlank() ? null : verifierField.getText().trim();
+                LocalDateTime from = fromDate.getValue() != null ? fromDate.getValue().atStartOfDay() : null;
+                LocalDateTime to = toDate.getValue() != null ? toDate.getValue().plusDays(1).atStartOfDay() : null;
+                issues = issueController.searchIssues(projectId, keyword, status, priority, reporter, assignee, verifier, from, to);
+            } else{
+                issues = issueController.searchIssues(projectId, keyword, status, priority);
+            }
             issueList.getItems().setAll(issues);
             ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){
@@ -179,7 +225,7 @@ final class IssueListScreen extends VBox {
             super.updateItem(issue, empty);
             if (empty || issue == null){ setText(null); setGraphic(null); return; }
             VBox box = new VBox(2);
-            Label title = new Label(String.format("[%s] %s", issue.issueId(), issue.title()));
+            Label title = new Label(String.format("[%s] %s", ScreenComponents.shortIssueId(issue.issueId()), issue.title()));
             title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
             Label info = new Label(String.format("%s | %s | reporter: %s",
                     issue.status(), issue.priority(), issue.reporterId()));

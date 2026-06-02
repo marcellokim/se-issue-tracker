@@ -64,7 +64,7 @@ final class DeletedIssueScreen extends VBox {
     private void handlePurge(IssueSummary issue){
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Permanently Delete");
-        dialog.setHeaderText("Permanently delete [" + issue.issueId() + "] " + issue.title() + "?");
+        dialog.setHeaderText("Permanently delete [" + ScreenComponents.shortIssueId(issue.issueId()) + "] " + issue.title() + "?");
         dialog.getDialogPane().setContent(new Label("This action cannot be undone."));
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         ((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).setText("Cancel");
@@ -74,7 +74,7 @@ final class DeletedIssueScreen extends VBox {
                 try{
                     deletedIssueController.purgeDeletedIssue(issue.id());
                     loadDeletedIssues();
-                    ScreenComponents.showInfo(messageLabel, "Issue permanently deleted: " + issue.issueId());
+                    ScreenComponents.showInfo(messageLabel, "Issue permanently deleted: " + ScreenComponents.shortIssueId(issue.issueId()));
                 } catch (Exception exception){
                     ScreenComponents.showError(messageLabel, exception);
                 }
@@ -85,7 +85,7 @@ final class DeletedIssueScreen extends VBox {
     private void handleRestore(IssueSummary issue){
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle("Restore Issue");
-        dialog.setHeaderText("Restore: [" + issue.issueId() + "] " + issue.title());
+        dialog.setHeaderText("Restore: [" + ScreenComponents.shortIssueId(issue.issueId()) + "] " + issue.title());
         TextArea textArea = new TextArea();
         textArea.setPromptText("Reason for restore...");
         textArea.setPrefRowCount(3);
@@ -102,7 +102,7 @@ final class DeletedIssueScreen extends VBox {
             try{
                 deletedIssueController.restoreIssue(issue.id(), comment);
                 loadDeletedIssues();
-                ScreenComponents.showInfo(messageLabel, "Issue restored: " + issue.issueId());
+                ScreenComponents.showInfo(messageLabel, "Issue restored: " + ScreenComponents.shortIssueId(issue.issueId()));
             } catch (Exception exception){
                 ScreenComponents.showError(messageLabel, exception);
             }
@@ -125,7 +125,7 @@ final class DeletedIssueScreen extends VBox {
         protected void updateItem(IssueSummary issue, boolean empty){
             super.updateItem(issue, empty);
             if (empty || issue == null){ setText(null); setGraphic(null); return; }
-            setText(String.format("[%s] %s | %s", issue.issueId(), issue.title(), issue.status()));
+            setText(String.format("[%s] %s | %s", ScreenComponents.shortIssueId(issue.issueId()), issue.title(), issue.status()));
         }
     }
 }
