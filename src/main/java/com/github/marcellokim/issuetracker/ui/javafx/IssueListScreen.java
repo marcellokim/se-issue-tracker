@@ -5,7 +5,6 @@ import com.github.marcellokim.issuetracker.controller.ProjectController;
 import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
