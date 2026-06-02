@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -148,7 +148,7 @@ final class IssueListScreen extends VBox {
 
     private void loadIssues(){
         try{
-            List<IssueSummary> issues = issueController.viewRelatedProjectIssues(projectId);
+            List<IssueSummary> issues = issueController.viewProjectIssues(projectId);
             issueList.getItems().setAll(issues);
             ScreenComponents.showInfo(messageLabel, issues.size() + " issues");
         } catch (Exception exception){

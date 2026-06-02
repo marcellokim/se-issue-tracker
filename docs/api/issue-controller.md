@@ -13,7 +13,7 @@
 | `viewIssueDetail(issueId)` | `IssueService.viewIssueDetail(issueId, currentUserId)`, 필요 시 `IssueWorkflowService.viewAvailableActions` | `IssueDetailResult` |
 | `searchIssues(projectId, keyword, status, priority)` | 추가 필터를 `null`로 채운 전체 `searchIssues` 오버로드 | `List<IssueSummary>` |
 | `searchIssues(projectId, keyword, status, priority, reporterId, assigneeId, verifierId, reportedFrom, reportedTo)` | `IssueService.searchIssues(...)` | `List<IssueSummary>` |
-| `viewRelatedProjectIssues(projectId)` | `IssueService.viewRelatedProjectIssues(projectId, currentUserId)` | `List<IssueSummary>` |
+| `viewProjectIssues(projectId)` | `IssueService.viewProjectIssues(projectId, currentUserId)` | `List<IssueSummary>` |
 | `updateIssue(issueId, title, description)` | `IssueService.updateIssue(issueId, title, description, currentUserId)` | `IssueResult` |
 | `changePriority(issueId, priority)` | `IssueService.changePriority(issueId, priority, currentUserId)` | `IssueResult` |
 | `addComment(issueId, content)` | `IssueService.addComment(issueId, content, currentUserId)` | `CommentResult` |
@@ -39,7 +39,7 @@
 
 `viewIssueDetail`은 이슈 기본 정보, reporter/assignee/verifier/fixer/resolver, 댓글, 히스토리, 현재 이슈를 막고 있는 dependency 정보를 반환한다. 컨트롤러가 `IssueWorkflowService`와 함께 생성된 경우에는 `IssueWorkflowActions`를 계산해 `IssueDetailResult.availableActions` 이름 목록으로 포함한다. `IssueWorkflowService`가 없으면 상세 정보만 반환하고 action 목록은 비어 있다.
 
-`viewRelatedProjectIssues`는 특정 프로젝트 내부의 일반 이슈 목록을 반환한다. PL/DEV/TESTER 프로젝트 멤버는 같은 프로젝트의 일반 이슈를 볼 수 있고, reporter, 현재 assignee, 현재 verifier 조건은 `searchIssues` 필터로 좁힌다. fixer와 resolver는 완료 이력으로 보며 기본 이슈 목록 범위를 제한하지 않는다.
+`viewProjectIssues`는 특정 프로젝트 내부의 일반 이슈 목록을 반환한다. PL/DEV/TESTER 프로젝트 멤버는 같은 프로젝트의 일반 이슈를 볼 수 있고, reporter, 현재 assignee, 현재 verifier 조건은 `searchIssues` 필터로 좁힌다. fixer와 resolver는 완료 이력으로 보며 기본 이슈 목록 범위를 제한하지 않는다.
 
 `updateIssue`는 이슈 reporter만 수행할 수 있고, 이슈 상태가 `NEW` 또는 `REOPENED`일 때만 허용된다. 같은 프로젝트 내 다른 이슈와 title이 중복되면 실패한다.
 
@@ -65,7 +65,7 @@
 | `removeDependency` | UC7, OC-15, SSD-25 | DCD는 `removeDependency(dependencyId)`로 표현하지만, 구현은 `IssueService.removeDependency(blockingIssueId, blockedIssueId)`와 `Issue.removeDependency`를 사용 |
 | `changePriority` | UC16, OC-16, SSD-27 | `Issue.changePriority`, `Issue.verifyPriorityChange`, `IssueHistory(PRIORITY_CHANGED)`; status와 role 연관은 변경되지 않음 |
 | `viewIssueDetail` | UC4, SSD-04 및 UI 지원 | `Issue`, `Comment`, `IssueHistory`, `IssueDependency`, role 연관을 `IssueDetailResult`로 반환 |
-| `searchIssues`, `viewRelatedProjectIssues` | UC3, SSD-03 및 UI 지원 | DCD `Issue`의 status/priority/reporter/assignee/verifier 속성; 구현 `IssueSearchCriteria`, `IssueSummary` |
+| `searchIssues`, `viewProjectIssues` | UC3, SSD-03 및 UI 지원 | DCD `Issue`의 status/priority/reporter/assignee/verifier 속성; 구현 `IssueSearchCriteria`, `IssueSummary` |
 | `updateIssue` | UC15, SSD-23 이슈 수정 지원 | `Issue.updateTitleAndDescription`, `IssueHistory(TITLE_DESCRIPTION_UPDATED)`; priority/status는 별도 UC에서 처리 |
 | `deleteComment`, `updateComment`, `canUpdateComment`, `canDeleteComment`, `viewAvailableActions` | 직접 대응되는 필수 OC가 없는 구현 보조 API | `Comment`, `IssueWorkflowActions`, `PermissionPolicy.assertCan...` 메서드 |
 
@@ -75,7 +75,7 @@
 | --- | --- |
 | `matches` | 이슈 등록, 댓글 추가, 의존성 추가, priority 변경은 컨트롤러에 연결되어 있고 서비스에서 권한과 정책을 검사한다. |
 | `signature-drift` | OC-15는 `removeDependency(dependencyId)`를 문서화하지만, 현재 구현은 `removeDependency(blockingIssueId, blockedIssueId)`를 노출한다. |
-| `implementation-extra` | 검색, 상세 조회, action 조회, 댓글 수정/삭제, 프로젝트 관련 이슈 조회 API는 필수 OC 목록 밖에 추가로 구현되어 있다. |
+| `implementation-extra` | 검색, 상세 조회, action 조회, 댓글 수정/삭제, 프로젝트 이슈 조회 API는 필수 OC 목록 밖에 추가로 구현되어 있다. |
 
 ## 권한 및 실패 요약
 
@@ -95,7 +95,7 @@
 ## 근거
 
 - `src/main/java/com/github/marcellokim/issuetracker/controller/IssueController.java`: 모든 public `IssueController` 메서드, `requireCurrentUser`, `requireIssueWorkflowService`, `availableActionNames`
-- `src/main/java/com/github/marcellokim/issuetracker/service/IssueService.java`: `IssueService.registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewRelatedProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`
+- `src/main/java/com/github/marcellokim/issuetracker/service/IssueService.java`: `IssueService.registerIssue`, `canRegisterIssue`, `viewIssueDetail`, `searchIssues`, `viewProjectIssues`, `updateIssue`, `changePriority`, `addComment`, `viewComments`, `addDependency`, `viewProjectDependencies`, `removeDependency`, `deleteComment`, `updateComment`
 - `src/main/java/com/github/marcellokim/issuetracker/service/IssueWorkflowService.java`: `IssueWorkflowService.viewAvailableActions`, `canUpdateComment`, `canDeleteComment`
 - `src/main/java/com/github/marcellokim/issuetracker/service/PermissionPolicy.java`: issue/comment/dependency/priority 권한 검사 메서드
 - `src/main/java/com/github/marcellokim/issuetracker/service/IssueResult.java`: `IssueResult`
