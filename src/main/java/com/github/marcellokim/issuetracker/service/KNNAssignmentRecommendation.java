@@ -26,7 +26,7 @@ public class KNNAssignmentRecommendation {
         for (Map.Entry<String, Integer> entry : documentFrequency.entrySet()){
             idfMap.put(entry.getKey(), Math.log((double) corpusSize / entry.getValue()));
         }
-        double tfidfWeight = Math.min((Math.exp(Math.E * corpusSize / 1000.0) - 1) / (Math.exp(Math.E) - 1), 1.0) * 0.6;
+        double tfidfWeight = Math.min((Math.exp(Math.E * tokenize(targetDescription).size() / 500.0) - 1) / (Math.exp(Math.E) - 1), 1.0) * 0.6;
 
         List<SimlilarityResult> CompareResult = new ArrayList<>();
         for (UserRecord record : listToCalculateRecommendation){
