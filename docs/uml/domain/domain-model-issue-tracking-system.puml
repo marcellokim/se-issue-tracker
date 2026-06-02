@@ -6,11 +6,11 @@ hide stereotype
 hide circle
 skinparam classAttributeIconSize 0
 skinparam dpi 150
-skinparam nodesep 95
-skinparam ranksep 90
+skinparam nodesep 150
+skinparam ranksep 115
 skinparam linetype polyline
-skinparam ArrowFontSize 16
-skinparam ArrowThickness 1.35
+skinparam ArrowFontSize 15
+skinparam ArrowThickness 1.25
 skinparam PackageFontSize 16
 skinparam class {
   BackgroundColor #FFFFFF
@@ -86,39 +86,32 @@ package "이슈 업무" #F1F8E9 {
 package "분류 값" #F6F0FF {
   class "Role / Status / Priority" as ValueCatalog <<value>> {
     Role = ADMIN, PL, DEV, TESTER
-    IssueStatus = NEW, ASSIGNED, FIXED, RESOLVED, CLOSED, REOPENED, DELETED
+
+    IssueStatus = NEW, ASSIGNED, FIXED, RESOLVED, 
+                  CLOSED, REOPENED, DELETED
+    
     Priority = BLOCKER, CRITICAL, MAJOR, MINOR, TRIVIAL
+    
     CommentPurpose = GENERAL, STATUS_CHANGE
+    
     ActionType = CREATED, STATUS_CHANGED, ASSIGNMENT_CHANGED, COMMENTED, 
-    TITLE_DESCRIPTION_UPDATED, PRIORITY_CHANGED, DEPENDENCY_CHANGED,
+                 TITLE_DESCRIPTION_UPDATED, PRIORITY_CHANGED, DEPENDENCY_CHANGED,
   }
 }
 
 User "1" -- "0..*" Project : manages\n(Admin)
 User "1" -- "0..*" ProjectMember : joins as
-Project "1" -- "0..*" ProjectMember : has member
+Project "1" -- "0..*" ProjectMember : has\nmember
 Project "1" -- "0..*" Issue : contains
 
 User "0..*" -- "0..*" Issue : participates in issue\n(reporter, assignee, verifier,\nfixer, resolver)
 User "1" -- "0..*" Comment : writes
 User "1" -- "0..*" IssueHistory : changes
 
+IssueDependency "0..*" -- "1" Issue : blocking\nissue
+IssueDependency "0..*" -- "1" Issue : blocked\nissue
 Issue "1" -- "0..*" Comment : has
 Issue "1" -- "0..*" IssueHistory : records
-IssueDependency "0..*" -- "1" Issue : blocking issue
-IssueDependency "0..*" -- "1" Issue : blocked issue
 Issue -[hidden]down- ValueCatalog
 
-legend bottom
-  - 도메인 모델은 구현 클래스 목록이 아니라, ITS 업무에서 기억해야 하는 주요 개념과 관계를 나타낸다.
-  - repository, service, controller, UI, JDBC, session, password hashing 같은 소프트웨어 객체는 제외한다.
-  - Dashboard summary, Statistics report, Assignment recommendation 결과는 계산되는 read model이므로 제외한다.
-  - User와 Issue의 관계는 하나로 묶어 그리고, 실제 역할은 reporter, assignee, verifier, fixer, resolver로 구분한다.
-  - reporter는 이슈를 등록한 사용자이고, assignee는 현재 수정 담당 DEV, verifier는 현재 검증 담당 TESTER이다.
-  - fixer는 ASSIGNED -> FIXED 전이를 수행한 DEV이고, resolver는 FIXED -> RESOLVED 전이를 수행한 TESTER이다.
-  - assignee/verifier는 현재 담당자라 상태에 따라 비워질 수 있고, fixer/resolver는 완료 이력으로 보존된다.
-  - ProjectMember는 프로젝트 참여와 joinedDate를 기억하는 관계 객체이다.
-  - IssueDependency 하나는 blocking issue 1개와 blocked issue 1개를 연결한다.
-  - 삭제는 별도 DeletedIssue 객체가 아니라 IssueStatus.DELETED로 표현하고, 삭제/복구 이력은 IssueHistory에 남긴다.
-endlegend
 @enduml

@@ -32,7 +32,7 @@
 | 제출 | UC1 이슈 등록 | Register Issue | Auth User | `registerIssue(projectId, title, description, priority)` | `Issue` 생성, reporter 자동 저장, reportedDate 자동 저장, status `NEW`, history 생성, 등록 직후 optional comment 가능 | 제출용으로 확정 |
 | 개발 핵심 | UC2 코멘트 추가 | Add Comment | Auth User | `addComment(issueId, content)` | `Comment` 생성, writer/createdDate 저장, `IssueHistory(COMMENTED)` 기록 | UC1/UC4/UC5에서는 optional extension, UC6에서는 mandatory include |
 | 개발 핵심 | UC3 이슈 검색/브라우즈 | Search Issues | Auth User | `searchIssues(criteria)` | assignee/status/reporter/project 조건 검색, 목록 반환 | 조회 UC라 Operation Contract 우선순위는 낮음 |
-| 개발 핵심 | UC4 이슈 상세 조회 | View Issue Detail | Auth User | `viewIssueDetail(issueId)` | 이슈 필드, comments, history, dependencies, availableActions 반환 | UC5/UC6/UC15는 상세 화면에서 시작될 수 있지만 별도 actor-goal UC |
+| 개발 핵심 | UC4 이슈 상세 조회 | View Issue Detail | Auth User | `viewIssueDetail(issueId)` | 이슈 필드, comments, history, blocked-by/blocking dependencies, availableActions 반환 | UC5/UC6/UC15는 상세 화면에서 시작될 수 있지만 별도 actor-goal UC |
 | 제출 | UC5 이슈 배정/배정 변경 | Assign / Update Issue Assignment | PL | `startAssignment(issueId)`, `assignIssue(...)`, `reassignIssue(...)`, `changeVerifier(...)` | NEW/REOPENED는 assignee+verifier 후보 추천 후 ASSIGNED로 배정, ASSIGNED는 assignee 변경, FIXED는 verifier 변경 | UC8 상태별 후보 추천은 include, top 3 후보와 프로젝트 소속 active 후보 전체를 함께 반환, UC2 배정 코멘트는 optional extend |
 | 제출 | UC6 상태 변경 | Mark Fixed | DEV | `addStatusChangeComment(issueId, comment)`, `changeStatus(issueId, targetStatus=FIXED)` | status `ASSIGNED -> FIXED`, fixer 자동 기록, 필수 comment와 `IssueHistory(STATUS_CHANGED)` 생성 | assignee 본인만 가능, 제출용으로 확정 |
 | 개발 핵심 | UC6 상태 변경 | Resolve Issue | Tester | `changeStatus(issueId, targetStatus=RESOLVED, comment)` | status `FIXED -> RESOLVED`, resolver 자동 기록, 필수 comment/history 생성 | verifier 본인만 가능, blocking Issue가 모두 `RESOLVED` 또는 `CLOSED`여야 함 |
@@ -53,30 +53,23 @@
 | 개발 보조 | UC13 프로젝트 관리 | Remove Project Participant | Admin | `removeProjectParticipant(projectId, userId)` | `ProjectMember` association 제거 | 프로젝트 참여자는 membership으로 관리 |
 | 내부 공통 | UC14 권한 검사 | Verify Permission | Actor/Internal | `assertCanProtectedOperation(actor, resource)` | 권한 있음/없음 alt로 base operation 진행 또는 거부 | 직접 사용자 목표 SSD가 아니라 include되는 공통 권한 검사 reference |
 | 개발 핵심 | UC15 이슈 수정 | Edit Issue | Reporter | `updateIssue(issueId, newTitle, newDescription)` | status `NEW/REOPENED`인 본인 이슈 title/description 수정, history 저장 | priority는 UC16, status는 UC6 |
-| 개발 핵심 | UC7 의존성 관리 | Add Dependency | PL | `addDependency(blockingIssueId, blockedIssueId)` | `IssueDependency` 생성, 순환/자기참조 방지, history 저장 | 별도 dependencyName/type 파라미터 없음, 효과는 UC6 `FIXED -> RESOLVED` guard |
+| 개발 핵심 | UC7 의존성 관리 | Add Dependency | PL | `addDependency(blockingIssueId, blockedIssueId)` | `IssueDependency` 생성, 순환/자기참조 방지, history 저장 | 별도 dependencyName/type 파라미터 없음, resolve 가능 여부는 UC6 `FIXED -> RESOLVED` guard에서 판단 |
 | 개발 보조 | UC7 의존성 관리 | Remove Dependency | PL | `removeDependency(blockingIssueId, blockedIssueId)` | dependency 제거, history 저장, `dependencyRemoved()` 확인 응답 | 응답에 반환 payload 없음 |
 | 개발 핵심 | UC16 우선순위 변경 | Change Priority | PL | `changePriority(issueId, newPriority)` | `Issue.priority` 변경, `IssueHistory(PRIORITY_CHANGED)` 기록 | PL-only |
 
-## Operation Contract 우선순위
+## Operation Contract 선정 기준
 
-Operation Contract는 상태 변화가 크고 도메인 객체 변경이 명확한 operation부터 작성한다.
+Operation Contract는 SSD의 모든 system operation을 1:1로 옮기기보다, operation 수행 후 도메인 객체의 생성, 상태 변화, 관계 변화가 분명한 경우를 중심으로 작성한다. SSD는 actor와 system 사이의 메시지 흐름을 보여주지만, 그 결과로 어떤 객체가 생기고 어떤 association이나 속성값이 바뀌었는지는 충분히 드러나지 않기 때문이다.
 
-1. `registerIssue(projectId, title, description, priority)`
-2. `assignIssue(issueId, assigneeId, verifierId)`
-3. `reassignIssue(issueId, assigneeId)`
-4. `changeVerifier(issueId, verifierId)`
-5. `addStatusChangeComment(issueId, comment)` + `changeStatus(issueId, targetStatus=FIXED)`
-6. `changeStatus(issueId, targetStatus=RESOLVED, comment)`
-7. `changeStatus(issueId, targetStatus=ASSIGNED, comment)`
-8. `changeStatus(issueId, targetStatus=CLOSED, comment)`
-9. `changeStatus(issueId, targetStatus=REOPENED, comment)`
-10. `updateIssue(issueId, newTitle, newDescription)`
-11. `deleteIssue(issueId, comment)`
-12. `restoreIssue(issueId, comment)`
-13. `changePriority(issueId, newPriority)`
-14. `addDependency(blockingIssueId, blockedIssueId)`
-15. `createAccount(loginId, name, password, role)`
-16. `createProject(name, description)`
+보고서 제출용 OC는 대표 SSD와의 연결성, 상태 전이 정책의 설명 필요성, dependency 관계의 모호성을 함께 고려하여 아래 3개를 사용한다.
+
+| OC | System Operation | 선정 이유 |
+| --- | --- | --- |
+| OC-01 | `registerIssue(projectId, title, description, priority)` | SSD 01의 기본 흐름과 직접 연결된다. 새 `Issue` 생성, reporter 설정, status `NEW`, 기본 priority, 생성 history 기록을 가장 표준적인 OC 예시로 보여준다. |
+| OC-07 | `changeStatus(issueId, targetStatus=RESOLVED, comment)` | `FIXED -> RESOLVED` 전이는 resolver 기록, assignee/verifier 제거, 필수 comment/history 기록, blocking issue guard가 함께 나타난다. SSD만으로는 사후조건을 충분히 설명하기 어렵다. |
+| OC-14 | `addDependency(blockingIssueId, blockedIssueId)` | blocking issue와 blocked issue의 방향이 중요하고, dependency 생성 후 blocked issue history에 기록되는 정책을 명확히 설명할 필요가 있다. |
+
+`assignIssue`, `reassignIssue`, `changeVerifier`, `deleteIssue`, `restoreIssue`, `changePriority` 등도 도메인 변경이 있는 operation이므로 reference OC로 유지한다. 다만 보고서 본문에서는 위 3개를 중심으로 설명하고, 나머지는 구현 정책과 시퀀스 다이어그램 검토용으로 둔다.
 
 조회성 operation인 `searchIssues`, `viewIssueDetail`, `viewStatistics`, `recommendAssignmentCandidates`, `viewDeletedIssues`, `startAssignment`는 SSD 작성은 가능하지만 domain object 변경이 없거나 약하므로 Operation Contract 우선순위는 낮다.
 

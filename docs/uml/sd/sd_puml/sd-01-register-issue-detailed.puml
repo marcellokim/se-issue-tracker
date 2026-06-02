@@ -12,17 +12,11 @@ participant "newIssue:Issue" as Issue
 
 User -> IC : registerIssue(projectId, title, description, priority)
 
-alt login, permission, or project membership is invalid
+alt 로그인, 권한, 프로젝트 참여 조건이 맞지 않음
   IC --> User : registrationRejected(reason)
-else title/description invalid or duplicate title exists
+else title/description이 비어 있거나 같은 프로젝트에 중복 title이 존재함
   IC --> User : registrationRejected(reason)
-else registration is accepted
-  note right of IC
-  Current code uses service/repository/clock internally.
-  At SD level they are summarized as checks before
-  domain objects realize the postconditions.
-  end note
-
+else 이슈 등록 조건을 만족함
   IC -> Project : confirmSelectedProject()
   Project --> IC : projectConfirmed
   IC -> Reporter : confirmReporter()
@@ -41,11 +35,11 @@ else registration is accepted
   IC --> User : issueRegistered(issueId, status=NEW)
 end
 
-opt user adds an initial comment
+opt 등록 직후 사용자가 댓글 추가를 선택함
   User -> IC : addComment(issueId, content)
-  alt content is blank
+  alt 댓글 내용이 비어 있음
     IC --> User : commentRejected(reason)
-  else comment is accepted
+  else 댓글이 정상 입력됨
     IC -> Issue : addComment(content, reporter, now)
     activate Issue
     create "initialComment:Comment" as Comment

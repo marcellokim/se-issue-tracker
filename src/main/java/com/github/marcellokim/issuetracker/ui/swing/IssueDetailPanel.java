@@ -48,7 +48,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private static final int HISTORY_SECTION_HEIGHT = 170;
     private static final int DEPENDENCY_SECTION_HEIGHT = 180;
     private static final String[] COMMENT_COLUMNS = {
-            "ID", "Purpose", "Writer", "Content", "Updated", "Edit", "Delete"
+            "ID", "Purpose", "Writer", "Content", "Date", "Edit", "Delete"
     };
     private static final String[] HISTORY_COLUMNS = {
             "ID", "Action", "By", "Previous", "New", "Message", "Changed"
@@ -79,6 +79,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private final JLabel stateLabel = new JLabel(" ");
     private final JLabel userLabel;
     private final JLabel descriptionLabel = new JLabel(" ");
+    private final JLabel reportedDateLabel = new JLabel("Reported: -");
     private final JLabel reporterLabel = new JLabel("Reporter: -");
     private final JLabel assigneeLabel = new JLabel("Assignee: -");
     private final JLabel verifierLabel = new JLabel("Verifier: -");
@@ -145,6 +146,8 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             currentTitle = detail.title();
             currentDescription = detail.description();
             currentPriority = detail.priority();
+            reportedDateLabel.setText("Reported: " + DATE_TIME_FORMATTER.format(detail.reportedDate())
+                    + " | Updated: " + DATE_TIME_FORMATTER.format(detail.updatedAt()));
             reporterLabel.setText("Reporter: " + formatUser(detail.reporter()));
             assigneeLabel.setText("Assignee: " + formatUser(detail.assignee()));
             verifierLabel.setText("Verifier: " + formatUser(detail.verifier()));
@@ -247,7 +250,7 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
         section.add(descriptionLabel);
         section.add(Box.createVerticalStrut(SwingStyles.ROW_GAP));
 
-        for (JLabel label : List.of(reporterLabel, assigneeLabel, verifierLabel, fixerLabel, resolverLabel)) {
+        for (JLabel label : List.of(reportedDateLabel, reporterLabel, assigneeLabel, verifierLabel, fixerLabel, resolverLabel)) {
             label.setAlignmentX(Component.LEFT_ALIGNMENT);
             SwingStyles.applyMuted(label);
             section.add(label);
@@ -498,7 +501,9 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
                             comment.purpose(),
                             comment.writerLoginId(),
                             comment.content(),
-                            DATE_TIME_FORMATTER.format(comment.updatedDate()),
+                            comment.createdDate().equals(comment.updatedDate())
+                                    ? DATE_TIME_FORMATTER.format(comment.createdDate())
+                                    : DATE_TIME_FORMATTER.format(comment.updatedDate()) + " (Edited)",
                             yesNo(state != null && state.canUpdate()),
                             yesNo(state != null && state.canDelete())
                     };
@@ -593,21 +598,6 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             PanelDependencyConsumer onDependencyAction,
             Runnable onBack,
             Runnable onLogout) {
-
-        IssueDetailActions(PanelStringConsumer onAction, Runnable onBack, Runnable onLogout) {
-            this(onAction, (panel, mode, selection) -> {
-            }, (panel, mode, selection) -> {
-            }, onBack, onLogout);
-        }
-
-        IssueDetailActions(
-                PanelStringConsumer onAction,
-                PanelCommentConsumer onCommentAction,
-                Runnable onBack,
-                Runnable onLogout) {
-            this(onAction, onCommentAction, (panel, mode, selection) -> {
-            }, onBack, onLogout);
-        }
 
         IssueDetailActions {
             Objects.requireNonNull(onAction, "onAction");

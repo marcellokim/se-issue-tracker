@@ -3,15 +3,12 @@
 title SSD 06 - UC6 상태 변경: Fixed 처리
 actor "DEV" as A
 participant ":Issue Tracking System" as S
-note over A, S
-사전조건: DEV 로그인, 자신에게 배정된 Issue, status=ASSIGNED, UC14 권한 검사
-end note
-A -> S: addStatusChangeComment(issueId, comment)
-S --> A: statusChangeCommentAccepted(commentId, createdDate)
-A -> S: changeStatus(issueId, targetStatus=FIXED)
-S --> A: updatedIssue(issueId, status=FIXED)
-note over S
-UC6은 UC2 Add Comment를 include하므로 상태 변경 사유 코멘트는 필수이다.
-결과: status=FIXED, fixer=current DEV 자동 기록, 필수 Comment와 IssueHistory(STATUS_CHANGED, previousValue=ASSIGNED, newValue=FIXED) 기록
-end note
+A -> S: changeStatus(issueId, targetStatus=FIXED, comment)
+alt 상태 또는 권한이 맞지 않음
+  S --> A: statusChangeRejected(reason)
+else comment가 비어 있음
+  S --> A: statusChangeRejected(commentRequired)
+else 현재 assignee DEV가 FIXED 처리
+  S --> A: updatedIssue(issueId, status=FIXED, fixer=currentDev)
+end
 @enduml

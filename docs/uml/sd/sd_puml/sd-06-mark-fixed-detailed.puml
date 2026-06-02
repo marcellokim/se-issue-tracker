@@ -10,13 +10,15 @@ participant "targetIssue:Issue" as Issue
 
 Dev -> ISC : changeStatus(issueId, FIXED, comment)
 
-alt DEV cannot mark this issue fixed or comment is blank
+alt 상태 또는 권한 조건이 맞지 않음
   ISC --> Dev : statusChangeRejected(reason)
-else valid ASSIGNED -> FIXED transition
+else 상태 변경 사유가 비어 있음
+  ISC --> Dev : statusChangeRejected(commentRequired)
+else ASSIGNED -> FIXED 전이가 가능함
   ISC -> Issue : markFixed(currentDev, comment, now)
   activate Issue
   create "fixComment:Comment" as Comment
-  Issue --> Comment : new(content=comment, writer=currentDev)
+  Issue --> Comment : new(content=comment,\nwriter=currentDev,\npurpose=STATUS_CHANGE)
   create "commentHistory:IssueHistory" as CommentHistory
   Issue --> CommentHistory : new(COMMENTED, message=comment)
   create "statusHistory:IssueHistory" as StatusHistory
