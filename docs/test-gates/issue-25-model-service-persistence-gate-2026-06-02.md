@@ -6,7 +6,7 @@
 
 ## Scope
 
-- 기준 commit: `42db174` (`feat: 이슈 열람 정책 수정 + 검색 필터 확장 + docs 정리 (#255)`)
+- 기준 commit: `d2ec80b` (`fix: GitHub Project 항목 로딩 한계 보정 (#263)`)
 - 기준 branch: `origin/dev`
 - 대상: domain, service, persistence, controller 경계 테스트와 repository/setup guard
 - 제외: Swing/JavaFX 화면 QA 증빙, 최종 PDF 본문, 제출 zip 생성
@@ -99,7 +99,7 @@ Local `check` does not require Oracle and skipped `oracleIntegrationTest` becaus
 
 ## Final Rerun Checklist
 
-- [ ] #253, #254, #256, #257, #258, #259 병합 후 최신 `origin/dev`를 fetch한다.
+- [ ] #253, #254, #256, #257, #258, #261, #262, #265 병합 후 최신 `origin/dev`를 fetch한다.
 - [ ] `./gradlew clean check --console=plain`을 다시 실행한다.
 - [ ] `./gradlew verifySubmissionMetadata --console=plain`을 다시 실행한다.
 - [ ] Oracle local 또는 CI `Oracle 통합 테스트` 통과 증거를 최종 보고서/제출 패키지에 연결한다.
