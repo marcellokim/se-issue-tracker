@@ -6,7 +6,7 @@
 
 ## Scope
 
-- 기준 commit: `33cc9db` (`docs: 발표 슬라이드와 데모 시나리오 준비 (#258)`)
+- 기준 commit: `8cda31b` (`fix: SonarCloud 자동 분석 범위 보정 (#270)`)
 - 기준 branch: `origin/dev`
 - 대상: domain, service, persistence, controller 경계 테스트와 repository/setup guard
 - 제외: Swing/JavaFX 화면 QA 증빙, 최종 PDF 본문, 제출 zip 생성
@@ -88,7 +88,7 @@ Local `check` does not require Oracle and skipped `oracleIntegrationTest` becaus
 
 ## CI Snapshot
 
-`33cc9db` 기준 GitHub Actions/Checks 상태는 다음과 같이 확인했다.
+`8cda31b` 기준 GitHub Actions/Checks 상태는 다음과 같이 확인했다.
 
 | Check | 상태 | 판단 |
 |---|---|---|
@@ -96,7 +96,7 @@ Local `check` does not require Oracle and skipped `oracleIntegrationTest` becaus
 | 워크플로우 정책 검사 | success | 필수 체크 통과 |
 | 보안 코드 분석 | success | Java/Kotlin, Python, GitHub Actions 분석 통과 |
 | SonarCloud 분석 | success | workflow 실행 통과 |
-| SonarCloud Code Analysis | failure | New Code coverage 70.4%, 기준 80% 미달 |
+| SonarCloud Code Analysis | failure | New Code coverage 70.4%, 기준 80% 미달. branch protection 필수 체크는 아님 |
 | Oracle 통합 테스트 | success | CI Oracle 검증 통과 |
 
 ## Final Rerun Checklist
@@ -104,5 +104,5 @@ Local `check` does not require Oracle and skipped `oracleIntegrationTest` becaus
 - [x] #253, #254, #256, #257, #258, #261, #262, #266 병합 후 최신 `origin/dev`를 fetch한다.
 - [x] `./gradlew check verifySubmissionMetadata --console=plain`을 다시 실행한다.
 - [x] Oracle local 또는 CI `Oracle 통합 테스트` 통과 증거를 최종 보고서/제출 패키지에 연결한다.
-- [ ] SonarCloud coverage gate가 최종 제출 판단에 필요한지 확인하고, 필요하면 신규 코드 coverage를 보강한다.
+- [x] branch protection 필수 체크를 확인하고, 별도 SonarCloud App coverage check가 제출 차단 항목이 아님을 기록한다.
 - [ ] 실패가 있으면 #25를 닫지 않고 실패 test class와 원인을 별도 fix/test 이슈로 분리한다.

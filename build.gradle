@@ -284,16 +284,11 @@ tasks.withType(Test).configureEach {
 }
 
 def requiredAutomationPaths = [
-    'SE_Term_Project_2026-1.pdf',
     '.editorconfig',
     '.gitattributes',
     '.java-version',
     '.gitmessage.txt',
     'gradle.properties',
-    '.pr_agent.toml',
-    '.gemini/config.yaml',
-    '.gemini/styleguide.md',
-    '.github/copilot-instructions.md',
     '.githooks/commit-msg',
     '.githooks/pre-commit',
     '.githooks/pre-push',

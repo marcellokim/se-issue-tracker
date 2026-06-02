@@ -49,7 +49,7 @@
 | --- | --- | --- | --- | --- | --- |
 | UC1 Register Issue | active 프로젝트 멤버가 title/description/priority로 이슈를 등록하고 reporter, reportedDate, NEW status가 기록됨 | `IssueController.registerIssue`, `IssueService.registerIssue` | `IssueCreationTest`, `IssueServiceTest`, `IssueControllerTest` | JavaFX `07-issue-list`, Swing `IssueListPanel`; PR 230, PR 255 | 완료 |
 | UC2 Add Comment | 권한 있는 사용자가 이슈에 코멘트를 추가하고 writer/date/history가 기록됨 | `IssueController.addComment`, `viewComments`, `updateComment`, `deleteComment` | `CommentTest`, `IssueServiceTest`, `IssueControllerTest`, `IssueComment*Test` | JavaFX `11-comment`, Swing comment action; PR 235 | 완료 |
-| UC3 Search / Browse Issues | 프로젝트별 일반 이슈를 reporter/assignee/verifier/status/priority/date 조건으로 조회하고 DELETED 이슈는 제외함. Swing 목록 UI는 keyword/status/priority 검색 범위를 대표 증거로 둠 | `IssueController.searchIssues` | `IssueServiceTest`, `IssueControllerTest`, `IssueListPresenterTest` | JavaFX `07-issue-list`, Swing issue list keyword/status/priority; PR 230, PR 255 | 완료 |
+| UC3 Search / Browse Issues | 프로젝트 멤버는 역할 구분 없이 프로젝트 일반 이슈를 조회하고, reporter/assignee/verifier/status/priority/date 조건으로 검색하며 DELETED 이슈는 제외함. Swing 목록 UI는 keyword/status/priority 검색 범위를 대표 증거로 둠 | `IssueController.viewProjectIssues`, `IssueController.searchIssues` | `IssueServiceTest`, `IssueControllerTest`, `IssueListPresenterTest` | JavaFX `07-issue-list`, Swing issue list keyword/status/priority; PR 230, PR 255, PR 266 | 완료 |
 | UC4 View Issue Detail | 사용자가 접근 가능한 이슈 상세, 댓글, 히스토리, 의존성, 가능한 action을 조회함 | `IssueController.viewIssueDetail`, `viewAvailableActions` | `IssueServiceTest`, `IssueControllerTest`, `IssueDetailPresenterTest` | JavaFX `08-issue-detail`, Swing issue detail; PR 231, PR 255 | 완료 |
 | UC5 Assign / Update Issue Assignment | active PL이 NEW/REOPENED 이슈 배정, ASSIGNED 재배정, FIXED verifier 변경을 수행함 | `AssignmentController.startAssignment`, `assignIssue`, `reassignIssue`, `changeVerifier` | `AssignmentServiceTest`, `AssignmentControllerTest`, `IssueWorkflowServiceTest` | JavaFX `10-assignment`, Swing assignment dialog; PR 89, PR 234 | 완료 |
 | UC6 Change Issue State | 역할과 상태 조건에 맞게 ASSIGNED/FIXED/RESOLVED/CLOSED/REOPENED 전이를 수행하고, unresolved blocking issue가 남은 FIXED 이슈의 RESOLVED 전이를 거부하며 사유 코멘트를 기록함 | `IssueStateController.changeStatus` | `IssueStateServiceTest`, `IssueStateControllerTest`, `IssueWorkflowTest` | JavaFX `09-status-change`, Swing status dialog; PR 89, PR 233 | 완료 |
@@ -69,9 +69,9 @@
 | 이슈 | 닫는 범위 | 연결 UC/산출물 | 현재 판단 |
 | --- | --- | --- | --- |
 | [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 전체 UI 데모 흐름 parent | Swing sub-issue와 데모 가능한 전체 UI 관리 | UC1~UC16 Swing presentation | 구현 sub-issue와 QA PR은 `dev`에 병합됨. #246의 발표 장비 수동 재확인만 남음 |
-| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최신 `dev`에서 `./gradlew check verifySubmissionMetadata`와 CI Oracle 통과. Sonar coverage gate 판단만 남음 |
-| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, PDF, slide, video, zip, 실행/검증 절차 | 최종 제출 산출물 | package exclude 정책은 반영됨. 최종 README.txt/PDF/slide/video/zip freeze 전까지 유지 |
-| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | GraphQL limit 중에도 REST/local evidence는 확보함. 최종 캡처 목록과 보드 필드 확인 필요 |
+| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최신 `dev`에서 `./gradlew check verifySubmissionMetadata`와 CI Oracle/SonarCloud workflow 통과. 별도 SonarCloud App coverage check는 branch protection 필수 항목이 아님 |
+| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, PDF, slide, video, zip, 실행/검증 절차 | 최종 제출 산출물 | package exclude 정책과 README.txt 템플릿은 반영됨. 최종 PDF/slide/video/zip freeze 전까지 유지 |
+| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | REST/local evidence 기준으로 최종 캡처 목록을 관리함. 제출 직전 보드, milestone, issue, PR, CI 화면을 다시 캡처 |
 | [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, screenshot/evidence 경로 | Swing demo evidence | `docs/qa/swing-full-qa-2026-06-01.md`에 기능 QA 반영. 발표 장비의 마우스 포커스/시각 점검만 수동 확인 필요 |
 
 ## 제출 전 남은 gate
@@ -79,9 +79,9 @@
 | Gate | 완료 조건 | 현재 필요한 다음 행동 |
 | --- | --- | --- |
 | Swing 발표 장비 재확인 | 로그인 마우스 포커스와 800x600 주요 화면 육안 확인 | #246에 남은 target desktop retest 결과를 기록 |
-| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 강의 원문, agent 메모리가 zip에서 제외됨 | 최종 `package-submission.sh` 실행으로 산출물 이름과 README.txt 확인 |
+| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 강의 원문, 개인 작업 메모 파일이 zip에서 제외됨 | 최종 `package-submission.sh` 실행으로 산출물 이름과 README.txt 확인 |
 | Traceability freeze | UC별 구현/API/test/UI evidence가 한 문서에서 추적됨 | #107은 병합 완료. 최종 PDF로 옮길 때 표 길이만 조정 |
-| Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최신 `dev` 로컬 검증과 CI Oracle은 통과. Sonar coverage gate를 확인 |
+| Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최신 `dev` 로컬 검증과 CI Oracle/SonarCloud workflow는 통과. 별도 SonarCloud App coverage check는 참고 항목으로 기록 |
 | Final package | README.txt, PDF, slides, demo video, source/executable/test/data zip | #100/#101/#26에서 PDF/slide/video/package 생성 |
 
 ## 문서/제출 요구사항 추적

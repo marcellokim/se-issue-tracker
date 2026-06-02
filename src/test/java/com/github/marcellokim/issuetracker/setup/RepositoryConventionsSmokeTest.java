@@ -23,7 +23,6 @@ class RepositoryConventionsSmokeTest {
     static Stream<String> requiredPaths() {
         return Stream.of(
                 "README.md",
-                "SE_Term_Project_2026-1.pdf",
                 ".github/workflows/gradle.yml",
                 ".github/workflows/workflow-guard.yml",
                 ".github/workflows/pr-labeler.yml",
@@ -31,11 +30,7 @@ class RepositoryConventionsSmokeTest {
                 ".github/workflows/pr-metadata.yml",
                 ".github/workflows/codeql.yml",
                 ".github/workflows/project-maintenance.yml",
-                ".pr_agent.toml",
-                ".gemini/config.yaml",
-                ".gemini/styleguide.md",
                 ".sonarcloud.properties",
-                ".github/copilot-instructions.md",
                 ".github/dependabot.yml",
                 "config/github/labels.json",
                 "config/github/milestones.json",
@@ -173,21 +168,9 @@ class RepositoryConventionsSmokeTest {
                 new ScriptExpectation(".gitignore", "MEMORY.md"),
                 new ScriptExpectation(".github/dependabot.yml", "target-branch: \"dev\""),
                 new ScriptExpectation(".github/dependabot.yml", "version-update:semver-major"),
-                new ScriptExpectation(".pr_agent.toml", "Qodo/PR-Agent is intentionally disabled"),
-                new ScriptExpectation(".pr_agent.toml", "use_repo_settings_file = true"),
-                new ScriptExpectation(".pr_agent.toml", "pr_commands = []"),
-                new ScriptExpectation(".pr_agent.toml", "handle_push_trigger = false"),
-                new ScriptExpectation(".pr_agent.toml", "push_commands = []"),
-                new ScriptExpectation(".pr_agent.toml", "enable_auto_checks_feedback = false"),
-                new ScriptExpectation(".pr_agent.toml", "persistent_comment = false"),
-                new ScriptExpectation(".pr_agent.toml", "final_update_message = false"),
-                new ScriptExpectation(".pr_agent.toml", "[checks]"),
-                new ScriptExpectation(".gemini/config.yaml", "comment_severity_threshold: MEDIUM"),
-                new ScriptExpectation(".gemini/config.yaml", "max_review_comments: 10"),
-                new ScriptExpectation(".gemini/config.yaml", "include_drafts: false"),
-                new ScriptExpectation(".gemini/styleguide.md", "Write review comments in Korean"),
-                new ScriptExpectation(".gemini/styleguide.md", "Normal pull requests target `dev`"),
-                new ScriptExpectation(".github/copilot-instructions.md", "자동 리뷰, 요약, 제안, 체크 실패 분석, 채팅 응답은 가능한 한 한국어")
+                new ScriptExpectation("scripts/package-submission.sh", ".gemini/"),
+                new ScriptExpectation("scripts/package-submission.sh", ".github/copilot-instructions.md"),
+                new ScriptExpectation("scripts/package-submission.sh", ".pr_agent.toml")
         );
     }
 

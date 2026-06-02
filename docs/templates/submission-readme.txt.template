@@ -13,17 +13,53 @@ SE 2026-1 텀프로젝트 제출물 요약
 {{PROJECT_URL}}
 
 5. 포함 산출물
-- 소스 코드 / Gradle 프로젝트 파일
-- docs/ 아래 프로젝트 문서
-- .github/ 아래 GitHub 자동화 템플릿
+- 소스 코드와 Gradle 프로젝트 파일
+- docs/ 아래 요구사항, 설계, API, QA 리포트, 데모 문서
+- .github/ 아래 GitHub Actions workflow와 PR/이슈 템플릿
 - src/test/ 아래 JUnit 테스트 코드
-- 팀이 준비한 추가 제출물(발표 슬라이드 / 최종 PDF / 영상)
+- 최종 산출물로 추가한 보고서 PDF, 발표 슬라이드, 시연 영상 파일 또는 영상 링크 문서
 
-6. 실행 방법
-1) JDK 21을 설치합니다.
-2) ./gradlew check 를 실행합니다.
-3) 팀이 정한 main entry point로 애플리케이션을 실행합니다.
+6. 사전 준비
+- JDK 21
+- Docker 또는 Colima 기반 Docker daemon(Oracle local 실행 시)
+- macOS/Linux/WSL2 등 Java 데스크톱 UI 실행이 가능한 환경
 
-7. 참고 사항
-- 실행 명령이나 산출물 경로가 바뀌면 최종 제출 전에 이 README.txt를 갱신합니다.
-- 루트 README.md에는 저장소 전체 개요가 정리되어 있습니다.
+7. 기본 검증
+제출 전 아래 명령을 실행합니다.
+
+  ./gradlew check --console=plain
+  ./gradlew verifySubmissionMetadata --console=plain
+
+Oracle 통합 검증까지 로컬에서 확인할 때는 다음 명령을 사용합니다.
+
+  ./gradlew oracleLocalTest --console=plain
+
+8. Oracle local 실행
+애플리케이션을 로컬 Oracle DB와 연결해 실행할 때는 다음 순서로 준비합니다.
+
+  ./gradlew oracleLocalStart --console=plain
+  ./gradlew oracleLocalInitializeDatabase --console=plain
+
+  export ITS_DB_URL="jdbc:oracle:thin:@//localhost:1521/FREEPDB1"
+  export ITS_DB_USER="ITS_USER"
+  export ITS_DB_PASSWORD="ItsLocalDev2026!"
+
+  ./gradlew oracleConnectionCheck --console=plain
+
+고정 데모 데이터로 초기화해야 할 때는 아래 명령을 사용합니다.
+
+  ./gradlew oracleLocalResetFixedSeed --console=plain
+
+9. UI 실행
+JavaFX UI:
+
+  ./gradlew run --console=plain
+
+Swing UI:
+
+  ./gradlew runSwing --console=plain
+
+10. 참고 사항
+- 루트 README.md에는 저장소 전체 개요와 제출 일정이 정리되어 있습니다.
+- 데모 시나리오와 계정 정보는 docs/demo-scenario.md를 기준으로 확인합니다.
+- 최종 보고서 PDF, 발표 슬라이드, 시연 영상 파일 또는 영상 링크 문서가 같은 패키지에 있는지 확인합니다.

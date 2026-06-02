@@ -26,13 +26,8 @@ STATUS_BY_LABEL = {
 STATUS_LABELS = set(STATUS_BY_LABEL)
 
 REQUIRED_FILES = [
-    "SE_Term_Project_2026-1.pdf",
     "README.md",
-    ".pr_agent.toml",
-    ".gemini/config.yaml",
-    ".gemini/styleguide.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
-    ".github/copilot-instructions.md",
     ".github/workflows/add-to-project.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/gradle.yml",

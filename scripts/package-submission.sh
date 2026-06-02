@@ -115,6 +115,7 @@ mkdir -p "$stage_root" "$output_dir"
 rsync -a \
     --exclude '.git/' \
     --exclude '.gradle/' \
+    --exclude '.gemini/' \
     --exclude 'build/' \
     --exclude '.[o]mx/' \
     --exclude 'dist/' \
@@ -123,6 +124,8 @@ rsync -a \
     --exclude 'docs/qa/artifacts/' \
     --exclude '.idea/' \
     --exclude '.vscode/' \
+    --exclude '.github/copilot-instructions.md' \
+    --exclude '.pr_agent.toml' \
     --exclude '.DS_Store' \
     --exclude '__pycache__/' \
     --exclude 'docs/textbook/' \
