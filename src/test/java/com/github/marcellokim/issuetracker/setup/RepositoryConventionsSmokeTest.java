@@ -276,6 +276,7 @@ class RepositoryConventionsSmokeTest {
         var sonarCloud = Files.readString(Path.of(".sonarcloud.properties"));
         var gradleExclusions = gradleCoverageExclusions(gradle);
         var sonarExclusions = sonarPropertyValues(sonarCloud, "sonar.coverage.exclusions");
+        var automaticAnalysisExclusions = sonarPropertyValues(sonarCloud, "sonar.exclusions");
 
         assertFalse(gradleExclusions.isEmpty(), "Gradle coverage 제외 정책을 찾을 수 없습니다.");
         assertFalse(sonarExclusions.isEmpty(), ".sonarcloud.properties에도 coverage 제외 정책이 있어야 합니다.");
@@ -283,6 +284,10 @@ class RepositoryConventionsSmokeTest {
         assertFalse(
                 gradleExclusions.stream().anyMatch(value -> value.startsWith("src/main/java/")),
                 "Coverage 제외 정책은 SonarCloud 파일 키와 안정적으로 맞도록 source-root 고정 경로 대신 glob 패턴을 사용해야 합니다."
+        );
+        assertTrue(
+                automaticAnalysisExclusions.containsAll(sonarExclusions),
+                ".sonarcloud.properties의 자동 분석 source 제외 정책은 coverage 제외 정책을 포함해야 합니다."
         );
     }
 
