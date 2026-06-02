@@ -1636,6 +1636,14 @@ begin
                 timestamp '2026-05-20 09:30:00'
            from dual
          union all
+         select 'Project A',
+                'Duplicate mobile login report',
+                'pl1',
+                'Deleted duplicate NEW issue before assignment',
+                'STATUS_CHANGE',
+                timestamp '2026-05-20 10:00:00'
+           from dual
+         union all
          select 'Project B',
                 'Dashboard widget missing tooltip',
                 'tester2',
