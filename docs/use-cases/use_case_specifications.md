@@ -285,9 +285,9 @@ extension point: UC2(Add Comment)
 | Current Status | Target Status | Actor / Role | Auto Field | Description |
 |---|---|---|---|---|
 | ASSIGNED | FIXED | Dev (assignee 본인) | fixer = 현재 Dev | Dev가 이슈 수정을 완료했음을 표시 |
-| FIXED | RESOLVED | Tester (verifier 본인) | resolver = 현재 Tester, assignee/verifier 제거, fixer 보존 | verifier가 수정 결과를 검증한다. 단, blocking issue가 모두 RESOLVED 또는 CLOSED일 때만 허용된다 |
-| FIXED | ASSIGNED | Tester (verifier 본인) | 기존 assignee, verifier, fixer 유지 | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림 |
-| RESOLVED | CLOSED | PL | fixer/resolver 보존 | PL이 검증 완료된 이슈를 종료시킨다 |
+| FIXED | RESOLVED | Tester (현재 verifier) | resolver = 현재 Tester, assignee/verifier 제거, fixer 보존 | verifier가 수정 결과를 검증한다. 단, blocking issue가 모두 RESOLVED 또는 CLOSED일 때만 허용된다 |
+| FIXED | ASSIGNED | Tester (현재 verifier) | 기존 assignee, verifier, fixer 유지 | verifier가 수정이 불충분하다고 판단하여 상태를 되돌림 |
+| RESOLVED | CLOSED | PL | assignee/verifier 제거, fixer/resolver 보존 | PL이 검증 완료된 이슈를 active assignment 없이 종료시킨다 |
 | RESOLVED / CLOSED | REOPENED | PL | fixer/resolver 보존 | PL이 종료된 이슈를 재개. assignee/verifier는 자동 복원하지 않고, PL은 필요 시 UC5를 통해 배정한다 |
 
 설계 메모: fixer와 resolver는 각각 ASSIGNED -> FIXED, FIXED -> RESOLVED 상태 전이에서 설정되며, 각 상태 전이는 상태 변경 이력으로 기록된다.
@@ -308,7 +308,7 @@ extension point: UC2(Add Comment)
 - ASSIGNED -> FIXED: fixer를 현재 Dev로 기록한다.
 - FIXED -> ASSIGNED: 기존 assignee, verifier, fixer를 유지한다. 이후 다시 FIXED 전이가 발생하면 fixer는 그 시점의 Dev로 갱신될 수 있다.
 - FIXED -> RESOLVED: blocking issue 검사를 통과하면 resolver를 현재 Tester로 기록하고, assignee/verifier를 제거하며 fixer를 보존한다. 이때 dependency row는 자동 제거하지 않는다.
-- RESOLVED -> CLOSED: fixer와 resolver를 보존한 채 상태를 최종 종료한다.
+- RESOLVED -> CLOSED: assignee/verifier를 제거하고 fixer와 resolver를 보존한 채 상태를 최종 종료한다.
 - RESOLVED/CLOSED -> REOPENED: fixer와 resolver를 보존한 채 재작업 가능 상태로 설정한다. assignee/verifier는 자동 복원하지 않으며 PL은 필요 시 UC5를 통해 배정한다.
 
 ### Alternative Flows

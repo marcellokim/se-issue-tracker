@@ -377,7 +377,6 @@ Use Case: UC7 Manage Dependency
 - blocking issue와 blocked issue는 같은 프로젝트에 속하며, 둘 다 `DELETED` 상태가 아니다.
 - blocking issue와 blocked issue는 서로 다른 이슈이다.
 - 동일한 dependency가 아직 존재하지 않는다.
-- 새 dependency는 순환 dependency를 만들지 않는다.
 
 ### 4. Postconditions
 
@@ -386,6 +385,10 @@ Use Case: UC7 Manage Dependency
 - `IssueDependency.dependencyId`는 `blockingIssueId`와 `blockedIssueId` 조합에서 파생된 값으로 설정되었다.
 - blocked issue 기준으로 `IssueHistory(actionType=DEPENDENCY_CHANGED)`가 생성되었다.
 - `Issue.status`는 변경되지 않았고, 이 dependency는 이후 `FIXED -> RESOLVED` guard에서 사용된다.
+
+### 5. 실패 조건
+
+- 시스템이 기존 dependency 관계를 따라 순환 dependency 여부를 검사하고, 순환이 감지되면 operation을 거부한다.
 
 ---
 

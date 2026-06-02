@@ -427,11 +427,10 @@ end;
 begin
    for seed_issue in (
       select p.id as project_id,
-             lower(standard_hash(
-                s.project_name
-                || ':'
-                || s.title,
-                'SHA256'
+             'seed-issue-' || to_char(row_number() over (
+                order by s.reported_at,
+                         s.project_name,
+                         s.title
              )) as issue_id,
              s.title,
              s.description,
@@ -909,6 +908,18 @@ begin
            source.resolver_login_id,
            source.reported_at );
    end loop;
+end;
+/
+begin
+   update issues target
+      set target.issue_id = 'issue-' || to_char(target.id)
+    where exists (
+      select 1
+        from projects project
+       where project.id = target.project_id
+         and project.name in ( 'Project A',
+                               'Project B' )
+   );
 end;
 /
 begin

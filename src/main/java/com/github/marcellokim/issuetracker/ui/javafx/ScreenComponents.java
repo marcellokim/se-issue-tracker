@@ -79,6 +79,9 @@ final class ScreenComponents {
 
     static String shortIssueId(String issueId){
         if (issueId == null) return "";
+        if (issueId.matches("issue-\\d+")){
+            return issueId;
+        }
         if (issueId.startsWith("ISSUE-")){
             return issueId.length() > 14 ? issueId.substring(0, 14) + "..." : issueId;
         }

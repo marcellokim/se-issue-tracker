@@ -56,7 +56,8 @@ class Issue <<aggregate root>> {
   +assignOrUpdate(assignee : User, verifier : User) : void
   +changeStatus(targetStatus : IssueStatus, actor : User, comment : String) : void
   +addComment(content : String, writer : User, purpose : CommentPurpose) : Comment
-  +manageDependency(blockingIssue : Issue) : IssueDependency
+  +addDependency(blockingIssue : Issue) : IssueDependency
+  +removeDependency(dependency : IssueDependency) : void
 }
 
 class Comment <<entity>> {

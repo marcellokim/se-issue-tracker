@@ -66,6 +66,7 @@
 - 종속되는 이슈(blocked issue)를 해결하기 위해서는 종속하는 이슈(blocking issue)를 먼저 해결해야합니다
 - 예를 들어, 두 이슈 A, B에 대해 B를 해결하기 위해서는 A가 B보다 먼저 해결되어야 합니다.(A가 blocking issue, B가 blocked issue)
 - blocking issue가 resolved 또는 closed 상태가 아닌데 blocked issue가 resolved로 상태전이를 시도하면, 시스템상에서 이슈 종속성 관계 검사를 통해 blocked issue의 resolved로의 상태전이를 차단합니다.
+- 자기 자신 의존성, 중복 dependency, 순환 dependency는 허용하지 않습니다. 순환 dependency는 기존 dependency 관계를 따라 검사하여 거부합니다.
 - 별도 `BLOCK`/`BLOCKED` 이슈 상태는 도입하지 않고, dependency는 `FIXED -> RESOLVED` 전이에 대한 guard로만 사용합니다.
 - blocking issue가 resolved 또는 closed 상태가 되어도 dependency row를 자동 제거하지 않습니다. dependency 제거는 PL의 수동 제거 또는 soft delete 흐름에서만 수행합니다.
 - 이슈가 PL에 의해 DELETED 상태로 전이되면, 해당 이슈가 blocking issue이든 blocked issue이든 그 이슈가 포함된 dependency row는 자동 제거됩니다.
