@@ -54,8 +54,8 @@ class IssueControllerTest {
         List<IssueSummary> simpleSearch = devController.searchIssues(PROJECT_ID, null, null, null);
         assertEquals(List.of(issue.id(), created.id()), simpleSearch.stream().map(IssueSummary::id).toList());
 
-        List<IssueSummary> relatedIssues = devController.viewRelatedProjectIssues(PROJECT_ID);
-        assertEquals(List.of(issue.id(), created.id()), relatedIssues.stream().map(IssueSummary::id).toList());
+        List<IssueSummary> projectIssues = devController.viewProjectIssues(PROJECT_ID);
+        assertEquals(List.of(issue.id(), created.id()), projectIssues.stream().map(IssueSummary::id).toList());
 
         IssueResult updated = devController.updateIssue(issue.id(), "Updated title", "Updated description");
         assertEquals("Updated title", updated.title());

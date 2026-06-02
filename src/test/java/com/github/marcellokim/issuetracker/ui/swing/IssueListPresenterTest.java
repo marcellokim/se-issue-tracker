@@ -39,8 +39,8 @@ class IssueListPresenterTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 31, 0, 0);
 
     @Test
-    @DisplayName("loads project info, related issues, and register permission through controllers")
-    void loadsProjectAndRelatedIssues() {
+    @DisplayName("loads project info, project issues, and register permission through controllers")
+    void loadsProjectAndProjectIssues() {
         User dev = user("dev1", Role.DEV);
         ControllerFixture fixture = controllers(
                 dev,

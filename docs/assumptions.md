@@ -75,7 +75,7 @@
 - ADMIN은 계정 관리와 프로젝트 관리의 주체입니다. 일반 이슈 작업 흐름은 PL/DEV/TESTER의 active project membership을 기준으로 합니다.
 - Dashboard에서 ADMIN은 전체 프로젝트 요약과 전체 사용자 목록을 볼 수 있고, non-ADMIN은 자신이 참여한 프로젝트 요약만 볼 수 있습니다.
 - ADMIN 프로젝트 상세 화면은 프로젝트 기본 정보와 참여자 정보를 보여주며, 프로젝트 이슈 목록은 포함하지 않습니다.
-- non-ADMIN 프로젝트 화면은 프로젝트 기본 정보와 해당 프로젝트 내 관련 이슈 목록을 나누어 조회합니다.
+- non-ADMIN 프로젝트 화면은 프로젝트 기본 정보와 해당 프로젝트의 전체 이슈 목록을 나누어 조회합니다.
 - 프로젝트 멤버(PL, DEV, TESTER)는 해당 프로젝트의 전체 이슈를 볼 수 있습니다. 검색 기능을 통해 assignee, reporter, verifier 등 조건별 필터링이 가능합니다.
 - Reporter는 `NEW` 또는 `REOPENED` 상태일때만 자신의 이슈 title/description을 수정할 수 있습니다.
 - assigned 이후 title/description 정정과 추가 정보는 comment로 남깁니다.
