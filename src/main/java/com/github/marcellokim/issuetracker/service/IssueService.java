@@ -164,35 +164,6 @@ public final class IssueService {
                 .toList();
     }
 
-    public List<IssueSummary> searchRelatedProjectIssues(
-            long projectId,
-            String keyword,
-            IssueStatus status,
-            Priority priority,
-            String currentLoginId) {
-
-        SearchContext context = searchContext(
-                projectId,
-                status,
-                null,
-                null,
-                currentLoginId,
-                "Only project members can search related project issues.");
-        return searchIssuesByCriteria(IssueSearchCriteria.create(
-                context.projectId(),
-                status,
-                priority,
-                null,
-                null,
-                null,
-                optionalText(keyword),
-                null,
-                null,
-                false)).stream()
-                .map(IssueService::toIssueSummary)
-                .toList();
-    }
-
     public List<IssueSummary> viewRelatedProjectIssues(long projectId, String currentLoginId) {
         long requiredProjectId = requirePositive(projectId, FIELD_PROJECT_ID);
         String requiredLoginId = requireText(currentLoginId, FIELD_CURRENT_LOGIN_ID);

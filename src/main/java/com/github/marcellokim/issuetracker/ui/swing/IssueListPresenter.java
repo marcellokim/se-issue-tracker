@@ -36,7 +36,7 @@ final class IssueListPresenter {
     void searchIssues(long projectId, IssueSearchRequest request) {
         Objects.requireNonNull(request, "request");
         try {
-            showIssues(issueController.searchRelatedProjectIssues(
+            showIssues(issueController.searchIssues(
                     projectId,
                     request.keyword(),
                     request.status(),

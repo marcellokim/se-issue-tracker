@@ -250,6 +250,31 @@ class RepositoryConventionsSmokeTest {
         );
     }
 
+    @Test
+    @DisplayName("이슈 검색은 related 전용 중복 API 없이 표준 검색 경로를 사용한다")
+    void issueSearchUsesStandardSearchPathWithoutRelatedDuplicateApi() throws IOException {
+        try (Stream<Path> paths = Files.walk(Path.of("src/main/java"))) {
+            var offenders = paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> readUnchecked(path).contains("searchRelatedProjectIssues"))
+                    .toList();
+
+            assertTrue(
+                    offenders.isEmpty(),
+                    () -> "삭제 대상 중복 검색 API가 남아 있습니다: " + offenders
+            );
+        }
+    }
+
+    private static String readUnchecked(Path path) {
+        try {
+            return Files.readString(path);
+        } catch (IOException exception) {
+            throw new java.io.UncheckedIOException(exception);
+        }
+    }
+
     record ScriptExpectation(String relativePath, String expectedText) {
     }
 }
