@@ -142,6 +142,12 @@ final class IssueListPanel extends JPanel implements IssueListView {
             statusFilter.setEnabled(enabled);
             priorityFilter.setEnabled(enabled);
             searchButton.setEnabled(enabled);
+            advancedToggle.setEnabled(enabled);
+            reporterField.setEnabled(enabled);
+            assigneeField.setEnabled(enabled);
+            verifierField.setEnabled(enabled);
+            fromField.setEnabled(enabled);
+            toField.setEnabled(enabled);
             updateActionState();
         });
     }
