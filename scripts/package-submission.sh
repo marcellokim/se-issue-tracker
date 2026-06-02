@@ -36,6 +36,19 @@ require_tool() {
     fi
 }
 
+usage() {
+    cat <<'EOF'
+사용법:
+  ./scripts/package-submission.sh \
+    --team-number <번호> \
+    --member <팀원1> --member <팀원2> [--member <팀원3> ...] \
+    [--project-url <url>] [--skip-check]
+
+이 스크립트는 소스 코드, 문서, 테스트, README.txt만 묶습니다.
+최종 보고서 PDF, 발표자료, 시연 영상은 별도 제출물로 준비합니다.
+EOF
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --team-number)
@@ -64,13 +77,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "알 수 없는 옵션: $1"
+            usage
             exit 1
             ;;
     esac
 done
 
 if [[ -z "$team_number" || ${#members[@]} -lt 2 ]]; then
-    echo "사용법: $0 --team-number <번호> --member <팀원1> --member <팀원2> [--member <팀원3> ...] [--project-url <url>] [--skip-check]"
+    usage
     exit 1
 fi
 
@@ -115,6 +129,7 @@ mkdir -p "$stage_root" "$output_dir"
 rsync -a \
     --exclude '.git/' \
     --exclude '.gradle/' \
+    --exclude '.gemini/' \
     --exclude 'build/' \
     --exclude '.[o]mx/' \
     --exclude 'dist/' \
@@ -123,6 +138,8 @@ rsync -a \
     --exclude 'docs/qa/artifacts/' \
     --exclude '.idea/' \
     --exclude '.vscode/' \
+    --exclude '.github/copilot-instructions.md' \
+    --exclude '.pr_agent.toml' \
     --exclude '.DS_Store' \
     --exclude '__pycache__/' \
     --exclude 'docs/textbook/' \
