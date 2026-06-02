@@ -81,7 +81,8 @@ final class IssueDetailScreen extends VBox {
             Label statusLabel = new Label(String.format("Status: %s | Priority: %s", detail.status(), detail.priority()));
             statusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #444;");
 
-            Label reportedLabel = new Label("Reported: " + DATE_TIME_FORMATTER.format(detail.reportedDate()));
+            Label reportedLabel = new Label("Reported: " + DATE_TIME_FORMATTER.format(detail.reportedDate())
+                    + " | Updated: " + DATE_TIME_FORMATTER.format(detail.updatedAt()));
             reportedLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #444;");
 
             Label descriptionLabel = new Label(detail.description());

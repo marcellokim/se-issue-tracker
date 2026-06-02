@@ -146,7 +146,8 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             currentTitle = detail.title();
             currentDescription = detail.description();
             currentPriority = detail.priority();
-            reportedDateLabel.setText("Reported: " + DATE_TIME_FORMATTER.format(detail.reportedDate()));
+            reportedDateLabel.setText("Reported: " + DATE_TIME_FORMATTER.format(detail.reportedDate())
+                    + " | Updated: " + DATE_TIME_FORMATTER.format(detail.updatedAt()));
             reporterLabel.setText("Reporter: " + formatUser(detail.reporter()));
             assigneeLabel.setText("Assignee: " + formatUser(detail.assignee()));
             verifierLabel.setText("Verifier: " + formatUser(detail.verifier()));
@@ -597,21 +598,6 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
             PanelDependencyConsumer onDependencyAction,
             Runnable onBack,
             Runnable onLogout) {
-
-        IssueDetailActions(PanelStringConsumer onAction, Runnable onBack, Runnable onLogout) {
-            this(onAction, (panel, mode, selection) -> {
-            }, (panel, mode, selection) -> {
-            }, onBack, onLogout);
-        }
-
-        IssueDetailActions(
-                PanelStringConsumer onAction,
-                PanelCommentConsumer onCommentAction,
-                Runnable onBack,
-                Runnable onLogout) {
-            this(onAction, onCommentAction, (panel, mode, selection) -> {
-            }, onBack, onLogout);
-        }
 
         IssueDetailActions {
             Objects.requireNonNull(onAction, "onAction");
