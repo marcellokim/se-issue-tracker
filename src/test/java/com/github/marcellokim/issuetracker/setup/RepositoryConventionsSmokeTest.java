@@ -1,11 +1,16 @@
 package com.github.marcellokim.issuetracker.setup;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +34,7 @@ class RepositoryConventionsSmokeTest {
                 ".pr_agent.toml",
                 ".gemini/config.yaml",
                 ".gemini/styleguide.md",
+                ".sonarcloud.properties",
                 ".github/copilot-instructions.md",
                 ".github/dependabot.yml",
                 "config/github/labels.json",
@@ -264,6 +270,19 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
+    @DisplayName("SonarCloud 자동 분석은 Gradle coverage 제외 정책을 공유한다")
+    void sonarCloudAutomaticAnalysisUsesTheSameCoverageExclusions() throws IOException {
+        var gradle = Files.readString(Path.of("build.gradle"));
+        var sonarCloud = Files.readString(Path.of(".sonarcloud.properties"));
+        var gradleExclusions = gradleCoverageExclusions(gradle);
+        var sonarExclusions = sonarPropertyValues(sonarCloud, "sonar.coverage.exclusions");
+
+        assertFalse(gradleExclusions.isEmpty(), "Gradle coverage 제외 정책을 찾을 수 없습니다.");
+        assertFalse(sonarExclusions.isEmpty(), ".sonarcloud.properties에도 coverage 제외 정책이 있어야 합니다.");
+        assertEquals(gradleExclusions, sonarExclusions, "SonarCloud 자동 분석 coverage 제외 정책이 Gradle과 달라졌습니다.");
+    }
+
+    @Test
     @DisplayName("이슈 목록과 검색은 related 전용 API 없이 표준 경로를 사용한다")
     void issueListAndSearchUseStandardPathWithoutRelatedDuplicateApi() throws IOException {
         try (Stream<Path> paths = Files.walk(Path.of("src/main/java"))) {
@@ -308,6 +327,40 @@ class RepositoryConventionsSmokeTest {
         } catch (IOException exception) {
             throw new java.io.UncheckedIOException(exception);
         }
+    }
+
+    private static Set<String> gradleCoverageExclusions(String gradleText) {
+        var matcher = Pattern.compile("def coverageExcludedSources = \\[(?<body>.*?)\\]\\.join\\(','\\)",
+                Pattern.DOTALL).matcher(gradleText);
+        if (!matcher.find()) {
+            return Set.of();
+        }
+        return quotedValues(matcher.group("body"));
+    }
+
+    private static Set<String> quotedValues(String text) {
+        var matcher = Pattern.compile("'([^']+)'").matcher(text);
+        var values = new LinkedHashSet<String>();
+        while (matcher.find()) {
+            values.add(matcher.group(1));
+        }
+        return values;
+    }
+
+    private static Set<String> sonarPropertyValues(String propertiesText, String key) {
+        return propertiesText.lines()
+                .filter(line -> line.startsWith(key + "="))
+                .findFirst()
+                .map(line -> line.substring(key.length() + 1))
+                .map(RepositoryConventionsSmokeTest::commaSeparatedValues)
+                .orElseGet(Set::of);
+    }
+
+    private static Set<String> commaSeparatedValues(String text) {
+        return Arrays.stream(text.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     }
 
     record ScriptExpectation(String relativePath, String expectedText) {
