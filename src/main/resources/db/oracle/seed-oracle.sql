@@ -1516,6 +1516,14 @@ begin
                 timestamp '2026-05-21 10:00:00'
            from dual
          union all
+         select 'Project B',
+                'Retired browser support checklist',
+                'pl2',
+                'Deleted retired CLOSED issue after archive',
+                'STATUS_CHANGE',
+                timestamp '2026-05-22 10:00:00'
+           from dual
+         union all
          select 'Project A',
                 'Assignment notification not shown',
                 'tester1',

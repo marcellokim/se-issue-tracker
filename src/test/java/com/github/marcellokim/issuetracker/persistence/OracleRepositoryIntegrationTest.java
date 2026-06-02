@@ -152,6 +152,20 @@ class OracleRepositoryIntegrationTest {
                 assertFalse(repositories.issueHistory().findByIssueId(dependencyIssue.id()).isEmpty());
         }
 
+        // Repositories: IssueRepository.findByCriteria
+        @Test
+        @DisplayName("seed issue ids use database ids")
+        void seedIssueIdsUseDatabaseIds() {
+                for (var projectName : List.of("Project A", "Project B")) {
+                        var project = repositories.projects().findByName(projectName).orElseThrow();
+                        var issues = repositories.issues().findByCriteria(IssueSearchCriteria.create(
+                                        project.getId(), null, null, null, null, null, null, null, null, true));
+
+                        assertFalse(issues.isEmpty());
+                        issues.forEach(OracleRepositoryIntegrationTest::assertDatabaseBackedIssueId);
+                }
+        }
+
         // Repositories: StatisticsRepository.calculateProjectStatistics,
         // AssignmentRecommendationRepository.findActiveDevCandidates/findActiveTesterCandidates
         @Test
@@ -397,7 +411,7 @@ class OracleRepositoryIntegrationTest {
                                 "Temporary deleted issue for repository policy test",
                                 "Deleted issues should stay out of normal browse and statistics.",
                                 admin)
-                                .issueId(uniqueId("ISSUE_deleted_policy"))
+                                .issueId(temporaryIssueId("deleted_policy"))
                                 .reportedDate(reportedAt)
                                 .priority(Priority.TRIVIAL)
                                 .status(IssueStatus.DELETED)
@@ -712,7 +726,7 @@ class OracleRepositoryIntegrationTest {
                                         uniqueId("crud_project_composition_issue"),
                                         "Issue should be removed when its owning project is deleted.",
                                         user("dev1"))
-                                        .issueId(uniqueId("ISSUE_project_composition"))
+                                        .issueId(temporaryIssueId("project_composition"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MINOR)
                                         .status(IssueStatus.NEW)
@@ -753,12 +767,13 @@ class OracleRepositoryIntegrationTest {
                                         title,
                                         "Issue repository CRUD test.",
                                         user("dev1"))
-                                        .issueId(uniqueId("ISSUE_crud_issue"))
+                                        .issueId(temporaryIssueId("crud_issue"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MINOR)
                                         .status(IssueStatus.NEW)
                                         .updatedAt(LocalDateTime.now())));
 
+                        assertDatabaseBackedIssueId(saved);
                         assertEquals(title, repositories.issues().findById(saved.id()).orElseThrow().title());
                         assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
                         long savedIssueId = saved.id();
@@ -783,6 +798,7 @@ class OracleRepositoryIntegrationTest {
 
                         assertEquals(IssueStatus.ASSIGNED, assigned.status());
                         assertEquals("dev2", assigned.assigneeId());
+                        assertDatabaseBackedIssueId(assigned);
 
                         Issue deleted = repositories.issues().save(Issue.fromPersistence(Issue.persistedState(
                                         assigned.projectId(),
@@ -802,6 +818,7 @@ class OracleRepositoryIntegrationTest {
 
                         assertFalse(repositories.issues().findByCriteria(activeIssueCriteria(project.getId())).stream()
                                         .anyMatch(issue -> issue.id() == deleted.id()));
+                        assertDatabaseBackedIssueId(deleted);
                         assertTrue(repositories.deletedIssues().findDeletedByProject(project.getId()).stream()
                                         .anyMatch(issue -> issue.id() == deleted.id()));
                         assertTrue(repositories.issues().existsByProjectIdAndTitle(project.getId(), title));
@@ -852,7 +869,7 @@ class OracleRepositoryIntegrationTest {
                                         title,
                                         "Aggregate root save should persist audit children.",
                                         user("dev1"))
-                                        .issueId(uniqueId("ISSUE_aggregate_audit"))
+                                        .issueId(temporaryIssueId("aggregate_audit"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MAJOR)
                                         .status(IssueStatus.NEW)
@@ -1161,7 +1178,7 @@ class OracleRepositoryIntegrationTest {
                                         uniqueId("crud_stats_issue"),
                                         "Resolved issue for statistics and recommendation CRUD test.",
                                         user("tester4"))
-                                        .issueId(uniqueId("ISSUE_stats"))
+                                        .issueId(temporaryIssueId("stats"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.CRITICAL)
                                         .status(IssueStatus.RESOLVED)
@@ -1244,7 +1261,7 @@ class OracleRepositoryIntegrationTest {
                                         uniqueId("participant_guard_issue"),
                                         "Assigned issue for participant removal guard.",
                                         user("tester1"))
-                                        .issueId(uniqueId("ISSUE_participant_guard"))
+                                        .issueId(temporaryIssueId("participant_guard"))
                                         .reportedDate(LocalDateTime.now())
                                         .priority(Priority.MAJOR)
                                         .status(IssueStatus.ASSIGNED)
@@ -1289,6 +1306,8 @@ class OracleRepositoryIntegrationTest {
                                         "tester1");
                         long registeredIssueId = registered.id();
                         issueId = registeredIssueId;
+                        assertEquals("issue-" + registeredIssueId, registered.issueId());
+                        assertDatabaseBackedIssueId(repositories.issues().findById(registeredIssueId).orElseThrow());
 
                         var options = assignmentService.startAssignment(registeredIssueId, "pl1");
                         assertFalse(options.devAssigneeCandidates().isEmpty());
@@ -1549,7 +1568,7 @@ class OracleRepositoryIntegrationTest {
         }
 
         private static String nextIssueId() {
-                return "ISSUE-test-" + UUID.randomUUID();
+                return temporaryIssueId("service");
         }
 
         private static DeletedIssueService deletedIssueService() {
@@ -1632,7 +1651,7 @@ class OracleRepositoryIntegrationTest {
                                 title,
                                 "Repository CRUD support issue.",
                                 user("dev1"))
-                                .issueId(uniqueId("ISSUE_support"))
+                                .issueId(temporaryIssueId("support"))
                                 .reportedDate(LocalDateTime.now())
                                 .priority(Priority.MINOR)
                                 .status(status)
@@ -1683,6 +1702,14 @@ class OracleRepositoryIntegrationTest {
                                 .filter(count -> count.month().equals(month))
                                 .mapToInt(MonthlyIssueCount::count)
                                 .sum();
+        }
+
+        private static void assertDatabaseBackedIssueId(Issue issue) {
+                assertEquals("issue-" + issue.id(), issue.getIssueId());
+        }
+
+        private static String temporaryIssueId(String label) {
+                return uniqueId("pending_issue_" + label);
         }
 
         private static String uniqueId(String prefix) {
