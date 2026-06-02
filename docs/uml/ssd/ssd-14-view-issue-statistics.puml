@@ -14,18 +14,7 @@ note over A, S
 end note
 
 A -> S: viewStatistics(projectId, dailyPeriod, monthlyPeriod)
-S --> A: statisticsReport(
-  statusCounts,
-  priorityCounts,
-  dailyIssueCounts,
-  monthlyIssueCounts,
-  monthlyStatusCounts,
-  monthlyPriorityCounts,
-  dailyStatusChangeCounts,
-  monthlyStatusChangeCounts,
-  dailyCommentCounts,
-  monthlyCommentCounts
-)
+S --> A: statisticsReport(statusCounts, priorityCounts,\ndailyIssueCounts, monthlyIssueCounts,\nstatusChangeCounts, commentCounts)
 
 note over S
 결과:

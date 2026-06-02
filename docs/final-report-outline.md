@@ -39,6 +39,7 @@
 
 | 섹션 | 원천 자료 | 삽입 기준 |
 | --- | --- | --- |
+| 보고서 본문 초안 | `docs/final-report-draft.md` | 최종 PDF 편집 전 prose 초안으로 사용하고, 캡처/표지/학번/페이지 편집은 제출본에서 처리 |
 | 요구사항 분석 | `docs/use-cases/use_case_specifications.md`, `docs/requirements-traceability.md`, `docs/uml/ucd/ucd-issue-tracking-system.puml` | UC1~UC6은 핵심으로 설명하고, UC7~UC16은 coverage 표로 압축 |
 | 도메인 분석 | `docs/uml/domain/domain-model-issue-tracking-system.puml`, `docs/assumptions.md` | 상태, 역할, deleted issue, dependency 정책을 현재 구현 기준으로 설명 |
 | SSD | `docs/uml/ssd-candidate-catalog.md`, `docs/uml/ssd/ssd-01-register-issue.puml`, `docs/uml/ssd/ssd-05-assign-issue.puml`, `docs/uml/ssd/ssd-06-mark-fixed.puml` | 제출 대표 SSD 3개만 본문 삽입 |
@@ -119,6 +120,7 @@
 ## 최종 PDF freeze checklist
 
 - [ ] `docs/requirements-traceability.md`의 UC1~UC16 표가 최신 `dev` 기준이다.
+- [ ] `docs/final-report-draft.md`를 최종 제출 양식으로 옮기며 표지, 팀원 정보, 캡처, 페이지 번호를 편집한다.
 - [ ] 대표 SSD 3개와 DCD/Architecture 그림이 렌더링 가능하다.
 - [ ] JavaFX와 Swing 스크린샷이 같은 기능을 비교할 수 있게 준비되어 있다.
 - [ ] `./gradlew check`와 제출 직전 CI 결과가 본문에 반영되어 있다.
