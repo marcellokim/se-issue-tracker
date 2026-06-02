@@ -49,7 +49,7 @@
 
 `updateComment`와 `deleteComment`는 해당 댓글 작성자만 수행할 수 있고, `CommentPurpose.GENERAL` 댓글에만 허용된다. 댓글은 대상 이슈에 속해야 하며, actor는 해당 프로젝트의 active member여야 한다. 같은 내용으로 댓글을 수정하면 실패한다. 댓글 삭제는 comment row를 물리 삭제하고, 댓글 삭제 이력은 issue history에 남긴다. `CommentResult.commentId`는 저장된 DB comment id의 문자열 표현이며, 수정/삭제 API의 `commentId` 인자는 numeric DB id를 받는다.
 
-의존성 추가와 삭제는 해당 프로젝트의 active PL만 수행할 수 있다. 의존성은 같은 프로젝트의 이슈 사이에서만 허용되며, 자기 자신 의존성, 중복 의존성, 순환 의존성은 거부된다. `addDependency`는 blocked issue가 `RESOLVED` 또는 `CLOSED` 상태이면 거부한다. `removeDependency`는 외부에서 받은 `blockingIssueId`, `blockedIssueId` 쌍으로 내부 dependency id를 계산해 삭제한다.
+의존성 추가와 삭제는 해당 프로젝트의 active PL만 수행할 수 있다. 의존성은 같은 프로젝트의 이슈 사이에서만 허용되며, 자기 자신 의존성, 중복 의존성, 순환 의존성은 거부된다. `addDependency`는 blocked issue가 이미 `RESOLVED` 또는 `CLOSED` 상태여도 dependency 관계 추가 자체는 허용한다. unresolved blocking issue 검사는 UC6의 `FIXED -> RESOLVED` 전이에서 수행한다. `removeDependency`는 외부에서 받은 `blockingIssueId`, `blockedIssueId` 쌍으로 내부 dependency id를 계산해 삭제한다.
 
 `viewProjectDependencies`는 해당 프로젝트의 active member가 프로젝트 내부 의존성 목록을 조회하는 기능이다. 의존성 관리는 PL만 가능하지만, 의존성 조회는 PL/DEV/TESTER 프로젝트 멤버에게 허용된다.
 
@@ -90,7 +90,7 @@
 - `searchIssues`에서 `reportedFrom > reportedTo`이면 `IllegalArgumentException`을 던진다.
 - `updateIssue`는 reporter가 아니거나 상태가 `NEW`/`REOPENED`가 아니면 `SecurityException`을 던진다.
 - `updateComment`와 `deleteComment`는 댓글 작성자가 아니거나 `GENERAL` 댓글이 아니면 실패한다.
-- `addDependency`는 다른 프로젝트 이슈, 자기 자신 의존성, 중복 의존성, 순환 의존성, `RESOLVED`/`CLOSED` blocked issue를 거부한다.
+- `addDependency`는 다른 프로젝트 이슈, 자기 자신 의존성, 중복 의존성, 순환 의존성을 거부한다. `RESOLVED`/`CLOSED` blocked issue에 대한 dependency 추가는 허용하며, unresolved blocking issue 검사는 상태 전이 API에서 수행한다.
 
 ## 근거
 

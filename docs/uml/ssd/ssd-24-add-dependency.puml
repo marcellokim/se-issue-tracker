@@ -11,12 +11,12 @@ note over A, S
 - blocking Issue와 blocked Issue가 존재한다.
 - 두 Issue는 같은 Project에 속한다.
 - 두 Issue는 DELETED 상태가 아니다.
-- blocked Issue는 RESOLVED 또는 CLOSED 상태가 아니다.
 - 자기참조 dependency가 아니다.
 - 순환 dependency가 아니다.
 - 동일한 dependency가 아직 존재하지 않는다.
 - PL은 대상 Project의 active PL이다.
 - UC14 권한 검사는 시스템 내부에서 수행된다.
+- blocked Issue가 RESOLVED 또는 CLOSED 상태여도 dependency 추가 자체는 허용된다.
 end note
 
 A -> S: addDependency(blockingIssueId, blockedIssueId)
