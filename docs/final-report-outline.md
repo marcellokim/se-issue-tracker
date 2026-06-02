@@ -46,7 +46,7 @@
 | Architecture | `docs/uml/architecture/its_layer_architecture.md`, `docs/uml/architecture/logical-architecture-its.puml`, `docs/ooad-grasp-mvc.md` | Presentation/Application/Domain/Infrastructure 흐름과 MVC 재사용 근거를 함께 설명 |
 | DCD/SD/GRASP | `docs/uml/dcd/its_dcd.puml`, `docs/uml/sd/SD_README.md`, `docs/uml/sd/sd_grasp/` | 대표 workflow만 본문에 넣고 나머지는 reference 처리 |
 | API/구현 추적 | `docs/api/README.md`, `docs/api/*.md` | UC별 controller/service entry point와 구현 차이를 요약 |
-| UI 결과 | `docs/ui/javaFX/API_명세/`, Swing package, QA 리포트 | 두 UI가 같은 backend contract를 호출한다는 증거 위주로 배치 |
+| UI 결과 | `ui.javafx` package, `docs/ui/javaFX/API_명세/`, Swing package, QA 리포트 | 두 UI가 같은 backend contract를 호출한다는 증거 위주로 배치 |
 | 테스트 | `src/test/java`, CI 결과, `docs/non-oracle-local-test-commands.md`, `docs/local-oracle-testing.md` | 테스트 계층별 목적과 대표 실행 결과를 표로 정리 |
 | 협업 증빙 | GitHub Project, issue, PR, review, milestone | 최종 캡처와 대표 PR 링크만 사용 |
 
@@ -61,7 +61,7 @@
 | 삭제 이슈 관리 | PL 전용 deleted issue 화면, soft delete, restore, purge 설명 |
 | Dependency | dependency 추가/제거와 resolved guard, JavaFX graph 또는 Swing action evidence |
 | Statistics | 프로젝트 기준 통계 화면, DELETED 제외 정책 |
-| Recommendation | UC5 배정 화면의 후보 추천과 KNN 테스트 결과 |
+| Recommendation | UC5 배정 화면에 포함된 후보 추천과 KNN 테스트 결과 |
 | JUnit | domain/service/controller/persistence/UI test 묶음과 `./gradlew check` 결과 |
 | GitHub 협업 | Project board, issue/PR/review 흐름, milestone 진행 화면 |
 
@@ -104,7 +104,6 @@
 | Tester가 fixed 이슈를 resolve 또는 reject | UC6 resolve/reject | 4. 시스템 동작 분석, 7. 구현 결과 | resolve 시 active assignment clear, reject 시 기존 assignment 유지 |
 | PL이 close/reopen, priority, dependency를 처리 | UC6, UC7, UC16 | 6. 상세 설계, 7. 구현 결과 | 상태 전이, dependency guard, priority history |
 | PL이 deleted issue를 관리 | UC9 | 4. 시스템 동작 분석, 7. 구현 결과 | soft delete, restore, purge 화면 |
-| PL 배정 화면에서 추천 후보 확인 | UC5, UC8 | 4. 시스템 동작 분석, 7. 구현 결과 | assignment dialog 후보 목록, KNN/repository test |
 | 프로젝트 통계 확인 | UC10 | 7. 구현 결과, 8. 테스트와 검증 | chart/table 화면, DELETED 제외 정책 |
 | JavaFX와 Swing에서 같은 기능 비교 | 다중 UI toolkit, MVC 재사용 | 5. 설계 구조, 7. 구현 결과 | 같은 workflow의 두 UI 화면, 공통 controller/service 설명 |
 
