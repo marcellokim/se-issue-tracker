@@ -11,10 +11,10 @@ SD 24 Add Dependency - GRASP 적용 설명
 `:IssueTrackingSystem` 객체가 dependency 추가 요청을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 의존성 관리 요청을 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-blockedIssue는 자신이 어떤 blocking issue 때문에 막히는지 알아야 하므로 dependency 추가 책임을 가진다.
+blockedIssue는 자신이 어떤 blocking issue 때문에 막히는지와 dependency 이력이 어디에 남아야 하는지를 알고 있으므로 dependency 추가 책임을 가진다.
 
 3. Creator
 IssueDependency와 DEPENDENCY_CHANGED history는 blockedIssue에 연결되는 기록이므로 blockedIssue가 생성한다.
 
 4. Protected Variations
-cycle/duplicate 검사는 구현에서는 repository 조회가 필요하지만, SD에서는 blockedIssue의 dependency candidate 검증 책임으로 요약한다. blockedIssue가 이미 RESOLVED/CLOSED인지 여부는 add 시점에서 dependency 생성을 막는 조건으로 보지 않고, 이후 RESOLVED 전이 시점의 guard에서 판단한다.
+cycle/duplicate 검사는 구현에서는 repository 조회가 필요하지만, SD에서는 blockedIssue의 dependency rule 검증 책임으로 요약한다. dependency 추가는 Issue status를 직접 바꾸지 않고, 이후 FIXED -> RESOLVED 전이에서 blocking issue 상태를 확인하는 guard로 사용된다.

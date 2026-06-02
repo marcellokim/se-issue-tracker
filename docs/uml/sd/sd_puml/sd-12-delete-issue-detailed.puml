@@ -11,8 +11,10 @@ participant "relatedDependency:IssueDependency" as Dependency
 
 PL -> DIC : deleteIssue(issueId, comment)
 
-alt PL cannot delete this issue or comment is blank
+alt status or permission is invalid
   DIC --> PL : deleteRejected(reason)
+else comment is blank
+  DIC --> PL : deleteRejected(commentRequired)
 else valid soft delete target
   DIC -> Issue : markDeleted(currentPL, comment, now)
   activate Issue

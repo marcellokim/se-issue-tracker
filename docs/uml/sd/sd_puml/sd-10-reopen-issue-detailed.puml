@@ -11,13 +11,15 @@ participant "projectMembers:User[*]" as Members
 
 PL -> ISC : changeStatus(issueId, REOPENED, comment)
 
-alt PL cannot reopen this issue or comment is blank
+alt status or permission is invalid
   ISC --> PL : statusChangeRejected(reason)
+else comment is blank
+  ISC --> PL : statusChangeRejected(commentRequired)
 else valid reopen transition
   ISC -> Issue : reopen(currentPL, comment, now)
   activate Issue
   create "reopenComment:Comment" as Comment
-  Issue --> Comment : new(content=comment, writer=currentPL)
+  Issue --> Comment : new(content=comment,\nwriter=currentPL,\npurpose=STATUS_CHANGE)
   create "commentHistory:IssueHistory" as CommentHistory
   Issue --> CommentHistory : new(COMMENTED, message=comment)
   create "statusHistory:IssueHistory" as StatusHistory

@@ -11,10 +11,10 @@ SD 06 Mark Issue as Fixed - GRASP 적용 설명
 `:IssueTrackingSystem` 객체가 상태 변경 요청을 받는다. 여기서 IssueTrackingSystem은 MVC 클래스가 아니라 상태 변경 유스케이스를 조정하는 GRASP Controller 역할의 설계 객체이다.
 
 2. Information Expert
-Issue는 현재 status, assignee, fixer, comment/history를 알고 있으므로 `markFixed(...)` 책임을 가진다.
+Issue는 현재 status, assignee, fixer, comment/history를 알고 있으므로 `markFixed(...)` 책임을 가진다. 권한과 상태 조건이 맞고 comment가 비어 있지 않을 때만 이 책임이 실행된다.
 
 3. Creator
-FIXED 처리에서 생기는 Comment, COMMENTED history, STATUS_CHANGED history는 해당 Issue에 속한 기록이므로 Issue가 생성한다.
+FIXED 처리에서 생기는 STATUS_CHANGE 목적의 Comment, COMMENTED history, STATUS_CHANGED history는 해당 Issue에 속한 기록이므로 Issue가 생성한다.
 
 4. Low Coupling / High Cohesion
 GRASP Controller는 fixer와 status를 직접 바꾸지 않고 Issue에게 상태 변경 의도를 전달한다.

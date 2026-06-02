@@ -10,13 +10,15 @@ participant "targetIssue:Issue" as Issue
 
 PL -> ISC : changeStatus(issueId, CLOSED, comment)
 
-alt PL cannot close this issue or comment is blank
+alt status or permission is invalid
   ISC --> PL : statusChangeRejected(reason)
+else comment is blank
+  ISC --> PL : statusChangeRejected(commentRequired)
 else valid RESOLVED -> CLOSED transition
   ISC -> Issue : close(currentPL, comment, now)
   activate Issue
   create "closeComment:Comment" as Comment
-  Issue --> Comment : new(content=comment, writer=currentPL)
+  Issue --> Comment : new(content=comment,\nwriter=currentPL,\npurpose=STATUS_CHANGE)
   create "commentHistory:IssueHistory" as CommentHistory
   Issue --> CommentHistory : new(COMMENTED, message=comment)
   create "statusHistory:IssueHistory" as StatusHistory

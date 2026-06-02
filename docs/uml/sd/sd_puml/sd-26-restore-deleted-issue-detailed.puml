@@ -14,8 +14,10 @@ DIC --> PL : deletedIssueList
 
 PL -> DIC : restoreIssue(issueId, comment)
 
-alt PL cannot restore, issue is not DELETED, or comment is blank
+alt status or permission is invalid
   DIC --> PL : restoreRejected(reason)
+else comment is blank
+  DIC --> PL : restoreRejected(commentRequired)
 else valid restore target
   DIC -> Issue : findDeleteTransition()
   Issue -> DeleteHistory : previousValue()

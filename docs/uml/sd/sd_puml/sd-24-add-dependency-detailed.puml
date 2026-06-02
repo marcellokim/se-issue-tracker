@@ -14,8 +14,8 @@ PL -> IC : addDependency(blockingIssueId, blockedIssueId)
 alt PL cannot manage dependency or issues are invalid
   IC --> PL : dependencyRejected(reason)
 else dependency can be considered
-  IC -> BlockedIssue : checkDependencyCandidate(blockingIssue)
-  BlockedIssue -> BlockedIssue : rejectSelfDuplicateOrCycle()
+  IC -> BlockedIssue : checkDependencyRules(blockingIssue)
+  BlockedIssue -> BlockedIssue : check self, duplicate,\nand cycle conditions
   BlockedIssue --> IC : dependencyAllowed
 
   IC -> BlockedIssue : addDependency(dependencyId,\nblockingIssue, currentPL, now)
@@ -24,7 +24,7 @@ else dependency can be considered
   BlockedIssue --> Dependency : new(blockingIssue, blockedIssue,\ndiscoveredDate=now)
   create "dependencyHistory:IssueHistory" as History
   BlockedIssue --> History : new(DEPENDENCY_CHANGED,\nnewValue=dependencyId)
-  BlockedIssue -> BlockedIssue : addDependencyHistory(history)
+  BlockedIssue -> BlockedIssue : keep status;\nrecord dependency history
   BlockedIssue --> IC : dependencyAdded(dependencyId)
   deactivate BlockedIssue
 

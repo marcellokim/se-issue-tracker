@@ -7,16 +7,22 @@ hide footbox
 actor "Tester" as Tester
 participant ":IssueTrackingSystem" as ISC
 participant "targetIssue:Issue" as Issue
-participant "blockingIssue:Issue" as BlockingIssue
+participant "blockingDependency:IssueDependency[*]" as Dependency
+participant "blockingIssue:Issue[*]" as BlockingIssue
 
 Tester -> ISC : changeStatus(issueId, RESOLVED, comment)
 
-alt Tester cannot resolve this issue or comment is blank
+alt status or permission is invalid
   ISC --> Tester : statusChangeRejected(reason)
+else comment is blank
+  ISC --> Tester : statusChangeRejected(commentRequired)
 else basic transition rule is satisfied
-  loop each issue blocking targetIssue
-    Issue -> BlockingIssue : isResolvedOrClosed()
-    BlockingIssue --> Issue : true or false
+  ISC -> Dependency : dependenciesBlocking(targetIssue)
+  Dependency --> ISC : blocking issue references
+
+  loop each blocking issue
+    ISC -> BlockingIssue : isResolvedOrClosed()
+    BlockingIssue --> ISC : true or false
   end
 
   alt unresolved blocking issue exists
@@ -25,7 +31,7 @@ else basic transition rule is satisfied
     ISC -> Issue : resolve(currentTester, comment, now)
     activate Issue
     create "resolveComment:Comment" as Comment
-    Issue --> Comment : new(content=comment, writer=currentTester)
+    Issue --> Comment : new(content=comment,\nwriter=currentTester,\npurpose=STATUS_CHANGE)
     create "commentHistory:IssueHistory" as CommentHistory
     Issue --> CommentHistory : new(COMMENTED, message=comment)
     create "statusHistory:IssueHistory" as StatusHistory
