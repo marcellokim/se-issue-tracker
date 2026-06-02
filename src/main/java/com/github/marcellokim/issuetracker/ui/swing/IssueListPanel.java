@@ -35,7 +35,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
 
     private static final long serialVersionUID = 1L;
     private static final String[] ISSUE_COLUMNS = {
-            "ID", "Issue", "Status", "Priority", "Title", "Reporter", "Assignee", "Verifier", "Updated"
+            "ID", "Issue", "Status", "Priority", "Title", "Reporter", "Assignee", "Verifier", "Reported"
     };
     private static final int[] ISSUE_COLUMN_WIDTHS = {64, 96, 100, 92, 240, 112, 112, 112, 144};
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);

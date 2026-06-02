@@ -6,6 +6,7 @@ import com.github.marcellokim.issuetracker.domain.IssueStatus;
 import com.github.marcellokim.issuetracker.service.IssueSummary;
 import com.github.marcellokim.issuetracker.service.ProjectResult;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -25,6 +26,7 @@ import javafx.scene.layout.VBox;
 
 final class IssueListScreen extends VBox {
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final IssueController issueController;
     private final long projectId;
     private final ListView<IssueSummary> issueList = new ListView<>();
@@ -227,8 +229,9 @@ final class IssueListScreen extends VBox {
             VBox box = new VBox(2);
             Label title = new Label(String.format("[%s] %s", ScreenComponents.shortIssueId(issue.issueId()), issue.title()));
             title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
-            Label info = new Label(String.format("%s | %s | reporter: %s",
-                    issue.status(), issue.priority(), issue.reporterId()));
+            Label info = new Label(String.format("%s | %s | reporter: %s | reported: %s",
+                    issue.status(), issue.priority(), issue.reporterId(),
+                    DATE_TIME_FORMATTER.format(issue.reportedDate())));
             info.setStyle("-fx-text-fill: #666; -fx-font-size: 11px;");
             box.getChildren().addAll(title, info);
             setGraphic(box);
