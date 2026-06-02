@@ -6,6 +6,7 @@ import com.github.marcellokim.issuetracker.domain.Priority;
 import com.github.marcellokim.issuetracker.service.DailyCountResult;
 import com.github.marcellokim.issuetracker.service.MonthlyCountResult;
 import com.github.marcellokim.issuetracker.service.StatisticsReportResult;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +18,11 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -30,6 +33,10 @@ final class StatisticsScreen extends VBox {
     private final VBox contentArea = new VBox(12);
     private final Label messageLabel = ScreenComponents.messageLabel();
     private StatisticsReportResult report;
+    private final DatePicker dailyFromPicker = new DatePicker();
+    private final DatePicker dailyToPicker = new DatePicker();
+    private final TextField monthlyFromField = new TextField();
+    private final TextField monthlyToField = new TextField();
     private Runnable onBack;
 
     StatisticsScreen(StatisticsController statisticsController, long projectId){
@@ -46,6 +53,7 @@ final class StatisticsScreen extends VBox {
 
         getChildren().addAll(
                 ScreenComponents.header(backButton, titleLabel),
+                buildFilterBar(),
                 messageLabel, scrollPane);
         loadOverview();
     }
@@ -53,10 +61,14 @@ final class StatisticsScreen extends VBox {
     void setOnBack(Runnable action){ this.onBack = action; }
 
     private void loadOverview(){
+        loadOverview(null, null, null, null);
+    }
+
+    private void loadOverview(LocalDate dailyFrom, LocalDate dailyTo, YearMonth monthlyFrom, YearMonth monthlyTo){
         ScreenComponents.showInfo(messageLabel, "Loading statistics...");
         Task<StatisticsReportResult> task = new Task<>(){
             @Override protected StatisticsReportResult call(){
-                return statisticsController.viewStatistics(projectId);
+                return statisticsController.viewStatistics(projectId, dailyFrom, dailyTo, monthlyFrom, monthlyTo);
             }
         };
         task.setOnSucceeded(event -> {
@@ -226,5 +238,44 @@ final class StatisticsScreen extends VBox {
         Button btn = new Button(text);
         btn.setOnAction(e -> action.run());
         return btn;
+    }
+
+    private HBox buildFilterBar(){
+        dailyFromPicker.setPromptText("Daily from");
+        dailyToPicker.setPromptText("Daily to");
+        monthlyFromField.setPromptText("yyyy-MM");
+        monthlyFromField.setPrefWidth(90);
+        monthlyToField.setPromptText("yyyy-MM");
+        monthlyToField.setPrefWidth(90);
+        Button applyButton = new Button("Apply");
+        applyButton.setOnAction(e -> applyFilter());
+        Button resetButton = new Button("Reset");
+        resetButton.setOnAction(e -> {
+            dailyFromPicker.setValue(null);
+            dailyToPicker.setValue(null);
+            monthlyFromField.clear();
+            monthlyToField.clear();
+            loadOverview();
+        });
+        HBox bar = new HBox(8, new Label("Daily:"), dailyFromPicker, dailyToPicker,
+                new Label("Monthly:"), monthlyFromField, monthlyToField, applyButton, resetButton);
+        bar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        return bar;
+    }
+
+    private void applyFilter(){
+        try {
+            YearMonth monthlyFrom = parseYearMonth(monthlyFromField.getText());
+            YearMonth monthlyTo = parseYearMonth(monthlyToField.getText());
+            loadOverview(dailyFromPicker.getValue(), dailyToPicker.getValue(), monthlyFrom, monthlyTo);
+        } catch (RuntimeException ex){
+            ScreenComponents.showError(messageLabel,
+                    new RuntimeException("Invalid month format. Use yyyy-MM."));
+        }
+    }
+
+    private static YearMonth parseYearMonth(String text){
+        if (text == null || text.isBlank()) return null;
+        return YearMonth.parse(text.trim());
     }
 }

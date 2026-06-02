@@ -10,6 +10,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -58,6 +60,13 @@ final class IssueListPanel extends JPanel implements IssueListView {
     private final JButton openButton = new JButton("Open");
     private final JButton deletedIssuesButton = new JButton("Deleted");
     private final JButton statisticsButton = new JButton("Statistics");
+    private final JTextField reporterField = new JTextField();
+    private final JTextField assigneeField = new JTextField();
+    private final JTextField verifierField = new JTextField();
+    private final JTextField fromField = new JTextField();
+    private final JTextField toField = new JTextField();
+    private final JButton advancedToggle = new JButton("Advanced");
+    private final JPanel advancedPanel = new JPanel();
     private boolean busy;
     private boolean registerAllowed;
 
@@ -82,7 +91,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         configureFilters();
         add(header(), BorderLayout.NORTH);
         add(tableSection(), BorderLayout.CENTER);
-        add(actionBar(), BorderLayout.SOUTH);
+        add(southPanel(), BorderLayout.SOUTH);
         updateActionState();
     }
 
@@ -208,7 +217,7 @@ final class IssueListPanel extends JPanel implements IssueListView {
         panel.add(priorityFilter);
 
         searchButton.setName("searchIssuesButton");
-        searchButton.addActionListener(event -> actions.onSearch().accept(this, currentSearchRequest()));
+        searchButton.addActionListener(event -> triggerSearch());
         SwingStyles.applySecondaryButton(searchButton);
         panel.add(searchButton);
 
@@ -233,7 +242,74 @@ final class IssueListPanel extends JPanel implements IssueListView {
         statisticsButton.addActionListener(event -> actions.onStatistics().run());
         SwingStyles.applySecondaryButton(statisticsButton);
         panel.add(statisticsButton);
+
+        advancedToggle.setName("advancedSearchToggle");
+        advancedToggle.addActionListener(event -> {
+            advancedPanel.setVisible(!advancedPanel.isVisible());
+            advancedToggle.setText(advancedPanel.isVisible() ? "Simple" : "Advanced");
+            revalidate();
+        });
+        SwingStyles.applySecondaryButton(advancedToggle);
+        panel.add(advancedToggle);
         return panel;
+    }
+
+    private JPanel southPanel() {
+        JPanel south = new JPanel();
+        south.setBackground(SwingStyles.SURFACE);
+        south.setLayout(new BoxLayout(south, BoxLayout.Y_AXIS));
+        south.add(actionBar());
+        south.add(advancedBar());
+        return south;
+    }
+
+    private JPanel advancedBar() {
+        advancedPanel.setName("advancedSearchPanel");
+        advancedPanel.setBackground(SwingStyles.SURFACE);
+        advancedPanel.setVisible(false);
+        reporterField.setName("issueReporterFilter");
+        reporterField.setColumns(8);
+        assigneeField.setName("issueAssigneeFilter");
+        assigneeField.setColumns(8);
+        verifierField.setName("issueVerifierFilter");
+        verifierField.setColumns(8);
+        fromField.setName("issueReportedFromFilter");
+        fromField.setColumns(8);
+        toField.setName("issueReportedToFilter");
+        toField.setColumns(8);
+        advancedPanel.add(new JLabel("Reporter:"));
+        advancedPanel.add(reporterField);
+        advancedPanel.add(new JLabel("Assignee:"));
+        advancedPanel.add(assigneeField);
+        advancedPanel.add(new JLabel("Verifier:"));
+        advancedPanel.add(verifierField);
+        advancedPanel.add(new JLabel("From(yyyy-MM-dd):"));
+        advancedPanel.add(fromField);
+        advancedPanel.add(new JLabel("To(yyyy-MM-dd):"));
+        advancedPanel.add(toField);
+        return advancedPanel;
+    }
+
+    private void triggerSearch() {
+        try {
+            actions.onSearch().accept(this, currentSearchRequest());
+        } catch (RuntimeException exception) {
+            showMessage("Invalid date. Use yyyy-MM-dd.", true);
+        }
+    }
+
+    private static LocalDateTime parseReportedFrom(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(text.trim()).atStartOfDay();
+    }
+
+    private static LocalDateTime parseReportedTo(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(text.trim()).plusDays(1).atStartOfDay();
     }
 
     private JTable table() {
@@ -282,10 +358,18 @@ final class IssueListPanel extends JPanel implements IssueListView {
     }
 
     private IssueSearchRequest currentSearchRequest() {
+        if (!advancedPanel.isVisible()) {
+            return new IssueSearchRequest(searchField.getText(), selectedStatus(), selectedPriority());
+        }
         return new IssueSearchRequest(
                 searchField.getText(),
                 selectedStatus(),
-                selectedPriority());
+                selectedPriority(),
+                reporterField.getText(),
+                assigneeField.getText(),
+                verifierField.getText(),
+                parseReportedFrom(fromField.getText()),
+                parseReportedTo(toField.getText()));
     }
 
     private IssueStatus selectedStatus() {
