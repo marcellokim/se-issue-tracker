@@ -37,7 +37,7 @@
 
 검색과 상세 조회 API는 active project membership을 요구하고, 일반 이슈 경로에서 `DELETED` 이슈를 차단한다. `searchIssues`는 항상 특정 프로젝트 내부에서만 검색하며, `status == DELETED`는 삭제 이슈 관리 흐름으로 분리되어 있으므로 거부한다. `keyword`, `reporterId`, `assigneeId`, `verifierId`는 선택 필터이며 null 또는 blank이면 필터에서 제외된다. `reportedFrom`이 `reportedTo`보다 뒤이면 실패한다.
 
-`viewIssueDetail`은 이슈 기본 정보, reporter/assignee/verifier/fixer/resolver, 댓글, 히스토리, 현재 이슈를 막고 있는 dependency 정보를 반환한다. 컨트롤러가 `IssueWorkflowService`와 함께 생성된 경우에는 `IssueWorkflowActions`를 계산해 `IssueDetailResult.availableActions` 이름 목록으로 포함한다. `IssueWorkflowService`가 없으면 상세 정보만 반환하고 action 목록은 비어 있다.
+`viewIssueDetail`은 이슈 기본 정보, reporter/assignee/verifier/fixer/resolver, 댓글, 히스토리, dependency 정보를 반환한다. dependency 정보는 현재 이슈를 막고 있는 `blockedByDependencies`와 현재 이슈가 다른 이슈를 막고 있는 `blockingDependencies`로 나누어 전달한다. 컨트롤러가 `IssueWorkflowService`와 함께 생성된 경우에는 `IssueWorkflowActions`를 계산해 `IssueDetailResult.availableActions` 이름 목록으로 포함한다. `IssueWorkflowService`가 없으면 상세 정보만 반환하고 action 목록은 비어 있다.
 
 `viewProjectIssues`는 특정 프로젝트 내부의 일반 이슈 목록을 반환한다. PL/DEV/TESTER 프로젝트 멤버는 같은 프로젝트의 일반 이슈를 볼 수 있고, reporter, 현재 assignee, 현재 verifier 조건은 `searchIssues` 필터로 좁힌다. fixer와 resolver는 완료 이력으로 보며 기본 이슈 목록 범위를 제한하지 않는다.
 
@@ -64,7 +64,7 @@
 | `addDependency` | UC7, OC-14, SSD-24 | `Issue.addDependency`, `IssueDependency`, blocking/blocked issue 연관, `IssueHistory(DEPENDENCY_CHANGED)` |
 | `removeDependency` | UC7, OC-15, SSD-25 | DCD는 `removeDependency(dependencyId)`로 표현하지만, 구현은 `IssueService.removeDependency(blockingIssueId, blockedIssueId)`와 `Issue.removeDependency`를 사용 |
 | `changePriority` | UC16, OC-16, SSD-27 | `Issue.changePriority`, `Issue.verifyPriorityChange`, `IssueHistory(PRIORITY_CHANGED)`; status와 role 연관은 변경되지 않음 |
-| `viewIssueDetail` | UC4, SSD-04 및 UI 지원 | `Issue`, `Comment`, `IssueHistory`, `IssueDependency`, role 연관을 `IssueDetailResult`로 반환 |
+| `viewIssueDetail` | UC4, SSD-04 및 UI 지원 | `Issue`, `Comment`, `IssueHistory`, `IssueDependency`, role 연관을 `IssueDetailResult`로 반환하며 dependency는 blocked-by/blocking 양방향으로 구분 |
 | `searchIssues`, `viewProjectIssues` | UC3, SSD-03 및 UI 지원 | DCD `Issue`의 status/priority/reporter/assignee/verifier 속성; 구현 `IssueSearchCriteria`, `IssueSummary` |
 | `updateIssue` | UC15, SSD-23 이슈 수정 지원 | `Issue.updateTitleAndDescription`, `IssueHistory(TITLE_DESCRIPTION_UPDATED)`; priority/status는 별도 UC에서 처리 |
 | `deleteComment`, `updateComment`, `canUpdateComment`, `canDeleteComment`, `viewAvailableActions` | 직접 대응되는 필수 OC가 없는 구현 보조 API | `Comment`, `IssueWorkflowActions`, `PermissionPolicy.assertCan...` 메서드 |

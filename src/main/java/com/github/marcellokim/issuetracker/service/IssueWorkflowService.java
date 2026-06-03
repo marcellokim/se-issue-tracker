@@ -56,7 +56,7 @@ public final class IssueWorkflowService {
                 canResolve(actor, issue, access),
                 canClose(actor, issue, access),
                 canReopen(actor, issue, access),
-                canAddDependency(issue, access),
+                canAddDependency(access),
                 canRemoveDependency(access),
                 canAddComment(actor, issue, access),
                 canSoftDelete(actor, issue, access));
@@ -188,10 +188,8 @@ public final class IssueWorkflowService {
                 && allows(() -> permissionPolicy.assertCanChangeStatus(actor, issue, IssueStatus.REOPENED));
     }
 
-    private static boolean canAddDependency(Issue issue, WorkflowAccess access) {
-        return access.canManageDependency()
-                && issue.status() != IssueStatus.RESOLVED
-                && issue.status() != IssueStatus.CLOSED;
+    private static boolean canAddDependency(WorkflowAccess access) {
+        return access.canManageDependency();
     }
 
     private static boolean canRemoveDependency(WorkflowAccess access) {

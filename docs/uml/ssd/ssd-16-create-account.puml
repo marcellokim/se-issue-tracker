@@ -5,27 +5,9 @@ title SSD 16 - UC12 Create Account
 actor "Admin" as A
 participant ":Issue Tracking System" as S
 
-note over A, S
-사전조건:
-- Admin이 로그인되어 있다.
-- UC14 권한 검사는 시스템 내부에서 수행된다.
-end note
 
 A -> S: createAccount(loginId, name, password, role)
 S --> A: accountCreated(loginId, name, role, isActive=true, confirmation)
 
-note over S
-결과:
-- User 계정이 생성된다.
-- loginId, name, role이 저장된다.
-- password는 평문으로 저장하지 않고 password hash로 저장한다.
-- 새 계정은 active 상태로 생성된다.
-
-정책:
-- loginId, name, password, role은 필수 입력이다.
-- loginId는 기존 계정과 중복될 수 없다.
-- ADMIN 계정은 추가 생성할 수 없다.
-- role=ADMIN인 계정은 생성할 수 없다.
-end note
 
 @enduml

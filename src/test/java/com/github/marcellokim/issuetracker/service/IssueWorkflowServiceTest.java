@@ -115,10 +115,10 @@ class IssueWorkflowServiceTest {
         assertTrue(resolvedActions.canClose());
         assertTrue(resolvedActions.canReopen());
         assertFalse(resolvedActions.canSoftDelete());
-        assertFalse(resolvedActions.canAddDependency());
+        assertTrue(resolvedActions.canAddDependency());
         assertTrue(closedActions.canReopen());
         assertTrue(closedActions.canSoftDelete());
-        assertFalse(closedActions.canAddDependency());
+        assertTrue(closedActions.canAddDependency());
     }
 
     @Test

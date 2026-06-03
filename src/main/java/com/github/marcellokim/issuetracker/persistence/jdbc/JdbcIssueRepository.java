@@ -16,6 +16,8 @@ import com.github.marcellokim.issuetracker.repository.RepositoryException;
 
 public final class JdbcIssueRepository implements IssueRepository {
 
+    private static final String ISSUE_KEY_PREFIX = "issue-";
+
     private final DatabaseConnectionProvider connectionProvider;
     private final JdbcIssueRowMapper rowMapper = new JdbcIssueRowMapper();
     private final JdbcIssueWriteSupport writes = new JdbcIssueWriteSupport();
@@ -173,6 +175,7 @@ public final class JdbcIssueRepository implements IssueRepository {
                 bindIssueForInsert(statement, issue);
                 statement.executeUpdate();
                 long issueId = JdbcSupport.generatedId(statement);
+                assignPublicIssueKey(connection, issueId);
                 writes.insertTransientComments(connection, issueId, issue.getComments());
                 writes.insertTransientHistories(connection, issueId, issue.getHistories());
                 Issue inserted = findById(connection, issueId)
@@ -188,6 +191,15 @@ public final class JdbcIssueRepository implements IssueRepository {
             }
         } catch (SQLException exception) {
             throw new RepositoryException("Failed to insert issue.", exception);
+        }
+    }
+
+    private static void assignPublicIssueKey(Connection connection, long issueId) throws SQLException {
+        String sql = "update issues set issue_id = ? where id = ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, ISSUE_KEY_PREFIX + issueId);
+            statement.setLong(2, issueId);
+            statement.executeUpdate();
         }
     }
 

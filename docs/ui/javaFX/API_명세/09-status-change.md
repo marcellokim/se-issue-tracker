@@ -56,6 +56,7 @@
 - 버튼 클릭 시 바로 API를 호출하지 않는다.
 - 사유 입력 dialog를 먼저 표시하고, 사유 입력 후 확인 시 API 호출.
 - comment는 필수이므로 빈 값 제출 방지 필요.
+- FIXED → RESOLVED 전이에서 blocking issue 상태 검사는 수행하지만, 통과 후 dependency row를 자동 제거하지는 않는다.
 
 ## 화면 전이
 

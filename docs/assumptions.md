@@ -66,7 +66,9 @@
 - 종속되는 이슈(blocked issue)를 해결하기 위해서는 종속하는 이슈(blocking issue)를 먼저 해결해야합니다
 - 예를 들어, 두 이슈 A, B에 대해 B를 해결하기 위해서는 A가 B보다 먼저 해결되어야 합니다.(A가 blocking issue, B가 blocked issue)
 - blocking issue가 resolved 또는 closed 상태가 아닌데 blocked issue가 resolved로 상태전이를 시도하면, 시스템상에서 이슈 종속성 관계 검사를 통해 blocked issue의 resolved로의 상태전이를 차단합니다.
+- 자기 자신 의존성, 중복 dependency, 순환 dependency는 허용하지 않습니다. 순환 dependency는 기존 dependency 관계를 따라 검사하여 거부합니다.
 - 별도 `BLOCK`/`BLOCKED` 이슈 상태는 도입하지 않고, dependency는 `FIXED -> RESOLVED` 전이에 대한 guard로만 사용합니다.
+- blocking issue가 resolved 또는 closed 상태가 되어도 dependency row를 자동 제거하지 않습니다. dependency 제거는 PL의 수동 제거 또는 soft delete 흐름에서만 수행합니다.
 - 이슈가 PL에 의해 DELETED 상태로 전이되면, 해당 이슈가 blocking issue이든 blocked issue이든 그 이슈가 포함된 dependency row는 자동 제거됩니다.
 
 ### 권한 및 수정 정책
@@ -75,8 +77,9 @@
 - ADMIN은 계정 관리와 프로젝트 관리의 주체입니다. 일반 이슈 작업 흐름은 PL/DEV/TESTER의 active project membership을 기준으로 합니다.
 - Dashboard에서 ADMIN은 전체 프로젝트 요약과 전체 사용자 목록을 볼 수 있고, non-ADMIN은 자신이 참여한 프로젝트 요약만 볼 수 있습니다.
 - ADMIN 프로젝트 상세 화면은 프로젝트 기본 정보와 참여자 정보를 보여주며, 프로젝트 이슈 목록은 포함하지 않습니다.
-- non-ADMIN 프로젝트 화면은 프로젝트 기본 정보와 해당 프로젝트의 전체 이슈 목록을 나누어 조회합니다.
-- 프로젝트 멤버(PL, DEV, TESTER)는 해당 프로젝트의 전체 이슈를 볼 수 있습니다. 검색 기능을 통해 assignee, reporter, verifier 등 조건별 필터링이 가능합니다.
+- non-ADMIN 프로젝트 화면은 프로젝트 기본 정보와 해당 프로젝트의 일반 이슈 목록을 나누어 조회합니다.
+- PL/DEV/TESTER는 자신이 active member로 참여한 프로젝트의 DELETED가 아닌 이슈 전체를 볼 수 있습니다. reporter, assignee, verifier, fixer, resolver는 목록 열람 제한 기준이 아니라 이슈 역할과 이력 정보로 사용합니다.
+- 사용자는 프로젝트 이슈 목록에서 keyword, status, priority, reporterId, assigneeId, verifierId, reportedDate 범위 같은 검색 조건으로 원하는 이슈를 좁혀 봅니다.
 - Reporter는 `NEW` 또는 `REOPENED` 상태일때만 자신의 이슈 title/description을 수정할 수 있습니다.
 - assigned 이후 title/description 정정과 추가 정보는 comment로 남깁니다.
 - Priority는 PL만 변경할 수 있으며, assigned 상태와 무관하게 변경 가능합니다.

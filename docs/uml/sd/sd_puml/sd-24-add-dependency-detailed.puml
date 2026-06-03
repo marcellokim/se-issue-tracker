@@ -11,11 +11,11 @@ participant "blockedIssue:Issue" as BlockedIssue
 
 PL -> IC : addDependency(blockingIssueId, blockedIssueId)
 
-alt PL cannot manage dependency or issues are invalid
+alt PL 권한이 없거나 이슈 조건이 맞지 않음
   IC --> PL : dependencyRejected(reason)
-else dependency can be considered
-  IC -> BlockedIssue : checkDependencyCandidate(blockingIssue)
-  BlockedIssue -> BlockedIssue : rejectSelfDuplicateOrCycle()
+else dependency 추가 조건을 확인할 수 있음
+  IC -> BlockedIssue : checkDependencyRules(blockingIssue)
+  BlockedIssue -> BlockedIssue : check self, duplicate,\nand cycle conditions
   BlockedIssue --> IC : dependencyAllowed
 
   IC -> BlockedIssue : addDependency(dependencyId,\nblockingIssue, currentPL, now)
@@ -24,7 +24,7 @@ else dependency can be considered
   BlockedIssue --> Dependency : new(blockingIssue, blockedIssue,\ndiscoveredDate=now)
   create "dependencyHistory:IssueHistory" as History
   BlockedIssue --> History : new(DEPENDENCY_CHANGED,\nnewValue=dependencyId)
-  BlockedIssue -> BlockedIssue : addDependencyHistory(history)
+  BlockedIssue -> BlockedIssue : keep status;\nrecord dependency history
   BlockedIssue --> IC : dependencyAdded(dependencyId)
   deactivate BlockedIssue
 
@@ -32,8 +32,10 @@ else dependency can be considered
 end
 
 note over BlockingIssue, BlockedIssue
-blockingIssue must be resolved or closed before blockedIssue can be resolved.
-The dependency itself is not an IssueStatus.
+blockingIssue가 RESOLVED 또는 CLOSED가 되어야
+blockedIssue를 RESOLVED로 전이할 수 있다.
+dependency는 별도 IssueStatus가 아니라
+상태 전이 시 확인하는 관계이다.
 end note
 
 @enduml

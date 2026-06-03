@@ -37,9 +37,11 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
             LocalDate dailyToInclusive,
             YearMonth monthlyFromInclusive,
             YearMonth monthlyToInclusive) {
+        LocalDate overviewFromInclusive = overviewFrom(dailyFromInclusive, dailyToInclusive, monthlyFromInclusive);
+        LocalDate overviewToInclusive = overviewTo(dailyFromInclusive, dailyToInclusive, monthlyToInclusive);
         return StatisticsReport.create(
-                countByStatus(projectId),
-                countByPriority(projectId),
+                countByStatus(projectId, overviewFromInclusive, overviewToInclusive),
+                countByPriority(projectId, overviewFromInclusive, overviewToInclusive),
                 countReportedIssuesByDay(projectId, dailyFromInclusive, dailyToInclusive),
                 countReportedIssuesByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
                 countByStatusByMonth(projectId, monthlyFromInclusive, monthlyToInclusive),
@@ -50,18 +52,48 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
                 countCommentsByMonth(projectId, monthlyFromInclusive, monthlyToInclusive));
     }
 
-    private Map<IssueStatus, Integer> countByStatus(long projectId) {
+    private static LocalDate overviewFrom(
+            LocalDate dailyFromInclusive,
+            LocalDate dailyToInclusive,
+            YearMonth monthlyFromInclusive) {
+        if (dailyFromInclusive != null || dailyToInclusive != null || monthlyFromInclusive == null) {
+            return dailyFromInclusive;
+        }
+        return monthlyFromInclusive.atDay(1);
+    }
+
+    private static LocalDate overviewTo(
+            LocalDate dailyFromInclusive,
+            LocalDate dailyToInclusive,
+            YearMonth monthlyToInclusive) {
+        if (dailyFromInclusive != null || dailyToInclusive != null || monthlyToInclusive == null) {
+            return dailyToInclusive;
+        }
+        return monthlyToInclusive.atEndOfMonth();
+    }
+
+    private Map<IssueStatus, Integer> countByStatus(
+            long projectId,
+            LocalDate fromInclusive,
+            LocalDate toInclusive) {
         String sql = """
                 select status, count(*) as issue_count
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
                 group by status
                 """;
         Map<IssueStatus, Integer> counts = new EnumMap<>(IssueStatus.class);
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
+            setNullableDate(statement, 2, fromInclusive);
+            setNullableDate(statement, 3, fromInclusive);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     counts.put(IssueStatus.valueOf(resultSet.getString("status")), resultSet.getInt("issue_count"));
@@ -73,18 +105,28 @@ public final class JdbcStatisticsRepository implements StatisticsRepository {
         }
     }
 
-    private Map<Priority, Integer> countByPriority(long projectId) {
+    private Map<Priority, Integer> countByPriority(
+            long projectId,
+            LocalDate fromInclusive,
+            LocalDate toInclusive) {
         String sql = """
                 select priority, count(*) as issue_count
                 from issues
                 where project_id = ?
                   and status <> 'DELETED'
+                  and (? is null or reported_at >= ?)
+                  and (? is null or reported_at < ?)
                 group by priority
                 """;
         Map<Priority, Integer> counts = new EnumMap<>(Priority.class);
         try (Connection connection = connectionProvider.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, projectId);
+            LocalDate toExclusive = toInclusive == null ? null : toInclusive.plusDays(1);
+            setNullableDate(statement, 2, fromInclusive);
+            setNullableDate(statement, 3, fromInclusive);
+            setNullableDate(statement, 4, toExclusive);
+            setNullableDate(statement, 5, toExclusive);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     counts.put(Priority.valueOf(resultSet.getString("priority")), resultSet.getInt("issue_count"));

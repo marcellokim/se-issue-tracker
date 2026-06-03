@@ -12,9 +12,9 @@ participant "assignmentHistory:IssueHistory[*]" as PastHistory
 
 PL -> AC : startAssignment(issueId)
 
-alt PL cannot assign this issue
+alt PL이 이 이슈를 배정할 수 없음
   AC --> PL : assignmentRejected(reason)
-else assignment can start
+else 배정 화면을 시작할 수 있음
   AC -> Issue : readAssignmentState()
   Issue --> AC : status, currentAssignee,\ncurrentVerifier, fixer, resolver
 
@@ -29,7 +29,7 @@ else assignment can start
   AC --> PL : assignmentOptions(...)
 end
 
-alt Issue.status == NEW
+alt 이슈 상태가 NEW임
   PL -> AC : assignIssue(issueId, assigneeId, verifierId)
   AC -> Issue : assignFromNew(assignee, verifier, currentPL, now)
   activate Issue
@@ -44,7 +44,7 @@ alt Issue.status == NEW
   deactivate Issue
   AC --> PL : issueAssigned(issueId, status=ASSIGNED)
 
-else Issue.status == REOPENED
+else 이슈 상태가 REOPENED임
   PL -> AC : assignIssue(issueId, assigneeId, verifierId)
   AC -> Issue : assignReopened(assignee, verifier, currentPL, now)
   activate Issue
@@ -59,7 +59,7 @@ else Issue.status == REOPENED
   deactivate Issue
   AC --> PL : issueAssigned(issueId, status=ASSIGNED)
 
-else Issue.status == ASSIGNED
+else 이슈 상태가 ASSIGNED임
   PL -> AC : reassignIssue(issueId, assigneeId)
   AC -> Issue : reassignAssignee(assignee, currentPL, now)
   activate Issue
@@ -71,7 +71,7 @@ else Issue.status == ASSIGNED
   deactivate Issue
   AC --> PL : issueReassigned(issueId, status=ASSIGNED)
 
-else Issue.status == FIXED
+else 이슈 상태가 FIXED임
   PL -> AC : changeVerifier(issueId, verifierId)
   AC -> Issue : changeVerifier(verifier, currentPL, now)
   activate Issue
@@ -84,11 +84,11 @@ else Issue.status == FIXED
   AC --> PL : verifierChanged(issueId, status=FIXED)
 end
 
-opt PL adds an assignment comment
+opt PL이 배정 관련 댓글을 추가함
   PL -> AC : addComment(issueId, content)
-  alt content is blank
+  alt 댓글 내용이 비어 있음
     AC --> PL : commentRejected(reason)
-  else comment is accepted
+  else 댓글이 정상 입력됨
     AC -> Issue : addComment(content, currentPL, now)
     activate Issue
     create "assignmentComment:Comment" as Comment

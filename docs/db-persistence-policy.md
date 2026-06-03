@@ -113,6 +113,7 @@ UC9 기준 Issue 삭제는 soft-delete 방식으로 처리한다.
 - `IssueRepository.softDelete(...)`는 issue status를 `DELETED`로 변경한다.
 - 삭제 전 status는 `ISSUE_HISTORY`에 기록한다.
 - 삭제된 issue에 연결된 dependency는 제거한다.
+- `FIXED -> RESOLVED` 전이에서 blocking issue 상태 검사를 통과하더라도 dependency row는 자동 제거하지 않는다.
 - `IssueRepository.purgeDeletedBeyondLimit(projectId, 30)`는 삭제 보관 수가 30개를 초과할 때 오래된 deleted issue부터 FIFO 순서로 물리 삭제한다.
 
 Project 삭제는 composition 관계에 따른 hard-delete 방식으로 처리한다.

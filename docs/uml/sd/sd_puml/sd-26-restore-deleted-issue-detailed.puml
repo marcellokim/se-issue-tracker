@@ -14,9 +14,11 @@ DIC --> PL : deletedIssueList
 
 PL -> DIC : restoreIssue(issueId, comment)
 
-alt PL cannot restore, issue is not DELETED, or comment is blank
+alt 상태 또는 권한 조건이 맞지 않음
   DIC --> PL : restoreRejected(reason)
-else valid restore target
+else 복구 사유가 비어 있음
+  DIC --> PL : restoreRejected(commentRequired)
+else restore 대상 조건을 만족함
   DIC -> Issue : findDeleteTransition()
   Issue -> DeleteHistory : previousValue()
   DeleteHistory --> Issue : NEW or CLOSED
@@ -32,7 +34,7 @@ else valid restore target
 end
 
 note right of Issue
-Dependencies removed during soft delete are not restored automatically.
+soft delete 때 제거된 dependency는 자동 복구하지 않는다.
 end note
 
 @enduml

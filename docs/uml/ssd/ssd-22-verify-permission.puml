@@ -3,17 +3,10 @@
 title SSD 22 - UC14 권한 검사
 actor "Actor" as A
 participant ":Issue Tracking System" as S
-note over A, S
-사전조건: Actor 로그인, 보호된 operation/resource 식별
-이 그림은 직접 사용자 목표 SSD가 아니라 include되는 공통 권한 검사 참고도이다.
-end note
 A -> S: assertCanProtectedOperation(actor, resource)
 alt 권한 있음
   S --> A: permissionVerified()
 else 권한 없음
   S --> A: permissionDenied(reason)
 end
-note over S
-결과: 대부분의 base UC에 include되는 공통 권한 조건
-end note
 @enduml
