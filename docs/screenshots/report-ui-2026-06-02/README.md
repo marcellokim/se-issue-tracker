@@ -16,6 +16,8 @@
 | 10 | 의존성 관리 | [10-dependency-detail.png](javafx/10-dependency-detail.png) | [10-dependency-detail.png](swing/10-dependency-detail.png) | UC7 Manage Dependency |
 | 11 | 삭제 이슈 관리 | [11-deleted-issues.png](javafx/11-deleted-issues.png) | [11-deleted-issues.png](swing/11-deleted-issues.png) | UC9 Deleted Issue Management |
 | 12 | 통계 | [12-statistics.png](javafx/12-statistics.png) | [12-statistics.png](swing/12-statistics.png) | UC10 Statistics, 상태/우선순위 분포 |
+| 13 | 계정 관리 | [13-account-management.png](javafx/13-account-management.png) | [13-account-management.png](swing/13-account-management.png) | UC12 Account Management |
+| 14 | 프로젝트 관리 | [14-project-management.png](javafx/14-project-management.png) | [14-project-management.png](swing/14-project-management.png) | UC13 Project Management |
 
 ## 사용 기준
 

@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 class IssueDetailPanelTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 5, 31, 0, 0);
+    private static final java.awt.Dimension REPORT_SIZE = new java.awt.Dimension(1280, 900);
 
     @Test
     @DisplayName("renders issue detail, summaries, comment permissions, and action button states")
@@ -180,7 +181,7 @@ class IssueDetailPanelTest {
                     detail(List.of("UPDATE_ISSUE", "ADD_COMMENT", "ADD_DEPENDENCY", "REMOVE_DEPENDENCY")),
                     List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)),
                     List.of(dependency()));
-            panel.setSize(SwingStyles.WINDOW_SIZE);
+            panel.setSize(REPORT_SIZE);
             layoutRecursively(panel);
 
             BufferedImage image = render(panel, Path.of("build/reports/ui/issue-detail-panel.png"));
@@ -191,6 +192,36 @@ class IssueDetailPanelTest {
                     panel,
                     Path.of("build/reports/ui/issue-detail-dependency-section.png"));
             assertTrue(hasRenderedContent(dependencyImage));
+        });
+    }
+
+    @Test
+    @DisplayName("keeps history visible in a report-sized detail capture")
+    void keepsHistoryVisibleInReportSizedCapture() throws Exception {
+        SwingComponentTestSupport.onEdt(() -> {
+            IssueDetailPanel panel = panel();
+            panel.showDetail(
+                    detail(List.of("UPDATE_ISSUE", "ADD_COMMENT", "ADD_DEPENDENCY", "REMOVE_DEPENDENCY")),
+                    List.of(new IssueCommentActionState("100", 100L, "Confirmed in local run.", true, true)),
+                    List.of(dependency()));
+            panel.setSize(REPORT_SIZE);
+            layoutRecursively(panel);
+
+            JTable histories = SwingComponentTestSupport.find(panel, "issueHistoryTable", JTable.class);
+            JTable dependencies = SwingComponentTestSupport.find(panel, "issueDependencyTable", JTable.class);
+
+            assertTrue(
+                    isFirstRowVisibleInPanel(histories, panel),
+                    () -> "first history row should be visible at y="
+                            + firstRowCenterY(histories, panel)
+                            + " within " + panel.getHeight());
+
+            scrollToDependencies(panel);
+            assertTrue(
+                    isFirstRowVisibleInPanel(dependencies, panel),
+                    () -> "first dependency row should be visible after dependency scroll at y="
+                            + firstRowCenterY(dependencies, panel)
+                            + " within " + panel.getHeight());
         });
     }
 
@@ -293,6 +324,24 @@ class IssueDetailPanelTest {
             ancestor = ancestor.getParent();
         }
         layoutRecursively(panel);
+    }
+
+    private static boolean isFirstRowVisibleInPanel(JTable table, IssueDetailPanel panel) {
+        int rowCenterY = firstRowCenterY(table, panel);
+        return rowCenterY >= 0 && rowCenterY < panel.getHeight();
+    }
+
+    private static int firstRowCenterY(JTable table, IssueDetailPanel panel) {
+        if (table.getRowCount() == 0) {
+            return Integer.MAX_VALUE;
+        }
+        Rectangle row = table.getCellRect(0, 0, true);
+        Point rowCenter = SwingUtilities.convertPoint(
+                table,
+                row.x,
+                row.y + row.height / 2,
+                panel);
+        return rowCenter.y;
     }
 
     private static boolean hasRenderedContent(BufferedImage image) {
