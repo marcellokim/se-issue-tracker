@@ -42,11 +42,11 @@ final class IssueDetailPanel extends JPanel implements IssueDetailView {
     private static final String ADD_DEPENDENCY_ACTION = "ADD_DEPENDENCY";
     private static final String REMOVE_DEPENDENCY_ACTION = "REMOVE_DEPENDENCY";
     private static final Color SELECTION_BACKGROUND = new Color(219, 234, 254);
-    private static final int SUMMARY_SECTION_HEIGHT = 168;
-    private static final int ACTION_SECTION_HEIGHT = 150;
-    private static final int COMMENT_SECTION_HEIGHT = 220;
-    private static final int HISTORY_SECTION_HEIGHT = 170;
-    private static final int DEPENDENCY_SECTION_HEIGHT = 180;
+    private static final int SUMMARY_SECTION_HEIGHT = 120;
+    private static final int ACTION_SECTION_HEIGHT = 110;
+    private static final int COMMENT_SECTION_HEIGHT = 145;
+    private static final int HISTORY_SECTION_HEIGHT = 135;
+    private static final int DEPENDENCY_SECTION_HEIGHT = 145;
     private static final String[] COMMENT_COLUMNS = {
             "ID", "Purpose", "Writer", "Content", "Date", "Edit", "Delete"
     };
