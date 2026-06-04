@@ -1,5 +1,5 @@
 @startuml javafx-navigation-map
-!include ../../../uml/sd/_shared/its-uml-style.puml
+!include ../../../artifact/sd/_shared/its-uml-style.puml
 
 title JavaFX UI Navigation Map
 

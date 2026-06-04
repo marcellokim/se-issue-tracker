@@ -2,6 +2,28 @@
 
 이 문서는 텀 프로젝트 초기에 합의한 기본 가정을 정리합니다. 구현이 진행되면서 바뀌면 PR과 함께 갱신합니다. 현재 내용은 로컬 코드의 Controller/Service/Repository 정책을 기준으로 보정합니다.
 
+## 구현 계층 책임
+ITS 구현은 UI와 업무 로직을 분리하기 위해 Controller, Service, Domain, Repository/JDBC 계층으로 나누어 관리합니다.
+
+- UI는 사용자 입력을 받고 화면에 결과를 표시하며, Service나 Repository를 직접 호출하지 않고 Controller를 통해 기능을 실행합니다.
+- Controller는 system operation의 진입점으로 현재 로그인 사용자 확인, 입력 전달, Service 위임을 담당합니다.
+- Service는 하나의 use case 흐름을 조율하며 권한 검사, 상태별 분기, 여러 Repository 조회, 저장 순서를 관리합니다.
+- Domain 객체는 자신의 상태로 판단 가능한 불변식과 상태 변경을 책임지며, DB, Repository, JDBC, Session, current user를 직접 알지 않습니다.
+- Repository는 영속성 접근의 추상화이고, JDBC 구현체는 SQL과 DB 매핑을 담당합니다.
+- 여러 테이블 write가 하나의 업무 결과로 묶여야 하는 경우에는 JDBC transaction으로 함께 처리합니다.
+
+이 계층 책임은 UI 변경이 이슈 처리 정책이나 도메인 규칙에 직접 영향을 주지 않도록 하기 위한 구현 기준입니다.
+
+## 도메인 생성 및 복원 정책
+Domain 객체는 신규 생성과 DB 복원을 구분합니다.
+
+- `create(...)`는 아직 DB에 저장되지 않은 새 객체를 만들 때 사용합니다.
+- `fromPersistence(...)`는 DB에서 읽어 온 값을 Domain 객체로 복원할 때 사용합니다.
+- 생성자는 가능한 한 `private`으로 두고 factory method를 통해 객체를 생성합니다.
+- `Issue` 신규 등록은 `Issue.create(...)` 흐름을 사용하고, DB 조회 결과는 `Issue.fromPersistence(...)` 흐름으로 복원합니다.
+
+이 정책은 도메인 객체 생성 규칙과 영속 저장소 복원 규칙이 섞이지 않도록 하기 위한 기준입니다.
+
 ## 상태 전이 정의
 상태 이름은 두 층에서 분리해서 사용합니다.
 
@@ -75,11 +97,18 @@
 - User당 직군/역할은 하나만 부여합니다.
 - inactive 계정은 로그인과 project와 issue 접근이 불가능합니다.
 - ADMIN은 계정 관리와 프로젝트 관리의 주체입니다. 일반 이슈 작업 흐름은 PL/DEV/TESTER의 active project membership을 기준으로 합니다.
+- 계정은 물리 삭제하지 않고 `active` 값으로 활성/비활성을 표현합니다.
+- 최초 ADMIN 계정은 항상 존재한다고 가정합니다.
+- 프로젝트 생성, 수정, 삭제, 멤버 관리는 ADMIN만 수행합니다.
+- 프로젝트에는 PL이 정확히 1명만 있어야 합니다.
+- Project는 현재 Issue 목록을 aggregate field로 직접 소유하지 않습니다.
 - Dashboard에서 ADMIN은 전체 프로젝트 요약과 전체 사용자 목록을 볼 수 있고, non-ADMIN은 자신이 참여한 프로젝트 요약만 볼 수 있습니다.
 - ADMIN 프로젝트 상세 화면은 프로젝트 기본 정보와 참여자 정보를 보여주며, 프로젝트 이슈 목록은 포함하지 않습니다.
 - non-ADMIN 프로젝트 화면은 프로젝트 기본 정보와 해당 프로젝트의 일반 이슈 목록을 나누어 조회합니다.
 - PL/DEV/TESTER는 자신이 active member로 참여한 프로젝트의 DELETED가 아닌 이슈 전체를 볼 수 있습니다. reporter, assignee, verifier, fixer, resolver는 목록 열람 제한 기준이 아니라 이슈 역할과 이력 정보로 사용합니다.
 - 사용자는 프로젝트 이슈 목록에서 keyword, status, priority, reporterId, assigneeId, verifierId, reportedDate 범위 같은 검색 조건으로 원하는 이슈를 좁혀 봅니다.
+- 같은 `project_id` 안에서는 같은 `title`을 가진 이슈를 새로 등록할 수 없으며, 제목 중복 검사는 `DELETED` 상태의 이슈까지 포함합니다.
+- 서로 다른 프로젝트에서는 같은 제목의 이슈를 허용합니다.
 - Reporter는 `NEW` 또는 `REOPENED` 상태일때만 자신의 이슈 title/description을 수정할 수 있습니다.
 - assigned 이후 title/description 정정과 추가 정보는 comment로 남깁니다.
 - Priority는 PL만 변경할 수 있으며, assigned 상태와 무관하게 변경 가능합니다.

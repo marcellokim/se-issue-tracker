@@ -2,7 +2,7 @@
 
 이 문서는 팀이 보유한 과제 요구사항을 기준으로, GitHub 이슈와 산출물을 연결하기 위한 작업용 추적표입니다. 과제 원문과 이 문서가 충돌하면 과제 원문을 우선합니다. 원문 PDF는 현재 소스 트리와 제출용 source zip에 포함하지 않고 이후 커밋에서도 재추가하지 않습니다.
 
-최종 보고서 문장을 대신하는 문서가 아니라, 팀이 구현 중 누락을 확인하고 PR/테스트/문서 위치를 이어 붙이기 위한 관리 문서입니다. 구현이 진행되면 관련 PR, 테스트 클래스, 스크린샷 위치를 계속 갱신합니다.
+이 문서는 최종 보고서 본문이 아니라, 구현 중 누락된 항목을 확인하고 PR, 테스트, 문서 위치를 연결하기 위한 관리 문서입니다. 구현이 진행되면 관련 PR, 테스트 클래스, 화면 증거 위치를 계속 갱신합니다.
 
 ## 기준 일정
 
@@ -72,7 +72,7 @@
 | [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최신 `dev`에서 `./gradlew check verifySubmissionMetadata`와 CI Oracle/SonarCloud workflow 통과. 별도 SonarCloud App coverage check는 branch protection 필수 항목이 아님 |
 | [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, source zip, 실행/검증 절차 | 소스 제출 산출물 | package exclude 정책과 README.txt 템플릿은 반영됨. 최종 PDF/slide/video는 별도 제출물로 관리 |
 | [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | REST/local evidence 기준으로 최종 캡처 목록을 관리함. 제출 직전 보드, milestone, issue, PR, CI 화면을 다시 캡처 |
-| [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, screenshot/evidence 경로 | Swing demo evidence | `docs/qa/swing-full-qa-2026-06-01.md`에 기능 QA 반영. 발표 장비의 마우스 포커스/시각 점검만 수동 확인 필요 |
+| [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, 화면 동작 확인 | Swing demo evidence | Swing UI 기능 QA는 PR과 데모 영상 증거로 확인하고, 발표 장비의 마우스 포커스/시각 점검만 수동 확인 필요 |
 
 ## 제출 전 남은 gate
 
@@ -84,6 +84,48 @@
 | Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최신 `dev` 로컬 검증과 CI Oracle/SonarCloud workflow는 통과. 별도 SonarCloud App coverage check는 참고 항목으로 기록 |
 | Final package | README.txt, PDF, slides, demo video, source/executable/test/data zip | #100/#101/#26에서 PDF/slide/video/package 생성 |
 
+## 최종 제출 증빙 체크리스트
+
+최종 제출 직전에는 요구사항 추적표의 구현 근거뿐 아니라, 실제 제출 패키지와 데모 증거가 빠지지 않았는지도 함께 확인한다.
+
+### 기능/정책 증빙
+
+| 구분 | 확인할 내용 | 증거 |
+| --- | --- | --- |
+| UC3 이슈 검색 | PL/DEV/TESTER가 프로젝트 일반 이슈를 조회하고 검색 조건으로 이슈를 찾을 수 있음 | `IssueController.viewProjectIssues`, `IssueController.searchIssues`, `IssueListPresenterTest` |
+| UC9 삭제 이슈 | DELETED 이슈는 일반 목록/검색에서 제외되고 PL 전용 삭제 이슈 화면에서만 조회됨 | `DeletedIssueController`, `DeletedIssueServiceTest`, Swing deleted issue QA |
+| 두 UI Toolkit | JavaFX와 Swing이 같은 Controller/Service/Domain/Repository 계층을 재사용함 | `./gradlew run`, `./gradlew runSwing`, UI navigation map, 데모 영상 |
+| 테스트 요구사항 | Domain, Service, Controller, Repository/JDBC, Architecture Boundary 테스트가 실행됨 | #25, CI test result, 최종 보고서 테스트 수행 내역 |
+
+### GitHub 진행 이력 캡처
+
+최종 발표 및 제출 자료에는 다음 화면을 선별해서 포함한다.
+
+| 캡처 대상 | 목적 |
+| --- | --- |
+| GitHub Project 보드 | 팀 작업 흐름과 마일스톤 진행 상황 확인 |
+| M4 milestone과 남은 gate 이슈 | 최종 제출 직전 검증 상태 확인 |
+| 대표 PR 병합 이력 | 주요 기능, UI, 문서, 테스트 변경 근거 확인 |
+| `dev` branch 최신 commit과 필수 체크 상태 | 최종 기준 브랜치와 CI 통과 상태 확인 |
+| GitHub Actions 실행 결과 | 빌드, 테스트, Oracle 통합 테스트, SonarCloud, 보안 분석 증거 |
+
+### 패키징 점검
+
+최종 zip은 과제에서 지정한 파일명 형식을 따르고, README.txt, 보고서, 발표자료, 소스코드, 실행 파일, JUnit 테스트 코드, 데이터, 데모 영상을 포함해야 한다. 반대로 `.git`, `.gradle`, `build`, 작업용 임시 폴더, 과제 원문 PDF, 중복 zip, 개인 메모 파일은 제출물에서 제외한다.
+
+최종 검증 명령은 다음을 기준으로 한다.
+
+```bash
+./gradlew check --console=plain
+./gradlew verifySubmissionMetadata --console=plain
+```
+
+Oracle 환경까지 확인할 수 있으면 다음 명령을 추가로 실행한다.
+
+```bash
+./gradlew oracleLocalTest --console=plain
+```
+
 ## 문서/제출 요구사항 추적
 
 | PDF 요구사항 | 현재 작업 단위 | 확인할 산출물 |
@@ -92,7 +134,7 @@
 | 요구 정의 및 분석 | [#13](https://github.com/marcellokim/se-issue-tracker/issues/13), [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | 요구사항 추적표, 유스케이스 문서 |
 | 전체 유스케이스 다이어그램 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | 유스케이스 다이어그램 이미지/원본 |
 | include 2개 이상, extend 2개 이상 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | 다이어그램 및 명세 내 관계 설명 |
-| 유스케이스 명세 6개 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | `docs/use-cases/` 명세 6개 |
+| 유스케이스 명세 6개 | [#14](https://github.com/marcellokim/se-issue-tracker/issues/14) | `docs/artifact/uc/` 명세 6개 |
 | 도메인 모델 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | 도메인 모델 다이어그램/설명 |
 | SSD 2개 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | SSD 2개 |
 | Operation Contract 2개 이상 | [#15](https://github.com/marcellokim/se-issue-tracker/issues/15) | Operation Contract 2개 이상 |

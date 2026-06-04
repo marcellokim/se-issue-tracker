@@ -1,58 +1,5 @@
 # DeletedIssueController API
 
-## Scope
-
-`DeletedIssueController` exposes deleted issue management APIs for PL users. It covers viewing deleted issues, soft-deleting active issues, restoring deleted issues, enforcing the retention limit during delete, and purging one deleted issue.
-
-## Public Operations
-
-| Operation | Service call | Result |
-| --- | --- | --- |
-| `viewDeletedIssues(projectId)` | `DeletedIssueService.viewDeletedIssues(projectId, actor)` | `List<IssueSummary>` |
-| `deleteIssue(issueId, comment)` | `DeletedIssueService.deleteIssue(issueId, comment, actor)` | `IssueSummary` |
-| `restoreIssue(issueId, comment)` | `DeletedIssueService.restoreIssue(issueId, comment, actor)` | `IssueSummary` |
-| `purgeDeletedIssue(issueId)` | `DeletedIssueService.purgeDeletedIssue(issueId, actor)` | `void` |
-
-## Operation Details
-
-All operations require a logged-in actor. `deleteIssue` uses `DeletedIssueRepository.softDelete` and then purges deleted issues beyond `MAX_DELETED_ISSUES_PER_PROJECT = 30`. `restoreIssue` delegates to `DeletedIssueRepository.restore`. `purgeDeletedIssue` physically deletes one issue that is already in `DELETED` status.
-
-`deleteIssue` and `restoreIssue` require non-blank `comment` values at the JDBC delete/restore operation boundary. Restore succeeds only for an issue currently in `DELETED` status. The restore target status is read from the latest `IssueHistory(STATUS_CHANGED, newValue=DELETED).previousValue`; missing delete history or a pre-delete status other than `NEW` or `CLOSED` fails.
-
-## UC/OC/DCD Traceability
-
-| API | UC/SSD/OC | DCD/domain evidence |
-| --- | --- | --- |
-| `deleteIssue` | UC9, OC-10 Delete Closed/New Issue, SSD-12 | DCD의 `Issue`, `IssueHistory(STATUS_CHANGED)`, `IssueDependency` 관계; implementation `JdbcDeletedIssueRepository.softDelete` |
-| `restoreIssue` | UC9, OC-11 Restore Deleted Issue, SSD-26 | `Issue.restore`, `Issue.findDeleteStatusHistory`, `IssueHistory(STATUS_CHANGED)` in DCD; implementation `JdbcDeletedIssueRepository.restore`, `latestPreDeleteStatus` |
-| `viewDeletedIssues`, `purgeDeletedIssue` | UC9 support APIs | DCD deleted issue workflow; implementation `DeletedIssueService.viewDeletedIssues`, `purgeDeletedIssue`, `JdbcDeletedIssueRepository.purgeDeletedBeyondLimit`, `purgeDeletedById` |
-
-## Implementation And Design Gaps
-
-| Classification | Detail |
-| --- | --- |
-| `signature-drift` | OC names omit `comment`, while implemented `deleteIssue` and `restoreIssue` require a comment argument. |
-| `matches` | PL-only deleted issue management and 30-item overflow purge are implemented. |
-
-## Permission And Failure Summary
-
-- Requires login at controller boundary.
-- Requires `PermissionPolicy.assertCanManageDeletedIssue` and active project PL membership.
-- `deleteIssue` also requires `PermissionPolicy.assertCanChangeStatus(actor, issue, DELETED)`, so only `NEW` or `CLOSED` issues are deletable.
-- Throws `IllegalArgumentException` when the issue is missing.
-- Throws `IllegalArgumentException` when delete/restore `comment` is blank at repository operation boundary.
-- Throws `SecurityException` when actor is not the project PL or issue status cannot be deleted.
-- Restore fails when the issue is not `DELETED`, when delete history is missing, or when the latest pre-delete status is not `NEW` or `CLOSED`.
-
-## Evidence
-
-- `src/main/java/com/github/marcellokim/issuetracker/controller/DeletedIssueController.java`: `DeletedIssueController.viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue`, `requireCurrentUser`
-- `src/main/java/com/github/marcellokim/issuetracker/service/DeletedIssueService.java`: `DeletedIssueService.viewDeletedIssues`, `deleteIssue`, `restoreIssue`, `purgeDeletedIssue`
-- `src/main/java/com/github/marcellokim/issuetracker/persistence/jdbc/JdbcDeletedIssueRepository.java`: `JdbcDeletedIssueRepository.softDelete`, `restore`, `latestPreDeleteStatus`, `purgeDeletedBeyondLimit`, `purgeDeletedById`
-- `src/main/java/com/github/marcellokim/issuetracker/service/PermissionPolicy.java`: `PermissionPolicy.assertCanManageDeletedIssue`, `assertCanChangeStatus`
-- `src/main/java/com/github/marcellokim/issuetracker/service/IssueSummary.java`: `IssueSummary`
-# DeletedIssueController API
-
 ## 범위
 
 `DeletedIssueController`는 PL 사용자를 위한 삭제 이슈 관리 API를 제공한다. 삭제된 이슈 조회, 활성 이슈의 soft delete, 삭제 이슈 복구, delete 시점의 보관 개수 제한 적용, 삭제 이슈 단건 물리 삭제를 다룬다.
@@ -90,8 +37,8 @@ All operations require a logged-in actor. `deleteIssue` uses `DeletedIssueReposi
 
 | 분류 | 내용 |
 | --- | --- |
-| `signature-drift` | OC 이름에는 `comment`가 없지만, 구현된 `deleteIssue`와 `restoreIssue`는 사유 기록을 위해 `comment` 인자를 요구한다. |
-| `matches` | PL 전용 삭제 이슈 관리와 30개 보관 제한 초과분 정리가 구현되어 있다. |
+| `오퍼레이션 시그니처 차이` | OC 이름에는 `comment`가 없지만, 구현된 `deleteIssue`와 `restoreIssue`는 사유 기록을 위해 `comment` 인자를 요구한다. |
+| `설계와 일치하는 부분` | PL 전용 삭제 이슈 관리와 30개 보관 제한 초과분 정리가 구현되어 있다. |
 
 ## 권한 및 실패 요약
 

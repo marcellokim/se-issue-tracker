@@ -13,14 +13,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-@DisplayName("표준 PR 스크립트 실패 복구")
+@DisplayName("Open PR script failure recovery")
 class OpenPrScriptFailureTest {
 
     @TempDir
     Path tempDir;
 
     @Test
-    @DisplayName("기존 상태 라벨 조회 실패는 review 상태 변경 전에 중단한다")
+    @DisplayName("stops before review status when current status lookup fails")
     void stopsBeforeMutationWhenStatusLabelLookupFails() throws IOException, InterruptedException {
         var fixture = createFixture();
 
@@ -32,7 +32,7 @@ class OpenPrScriptFailureTest {
     }
 
     @Test
-    @DisplayName("PR 생성 전 상태 변경이 실패하면 기존 상태 라벨을 복구한다")
+    @DisplayName("restores previous status when pre-create status update fails")
     void restoresPreviousStatusWhenPreCreateStatusMutationFails() throws IOException, InterruptedException {
         var fixture = createFixture();
 
@@ -47,7 +47,7 @@ class OpenPrScriptFailureTest {
     }
 
     @Test
-    @DisplayName("사전 저장 후 상태 라벨 재조회가 실패하면 review 라벨을 추가하지 않는다")
+    @DisplayName("does not add review after saved status recheck fails")
     void stopsBeforeAddingReviewWhenPreCreateStatusRelookupFails() throws IOException, InterruptedException {
         var fixture = createFixture();
 
@@ -60,7 +60,7 @@ class OpenPrScriptFailureTest {
     }
 
     @Test
-    @DisplayName("PR 생성 실패 시 review 상태 라벨을 이전 상태로 복구한다")
+    @DisplayName("restores previous status when PR creation fails")
     void restoresPreviousStatusWhenPullRequestCreationFails() throws IOException, InterruptedException {
         var fixture = createFixture();
 
@@ -78,7 +78,7 @@ class OpenPrScriptFailureTest {
     }
 
     @Test
-    @DisplayName("PR 제목은 브랜치 타입과 정리된 이슈 제목으로 생성한다")
+    @DisplayName("builds PR title from branch type and cleaned issue title")
     void createsPullRequestTitleFromBranchTypeAndIssueTitle() throws IOException, InterruptedException {
         var fixture = createFixture();
 
@@ -90,7 +90,7 @@ class OpenPrScriptFailureTest {
     }
 
     @Test
-    @DisplayName("PR 제목 정리는 표준 type prefix만 제거한다")
+    @DisplayName("removes only standard type prefixes from PR titles")
     void preservesNonConventionIssueTitlePrefixes() throws IOException, InterruptedException {
         var scopedTitleFixture = createFixture();
         var scopedTitleResult = scopedTitleFixture.run("normal", "docs/86-api-title", "docs(api): 로그인 흐름 구현");
@@ -115,7 +115,7 @@ class OpenPrScriptFailureTest {
     }
 
     @Test
-    @DisplayName("PR 스크립트는 Bash 4 전용 소문자 확장을 사용하지 않는다")
+    @DisplayName("does not use Bash 4 lowercase expansion")
     void avoidsBashFourOnlyLowercaseExpansion() throws IOException {
         var script = Files.readString(Path.of("scripts/open-pr.sh"));
 

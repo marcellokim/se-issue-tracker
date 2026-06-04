@@ -63,7 +63,8 @@ class IssueServiceTest {
         void memberCreatesIssue() {
                 var service = service(new InMemoryIssueRepository());
 
-                IssueResult result = service.registerIssue(PROJECT_ID, "Login bug", "Cannot login", Priority.MAJOR,
+                IssueResult result = service.registerIssue(PROJECT_ID, "Login bug",
+                                "Cannot login", Priority.MAJOR,
                                 dev.getLoginId());
 
                 assertNotNull(result.issueId());
@@ -388,7 +389,8 @@ class IssueServiceTest {
                 List<IssueSummary> plResults = service.viewProjectIssues(PROJECT_ID, pl.getLoginId());
                 String adminLoginId = admin.getLoginId();
 
-                List<Long> allProjectIssueIds = List.of(reporterOnlyIssue.id(), assignedDevIssue.id(), completedHistoryOnlyIssue.id());
+                List<Long> allProjectIssueIds = List.of(reporterOnlyIssue.id(), assignedDevIssue.id(),
+                                completedHistoryOnlyIssue.id());
                 assertEquals(allProjectIssueIds, devResults.stream().map(IssueSummary::id).toList());
                 assertEquals(allProjectIssueIds, testerResults.stream().map(IssueSummary::id).toList());
                 assertEquals(allProjectIssueIds, plResults.stream().map(IssueSummary::id).toList());

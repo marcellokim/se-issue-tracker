@@ -107,9 +107,11 @@ class AssignmentRecommendationServiceTest {
         void pastIssuesSuggestWorkers() {
                 InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
                                 tester1)
-                                .withResolvedIssues(
-                                                recommendationData("login error", "login page crash", "dev1",
-                                                                "tester1"));
+                                .withResolvedIssues(recommendationData(
+                                                "login error",
+                                                "login page crash",
+                                                "dev1",
+                                                "tester1"));
                 AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
                                 new KNNAssignmentRecommendation());
 

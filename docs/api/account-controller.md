@@ -26,7 +26,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `createAccount` | UC12, SSD-16; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd.puml`의 `User` role/active 필드; 구현 `AccountService.createAccount`, `User.create`, `UserResult.from` |
+| `createAccount` | UC12, SSD-16; 필수 OC 목록에는 없는 보조 API | `docs/artifact/dcd/its_dcd.puml`의 `User` role/active 필드; 구현 `AccountService.createAccount`, `User.create`, `UserResult.from` |
 | `renameAccount`, `changeAccountRole` | UC12, SSD-17; 필수 OC 목록에는 없는 보조 API | DCD의 `User` role/name 생명주기; 구현 `User.rename`, `User.changeRole`, `AccountService.rejectRoleChangeWithProjectResponsibility` |
 | `activateAccount`, `deactivateAccount` | UC12, SSD-18; 필수 OC 목록에는 없는 보조 API | DCD의 `User.isActive`; 구현 `User.activate`, `User.deactivate`, `AccountService.rejectDeactivationWithProjectResponsibility` |
 
@@ -34,8 +34,8 @@
 
 | 분류 | 내용 |
 | --- | --- |
-| `implementation-extra` | 계정 API는 controller/service에 구현되어 있지만 `required_operation_contracts.md`에는 나열되어 있지 않다. |
-| `behavior-drift` | 구현은 ADMIN 계정 생성 또는 수정을 금지하고 자기 자신 관리를 금지한다. 이는 컨트롤러 시그니처만으로는 보이지 않는 서비스 정책 상세이다. |
+| `구현에서 보강된 부분` | 계정 API는 controller/service에 구현되어 있지만 `operation_contracts.md`에는 나열되어 있지 않다. |
+| `설계 문서와 다른 구현 세부사항` | 구현은 ADMIN 계정 생성 또는 수정을 금지하고 자기 자신 관리를 금지한다. 이는 컨트롤러 시그니처만으로는 보이지 않는 서비스 정책 상세이다. |
 
 ## 권한 및 실패 요약
 

@@ -10,11 +10,11 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("프로젝트 정합성 스크립트")
+@DisplayName("Project maintenance script")
 class ProjectMaintenanceScriptTest {
 
     @Test
-    @DisplayName("dev로 머지된 PR은 closingIssuesReferences가 비어도 본문 Closes를 기준으로 이슈 완료 후보를 찾는다")
+    @DisplayName("finds completed issues from Closes text when merged dev PR lacks closing references")
     void mergedDevPrCompletionFallsBackToBodyClosesReferences() throws IOException, InterruptedException {
         String script = """
                 import importlib.util
@@ -97,7 +97,7 @@ class ProjectMaintenanceScriptTest {
     }
 
     @Test
-    @DisplayName("본문 Closes가 PR 번호를 가리키면 완료 대상 이슈로 처리하지 않는다")
+    @DisplayName("does not treat PR-number Closes text as a completed issue")
     void mergedDevPrCompletionIgnoresPullRequestReferencesFromBody() throws IOException, InterruptedException {
         String script = """
                 import importlib.util
@@ -146,7 +146,7 @@ class ProjectMaintenanceScriptTest {
     }
 
     @Test
-    @DisplayName("본문 fallback 이슈 조회 실패가 not-found가 아니면 오류를 숨기지 않는다")
+    @DisplayName("does not hide non-not-found failures during fallback issue lookup")
     void mergedDevPrCompletionReraisesNonMissingIssueLookupFailures() throws IOException, InterruptedException {
         String script = """
                 import importlib.util
@@ -188,7 +188,7 @@ class ProjectMaintenanceScriptTest {
     }
 
     @Test
-    @DisplayName("프로젝트 항목 context는 200개를 넘는 보드에서도 기존 항목을 인식한다")
+    @DisplayName("project item context finds existing items on boards over 200 entries")
     void projectContextLoadsMoreThanTwoHundredItems() throws IOException, InterruptedException {
         String script = """
                 import importlib.util

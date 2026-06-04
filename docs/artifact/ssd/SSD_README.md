@@ -17,7 +17,7 @@
 repo root에서 다음 명령으로 렌더링한다.
 
 ```sh
-plantuml -tpng docs/uml/ssd/*.puml
+plantuml -tpng docs/artifact/ssd/*.puml
 ```
 
 `ssd-style.puml`은 include 전용 파일이므로 `no image` 경고가 날 수 있다. SSD 27개 이미지가 생성되면 정상이다.
