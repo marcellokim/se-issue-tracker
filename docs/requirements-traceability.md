@@ -43,7 +43,7 @@
 
 ## UC별 구현 인수 기준
 
-상태 값은 현재 `origin/dev`와 열린 PR 기준으로 적는다. `완료`는 코드와 테스트 근거가 `dev`에 들어간 상태이고, `PR 대기`는 구현 또는 증빙은 있으나 아직 `dev`에 병합되지 않은 상태이다.
+상태 값은 최종 `origin/main` / `origin/dev` 동기화 기준으로 적는다. `완료`는 코드와 테스트 근거가 양 브랜치에 들어가고 관련 이슈/PR/마일스톤 정리가 끝난 상태이다.
 
 | UC | 인수 기준 | Controller/API 근거 | 주요 테스트 근거 | UI/문서 근거 | 현재 상태 |
 | --- | --- | --- | --- | --- | --- |
@@ -64,25 +64,25 @@
 | UC15 Edit Issue | reporter가 NEW/REOPENED 이슈의 title/description을 수정하고 priority/status 변경은 별도 UC로 분리됨 | `IssueController.updateIssue` | `IssueEditTest`, `IssueServiceTest`, `IssueControllerTest`, `IssueEdit*Test` | JavaFX `13-issue-edit`, Swing issue edit/delete entry; PR 240, PR 252 | 완료 |
 | UC16 Change Priority | active PL이 이슈 priority를 변경하고 변경 이력을 남김 | `IssueController.changePriority` | `IssueServiceTest`, `IssueControllerTest`, `IssueEditDialogsTest` | JavaFX `13-issue-edit`, Swing issue edit action; PR 158, PR 240, PR 252 | 완료 |
 
-## Open issue / PR 추적
+## 최종 이슈 / PR 정리 상태
 
-| 이슈 | 닫는 범위 | 연결 UC/산출물 | 현재 판단 |
+| 이슈 | 닫는 범위 | 연결 UC/산출물 | 최종 판단 |
 | --- | --- | --- | --- |
-| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 전체 UI 데모 흐름 parent | Swing sub-issue와 데모 가능한 전체 UI 관리 | UC1~UC16 Swing presentation | 구현 sub-issue와 QA PR은 `dev`에 병합됨. #246의 발표 장비 수동 재확인만 남음 |
-| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최신 `dev`에서 `./gradlew check verifySubmissionMetadata`와 CI Oracle/SonarCloud workflow 통과. 별도 SonarCloud App coverage check는 branch protection 필수 항목이 아님 |
-| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, source zip, 실행/검증 절차 | 소스 제출 산출물 | package exclude 정책과 README.txt 템플릿은 반영됨. 최종 PDF/slide/video는 별도 제출물로 관리 |
-| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | REST/local evidence 기준으로 최종 캡처 목록을 관리함. 제출 직전 보드, milestone, issue, PR, CI 화면을 다시 캡처 |
-| [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, 화면 동작 확인 | Swing demo evidence | Swing UI 기능 QA는 PR과 데모 영상 증거로 확인하고, 발표 장비의 마우스 포커스/시각 점검만 수동 확인 필요 |
+| [#24](https://github.com/marcellokim/se-issue-tracker/issues/24) Swing 전체 UI 데모 흐름 parent | Swing sub-issue와 데모 가능한 전체 UI 관리 | UC1~UC16 Swing presentation | 구현 sub-issue, QA PR, #246 발표 장비 재확인까지 완료됨 |
+| [#25](https://github.com/marcellokim/se-issue-tracker/issues/25) 테스트 gate | 모델, 서비스, 영속 저장소, controller, UI 테스트 증빙 | JUnit 제출 요구사항 | 최종 `main`/`dev` 기준 `./gradlew check verifySubmissionMetadata`, CI build/test, Oracle integration, SonarCloud, 보안 분석 통과 |
+| [#26](https://github.com/marcellokim/se-issue-tracker/issues/26) 최종 제출 패키지 gate | README.txt, source zip, 실행/검증 절차 | 소스 제출 산출물 | package exclude 정책, README.txt, 최종 PDF/slide/video/source package 제출 완료 |
+| [#27](https://github.com/marcellokim/se-issue-tracker/issues/27) GitHub Project 증빙 | Project/milestone/issue/PR/CI 캡처 | 협업 및 진행 이력 증빙 | GitHub Project, milestone, issue, PR, CI 증빙 확인 완료. M4 milestone은 closed 상태 |
+| [#246](https://github.com/marcellokim/se-issue-tracker/issues/246) Swing acceptance smoke/evidence | Oracle local 실행, role별 route smoke, 화면 동작 확인 | Swing demo evidence | Swing UI 기능 QA, 데모 영상 증거, 발표 장비 click-focus/800x600 육안 확인 완료 후 closed |
 
-## 제출 전 남은 gate
+## 최종 gate 완료 기록
 
-| Gate | 완료 조건 | 현재 필요한 다음 행동 |
+| Gate | 완료 조건 | 완료 근거 |
 | --- | --- | --- |
-| Swing 발표 장비 재확인 | 로그인 마우스 포커스와 800x600 주요 화면 육안 확인 | #246에 남은 target desktop retest 결과를 기록 |
-| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 과제/강의 원문, 개인 작업 메모 파일이 zip에서 제외됨 | 최종 `package-submission.sh` 실행으로 산출물 이름과 README.txt 확인 |
-| Traceability freeze | UC별 구현/API/test/UI evidence가 한 문서에서 추적됨 | #107은 병합 완료. 최종 PDF로 옮길 때 표 길이만 조정 |
-| Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최신 `dev` 로컬 검증과 CI Oracle/SonarCloud workflow는 통과. 별도 SonarCloud App coverage check는 참고 항목으로 기록 |
-| Final package | README.txt, PDF, slides, demo video, source/executable/test/data zip | #100/#101/#26에서 PDF/slide/video/package 생성 |
+| Swing 발표 장비 재확인 | 로그인 마우스 포커스와 800x600 주요 화면 육안 확인 | #246 target desktop retest 완료 확인 후 issue closed |
+| 제출 패키지 제외 정책 | QA artifact, 개인 IDE 설정, 과제/강의 원문, 개인 작업 메모 파일이 zip에서 제외됨 | `package-submission.sh`, README.txt, source package 기준 확인 완료 |
+| Traceability freeze | UC별 구현/API/test/UI evidence가 한 문서에서 추적됨 | UC1~UC16 인수 기준과 구현/API/test/UI evidence 정리 완료 |
+| Test gate | `./gradlew check`, `verifySubmissionMetadata`, CI 결과 확보 | 최종 `main`/`dev` 동일 SHA에서 build/test, Oracle integration, SonarCloud, 보안 분석 통과 |
+| Final package | README.txt, PDF, slides, demo video, source/executable/test/data zip | 최종 제출물 제출 플랫폼 업로드 확인 완료 |
 
 ## 최종 제출 증빙 체크리스트
 
@@ -104,9 +104,9 @@
 | 캡처 대상 | 목적 |
 | --- | --- |
 | GitHub Project 보드 | 팀 작업 흐름과 마일스톤 진행 상황 확인 |
-| M4 milestone과 남은 gate 이슈 | 최종 제출 직전 검증 상태 확인 |
+| M4 milestone closed 상태와 최종 gate 완료 이력 | 최종 제출 검증 완료 상태 확인 |
 | 대표 PR 병합 이력 | 주요 기능, UI, 문서, 테스트 변경 근거 확인 |
-| `dev` branch 최신 commit과 필수 체크 상태 | 최종 기준 브랜치와 CI 통과 상태 확인 |
+| `main`/`dev` branch 최신 commit과 필수 체크 상태 | 최종 기준 브랜치와 CI 통과 상태 확인 |
 | GitHub Actions 실행 결과 | 빌드, 테스트, Oracle 통합 테스트, SonarCloud, 보안 분석 증거 |
 
 ### 패키징 점검

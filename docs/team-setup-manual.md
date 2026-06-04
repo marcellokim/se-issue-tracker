@@ -419,30 +419,32 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 ---
 
-## 11. 제출 직전 체크리스트
+## 11. 최종 제출 체크리스트 완료 기록
 
 ### 문서
-- [ ] README 최신화
-- [ ] 프로젝트 문서 PDF 최신화
-- [ ] 유스케이스 명세 포함 여부 확인
-- [ ] UML/SSD/Operation Contract 포함 여부 확인
-- [ ] Q&A/가정 문서 반영 여부 확인
+- [x] README 최신화
+- [x] 프로젝트 문서 PDF 최신화
+- [x] 유스케이스 명세 포함 여부 확인
+- [x] UML/SSD/Operation Contract 포함 여부 확인
+- [x] Q&A/가정 문서 반영 여부 확인
 
 ### 코드/테스트
-- [ ] `./gradlew check`
-- [ ] 핵심 JUnit 테스트 정리
-- [ ] 데모 데이터/계정 준비
+- [x] `./gradlew check`
+- [x] 핵심 JUnit 테스트 정리
+- [x] 데모 데이터/계정 준비
 
 ### GitHub 증빙
-- [ ] 프로젝트 이력 스크린샷 확보
-- [ ] 팀원별 PR/이슈/commit 증빙 확보
-- [ ] 마일스톤별 진행 흐름 정리
+- [x] 프로젝트 이력 스크린샷 확보
+- [x] 팀원별 PR/이슈/commit 증빙 확보
+- [x] 마일스톤별 진행 흐름 정리
 
 ### 제출물
-- [ ] 발표 슬라이드
-- [ ] 동영상
-- [ ] `README.txt`
-- [ ] 소스 zip 생성
+- [x] 발표 슬라이드
+- [x] 동영상
+- [x] `README.txt`
+- [x] 소스 zip 생성
+
+최종 제출물은 제출 플랫폼 업로드까지 확인했다.
 
 ---
 
@@ -451,10 +453,10 @@ SKIP_GRADLE_PREPUSH=1 git push
 기본 예시:
 ```bash
 ./scripts/package-submission.sh \
-  --team-number 03 \
-  --member 홍길동 \
-  --member 김철수 \
-  --member 이영희 \
+  --team-number <팀번호> \
+  --member <팀원명1> \
+  --member <팀원명2> \
+  --member <팀원명3> \
   --project-url https://github.com/users/marcellokim/projects/1
 ```
 
@@ -502,11 +504,11 @@ SKIP_GRADLE_PREPUSH=1 git push
 
 # 제출 zip 생성
 ./scripts/package-submission.sh \
-  --team-number 03 \
-  --member 홍길동 \
-  --member 김철수 \
-  --member 이영희 \
-  --project-url <url>
+  --team-number <팀번호> \
+  --member <팀원명1> \
+  --member <팀원명2> \
+  --member <팀원명3> \
+  --project-url <GitHub Project URL>
 ```
 
 ---
