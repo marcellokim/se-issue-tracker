@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("애플리케이션 진입점")
+@DisplayName("Application entry point")
 class MainSmokeTest {
 
     @Test
@@ -23,7 +23,7 @@ class MainSmokeTest {
     }
 
     @Test
-    @DisplayName("Swing 실행 옵션을 인식한다")
+    @DisplayName("recognizes the Swing launch option")
     void recognizesSwingLaunchOption() {
         assertTrue(Main.shouldLaunchSwing(new String[]{"--swing"}));
         assertFalse(Main.shouldLaunchSwing(new String[0]));

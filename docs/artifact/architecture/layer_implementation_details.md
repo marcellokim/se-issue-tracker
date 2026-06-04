@@ -80,7 +80,7 @@ CLI command는 service 결과를 출력 형식으로 변환. CLI command가 repo
 - `JdbcIssueWriteSupport`: transient comment/history와 status history insert
 - `JdbcIssueDeleteOperations`: soft-delete, restore, purge transaction workflow
 
-이 분리는 SQL 결과, 정렬, deleted issue 포함/제외 기준, rollback, generated key handling, comment/history persistence order를 바꾸지 않는 pure refactor.
+이 분리는 SQL 결과, 정렬, deleted issue 포함/제외 기준, rollback, DB 생성 키 처리, comment/history 저장 순서를 바꾸지 않는 pure refactor.
 
 ## Controller-Service-Repository Wiring
 

@@ -49,6 +49,52 @@ class AssignmentRecommendationServiceTest {
         }
 
         @Test
+        @DisplayName("reopened issue puts old resolver first")
+        void oldResolverComesFirst() {
+                User dev2 = user("dev2", Role.DEV);
+                User tester2 = user("tester2", Role.TESTER);
+                InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
+                                dev2, tester1, tester2)
+                                .withResolvedIssues(
+                                                recommendationData("login error", "login page crash", "dev2",
+                                                                "tester1"),
+                                                recommendationData("login timeout", "login page timeout", "dev1",
+                                                                "tester2"));
+                AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
+                                new KNNAssignmentRecommendation());
+
+                AssignmentOptionsResult options = svc.recommendAssignmentCandidates(reopenedLoginIssue());
+
+                assertEquals("tester1", options.testerVerifierCandidates().get(0).loginId());
+                assertEquals("resolved lastly", options.testerVerifierCandidates().get(0).reason());
+                assertEquals("tester2", options.testerVerifierCandidates().get(1).loginId());
+                assertEquals(2, options.testerVerifierCandidates().size());
+                assertEquals(2, options.testerVerifierCandidates().stream()
+                                .map(AssignmentCandidateResult::loginId)
+                                .distinct()
+                                .count());
+        }
+
+        @Test
+        @DisplayName("reopened issue skips inactive old resolver")
+        void inactiveOldResolverIsSkipped() {
+                User inactiveResolver = User.fromPersistence("tester1", "tester1", "hash", Role.TESTER, false, null,
+                                null);
+                User tester2 = user("tester2", Role.TESTER);
+                InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
+                                inactiveResolver, tester2)
+                                .withResolvedIssues(recommendationData("login timeout", "login page timeout", "dev1",
+                                                "tester2"));
+                AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
+                                new KNNAssignmentRecommendation());
+
+                AssignmentOptionsResult options = svc.recommendAssignmentCandidates(reopenedLoginIssue());
+
+                assertEquals("tester2", options.testerVerifierCandidates().get(0).loginId());
+                assertTrue(options.testerVerifierCandidates().stream().noneMatch(c -> c.loginId().equals("tester1")));
+        }
+
+        @Test
         @DisplayName("assigned issue only needs a dev")
         void assignedIssueNeedsDev() {
                 AssignmentOptionsResult options = service.recommendAssignmentCandidates(issue(IssueStatus.ASSIGNED));
@@ -107,9 +153,11 @@ class AssignmentRecommendationServiceTest {
         void pastIssuesSuggestWorkers() {
                 InMemoryAssignmentRecommendationRepository repo = new InMemoryAssignmentRecommendationRepository(dev1,
                                 tester1)
-                                .withResolvedIssues(
-                                                recommendationData("login error", "login page crash", "dev1",
-                                                                "tester1"));
+                                .withResolvedIssues(recommendationData(
+                                                "login error",
+                                                "login page crash",
+                                                "dev1",
+                                                "tester1"));
                 AssignmentRecommendationService svc = new AssignmentRecommendationService(repo,
                                 new KNNAssignmentRecommendation());
 
@@ -143,6 +191,19 @@ class AssignmentRecommendationServiceTest {
                                                 .reportedDate(NOW)
                                                 .priority(Priority.MAJOR)
                                                 .status(IssueStatus.NEW)
+                                                .updatedAt(NOW));
+        }
+
+        private static Issue reopenedLoginIssue() {
+                return Issue.fromPersistence(
+                                Issue.persistedState(1L, "login error page", "login crash", user("tester1", Role.TESTER))
+                                                .id(3L)
+                                                .issueId("ISSUE-3")
+                                                .reportedDate(NOW)
+                                                .priority(Priority.MAJOR)
+                                                .status(IssueStatus.REOPENED)
+                                                .fixer(user("dev1", Role.DEV))
+                                                .resolver(user("tester1", Role.TESTER))
                                                 .updatedAt(NOW));
         }
 

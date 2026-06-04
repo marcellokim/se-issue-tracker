@@ -8,7 +8,7 @@
   - `UC1 Register Issue`
   - `UC5 Assign / Update Issue Assignment`
   - `UC6 Change Issue State - Mark Fixed`
-- 전체 PUML source는 `docs/uml/ssd/`에 둔다. PNG/SVG는 필요할 때 생성하는 산출물이다.
+- 전체 PUML source는 `docs/artifact/ssd/`에 둔다. PNG/SVG는 필요할 때 생성하는 산출물이다.
 - SSD는 시스템을 black-box로 보고 actor와 `:Issue Tracking System` 사이의 system event만 표현한다.
 - 내부 controller, service, repository, entity, database lifeline은 SSD에 넣지 않는다.
 - UC14 권한 검사는 protected operation의 공통 조건이다. 독립 SSD는 참고용으로만 두고, 실제 base SSD에서는 precondition/note로 표현한다.
@@ -19,9 +19,9 @@
 
 | File | UC | Actor | System Operation | 제출 선택 이유 |
 | --- | --- | --- | --- | --- |
-| `docs/uml/ssd/ssd-01-register-issue.puml` | UC1 이슈 등록 | Auth User | `registerIssue(projectId, title, description, priority)`, `addComment(issueId, content)` | 이슈 생성, reporter/reportedDate/status `NEW`, history 생성 요구와 등록 직후 optional comment 흐름을 함께 보여준다. |
-| `docs/uml/ssd/ssd-05-assign-issue.puml` | UC5 이슈 배정/배정 변경 | PL | `startAssignment(issueId)`, `assignIssue(...)`, `reassignIssue(...)`, `changeVerifier(...)` | UC8 후보 추천 include, NEW/REOPENED 배정, ASSIGNED assignee 재배정, FIXED verifier 교체를 한 다이어그램에서 보여준다. |
-| `docs/uml/ssd/ssd-06-mark-fixed.puml` | UC6 상태 변경: Fixed 처리 | DEV | `addStatusChangeComment(issueId, comment)`, `changeStatus(issueId, targetStatus=FIXED)` | UC6 중 Dev가 ASSIGNED 이슈를 FIXED로 바꾸는 핵심 상태 전이와 필수 사유 comment 흐름을 보여준다. |
+| `docs/artifact/ssd/ssd-01-register-issue.puml` | UC1 이슈 등록 | Auth User | `registerIssue(projectId, title, description, priority)`, `addComment(issueId, content)` | 이슈 생성, reporter/reportedDate/status `NEW`, history 생성 요구와 등록 직후 optional comment 흐름을 함께 보여준다. |
+| `docs/artifact/ssd/ssd-05-assign-issue.puml` | UC5 이슈 배정/배정 변경 | PL | `startAssignment(issueId)`, `assignIssue(...)`, `reassignIssue(...)`, `changeVerifier(...)` | UC8 후보 추천 include, NEW/REOPENED 배정, ASSIGNED assignee 재배정, FIXED verifier 교체를 한 다이어그램에서 보여준다. |
+| `docs/artifact/ssd/ssd-06-mark-fixed.puml` | UC6 상태 변경: Fixed 처리 | DEV | `addStatusChangeComment(issueId, comment)`, `changeStatus(issueId, targetStatus=FIXED)` | UC6 중 Dev가 ASSIGNED 이슈를 FIXED로 바꾸는 핵심 상태 전이와 필수 사유 comment 흐름을 보여준다. |
 
 제출용 이미지는 `ssd-01-register-issue.puml`, `ssd-05-assign-issue.puml`, `ssd-06-mark-fixed.puml`에서 생성한 렌더 산출물을 사용한다.
 

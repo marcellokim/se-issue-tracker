@@ -2,19 +2,13 @@ SE 2026-1 소프트웨어공학 팀 프로젝트 제출물 README
 프로젝트명: Issue Tracking System (ITS)
 
 
-1. 제출 정보
-
-- 팀 번호
-  {{TEAM_NUMBER}}
-
-- 팀원
-  {{MEMBERS}}
+1. GitHub 주소
 
 - GitHub 저장소
-  {{GITHUB_URL}}
+  https://github.com/marcellokim/se-issue-tracker
 
 - GitHub Project
-  {{PROJECT_URL}}
+  https://github.com/users/marcellokim/projects/1
 
 
 2. 제출물 구성

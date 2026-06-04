@@ -42,9 +42,9 @@
 
 | 분류 | 내용 |
 | --- | --- |
-| `implementation-extra` | 통계 API는 구현되어 있고 이 문서에 명세하지만, `required_operation_contracts.md`에는 통계 postcondition이 따로 정의되어 있지 않다. |
-| `project-screen-scope` | 통계는 프로젝트 선택 후 프로젝트 화면에서 조회한다. 이슈 상세 단위 통계 또는 전체 시스템 통계가 아니다. |
-| `deleted-policy` | 삭제 이슈 관리 화면 접근은 별도 workflow로 분리되며, 현재 통계 쿼리는 `DELETED` 상태 이슈를 제외한다. |
+| `구현에서 보강된 부분` | 통계 API는 구현되어 있고 이 문서에 명세하지만, `operation_contracts.md`에는 통계 postcondition이 따로 정의되어 있지 않다. |
+| `프로젝트 화면 기준` | 통계는 프로젝트 선택 후 프로젝트 화면에서 조회한다. 이슈 상세 단위 통계 또는 전체 시스템 통계가 아니다. |
+| `삭제 이슈 제외 정책` | 삭제 이슈 관리 화면 접근은 별도 workflow로 분리되며, 현재 통계 쿼리는 `DELETED` 상태 이슈를 제외한다. |
 
 ## 권한 및 실패 요약
 

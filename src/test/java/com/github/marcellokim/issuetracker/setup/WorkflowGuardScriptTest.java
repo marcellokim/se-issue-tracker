@@ -11,29 +11,29 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("워크플로우 보호 스크립트")
+@DisplayName("Workflow guard script")
 class WorkflowGuardScriptTest {
 
     @Test
-    @DisplayName("feat 브랜치에서 dev 대상 PR을 허용한다")
+    @DisplayName("allows feature branches to target dev")
     void allowsFeatBranchPullRequestToDev() throws IOException, InterruptedException {
         assertAllowed(pullRequest("dev", "feat/12-issue-search-ui", "teammate"));
     }
 
     @Test
-    @DisplayName("일반 사용자의 main 대상 PR을 차단한다")
+    @DisplayName("blocks regular users from targeting main")
     void blocksNonAdminPullRequestToMain() throws IOException, InterruptedException {
         assertBlocked(pullRequest("main", "feat/12-issue-search-ui", "teammate"));
     }
 
     @Test
-    @DisplayName("관리자 main 대상 PR 예외를 허용한다")
+    @DisplayName("allows admin exceptions for main")
     void allowsAdminBypassPullRequestToMain() throws IOException, InterruptedException {
         assertAllowed(pullRequest("main", "release/main-sync", "marcellokim"));
     }
 
     @Test
-    @DisplayName("관리자 목록에 공백이 있어도 예외 계정을 인식한다")
+    @DisplayName("handles spaces in admin allowlist")
     void allowsAdminBypassWhenUserListContainsSpaces() throws IOException, InterruptedException {
         Map<String, String> environment = pullRequest("main", "release/main-sync", "maintainer");
         environment.put("WORKFLOW_BYPASS_USERS", "marcellokim, maintainer");
@@ -42,13 +42,13 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
-    @DisplayName("dev 브랜치를 head로 쓰는 PR을 차단한다")
+    @DisplayName("blocks dev as a PR head branch")
     void blocksPullRequestFromDevBranchToDev() throws IOException, InterruptedException {
         assertBlocked(pullRequest("dev", "dev", "teammate"));
     }
 
     @Test
-    @DisplayName("일반 사용자의 보호 자동화 파일 수정을 차단한다")
+    @DisplayName("blocks protected automation edits by regular users")
     void blocksNonAdminChangesToWorkflowGuardFiles() throws IOException, InterruptedException {
         Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
         Files.writeString(changedFiles, ".github/workflows/gradle.yml\nREADME.md\n");
@@ -60,13 +60,13 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
-    @DisplayName("작업 브랜치 slug에 대문자가 있어도 dev 대상 PR을 허용한다")
+    @DisplayName("allows uppercase slugs in work branches targeting dev")
     void allowsUppercaseSlugInWorkBranch() throws IOException, InterruptedException {
         assertAllowed(pullRequest("dev", "feat/12-Issue_Search-UI", "teammate"));
     }
 
     @Test
-    @DisplayName("리뷰 봇 이벤트라도 PR 작성자가 관리자이면 보호 자동화 파일 수정을 허용한다")
+    @DisplayName("allows protected automation edits from admin-authored review bot events")
     void allowsAdminAuthoredGuardChangesWhenReviewBotTriggersPullRequestTarget() throws IOException, InterruptedException {
         Path changedFiles = Files.createTempFile("workflow-guard-changes", ".txt");
         Files.writeString(changedFiles, "scripts/start-task.sh\nREADME.md\n");
@@ -80,7 +80,7 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
-    @DisplayName("pull_request_target 이벤트에서도 기준 브랜치 정책을 적용한다")
+    @DisplayName("applies base branch rules to pull_request_target events")
     void acceptsPullRequestTargetEventForBaseBranchPolicy() throws IOException, InterruptedException {
         Map<String, String> environment = pullRequest("dev", "feat/12-issue-search-ui", "teammate");
         environment.put("GITHUB_EVENT_NAME", "pull_request_target");
@@ -89,13 +89,13 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
-    @DisplayName("이미 열린 feature 브랜치는 호환용으로 허용한다")
+    @DisplayName("keeps already-open feature branches compatible")
     void allowsLegacyFeatureBranchForOpenPullRequestCompatibility() throws IOException, InterruptedException {
         assertAllowed(pullRequest("dev", "feature/12-issue-search-ui", "teammate"));
     }
 
     @Test
-    @DisplayName("Dependabot Gradle 의존성 업데이트 PR을 허용한다")
+    @DisplayName("allows Dependabot Gradle dependency updates")
     void allowsDependabotGradleDependencyPullRequestToDev() throws IOException, InterruptedException {
         Path changedFiles = Files.createTempFile("workflow-guard-dependabot", ".txt");
         Files.writeString(changedFiles, "build.gradle\n");
@@ -112,7 +112,7 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
-    @DisplayName("Dependabot GitHub Actions 업데이트 PR은 워크플로우 파일 변경을 허용한다")
+    @DisplayName("allows Dependabot GitHub Actions workflow updates")
     void allowsDependabotGithubActionsPullRequestToDev() throws IOException, InterruptedException {
         Path changedFiles = Files.createTempFile("workflow-guard-dependabot", ".txt");
         Files.writeString(changedFiles, ".github/workflows/gradle.yml\n");
@@ -129,7 +129,7 @@ class WorkflowGuardScriptTest {
     }
 
     @Test
-    @DisplayName("Dependabot 브랜치라도 의존성 업데이트 파일이 아니면 차단한다")
+    @DisplayName("blocks non-dependency edits from Dependabot branches")
     void blocksDependabotBranchWhenUnexpectedFilesChange() throws IOException, InterruptedException {
         Path changedFiles = Files.createTempFile("workflow-guard-dependabot", ".txt");
         Files.writeString(changedFiles, "src/main/java/com/github/marcellokim/issuetracker/Main.java\n");

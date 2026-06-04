@@ -385,9 +385,6 @@ Use Case: UC7 Manage Dependency
 - `IssueDependency.dependencyId`는 `blockingIssueId`와 `blockedIssueId` 조합에서 파생된 값으로 설정되었다.
 - blocked issue 기준으로 `IssueHistory(actionType=DEPENDENCY_CHANGED)`가 생성되었다.
 - `Issue.status`는 변경되지 않았고, 이 dependency는 이후 `FIXED -> RESOLVED` guard에서 사용된다.
-
-### 5. 실패 조건
-
 - 시스템이 기존 dependency 관계를 따라 순환 dependency 여부를 검사하고, 순환이 감지되면 operation을 거부한다.
 
 ---

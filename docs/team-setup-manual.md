@@ -244,11 +244,11 @@ git commit
 ./scripts/open-pr.sh
 ```
 
-PR 제목은 브랜치 경로가 아니라 사람이 읽는 변경 요약으로 작성합니다. 표준 형식은 `type: 한국어 요약`입니다. 예: `feat: 이슈 배정과 상태 변경 흐름 구현`, `docs: 전체 API 명세 역추출 및 정리`. 특정 영역을 드러낼 필요가 있으면 `docs(api): ...`처럼 scope를 붙입니다. 이 형식은 팀 작성 기준이며 별도 자동화 실패 조건은 아닙니다.
+PR 제목은 브랜치 경로가 아니라 사람이 읽는 변경 요약으로 작성합니다. 표준 형식은 `type: 한국어 요약`입니다. 예: `feat: 이슈 배정과 상태 변경 흐름 구현`, `docs: 전체 API 명세 검토 및 정리`. 특정 영역을 드러낼 필요가 있으면 `docs(api): ...`처럼 scope를 붙입니다. 이 형식은 팀 작성 기준이며 별도 자동화 실패 조건은 아닙니다.
 
 추가 점검:
 - README 반영이 필요한가?
-- `docs/qna.md` 또는 UML 업데이트가 필요한가?
+- `docs/requirements-traceability.md` 또는 `docs/artifact/` 업데이트가 필요한가?
 - 이 변경이 과제 요구사항 중 무엇에 대응하는가?
 - 스크린샷이 필요한가?
 
@@ -327,7 +327,7 @@ PR 제목은 브랜치 경로가 아니라 사람이 읽는 변경 요약으로 
 - Java가 있으면 `verifyRepositorySetup` 실행
 
 ### commit-msg
-- 외부 도구명, 자동 생성 표기, 공동작성자 trailer 차단
+- 외부 도구명, 기계적 작성 표기, 공동작성자 trailer 차단
 
 ### pre-push
 - `main`/`dev` 직접 push 방지
@@ -461,7 +461,7 @@ SKIP_GRADLE_PREPUSH=1 git push
 ### 이 스크립트가 하는 일
 - Gradle check 실행(기본)
 - 제출용 staging 디렉터리 생성
-- `README.txt` 자동 생성
+- `README.txt` 생성
 - zip 파일 생성
 
 최종 보고서, 발표자료, 시연 영상은 저장소 패키지와 별도로 준비합니다.

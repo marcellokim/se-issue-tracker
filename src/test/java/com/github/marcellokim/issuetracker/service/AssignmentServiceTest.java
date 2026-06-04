@@ -57,13 +57,15 @@ class AssignmentServiceTest {
                 var issue = newIssue();
                 var service = service(issue);
 
-                var result = service.assignIssue(ISSUE_ID, assignee.getLoginId(), verifier.getLoginId(),
+                var result = service.assignIssue(ISSUE_ID, assignee.getLoginId(),
+                                verifier.getLoginId(),
                                 pl.getLoginId());
 
                 assertEquals(IssueStatus.ASSIGNED, result.status());
                 assertSame(assignee, issue.getAssignee());
                 assertSame(verifier, issue.getVerifier());
-                assertEquals(ActionType.STATUS_CHANGED, issue.getHistories().getLast().getAction());
+                assertEquals(ActionType.STATUS_CHANGED,
+                                issue.getHistories().getLast().getAction());
         }
 
         @Test
