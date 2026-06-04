@@ -43,7 +43,12 @@ sonar {
         def oracleSqlResources = [
             'src/main/resources/db/oracle/schema-oracle.sql',
             'src/main/resources/db/oracle/seed-oracle.sql'
-        ].join(',')
+        ]
+        // GitHub workflow policy files are covered by workflow-guard tests and live GitHub Actions.
+        def workflowPolicyResources = [
+            '.github/workflows/*.yml'
+        ]
+        def sonarExcludedSources = (oracleSqlResources + workflowPolicyResources).join(',')
         // Oracle JDBC classes are covered by oracleIntegrationTest, which needs an Oracle test schema.
         def coverageExcludedSources = [
             '**/Main.java',
@@ -58,8 +63,8 @@ sonar {
         property 'sonar.projectKey', providers.environmentVariable('SONAR_PROJECT_KEY').orElse('marcellokim_se-issue-tracker').get()
         property 'sonar.organization', providers.environmentVariable('SONAR_ORGANIZATION').orElse('marcellokim').get()
 
-        property 'sonar.exclusions', oracleSqlResources
-        property 'sonar.cpd.exclusions', oracleSqlResources
+        property 'sonar.exclusions', sonarExcludedSources
+        property 'sonar.cpd.exclusions', oracleSqlResources.join(',')
         property 'sonar.coverage.exclusions', coverageExcludedSources
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
 
