@@ -1,6 +1,6 @@
 # OOAD / GRASP / MVC 설계 적용 근거
 
-이 문서는 Issue Tracking System을 구현하면서 객체지향 분석/설계, GRASP, MVC를 어떤 식으로 적용했는지 정리한 것이다. 설명은 현재 로컬 코드의 `src/main/java/com/github/marcellokim/issuetracker` 구조와 `docs/uml`에 작성한 설계 문서를 기준으로 한다.
+이 문서는 Issue Tracking System을 구현하면서 객체지향 분석/설계, GRASP, MVC를 어떤 식으로 적용했는지 정리한 것이다. 설명은 `src/main/java/com/github/marcellokim/issuetracker` 코드 구조와 `docs/artifact`에 작성한 설계 문서를 기준으로 한다.
 
 ## 1. 설계 목표
 

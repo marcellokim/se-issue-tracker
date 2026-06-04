@@ -44,8 +44,8 @@
 
 | 분류 | 내용 |
 | --- | --- |
-| `matches` | 구현된 상태 전이 matrix는 삭제를 제외한 UC6 필수 target status를 다룬다. 삭제는 `DeletedIssueController`가 담당한다. |
-| `behavior-drift` | `DELETED` 상태 전이는 이 컨트롤러에서 거부되며, 삭제 이슈 관리 workflow로 분리되어 있다. |
+| `설계와 일치하는 부분` | 구현된 상태 전이 matrix는 삭제를 제외한 UC6 필수 target status를 다룬다. 삭제는 `DeletedIssueController`가 담당한다. |
+| `설계 문서와 다른 구현 세부사항` | `DELETED` 상태 전이는 이 컨트롤러에서 거부되며, 삭제 이슈 관리 workflow로 분리되어 있다. |
 
 ## 권한 및 실패 요약
 

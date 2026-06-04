@@ -23,14 +23,14 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `login` | UC11, SSD-15 log in; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd.puml`의 `User.loginId`, `passwordHash`, `role`, `active`; 구현 `AuthenticationService.login`, `AuthenticationResult` |
+| `login` | UC11, SSD-15 log in; 필수 OC 목록에는 없는 보조 API | `docs/artifact/dcd/its_dcd.puml`의 `User.loginId`, `passwordHash`, `role`, `active`; 구현 `AuthenticationService.login`, `AuthenticationResult` |
 | `logout` | UC11 세션 보조 API | 구현 세션 경계 `AuthenticationService.logout`; 필수 OC 없음 |
 
 ## 구현 및 설계 차이
 
 | 분류 | 내용 |
 | --- | --- |
-| `implementation-extra` | 로그인/로그아웃은 컨트롤러 API로 구현되어 있지만 필수 OC 목록 밖에 있다. |
+| `구현에서 보강된 부분` | 로그인/로그아웃은 컨트롤러 API로 구현되어 있지만 필수 OC 목록 밖에 있다. |
 
 ## 권한 및 실패 요약
 

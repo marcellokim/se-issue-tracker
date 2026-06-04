@@ -59,7 +59,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `registerIssue` | UC1, OC-01, SSD-01 | `docs/uml/dcd/its_dcd.puml`의 `Issue`, `IssueHistory`, reporter 연관; 구현 `IssueController.registerIssue`, `IssueService.registerIssue` |
+| `registerIssue` | UC1, OC-01, SSD-01 | `docs/artifact/dcd/its_dcd.puml`의 `Issue`, `IssueHistory`, reporter 연관; 구현 `IssueController.registerIssue`, `IssueService.registerIssue` |
 | `addComment` | UC2, OC-02, SSD-02 | `IssueService.addComment`, `Comment`, `IssueHistory(COMMENTED)`, writer 연관 |
 | `addDependency` | UC7, OC-14, SSD-24 | `Issue.addDependency`, `IssueDependency`, blocking/blocked issue 연관, `IssueHistory(DEPENDENCY_CHANGED)` |
 | `removeDependency` | UC7, OC-15, SSD-25 | DCD는 `removeDependency(dependencyId)`로 표현하지만, 구현은 `IssueService.removeDependency(blockingIssueId, blockedIssueId)`와 `Issue.removeDependency`를 사용 |
@@ -73,9 +73,9 @@
 
 | 분류 | 내용 |
 | --- | --- |
-| `matches` | 이슈 등록, 댓글 추가, 의존성 추가, priority 변경은 컨트롤러에 연결되어 있고 서비스에서 권한과 정책을 검사한다. |
-| `signature-drift` | OC-15는 `removeDependency(dependencyId)`를 문서화하지만, 현재 구현은 `removeDependency(blockingIssueId, blockedIssueId)`를 노출한다. |
-| `implementation-extra` | 검색, 상세 조회, action 조회, 댓글 수정/삭제, 프로젝트 이슈 조회 API는 필수 OC 목록 밖에 추가로 구현되어 있다. |
+| `설계와 일치하는 부분` | 이슈 등록, 댓글 추가, 의존성 추가, priority 변경은 컨트롤러에 연결되어 있고 서비스에서 권한과 정책을 검사한다. |
+| `오퍼레이션 시그니처 차이` | OC-15는 `removeDependency(dependencyId)`를 문서화하지만, 현재 구현은 `removeDependency(blockingIssueId, blockedIssueId)`를 노출한다. |
+| `구현에서 보강된 부분` | 검색, 상세 조회, action 조회, 댓글 수정/삭제, 프로젝트 이슈 조회 API는 필수 OC 목록 밖에 추가로 구현되어 있다. |
 
 ## 권한 및 실패 요약
 

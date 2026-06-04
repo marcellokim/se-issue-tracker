@@ -2,7 +2,7 @@
 
 ## 범위
 
-이 폴더는 현재 로컬 코드에 구현된 Controller/Service 공개 계약을 정리한다. 문서는 구현에서 역추출한 명세이며, 새로운 동작을 정의하지 않는다.
+이 폴더는 현재 구현된 Controller/Service 공개 계약을 정리한다. 문서는 화면에서 호출하는 기능과 Service 경계를 설명하며, 새로운 동작을 별도로 정의하지 않는다.
 
 각 컨트롤러 문서는 다음 내용을 중심으로 작성한다.
 
@@ -99,20 +99,20 @@
 
 | 영역 | DCD/domain 근거 |
 | --- | --- |
-| 이슈 workflow | `docs/uml/dcd/its_dcd.puml`: `Issue`, `Comment`, `IssueHistory`, `IssueDependency` |
-| 배정 workflow | `docs/uml/dcd/its_dcd.puml`: `Issue.assignFromNew`, `assignReopened`, `reassignAssignee`, `changeVerifier`, assignee/verifier 관계 |
-| 상태 전이 | `docs/uml/dcd/its_dcd.puml`: `Issue.markFixed`, `resolve`, `rejectFix`, `close`, `reopen`, `IssueHistory(STATUS_CHANGED)` |
-| 삭제 이슈 workflow | `docs/uml/dcd/its_dcd.puml`: `Issue`, `IssueHistory`, `IssueDependency`; 삭제/복구 조율은 service/JDBC 문서에서 다룬다 |
-| ADMIN/support workflow | `docs/uml/dcd/its_dcd.puml`: `Project`, `User`, `ProjectMember`; 권한 정책과 result 구현 클래스는 DCD에서 생략한다 |
+| 이슈 workflow | `docs/artifact/dcd/its_dcd.puml`: `Issue`, `Comment`, `IssueHistory`, `IssueDependency` |
+| 배정 workflow | `docs/artifact/dcd/its_dcd.puml`: `Issue.assignFromNew`, `assignReopened`, `reassignAssignee`, `changeVerifier`, assignee/verifier 관계 |
+| 상태 전이 | `docs/artifact/dcd/its_dcd.puml`: `Issue.markFixed`, `resolve`, `rejectFix`, `close`, `reopen`, `IssueHistory(STATUS_CHANGED)` |
+| 삭제 이슈 workflow | `docs/artifact/dcd/its_dcd.puml`: `Issue`, `IssueHistory`, `IssueDependency`; 삭제/복구 조율은 service/JDBC 문서에서 다룬다 |
+| ADMIN/support workflow | `docs/artifact/dcd/its_dcd.puml`: `Project`, `User`, `ProjectMember`; 권한 정책과 result 구현 클래스는 DCD에서 생략한다 |
 
 ## 설계 차이 요약
 
 | 분류 | 내용 |
 | --- | --- |
-| `implementation-extra` | Dashboard, account, project, statistics, comment edit/delete, workflow action-query, rich issue search API는 구현되어 있지만 필수 OC에 모두 개별 항목으로 표현되어 있지는 않다. |
-| `signature-drift` | OC-15는 `removeDependency(dependencyId)`를 언급하지만, 현재 구현은 `removeDependency(blockingIssueId, blockedIssueId)`를 사용한다. |
-| `behavior-drift` | `deleteIssue`와 `restoreIssue` 구현은 comment 인자를 받지만, OC 이름에는 comment 인자가 드러나지 않는다. |
-| `matches` | 이슈 등록, 댓글 추가, 배정, 상태 전이, 의존성 추가, 삭제 이슈, 우선순위 변경은 Controller/Service 경로가 명확하게 존재한다. |
+| `구현에서 보강된 부분` | Dashboard, account, project, statistics, comment edit/delete, workflow action-query, rich issue search API는 구현되어 있지만 필수 OC에 모두 개별 항목으로 표현되어 있지는 않다. |
+| `오퍼레이션 시그니처 차이` | OC-15는 `removeDependency(dependencyId)`를 언급하지만, 현재 구현은 `removeDependency(blockingIssueId, blockedIssueId)`를 사용한다. |
+| `설계 문서와 다른 구현 세부사항` | `deleteIssue`와 `restoreIssue` 구현은 comment 인자를 받지만, OC 이름에는 comment 인자가 드러나지 않는다. |
+| `설계와 일치하는 부분` | 이슈 등록, 댓글 추가, 배정, 상태 전이, 의존성 추가, 삭제 이슈, 우선순위 변경은 Controller/Service 경로가 명확하게 존재한다. |
 
 ## 문서 작성 규칙
 

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@DisplayName("저장소 자동화 규칙 점검")
+@DisplayName("Repository automation conventions")
 class RepositoryConventionsSmokeTest {
 
     static Stream<String> requiredPaths() {
@@ -55,7 +55,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @ParameterizedTest
-    @DisplayName("필수 자동화 파일이 모두 존재한다")
+    @DisplayName("required automation files are present")
     @MethodSource("requiredPaths")
     void requiredAutomationFilesExist(String relativePath) {
         assertTrue(
@@ -179,7 +179,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @ParameterizedTest
-    @DisplayName("자동화 스크립트와 워크플로우가 한국어 안내 문구를 포함한다")
+    @DisplayName("automation scripts and workflows keep Korean guidance text")
     @MethodSource("requiredScriptGuardrails")
     void workflowScriptsExplainGuardrails(ScriptExpectation expectation) throws IOException {
         var text = Files.readString(Path.of(expectation.relativePath()));
@@ -191,7 +191,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("표준 PR 스크립트는 PR 생성 전 이슈 상태와 프로젝트 보드를 먼저 정렬한다")
+    @DisplayName("open-pr script syncs issue status and project board before creating a PR")
     void openPrPreparesIssueStatusBeforeCreatingPullRequest() throws IOException {
         var text = Files.readString(Path.of("scripts/open-pr.sh"));
 
@@ -219,7 +219,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("표준 PR 스크립트는 PR 생성 실패 시 사전 변경한 이슈 상태를 복구한다")
+    @DisplayName("open-pr script restores the saved issue status when PR creation fails")
     void openPrRestoresIssueStatusWhenPullRequestCreationFails() throws IOException {
         var text = Files.readString(Path.of("scripts/open-pr.sh"));
 
@@ -241,7 +241,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("GraphQL 의존 자동화는 브랜치 보호 필수 체크에 포함하지 않는다")
+    @DisplayName("GraphQL-dependent automation is not required for branch protection")
     void graphqlDependentAutomationIsNotARequiredStatusCheck() throws IOException {
         var text = Files.readString(Path.of("scripts/lib/bootstrap_github.py"));
 
@@ -257,7 +257,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("로컬 전용 audit는 제출 zip처럼 git metadata가 없어도 repo 감지를 요구하지 않는다")
+    @DisplayName("local-only audit does not require repository detection in submission zips")
     void localOnlyAuditSkipsRepositoryDetection() throws IOException {
         var text = Files.readString(Path.of("scripts/lib/project_maintenance.py"));
 
@@ -275,7 +275,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("SonarCloud 자동 분석은 Gradle coverage 제외 정책을 공유한다")
+    @DisplayName("SonarCloud auto analysis shares Gradle coverage exclusions")
     void sonarCloudAutomaticAnalysisUsesTheSameCoverageExclusions() throws IOException {
         var gradle = Files.readString(Path.of("build.gradle"));
         var sonarCloud = Files.readString(Path.of(".sonarcloud.properties"));
@@ -297,7 +297,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("이슈 목록과 검색은 related 전용 API 없이 표준 경로를 사용한다")
+    @DisplayName("issue list and search use the standard API path")
     void issueListAndSearchUseStandardPathWithoutRelatedDuplicateApi() throws IOException {
         try (Stream<Path> paths = Files.walk(Path.of("src/main/java"))) {
             var offenders = paths
@@ -317,7 +317,7 @@ class RepositoryConventionsSmokeTest {
     }
 
     @Test
-    @DisplayName("제출 패키징은 Python 표준 라이브러리로 zip을 생성한다")
+    @DisplayName("submission packaging creates zip files with Python standard library")
     void packageSubmissionUsesPythonZipArchive() throws IOException {
         var text = Files.readString(Path.of("scripts/package-submission.sh"));
 

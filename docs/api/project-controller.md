@@ -42,7 +42,7 @@
 
 | API | UC/SSD/OC | DCD/domain 근거 |
 | --- | --- | --- |
-| `createProject` | UC13, SSD-19 create project; 필수 OC 목록에는 없는 보조 API | `docs/uml/dcd/its_dcd.puml`의 `Project` 클래스와 managed by 관계; 구현 `Project.create`, `ProjectResult.from` |
+| `createProject` | UC13, SSD-19 create project; 필수 OC 목록에는 없는 보조 API | `docs/artifact/dcd/its_dcd.puml`의 `Project` 클래스와 managed by 관계; 구현 `Project.create`, `ProjectResult.from` |
 | `renameProject`, `changeProjectDescription` | UC13 프로젝트 관리 보조 API | `Project.rename`, `Project.changeDescription`, `ProjectResult.from` |
 | `addProjectParticipant` | UC13, SSD-20 add project member; 필수 OC 목록에는 없는 보조 API | DCD `User participates in Project`; 구현 `ProjectRepository.addParticipant`, `ProjectMemberResult` |
 | `removeProjectParticipant` | UC13, SSD-21 remove project member; 필수 OC 목록에는 없는 보조 API | DCD `User participates in Project`; 구현 `ProjectRepository.removeParticipant`, active assignment guard |
@@ -52,8 +52,8 @@
 
 | 분류 | 내용 |
 | --- | --- |
-| `implementation-extra` | 프로젝트 관리는 구현되어 있지만 `required_operation_contracts.md`에는 나열되어 있지 않다. |
-| `ui-scope` | ADMIN 프로젝트 상세는 이슈 목록을 포함하지 않는다. non-ADMIN 프로젝트 화면의 이슈 목록은 `IssueController.viewProjectIssues`에서 별도로 조회한다. |
+| `구현에서 보강된 부분` | 프로젝트 관리는 구현되어 있지만 `operation_contracts.md`에는 나열되어 있지 않다. |
+| `화면 범위 차이` | ADMIN 프로젝트 상세는 이슈 목록을 포함하지 않는다. non-ADMIN 프로젝트 화면의 이슈 목록은 `IssueController.viewProjectIssues`에서 별도로 조회한다. |
 
 ## 권한 및 실패 요약
 
